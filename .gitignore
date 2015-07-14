@@ -1,0 +1,8 @@
+utest*
+opt_cbf
+*.o
+*.a
+*out
+l2func.a
+local.mk
+*.pyc
