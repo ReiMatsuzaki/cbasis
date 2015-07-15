@@ -49,6 +49,12 @@ namespace l2func {
     }
     Field coef_i (int i) const { return cf_list_[i].first; }
     void Add(Field, const Prim&);
+    void ScalarProduct(Field c) {
+      for(typename VFP::iterator it = cf_list_.begin(),
+	    end = cf_list_.end(); it != end; ++it) {
+	it->first *=c;
+      }
+    }
     void operator += (pair<Field, Prim> cf);
     void operator += (const Prim& f);
     void operator += (const LinearComb<Prim>& o);

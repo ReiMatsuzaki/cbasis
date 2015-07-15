@@ -28,6 +28,9 @@ namespace l2func {
   int int_pow(int base, unsigned int expo);
   template<class F> F STO_Int(F z, int n);
   template<class F> F GTO_Int(F z, int n);
+  template<class Prim>
+  typename Prim::Field AtX
+  (typename Prim::Field x, const Prim& f);
        
   // ==================== STO or GTO =================
   // represent STO or GTO.
@@ -63,6 +66,10 @@ namespace l2func {
     int n() const { return n_; }
     F z() const { return z_; }
     void set_z(F z) { z_ = z; }    
+    F at_x(F x) const {
+      return AtX(x, *this);
+    }
+
   };
 
   // =========== typedef =========================
