@@ -28,8 +28,18 @@ namespace l2func {
     // ------- Constructors -----------
     LinearOp() { IsPrimitive<Prim>(); }
     // ------- setter -----------------
-    void Add(Field c, OP op) {
+    void AddOp(OP op) {
+      Field one(1);
+      this->AddCoefOp(one, op);
+    }
+    void AddCoefOp(Field c, OP op) {
       coef_op_list_.push_back(make_pair(c, op));
+    }
+    void Add(OP op) {
+      this->AddOp(op);
+    }
+    void Add(Field c, OP op) {
+      this->AddCoefOp(c, op);
     }
     // ------- getter -----------------
     int size() const { 
@@ -66,7 +76,6 @@ namespace l2func {
     LC operator () (const Prim& a) const {
       return OperatePrim(a);
     }
-   
     LC operator () (const LC& a) const {
       return OperateLC(a);
     }
@@ -75,10 +84,28 @@ namespace l2func {
   template<class Prim>
   LinearOp<Prim> LinearOpRM(int m) {
     LinearOp<Prim> acc;
-    typename Prim::Field one(1);
-    acc.Add(one, OpRm<Prim>(m));
+    acc.Add(OpRm<Prim>(m));
     return acc;
   }
+  template<class Prim>
+  LinearOp<Prim> LinearOpCst(typename Prim::Field c) {
+    LinearOp<Prim> acc;
+    acc.Add(OpCst<Prim>(c));
+    return acc;
+  }
+  template<class Prim>
+  LinearOp<Prim> LinearOpDDr() {
+    LinearOp<Prim> acc;
+    acc.Add(OpDDr<Prim>());
+    return acc;
+  }
+  template<class Prim>
+  LinearOp<Prim> LinearOpDDr2() {
+    LinearOp<Prim> acc;
+    acc.Add(OpDDr2<Prim>());
+    return acc;
+  }
+  
 
 }
 
