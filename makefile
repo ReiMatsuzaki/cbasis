@@ -1,5 +1,5 @@
 include local.mk
-CXXFLAGS=${INC_PATH} -Wall -O3
+CXXFLAGS=${INC_PATH} -Wall -O3 
 
 OBJS=hatom.o lcomb.o prim.o erfc.o fact.o
 
@@ -21,6 +21,12 @@ utest.o: utest.cpp
 utest: utest.o l2.a
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} utest.o l2.a
 	./utest
+
+l2func_bind.so: wrapper.cpp lcomb.o prim.o erfc.o fact.o 
+	${CXX} -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -DPIC -bundle -fPIC -o $@ wrapper.cpp lcomb.o prim.o erfc.o fact.o ${CXXFLAGS} -lboost_python  -framework Python
+
+utest_py: l2func_bind.so utest.py
+	python utest.py
 
 clean:
 	rm -f *.o

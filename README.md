@@ -1,0 +1,19 @@
+# Overview
+
+This library support numerical calculations using l2 basis
+functions. Now only one dimendional Slater Type Orbital(STO) 
+and Gauss Type Orbitals are supported. Complex version
+of these functions are also supported.
+
+# Source files
+
+- macros.hpp : simple macro is defined
+- fact.hpp : calculation of factorial
+- erfc.hpp : evaluations of real and complex error functions
+- prim.hpp : STO and GTO
+- lcomb.hpp: linear combinations of primitive basis
+- hatom.hpp: hydrogen atom eigensolutions
+
+
+
+

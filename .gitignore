@@ -1,6 +1,7 @@
 utest*
 opt_cbf
 *.o
+*.so
 *.a
 *out
 l2func.a

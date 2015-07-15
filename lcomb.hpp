@@ -42,8 +42,13 @@ namespace l2func {
     pair<Field, Prim>& operator [] (int i) {
       return cf_list_[i]; }
     const Prim& prim_i (int i) const {
-      return cf_list_[i].second; }
+      return cf_list_[i].second; 
+    }
+    const Prim prim_i_copied(int i) const {
+      return cf_list_[i].second;
+    }
     Field coef_i (int i) const { return cf_list_[i].first; }
+    void Add(Field, const Prim&);
     void operator += (pair<Field, Prim> cf);
     void operator += (const Prim& f);
     void operator += (const LinearComb<Prim>& o);

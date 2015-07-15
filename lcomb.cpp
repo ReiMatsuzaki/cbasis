@@ -14,6 +14,11 @@ namespace l2func {
   }
 
   template<class Prim>
+  void LinearComb<Prim>::Add(Field c, const Prim& o) {
+    cf_list_.push_back(make_pair(c, o));
+  }
+ 
+  template<class Prim>
   void LinearComb<Prim>::operator += (pair<Field, Prim> cf) {
     cf_list_.push_back(cf);
   }
