@@ -16,7 +16,7 @@ namespace {
 namespace l2func {
   
   template<class Prim>
-  class LinearOp {
+  class Op {
   public:
     // -------------- typedef -------------
     typedef LinearComb<Prim> LC;
@@ -28,7 +28,7 @@ namespace l2func {
     F_OPs coef_op_list_;
   public:
     // ------- Constructors -----------
-    LinearOp() { IsPrimitive<Prim>(); }
+    Op() { IsPrimitive<Prim>(); }
     // ------- setter -----------------
     void AddOp(OP op) {
       Field one(1);
@@ -85,29 +85,26 @@ namespace l2func {
 
   // ------- Factory Functions ------------
   template<class Prim>
-  LinearOp<Prim> LinearOpRM(int m) {
-    LinearOp<Prim> acc;
-    // acc.Add(OpRm<Prim>(m));
+  Op<Prim> OpRM(int m) {
+    Op<Prim> acc;
     acc.Add(bind(OperateRm<Prim>, m, _1));
     return acc;
   }
   template<class Prim>
-  LinearOp<Prim> LinearOpCst(typename Prim::Field c) {
-    LinearOp<Prim> acc;
-    // acc.Add(OpCst<Prim>(c));
+  Op<Prim> OpCst(typename Prim::Field c) {
+    Op<Prim> acc;
     acc.Add(bind(OperateCst<Prim>, c, _1));
     return acc;
   }
   template<class Prim>
-  LinearOp<Prim> LinearOpDDr() {
-    LinearOp<Prim> acc;
-    //acc.Add(OpDDr<Prim>());
+  Op<Prim> OpDDr() {
+    Op<Prim> acc;
     acc.Add(bind(OperateDDr<Prim>, _1));
     return acc;
   }
   template<class Prim>
-  LinearOp<Prim> LinearOpDDr2() {
-    LinearOp<Prim> acc;
+  Op<Prim> OpDDr2() {
+    Op<Prim> acc;
     acc.Add(bind(OperateDDr2<Prim>, _1));
     return acc;
   }
