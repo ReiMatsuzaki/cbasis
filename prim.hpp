@@ -120,6 +120,8 @@ namespace l2func {
   Prim OperateCst(typename Prim::Field c, const Prim& f) {
     return Prim(f.c() * c, f.n(), f.z());
   }
+
+  /*
   template<class Prim>
   boost::function<Prim(const Prim&)> OpRm(int m) {
     return bind(OperateRm<Prim>, m, _1);
@@ -128,6 +130,7 @@ namespace l2func {
   boost::function<Prim(const Prim&)> OpCst(typename Prim::Field c) {
     return bind(OperateCst<Prim>, c, _1);
   }  
+  */
 }
 
 #endif

@@ -102,6 +102,7 @@ namespace l2func {
     return CIP(lc1, o);
   }
 
+  /*
   template<class Prim>
   LinearComb<Prim> Op(boost::function<Prim(const Prim&)> op,
 		      const Prim& f) {
@@ -153,7 +154,7 @@ namespace l2func {
 
     return g;
   }
-
+  */
   template<class F, int m>
   LinearComb<ExpBasis<F,m> > OperateDDrForExp
   (const ExpBasis<F,m>& f) {
@@ -178,26 +179,45 @@ namespace l2func {
     return OperateDDrForExp<typename Prim::Field,
 			    Prim::exp_power>(f);
   }
+
+  /*
   template<class Prim>
   boost::function<LinearComb<Prim>(const Prim&)> OpDDr() {
     return bind(OperateDDr<Prim>, _1);
   }
+  */
 
   template<class Prim>
   LinearComb<Prim> OperateDDr2 (const Prim& f) {
-    LinearComb<Prim> df =  Op(OpDDr<Prim>(), f );
-    LinearComb<Prim> ddf = Op(OpDDr<Prim>(), df);
-    return ddf;
+    
+    // f  = r^n exp(-zr^m)
+    // df = (nr^{n-1} -mzr^{n+m-1}) exp(-zr^m)
+    // ddf= (n(n-1)r^{n-2} -mz(n+m-1)r^{n+m-2}
+    //     +-zmnr^{n+m-2} +mmzzr^{n+2m-2} ) exp(-zr^m)
+    
+    typedef typename Prim::Field F;
+    F   c = f.c();
+    int n = f.n();
+    int m = Prim::exp_power;
+    F   z = f.z();
+    
+    LinearComb<Prim> res;
+    res += c * Prim(n*(n-1),        n-2,     z);
+    res += c * Prim(-m*z*(2*n+m-1), n+m-2,   z);
+    res += c * Prim(m*m*z*z,        n+2*m-2, z);
+    return res;
   }
-  template<class Prim>
+
+  /*
+ template<class Prim>
   boost::function<LinearComb<Prim>(const Prim&)> OpDDr2() {
     return bind(OperateDDr2<Prim>, _1);
   }
+  */
 
   template<class Prim>
   typename Prim::Field AtX(typename Prim::Field x,
 			   const LinearComb<Prim>& f) {
-    
     typename Prim::Field acc(0);
 
     typedef typename LinearComb<Prim>::const_iterator IT;

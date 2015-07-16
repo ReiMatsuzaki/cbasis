@@ -1,6 +1,8 @@
 #include "hatom.hpp"
 #include <boost/lexical_cast.hpp>
 #include "macros.hpp"
+#include "op.hpp"
+
 
 namespace l2func {
 
@@ -13,13 +15,15 @@ namespace l2func {
   HLikeAtom<F>::OperateHamiltonian(const Prim& o) {
 
     IsPrimitive<Prim>();
-    LinearComb<Prim> res;
-    res += Op(OpCst<Prim>(-0.5), Op(OpDDr2<Prim>(), o));
-    res += Op(OpCst<Prim>(-z_), Op(OpRm<Prim>(-1), o));
-    if(l_ != 0)
-      res += Op(OpCst<Prim>(l_*(l_+1)/2.0), 
-		Op(OpRm<Prim>(-2), o));
-    return res;        
+
+    LinearOp<Prim> op;
+    op.Add(-0.5, LinearOpDDr2<Prim>());
+    op.Add(-z_ , LinearOpRM<Prim>(-1));
+    if(l_ != 0) 
+      op.Add( l_ * (l_ + 1) / 2.0, LinearOpRM<Prim>(-2));
+
+    LinearComb<Prim> res = op(o);
+    return res;
   }
 
   // ----------- eigen state ------------
@@ -88,7 +92,7 @@ namespace l2func {
     typedef LinearComb<Prim> LC;
 
     LC psi_n = this->EigenState();
-    LC res = Op(OpRm<Prim>(1), psi_n);
+    LC res = LinearOpRM<Prim>(1)(psi_n);
     return res;
     
   }
@@ -106,7 +110,7 @@ namespace l2func {
     typedef LinearComb<Prim> LC;
     
     LC psi_n = this->EigenState();
-    LC a = Op(OpDDr<Prim>(), psi_n);
+    LC a = LinearOpDDr<Prim>()(psi_n);
 
     if( l_ > 0) {
       double coef;
@@ -115,7 +119,10 @@ namespace l2func {
 	coef = - (l_ + 1);
       else 
         coef = l_;
-      b = Op(OpCst<Prim>(coef), Op(OpRm<Prim>(-1), psi_n));
+      
+      LinearOp<Prim> op;
+      op.Add(coef, LinearOpRM<Prim>(-1));
+      b = op(psi_n);
       a += b;
     }
     return a;    	

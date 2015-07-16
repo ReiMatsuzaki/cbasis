@@ -4,11 +4,13 @@
 #include <vector>
 #include <boost/function.hpp>
 #include "lcomb.hpp"
+#include <boost/bind.hpp>
 
 namespace {
   using std::vector;
   using std::pair;
   using std::make_pair;
+  using boost::bind;  
 }
 
 namespace l2func {
@@ -80,29 +82,33 @@ namespace l2func {
       return OperateLC(a);
     }
   };
-  
+
+  // ------- Factory Functions ------------
   template<class Prim>
   LinearOp<Prim> LinearOpRM(int m) {
     LinearOp<Prim> acc;
-    acc.Add(OpRm<Prim>(m));
+    // acc.Add(OpRm<Prim>(m));
+    acc.Add(bind(OperateRm<Prim>, m, _1));
     return acc;
   }
   template<class Prim>
   LinearOp<Prim> LinearOpCst(typename Prim::Field c) {
     LinearOp<Prim> acc;
-    acc.Add(OpCst<Prim>(c));
+    // acc.Add(OpCst<Prim>(c));
+    acc.Add(bind(OperateCst<Prim>, c, _1));
     return acc;
   }
   template<class Prim>
   LinearOp<Prim> LinearOpDDr() {
     LinearOp<Prim> acc;
-    acc.Add(OpDDr<Prim>());
+    //acc.Add(OpDDr<Prim>());
+    acc.Add(bind(OperateDDr<Prim>, _1));
     return acc;
   }
   template<class Prim>
   LinearOp<Prim> LinearOpDDr2() {
     LinearOp<Prim> acc;
-    acc.Add(OpDDr2<Prim>());
+    acc.Add(bind(OperateDDr2<Prim>, _1));
     return acc;
   }
   
