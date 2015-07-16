@@ -1,7 +1,7 @@
 include local.mk
 CXXFLAGS=${INC_PATH} -Wall -O3 
 
-OBJS=hatom.o lcomb.o prim.o erfc.o fact.o
+OBJS=hatom.o op.o lcomb.o prim.o erfc.o fact.o
 
 # this command run correctly on rcclsc
 #l2.a: ${OBJS}
@@ -12,6 +12,7 @@ l2.a: ${OBJS}
 	ar r $@ ${OBJS}
 
 hatom.o: hatom.cpp hatom.hpp
+op.o: op.cpp op.hpp
 lcomb.o: lcomb.cpp lcomb.hpp
 prim.o:  prim.cpp  prim.hpp
 erfc.o:  erfc.cpp  erfc.hpp

@@ -20,95 +20,34 @@ namespace l2func {
   public:
     // -------------- typedef -------------
     typedef LinearComb<Prim> LC;
-    typedef function<LC (const Prim&)> OP;
+    typedef function<LC (const Prim&)> Func;
     typedef typename Prim::Field Field;
-    typedef vector<pair<Field, OP> > F_OPs;
-    typedef typename F_OPs::const_iterator cIT;
+    typedef vector<pair<Field, Func> > F_Funcs;
+    typedef typename F_Funcs::const_iterator cIT;
   private:
-    F_OPs coef_op_list_;
+    F_Funcs coef_op_list_;
   public:
     // ------- Constructors -----------
-    Op() { IsPrimitive<Prim>(); }
+    Op();
     // ------- setter -----------------
-    void AddOp(OP op) {
-      Field one(1);
-      this->AddCoefOp(one, op);
-    }
-    void AddCoefOp(Field c, OP op) {
-      coef_op_list_.push_back(make_pair(c, op));
-    }
-    void Add(OP op) {
-      this->AddOp(op);
-    }
-    void Add(Field c, OP op) {
-      this->AddCoefOp(c, op);
-    }
+    void AddOp(Func op);
+    void AddCoefOp(Field c, Func op);
+    void Add(Func op);
+    void Add(Field c, Func op);
     // ------- getter -----------------
-    int size() const { 
-      return coef_op_list_.size(); 
-    }
+    int size() const;
     // -------- operate ---------------
-    LC OperatePrim(const Prim& a) const {
-      LC acc;
-      for(cIT it = coef_op_list_.begin(),
-	    end = coef_op_list_.end(); it != end; ++it) {
-	Field c = it->first;
-	OP op = it->second;
-	LC tmp = op(a);
-	tmp.ScalarProduct(c);
-	acc += tmp;
-      }
-      return acc;
-    }
-    LC OperateLC(const LC& a) const {
-
-      LC res;
-
-      for( typename LC::const_iterator it = a.begin(),
-	     end = a.end(); it != end; ++it) {
-	typename LC::Field c = it->first;
-	Prim      f = it->second;
-	LC op_f = this->OperatePrim(f);
-	op_f.ScalarProduct(c);
-	res += op_f;
-      }
-      
-      return res;
-    }
-    LC operator () (const Prim& a) const {
-      return OperatePrim(a);
-    }
-    LC operator () (const LC& a) const {
-      return OperateLC(a);
-    }
+    LC OperatePrim(const Prim& a) const;
+    LC OperateLC(const LC& a) const;
+    LC operator () (const Prim& a) const;
+    LC operator () (const LC& a) const;
   };
 
   // ------- Factory Functions ------------
-  template<class Prim>
-  Op<Prim> OpRM(int m) {
-    Op<Prim> acc;
-    acc.Add(bind(OperateRm<Prim>, m, _1));
-    return acc;
-  }
-  template<class Prim>
-  Op<Prim> OpCst(typename Prim::Field c) {
-    Op<Prim> acc;
-    acc.Add(bind(OperateCst<Prim>, c, _1));
-    return acc;
-  }
-  template<class Prim>
-  Op<Prim> OpDDr() {
-    Op<Prim> acc;
-    acc.Add(bind(OperateDDr<Prim>, _1));
-    return acc;
-  }
-  template<class Prim>
-  Op<Prim> OpDDr2() {
-    Op<Prim> acc;
-    acc.Add(bind(OperateDDr2<Prim>, _1));
-    return acc;
-  }
-  
+  template<class Prim> Op<Prim> OpRM(int m);
+  template<class Prim> Op<Prim> OpCst(typename Prim::Field c);
+  template<class Prim> Op<Prim> OpDDr();
+  template<class Prim> Op<Prim> OpDDr2();
 
 }
 
