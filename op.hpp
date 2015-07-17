@@ -32,10 +32,13 @@ namespace l2func {
     // ------- setter -----------------
     void AddOp(Func op);
     void AddCoefOp(Field c, Func op);
+    void AddOther(const Op<Prim>&);
     void Add(Func op);
     void Add(Field c, Func op);
     // ------- getter -----------------
     int size() const;
+    cIT begin() const;
+    cIT end() const;
     // -------- operate ---------------
     LC OperatePrim(const Prim& a) const;
     LC OperateLC(const LC& a) const;
@@ -49,6 +52,22 @@ namespace l2func {
   template<class Prim> Op<Prim> OpDDr();
   template<class Prim> Op<Prim> OpDDr2();
 
+  // ------- Functions --------------------
+  template<class Prim> Op<Prim> ScalarProductOp
+  (typename Prim::Field c, const Op<Prim>& op) {
+    
+    Op<Prim> res;
+    for(typename Op<Prim>::cIT it = op.begin(),
+	  end = op.end(); it != end; ++it) {
+      
+      res.AddCoefOp(c * it->first, it->second);
+
+    }
+
+    return res;
+    
+  }
+  
 }
 
 

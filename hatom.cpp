@@ -16,11 +16,11 @@ namespace l2func {
 
     IsPrimitive<Prim>();
 
-    LinearOp<Prim> op;
-    op.Add(-0.5, LinearOpDDr2<Prim>());
-    op.Add(-z_ , LinearOpRM<Prim>(-1));
+    Op<Prim> op;
+    op.Add(-0.5, OpDDr2<Prim>());
+    op.Add(-z_ , OpRM<Prim>(-1));
     if(l_ != 0) 
-      op.Add( l_ * (l_ + 1) / 2.0, LinearOpRM<Prim>(-2));
+      op.Add( l_ * (l_ + 1) / 2.0, OpRM<Prim>(-2));
 
     LinearComb<Prim> res = op(o);
     return res;
@@ -92,7 +92,7 @@ namespace l2func {
     typedef LinearComb<Prim> LC;
 
     LC psi_n = this->EigenState();
-    LC res = LinearOpRM<Prim>(1)(psi_n);
+    LC res = OpRM<Prim>(1)(psi_n);
     return res;
     
   }
@@ -110,7 +110,7 @@ namespace l2func {
     typedef LinearComb<Prim> LC;
     
     LC psi_n = this->EigenState();
-    LC a = LinearOpDDr<Prim>()(psi_n);
+    LC a = OpDDr<Prim>()(psi_n);
 
     if( l_ > 0) {
       double coef;
@@ -120,8 +120,8 @@ namespace l2func {
       else 
         coef = l_;
       
-      LinearOp<Prim> op;
-      op.Add(coef, LinearOpRM<Prim>(-1));
+      Op<Prim> op;
+      op.Add(coef, OpRM<Prim>(-1));
       b = op(psi_n);
       a += b;
     }

@@ -14,8 +14,42 @@ namespace l2func {
   }
 
   template<class Prim>
-  void LinearComb<Prim>::Add(Field c, const Prim& o) {
+  typename Prim::Field LinearComb<Prim>::at_x(Field x) const {
+
+    Field acc(0);
+
+    typedef typename LinearComb<Prim>::const_iterator IT;
+    for(IT it = this->begin(), end_it = this->end(); it != end_it; ++it) 
+      acc += it->first * it->second.at_x(x);
+
+    return acc;    
+  }
+
+  template<class Prim>
+  void LinearComb<Prim>::AddCoefPrim
+  (Field c, const Prim& o) {
     cf_list_.push_back(make_pair(c, o));
+  }
+  template<class Prim>
+  void LinearComb<Prim>::AddOther
+  (const LinearComb<Prim>& o) {
+
+    for(const_iterator it = o.begin(),
+	  end = o.end(); it != end; ++it) {
+      Field c = it->first;
+      Prim  f = it->second;
+      cf_list_.push_back(make_pair(c, f));
+    }
+
+  }
+
+  template<class Prim>
+  void LinearComb<Prim>::Add(Field c, const Prim& o) {
+    this->AddCoefPrim(c, o);
+  }
+  template<class Prim>
+  void LinearComb<Prim>::Add(const LinearComb<Prim>& o) {
+    this->AddOther(o);
   }
  
   template<class Prim>

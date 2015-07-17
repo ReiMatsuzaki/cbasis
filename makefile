@@ -24,7 +24,7 @@ utest: utest.o l2.a
 	./utest
 
 l2func_bind.so: wrapper.cpp lcomb.o prim.o erfc.o fact.o 
-	${CXX} -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -DPIC -bundle -fPIC -o $@ wrapper.cpp lcomb.o prim.o erfc.o fact.o ${CXXFLAGS} -lboost_python  -framework Python
+	${CXX} -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -DPIC -bundle -fPIC -o $@ wrapper.cpp ${OBJS} ${CXXFLAGS} -lboost_python  -framework Python
 
 utest_py: l2func_bind.so utest.py
 	python utest.py

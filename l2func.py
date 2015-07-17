@@ -1,5 +1,10 @@
 from l2func_bind import *
 
+def sto(c, n, z):
+    res = STOs()
+    res.add_one(1.0, STO(c, n, z))
+    return res
+
 """
 class STO:
     def sym_ip_with(other):

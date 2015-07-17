@@ -2,6 +2,7 @@
 #define LCOMB_HPP
 
 #include <vector>
+#include <iostream>
 #include <boost/function.hpp>
 #include "prim.hpp"
 
@@ -35,7 +36,7 @@ namespace l2func {
     LinearComb(int n);
     LinearComb(const Prim& prim);
     
-    // ---------- Accessor ------------------
+    // ---------- Getter ------------------
     int size() const { return cf_list_.size(); }
     const_iterator begin() const { return cf_list_.begin(); }
     const_iterator end() const { return cf_list_.end(); }
@@ -47,8 +48,15 @@ namespace l2func {
     const Prim prim_i_copied(int i) const {
       return cf_list_[i].second;
     }
-    Field coef_i (int i) const { return cf_list_[i].first; }
+    Field coef_i (int i) const { 
+      return cf_list_[i].first; }
+    Field at_x(Field x) const;
+
+    // ---------- Setter -----------------
+    void AddCoefPrim(Field, const Prim&);
+    void AddOther(const LinearComb<Prim>&);
     void Add(Field, const Prim&);
+    void Add(const LinearComb<Prim>&);
     void ScalarProduct(Field c) {
       for(typename VFP::iterator it = cf_list_.begin(),
 	    end = cf_list_.end(); it != end; ++it) {
@@ -61,6 +69,25 @@ namespace l2func {
   };
 
   // =============== Functions ==================
+
+  template<class Prim>
+  LinearComb<Prim> ScalarProductForLC
+  (typename Prim::Field c, const LinearComb<Prim>& f) {
+
+    LinearComb<Prim> res;
+    typedef typename LinearComb<Prim>::const_iterator IT;
+    typedef typename Prim::Field Field;
+
+    for(IT it = f.begin(), end = f.end(); it!=end; ++it){
+      Field c0 = it->first;
+      Prim  f0 = it->second;
+      res.AddCoefPrim(c * c0, f0);
+     }
+
+    return res;
+
+  }
+
   template<class Prim>
   pair<typename Prim::Field, Prim> operator *
   (typename Prim::Field c, const Prim& f) {
@@ -101,6 +128,7 @@ namespace l2func {
 			    const LinearComb<Prim>& lc1) {
     return CIP(lc1, o);
   }
+
 
   /*
   template<class Prim>
@@ -215,16 +243,13 @@ namespace l2func {
   }
   */
 
+  // to be removed
   template<class Prim>
   typename Prim::Field AtX(typename Prim::Field x,
 			   const LinearComb<Prim>& f) {
-    typename Prim::Field acc(0);
-
-    typedef typename LinearComb<Prim>::const_iterator IT;
-    for(IT it = f.begin(), end_it = f.end(); it != end_it; ++it) 
-      acc += it->first * AtX(x, it->second);
-
-    return acc;
+    std::cout << "function AtX will be removed" << std::endl;
+    std::cout << "Prim::Field AtX(Prim::Field x, const LinearComb<Prim>&)" << std::endl;
+    return f.at_x(x);
   }
 
   // --------- derivative basis -------------
