@@ -30,6 +30,20 @@ F sym_ip(const P1& a, const P2 b) {
   return CIP(a, b);
 }
 
+template<class Prim>
+LinearComb<Prim> DerivNormalized(int n, typename Prim::Field z) {
+
+  Prim f(n, z, Normalized);
+  return D1Normalized(f);
+
+}
+template<class Prim>
+LinearComb<Prim> DoubleDerivNormalized
+(int n, typename Prim::Field z) {
+  Prim f(n, z, Normalized);
+  return D2Normalized(f);
+}
+
 
 BOOST_PYTHON_MODULE(l2func_bind) {
 
@@ -40,7 +54,7 @@ BOOST_PYTHON_MODULE(l2func_bind) {
     .def("n", &STO::n)
     .def("z", &STO::z)
     .def("set_z", &STO::set_z)
-    .def("at_x", &STO::at_x);
+    .def("at_x", &STO::at);
   
 
   class_<GTO>("GTO", init<F, int, F>())
@@ -48,13 +62,13 @@ BOOST_PYTHON_MODULE(l2func_bind) {
     .def("n", &GTO::n)
     .def("z", &GTO::z)
     .def("set_z", &GTO::set_z)
-    .def("at_x", &GTO::at_x);
+    .def("at_x", &GTO::at);
 
   class_<STOs>("STOs", init<>())
     .def("size", &STOs::size)
     .def("coef_i", &STOs::coef_i)
     .def("add", &STOs::AddOther)
-    .def("at_x", &STOs::at_x)
+    .def("at_x", &STOs::at)
     .def("add_one", &STOs::AddCoefPrim)
     .def("prim_i", &STOs::prim_i_copied);
   
@@ -63,7 +77,7 @@ BOOST_PYTHON_MODULE(l2func_bind) {
     .def("size", &GTOs::size)
     .def("coef_i", &GTOs::coef_i)
     .def("add", &GTOs::AddOther)
-    .def("at_x", &GTOs::at_x)
+    .def("at_x", &GTOs::at)
     .def("add_one", &GTOs::AddCoefPrim)
     .def("prim_i", &GTOs::prim_i_copied);
 
@@ -76,6 +90,11 @@ BOOST_PYTHON_MODULE(l2func_bind) {
   def("sym_ip_sg", sym_ip<STOs, GTOs>);
   def("sym_ip_gs", sym_ip<GTOs, STOs>);
   def("sym_ip_gg", sym_ip<GTOs, GTOs>);
+
+  def("d_normalized_sto", DerivNormalized<STO>);
+  def("dd_normalized_sto", DoubleDerivNormalized<STO>);
+  def("d_normalized_gto", DerivNormalized<GTO>);
+  def("dd_normalized_gto", DoubleDerivNormalized<GTO>);
 
   class_<Op<STO> >("Op_sto", init<>())
     .def("add", &Op<STO>::AddOther)

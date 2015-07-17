@@ -14,13 +14,13 @@ namespace l2func {
   }
 
   template<class Prim>
-  typename Prim::Field LinearComb<Prim>::at_x(Field x) const {
+  typename Prim::Field LinearComb<Prim>::at(Field x) const {
 
     Field acc(0);
 
     typedef typename LinearComb<Prim>::const_iterator IT;
     for(IT it = this->begin(), end_it = this->end(); it != end_it; ++it) 
-      acc += it->first * it->second.at_x(x);
+      acc += it->first * it->second.at(x);
 
     return acc;    
   }

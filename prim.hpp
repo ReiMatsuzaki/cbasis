@@ -28,9 +28,6 @@ namespace l2func {
   int int_pow(int base, unsigned int expo);
   template<class F> F STO_Int(F z, int n);
   template<class F> F GTO_Int(F z, int n);
-  template<class Prim>
-  typename Prim::Field AtX
-  (typename Prim::Field x, const Prim& f);
        
   // ==================== STO or GTO =================
   // represent STO or GTO.
@@ -66,8 +63,8 @@ namespace l2func {
     int n() const { return n_; }
     F z() const { return z_; }
     void set_z(F z) { z_ = z; }    
-    F at_x(F x) const {
-      return AtX(x, *this);
+    F at(F x) const {
+      return c_ * pow(x, n_) * exp(-z_ * pow(x, m));
     }
 
   };
@@ -99,11 +96,14 @@ namespace l2func {
   template<class F, int m>
   ostream& operator << (ostream& os, const ExpBasis<F,m>& a);
 
+  /*
   template<class Prim>
   typename Prim::Field AtX(typename Prim::Field x, const Prim& f) {
     int m = Prim::exp_power;
     return f.c() * pow(x, f.n()) * exp(-f.z() * pow(x, m));
   }
+  */
+
   template<int num, class Prim>
   Prim DBasis(typename Prim::Field c, int n,
 	      typename Prim::Field z) {

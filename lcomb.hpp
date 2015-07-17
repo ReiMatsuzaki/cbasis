@@ -50,7 +50,7 @@ namespace l2func {
     }
     Field coef_i (int i) const { 
       return cf_list_[i].first; }
-    Field at_x(Field x) const;
+    Field at(Field x) const;
 
     // ---------- Setter -----------------
     void AddCoefPrim(Field, const Prim&);
@@ -243,6 +243,7 @@ namespace l2func {
   }
   */
 
+  /*
   // to be removed
   template<class Prim>
   typename Prim::Field AtX(typename Prim::Field x,
@@ -251,6 +252,7 @@ namespace l2func {
     std::cout << "Prim::Field AtX(Prim::Field x, const LinearComb<Prim>&)" << std::endl;
     return f.at_x(x);
   }
+  */
 
   // --------- derivative basis -------------
   // assuming a is normalized basis set.
