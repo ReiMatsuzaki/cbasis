@@ -1,18 +1,42 @@
+#include <boost/bind.hpp>
 #include "op.hpp"
+
+namespace {
+  using boost::bind;
+}
 
 namespace l2func {
 
   template<class Prim> Op<Prim>::Op() {}
-  template<class Prim> void Op<Prim>::AddOp(Func op) {
-    Field one(1);
-    this->AddCoefOp(one, op);    
+
+  template<class Prim> int Op<Prim>::size() const {
+    return coef_op_list_.size();
+  } 
+  template<class Prim> typename Op<Prim>::const_iterator 
+  Op<Prim>::begin() const {
+    return coef_op_list_.begin();
   }
-  template<class Prim> void Op<Prim>::AddCoefOp(Field c, Func f) {
+  template<class Prim> typename Op<Prim>::const_iterator 
+  Op<Prim>::end() const {
+    return coef_op_list_.end();
+  }
+  template<class Prim> typename Op<Prim>::iterator Op<Prim>::begin() {
+    return coef_op_list_.begin();
+  }
+  template<class Prim> typename Op<Prim>::iterator Op<Prim>::end() {
+    return coef_op_list_.end();
+  }
+
+  template<class Prim> void Op<Prim>::AddFunc(Func op) {
+    Field one(1);
+    this->AddCoefFunc(one, op);    
+  }
+  template<class Prim> void Op<Prim>::AddCoefFunc(Field c, Func f) {
     coef_op_list_.push_back(make_pair(c, f));
   }
   template<class Prim> void Op<Prim>::AddOther(const Op<Prim>& o) {
     
-    for(cIT it = o.begin(), end = o.end(); it != end; ++it) {
+    for(const_iterator it = o.begin(), end = o.end(); it != end; ++it) {
 
       coef_op_list_.push_back(*it);
 
@@ -20,24 +44,29 @@ namespace l2func {
 
   }
   template<class Prim> void Op<Prim>::Add(Func op) {
-    this->AddOp(op);
+    this->AddFunc(op);
   }
   template<class Prim> void Op<Prim>::Add(Field c, Func op) {
-    this->AddCoefOp(c, op);
+    this->AddCoefFunc(c, op);
   }
-  template<class Prim> int Op<Prim>::size() const {
-    return coef_op_list_.size();
-  } 
-  template<class Prim> typename Op<Prim>::cIT Op<Prim>::begin() const {
-    return coef_op_list_.begin();
+  template<class Prim> void Op<Prim>::Add(const Op<Prim>& o) {
+    this->AddOther(o);
   }
-  template<class Prim> typename Op<Prim>::cIT Op<Prim>::end() const {
-    return coef_op_list_.end();
+  template<class Prim> void Op<Prim>::ScalarProduct(Field c) {
+    
+    for(iterator it = this->begin(), end = this->end();
+	  it != end; ++it) {
+
+      it->first *= c;
+
+    }
+
   }
 
-  template<class Prim> LinearComb<Prim> Op<Prim>::OperatePrim(const Prim& a) const {
+  template<class Prim> LinearComb<Prim> 
+  Op<Prim>::OperatePrim(const Prim& a) const {
     LC acc;
-    for(cIT it = coef_op_list_.begin(),
+    for(const_iterator it = coef_op_list_.begin(),
 	  end = coef_op_list_.end(); it != end; ++it) {
       Field c = it->first;
       Func op = it->second;
@@ -47,7 +76,8 @@ namespace l2func {
     }
     return acc;
   }
-  template<class Prim> LinearComb<Prim> Op<Prim>::OperateLC(const LC& a) const {
+  template<class Prim> LinearComb<Prim> 
+  Op<Prim>::OperateLC(const LC& a) const {
 
       LC res;
 
@@ -62,10 +92,12 @@ namespace l2func {
       
       return res;
     }
-  template<class Prim> LinearComb<Prim> Op<Prim>::operator() (const Prim& a) const  {
+  template<class Prim> LinearComb<Prim> 
+  Op<Prim>::operator() (const Prim& a) const  {
     return OperatePrim(a);
   }
-  template<class Prim> LinearComb<Prim> Op<Prim>::operator() (const LinearComb<Prim>& a) const {
+  template<class Prim> LinearComb<Prim> 
+  Op<Prim>::operator() (const LinearComb<Prim>& a) const {
     return OperateLC(a);
   }
 
@@ -91,20 +123,6 @@ namespace l2func {
   }
 
   // --------- explicit instance ------------
-#define EXP_INSTANCE(a) \
-  template a<RSTO>; \
-  template a<CSTO>; \
-  template a<RGTO>; \
-  template a<CGTO>; 
-
-  /*
-  EXP_INSTANCE(class Op);
-  EXP_INSTANCE(OpRM);
-  EXP_INSTANCE(OpCst);
-  EXP_INSTANCE(OpDDr);
-  EXP_INSTANCE(OpDDr2);
-  */
-
   template class Op<RSTO>;
   template class Op<CSTO>;
   template class Op<RGTO>;

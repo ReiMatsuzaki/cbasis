@@ -1,17 +1,11 @@
 #ifndef PRIM_HPP
 #define PRIM_HPP
 
-#include <string>
 #include <complex>
-#include <boost/function.hpp>
-#include <boost/bind.hpp>
 
 namespace {
-  using std::string;
   using std::ostream;
   typedef std::complex<double> CD;
-  using boost::function;
-  using boost::bind;  
 }
 
 namespace l2func {
@@ -46,12 +40,10 @@ namespace l2func {
     F c_;    // coefficient
     int n_;  // principle number
     F z_;    // orbital exponent
-    //    bool is_zero_; // if true this basis is 0 in Hilbert space.
     
   public:
     // ----------- Constructors ---------------------
     ExpBasis();
-    ExpBasis(int _n, F _z);
     ExpBasis(F _c, int _n, F _z);
     ExpBasis(int _n, F _z, ENormalized);
     template<class U>
@@ -63,14 +55,11 @@ namespace l2func {
     int n() const { return n_; }
     F z() const { return z_; }
     void set_z(F z) { z_ = z; }    
-    F at(F x) const {
-      return c_ * pow(x, n_) * exp(-z_ * pow(x, m));
-    }
+    F at(F x) const;
 
   };
 
   // =========== typedef =========================
-  
   typedef ExpBasis<double, 1> RSTO;
   typedef ExpBasis<double, 2> RGTO;
   typedef ExpBasis<CD, 1> CSTO;
@@ -96,41 +85,11 @@ namespace l2func {
   template<class F, int m>
   ostream& operator << (ostream& os, const ExpBasis<F,m>& a);
 
-  /*
   template<class Prim>
-  typename Prim::Field AtX(typename Prim::Field x, const Prim& f) {
-    int m = Prim::exp_power;
-    return f.c() * pow(x, f.n()) * exp(-f.z() * pow(x, m));
-  }
-  */
+  Prim OperateRm( int m, const Prim& f);
+  template<class Prim>
+  Prim OperateCst(typename Prim::Field c, const Prim& f);
 
-  template<int num, class Prim>
-  Prim DBasis(typename Prim::Field c, int n,
-	      typename Prim::Field z) {
-    
-    IsPrimitive<Prim>();
-    int m = Prim::exp_power;
-    return Prim(pow(-1.0, num) * c, n + m * num, z);
-  }
-  template<class Prim>
-  Prim OperateRm( int m, const Prim& f) {
-    return Prim(f.c(), f.n() + m, f.z());
-  }
-  template<class Prim>
-  Prim OperateCst(typename Prim::Field c, const Prim& f) {
-    return Prim(f.c() * c, f.n(), f.z());
-  }
-
-  /*
-  template<class Prim>
-  boost::function<Prim(const Prim&)> OpRm(int m) {
-    return bind(OperateRm<Prim>, m, _1);
-  }
-  template<class Prim>
-  boost::function<Prim(const Prim&)> OpCst(typename Prim::Field c) {
-    return bind(OperateCst<Prim>, c, _1);
-  }  
-  */
 }
 
 #endif

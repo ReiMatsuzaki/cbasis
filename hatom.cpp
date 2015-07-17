@@ -9,25 +9,7 @@ namespace l2func {
   template<class F>
   HLikeAtom<F>::HLikeAtom(int _n, F _z, int _l) :
   n_(_n), z_(_z), l_(_l) {}
-
-  /*
-  template<class F> template<class Prim>
-  LinearComb<Prim>  
-  HLikeAtom<F>::OperateHamiltonian(const Prim& o) {
-
-    IsPrimitive<Prim>();
-
-    Op<Prim> op;
-    op.Add(-0.5, OpDDr2<Prim>());
-    op.Add(-z_ , OpRM<Prim>(-1));
-    if(l_ != 0) 
-      op.Add( l_ * (l_ + 1) / 2.0, OpRM<Prim>(-2));
-
-    LinearComb<Prim> res = op(o);
-    return res;
-  }
-  */
-
+  
   // ----------- eigen state ------------
   template<class F>
   LinearComb<ExpBasis<F,1> >
@@ -138,19 +120,17 @@ namespace l2func {
   typedef std::complex<double> CD;
   template class HLikeAtom<double>;
   template class HLikeAtom<CD>;
-  /*
-  template LinearComb<CSTO>  
-  HLikeAtom<CD>::OperateHamiltonian(const CSTO& o);
-  template LinearComb<RSTO>  
-  HLikeAtom<double>::OperateHamiltonian(const RSTO& o);
-  */
 
   /*
-  template
-  function<LinearComb<CSTO>(const CSTO&) >
-  HLikeAtom<CD>::Hamiltonian();
-  template
-  function<LinearComb<CGTO>(const CGTO&) >
-  HLikeAtom<CD>::Hamiltonian();
-    */
+  template Op<RSTO> HLikeAtom<double>::Hamiltonian<RSTO>();
+  template Op<CSTO> HLikeAtom<CD>::Hamiltonian<CSTO>();
+  template Op<RGTO> HLikeAtom<double>::Hamiltonian<RGTO>();
+  template Op<CGTO> HLikeAtom<CD>::Hamiltonian<CGTO>();
+
+  template Op<RSTO> HLikeAtom<double>::HMinusEnergy<RSTO>(double e);
+  template Op<CSTO> HLikeAtom<CD>::HMinusEnergy<CSTO>(CD);
+  template Op<RGTO> HLikeAtom<double>::HMinusEnergy<RGTO>(double);
+  template Op<CGTO> HLikeAtom<CD>::HMinusEnergy<CGTO>(CD);
+  */
+  
 }

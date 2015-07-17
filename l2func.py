@@ -20,6 +20,10 @@ def h_like_atom(s, z=1.0):
     else:
         return None
 
+def scalar_prod(scalar, other):
+    res = other.clone()
+    res.scalar_prod(scalar)
+    return res
 
 """
 class STO:

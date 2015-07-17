@@ -4,7 +4,7 @@
 
 namespace {
   using erfc_mori::ErfcCalcData;
-
+  using std::string;
 }
 
 namespace l2func {
@@ -47,8 +47,6 @@ namespace l2func {
   template<class F, int m>
   ExpBasis<F,m>::ExpBasis() : c_(0), n_(0), z_(F(1.0)) {}
   template<class F, int m>
-  ExpBasis<F,m>::ExpBasis(int _n, F _z):c_(1), n_(_n),z_(_z) {}
-  template<class F, int m>
   ExpBasis<F,m>::ExpBasis(F _c, int _n, F _z) :
     c_(_c), n_(_n), z_(_z) {}
   template<class F, int m>
@@ -63,6 +61,11 @@ namespace l2func {
       
       c_ = F(1) / sqrt(c2);
     }
+
+  template<class F, int m>
+  F ExpBasis<F,m>::at(F x) const {
+    return c_ * pow(x, n_) * exp(-z_ * pow(x, m));
+  }
   
   template<class F, int m>
   std::ostream& operator << (std::ostream& os, 
@@ -86,6 +89,24 @@ namespace l2func {
   template std::ostream& operator <<<CD,2> (std::ostream& os, const CGTO& a);
   template std::ostream& operator <<<double,2> (std::ostream& os, const RGTO& a);
 
+  template<class Prim>
+  Prim OperateRm(int m, const Prim& f) {
+    return Prim(f.c(), f.n() + m, f.z());
+  }
+  template<class Prim>
+  Prim OperateCst(typename Prim::Field c, const Prim& f) {
+    return Prim(f.c() * c, f.n(), f.z());
+  }
+  
+  template RSTO OperateRm(int, const RSTO&);
+  template CSTO OperateRm(int, const CSTO&);
+  template RGTO OperateRm(int, const RGTO&);
+  template CGTO OperateRm(int, const CGTO&);
+
+  template RSTO OperateCst(double, const RSTO&);
+  template CSTO OperateCst(CD, const CSTO&);
+  template RGTO OperateCst(double, const RGTO&);
+  template CGTO OperateCst(CD, const CGTO&);
 
   // =========== inner product ===================
   template<class F> F sto_gto_int_0(F as, F ag) {

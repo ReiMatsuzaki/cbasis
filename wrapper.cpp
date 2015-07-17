@@ -65,24 +65,26 @@ BOOST_PYTHON_MODULE(l2func_bind) {
     .def("at_x", &GTO::at);
 
   class_<STOs>("STOs", init<>())
+    .def("clone", &STOs::Clone)
     .def("size", &STOs::size)
     .def("coef_i", &STOs::coef_i)
     .def("add", &STOs::AddOther)
     .def("at_x", &STOs::at)
     .def("add_one", &STOs::AddCoefPrim)
+    .def("scalar_prod", &STOs::ScalarProduct)
     .def("prim_i", &STOs::prim_i_copied);
   
 
   class_<GTOs>("GTOs", init<>())
+    .def("clone", &GTOs::Clone)
     .def("size", &GTOs::size)
     .def("coef_i", &GTOs::coef_i)
     .def("add", &GTOs::AddOther)
     .def("at_x", &GTOs::at)
     .def("add_one", &GTOs::AddCoefPrim)
+    .def("scalar_prod", &GTOs::ScalarProduct)
     .def("prim_i", &GTOs::prim_i_copied);
 
-  def("scalar_prod_sto", ScalarProductForLC<STO>);
-  def("scalar_prod_gto", ScalarProductForLC<GTO>);
   def("normalized_sto", NormalizedBasis<STO>);
   def("normalized_gto", NormalizedBasis<GTO>);
 
@@ -98,14 +100,13 @@ BOOST_PYTHON_MODULE(l2func_bind) {
 
   class_<Op<STO> >("Op_sto", init<>())
     .def("add", &Op<STO>::AddOther)
+    .def("scalar_prod", &Op<STO>::ScalarProduct)
     .def("operate", &Op<STO>::OperateLC);
 
   class_<Op<GTO> >("Op_gto", init<>())
-    .def("add", &Op<GTO>::AddCoefOp)
+    .def("add", &Op<GTO>::AddOther)
+    .def("scalar_prod", &Op<STO>::ScalarProduct)
     .def("operate", &Op<GTO>::OperateLC);
-
-  def("scalar_prod_op_sto", ScalarProductOp<STO>);
-  def("scalar_prod_op_gto", ScalarProductOp<GTO>);
 
   def("op_rm_sto", OpRM<STO>);
   def("op_cst_sto", OpCst<STO>);
