@@ -3,6 +3,7 @@
 #include "prim.hpp"
 #include "lcomb.hpp"
 #include "op.hpp"
+#include "hatom.hpp"
 
 /**
  *  This is wrapper for python bindings 
@@ -96,5 +97,18 @@ BOOST_PYTHON_MODULE(l2func_bind) {
   def("op_cst_gto", OpCst<GTO>);
   def("op_ddr_gto", OpDDr<GTO>);
   def("op_ddr2_gto", OpDDr2<GTO>);
+
+  class_<HLikeAtom<F> >("HLikeAtom", init<int, F, int>())
+    .def("hamiltonian_sto", &HLikeAtom<F>::Hamiltonian<STO>)
+    .def("hamiltonian_gto", &HLikeAtom<F>::Hamiltonian<GTO>)
+    .def("h_minus_energy_sto", &HLikeAtom<F>::HMinusEnergy<STO>)
+    .def("h_minus_energy_gto", &HLikeAtom<F>::HMinusEnergy<GTO>)
+    .def("n", &HLikeAtom<F>::n)
+    .def("z", &HLikeAtom<F>::z)
+    .def("l", &HLikeAtom<F>::l)
+    .def("eigen_state", &HLikeAtom<F>::EigenState)
+    .def("dipole_init_length", &HLikeAtom<F>::DipoleInitLength)
+    .def("dipole_init_velocity", &HLikeAtom<F>::DipoleInitVelocity)
+    .def("eigen_energy", &HLikeAtom<F>::EigenEnergy);
   
 }

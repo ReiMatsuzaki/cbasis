@@ -10,6 +10,7 @@ namespace l2func {
   HLikeAtom<F>::HLikeAtom(int _n, F _z, int _l) :
   n_(_n), z_(_z), l_(_l) {}
 
+  /*
   template<class F> template<class Prim>
   LinearComb<Prim>  
   HLikeAtom<F>::OperateHamiltonian(const Prim& o) {
@@ -25,11 +26,12 @@ namespace l2func {
     LinearComb<Prim> res = op(o);
     return res;
   }
+  */
 
   // ----------- eigen state ------------
   template<class F>
   LinearComb<ExpBasis<F,1> >
-  HLikeAtom<F>::EigenState() {
+  HLikeAtom<F>::EigenState() const {
 
     STOs lc;
 
@@ -78,7 +80,7 @@ namespace l2func {
   }
   template<class F>
   LinearComb<ExpBasis<F,1> >
-  HLikeAtom<F>::DipoleInitLength(int l1) {
+  HLikeAtom<F>::DipoleInitLength(int l1) const {
 
     if(l_ != l1 + 1 && l_ != l1 - 1) {
 
@@ -98,7 +100,7 @@ namespace l2func {
   }
   template<class F>
   LinearComb<ExpBasis<F,1> >
-  HLikeAtom<F>::DipoleInitVelocity(int l1) {
+  HLikeAtom<F>::DipoleInitVelocity(int l1) const {
 
     if(l_ != l1 + 1 && l_ != l1 - 1) {
       string msg;
@@ -128,7 +130,7 @@ namespace l2func {
     return a;    	
   }
   template<class F>
-  double HLikeAtom<F>::EigenEnergy() {
+  double HLikeAtom<F>::EigenEnergy() const {
     return -1.0 / (2.0 * n_ * n_); 
   }
 
@@ -136,10 +138,12 @@ namespace l2func {
   typedef std::complex<double> CD;
   template class HLikeAtom<double>;
   template class HLikeAtom<CD>;
+  /*
   template LinearComb<CSTO>  
   HLikeAtom<CD>::OperateHamiltonian(const CSTO& o);
   template LinearComb<RSTO>  
   HLikeAtom<double>::OperateHamiltonian(const RSTO& o);
+  */
 
   /*
   template

@@ -23,7 +23,7 @@ utest: utest.o l2.a
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} utest.o l2.a
 	./utest
 
-l2func_bind.so: wrapper.cpp lcomb.o prim.o erfc.o fact.o 
+l2func_bind.so: wrapper.cpp ${OBJS}
 	${CXX} -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -DPIC -bundle -fPIC -o $@ wrapper.cpp ${OBJS} ${CXXFLAGS} -lboost_python  -framework Python
 
 utest_py: l2func_bind.so utest.py
