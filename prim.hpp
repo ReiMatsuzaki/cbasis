@@ -56,6 +56,9 @@ namespace l2func {
     F z() const { return z_; }
     void set_z(F z) { z_ = z; }    
     F at(F x) const;
+    // ------------ Operation -----------------------
+    void SetComplexConjugate(const ExpBasis<F,m>& a);
+    ExpBasis<F, m> ComplexConjugate() const;
 
   };
 
@@ -89,6 +92,12 @@ namespace l2func {
   Prim OperateRm( int m, const Prim& f);
   template<class Prim>
   Prim OperateCst(typename Prim::Field c, const Prim& f);
+
+  template<int m>
+  ExpBasis<CD, m> ComplexConj(const ExpBasis<CD, m>& f) {
+    ExpBasis<CD, m> res(conj(f.c()), f.n(), conj(f.z()));
+    return res;
+  }
 
 }
 

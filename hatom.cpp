@@ -1,10 +1,16 @@
 #include "hatom.hpp"
 #include <boost/lexical_cast.hpp>
 #include "macros.hpp"
+#include "prim.hpp"
+#include "lcomb.hpp"
 #include "op.hpp"
 
 
 namespace l2func {
+
+  template<class F>
+  HLikeAtom<F>::HLikeAtom() :
+    n_(1), z_(1.0), l_(0) {}
 
   template<class F>
   HLikeAtom<F>::HLikeAtom(int _n, F _z, int _l) :

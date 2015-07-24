@@ -1,3 +1,4 @@
+#include <iostream>
 #include "erfc.hpp"
 #include "fact.hpp"
 #include "prim.hpp"
@@ -65,6 +66,31 @@ namespace l2func {
   template<class F, int m>
   F ExpBasis<F,m>::at(F x) const {
     return c_ * pow(x, n_) * exp(-z_ * pow(x, m));
+  }
+  
+  template<class F, int m> 
+  void ExpBasis<F,m>::SetComplexConjugate(const ExpBasis<F,m>& a) {
+
+    c_ = a.c();
+    n_ = a.n();
+    z_ = a.z();
+    
+  }
+  template<> void CSTO::SetComplexConjugate(const CSTO& a) {
+      c_ = conj(a.c());
+      n_ = a.n();
+      z_ = conj(a.z());
+    }
+  template<> void CGTO::SetComplexConjugate(const CGTO& a) {
+      c_ = conj(a.c());
+      n_ = a.n();
+      z_ = conj(a.z());
+    }
+  template<class F, int m>
+  ExpBasis<F, m> ExpBasis<F,m>::ComplexConjugate() const {
+    ExpBasis<F,m> res;
+    res.SetComplexConjugate(*this);
+    return res;
   }
   
   template<class F, int m>

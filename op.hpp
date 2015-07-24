@@ -8,7 +8,6 @@
 namespace {
   using std::vector;
   using std::pair;
-  using boost::function;
 }
 
 namespace l2func {
@@ -18,7 +17,7 @@ namespace l2func {
   public:
     // -------------- typedef -------------
     typedef LinearComb<Prim> LC;
-    typedef function<LC (const Prim&)> Func;
+    typedef boost::function<LC (const Prim&)> Func;
     typedef typename Prim::Field Field;
     typedef vector<pair<Field, Func> > F_Funcs;
     typedef typename F_Funcs::const_iterator const_iterator;

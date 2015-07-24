@@ -61,6 +61,17 @@ namespace l2func {
     void operator += (const Prim& f);
     void operator += (const LinearComb<Prim>& o);
     void ScalarProduct(Field c);
+    void set_coef_i(int i, Field c) { cf_list_[i].first = c; }
+    void resize(int n);
+
+    // ------------ Reference --------------
+    Prim& ref_prim_i(int i) { return cf_list_[i].second; }
+    
+    // ------------ Operation -----------
+    void SetComplexConjugate(const LinearComb<Prim>&);
+    LinearComb<Prim> ComplexConjugate() const;
+    void SetD1Normalized(const Prim&);
+    void SetD2Normalized(const Prim&);
 
   };
 

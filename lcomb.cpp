@@ -87,13 +87,144 @@ namespace l2func {
     }
 
   }
+  template<class Prim>
+  void LinearComb<Prim>::resize(int n) {
+    cf_list_.resize(n);
+  }
+
+  template<class Prim>
+  void LinearComb<Prim>::SetComplexConjugate(const LinearComb<Prim>& a) {
+    *this = a;
+  }
+  template<>
+  void LinearComb<CSTO>::SetComplexConjugate(const LinearComb<CSTO>& a) {
+
+    int num = a.size();
+    if ( this->size() != num) 
+      this->resize(num);
+    
+    for(int i = 0; i < num; i++) {
+      this->set_coef_i(i, conj(a.coef_i(i)));
+      this->ref_prim_i(i).SetComplexConjugate(a.prim_i(i));
+    }
+
+  }
+
+  template<class Prim>
+  LinearComb<Prim> LinearComb<Prim>::ComplexConjugate() const {
+    return *this;
+  }
+  template<class Prim>
+  LinearComb<Prim> ComplexConjugateOfLinearComb(const LinearComb<Prim>& a) {
+    LinearComb<Prim> res;
+    typedef typename LinearComb<Prim>::const_iterator IT;
+    for(IT it = a.begin(), end = a.end(); it != end; ++it) 
+      res += (conj(it->first)) * (it->second.ComplexConjugate());
+    return res;    
+  }
+  template<>
+  LinearComb<CSTO> LinearComb<CSTO>::ComplexConjugate() const {
+    return ComplexConjugateOfLinearComb<CSTO>(*this);
+  }
+  template<>
+  LinearComb<CGTO> LinearComb<CGTO>::ComplexConjugate() const {
+    return ComplexConjugateOfLinearComb<CGTO>(*this);
+  }
+
+  template<class F>
+  void setD1Normalized(const ExpBasis<F, 1>& s, 
+		       LinearComb<ExpBasis<F, 1> >* res) {
+    
+    if(res->size() != 2) 
+      res->resize(2);
+    
+    F   c = s.c(); // normalization term
+    int n = s.n(); // principle number
+    F   z = s.z(); // orbital expoent
+
+    F   cp = (n + 0.5) / z * c;
+
+    res->set_coef_i(0, F(1));
+    res->ref_prim_i(0) = ExpBasis<F, 1>(cp, n, z);
+    res->set_coef_i(1, F(1));
+    res->ref_prim_i(1) = ExpBasis<F, 1>(-c, n+1, z);
+  }
+  template<class F>
+  void setD1Normalized(const ExpBasis<F, 2>& g,
+		       LinearComb<ExpBasis<F, 2> >* res) {
+
+    if(res->size() != 2)
+      res->resize(2);
+
+    F   c = g.c(); // normalization term
+    int n = g.n(); // principle number
+    F   z = g.z(); // orbital expoent
+
+    F   cp = (n * 0.5 + 0.25) / z * c;
+
+    res->set_coef_i(0, F(1));
+    res->ref_prim_i(0) = ExpBasis<F, 2>(cp, n, z);
+    res->set_coef_i(1, F(1));
+    res->ref_prim_i(1) = ExpBasis<F, 2>(-c,n+2,z);
+  }
+  template<class F>
+  void setD2Normalized(const ExpBasis<F, 1>& s, 
+		       LinearComb<ExpBasis<F, 1> >* res) {
+
+    if(res->size() != 2)
+      res->resize(2);
+
+    F   c = s.c(); // normalization term
+    int n = s.n(); // principle number
+    F   z = s.z(); // orbital expoent
+
+    F   cp = (n + 0.5) / z * c;
+    F  cpp = F(4 * n * n - 1) / (F(4) * z * z) * c;
+
+    res->set_coef_i(0, F(1));
+    res->ref_prim_i(0) = ExpBasis<F,1>(cpp, n, z);
+    res->set_coef_i(1, F(1));
+    res->ref_prim_i(1) = ExpBasis<F,1>(-F(2) * cp, n + 1, z);
+    res->set_coef_i(2, F(1));
+    res->ref_prim_i(2) = ExpBasis<F,1>(c, n + 2, z);
+
+  }
+  template<class F>
+  void setD2Normalized(const ExpBasis<F,2>& a, 
+		       LinearComb<ExpBasis<F,2> >* res) {
+
+    if(res->size() != 3)
+      res->resize(3);
+
+    F   c = a.c(); // normalization term
+    int n = a.n(); // principle number
+    F   z = a.z(); // orbital expoent
+
+    F   cp = (n * 0.5 + 0.25) / z * c;
+    F  cpp = (-3.0/4.0 + n / 2.0) * (0.25 + n * 0.5) / (z*z) * c;    
+
+    res->set_coef_i(0, F(1));
+    res->ref_prim_i(0) = ExpBasis<F,2>(cpp, n, z);
+    res->set_coef_i(1, F(1));
+    res->ref_prim_i(1) = ExpBasis<F,2>(-F(2) * cp, n + 2, z);
+    res->set_coef_i(2, F(1));
+    res->ref_prim_i(2) = ExpBasis<F,2>(c,         n+4, z);
+
+  }    
+  template<class Prim>
+  void LinearComb<Prim>::SetD1Normalized(const Prim& a) {
+    setD1Normalized(a, this);
+  }
+  template<class Prim>
+  void LinearComb<Prim>::SetD2Normalized(const Prim& o) {
+    setD2Normalized(o, this);
+  }
 
   // ------ explicit instance -------
   template class LinearComb<RSTO>;
   template class LinearComb<CSTO>;
   template class LinearComb<RGTO>;
   template class LinearComb<CGTO>;
-
 
   template<class Prim>
   LinearComb<Prim> OperateDDr(const Prim& f) {
@@ -157,7 +288,11 @@ namespace l2func {
   //ddN/N = (-3/4+n/2)(1/4+n/2)/(z^2)
   template<class F>
   LinearComb<ExpBasis<F,1> > D1Normalized(const ExpBasis<F, 1>& a) {
+
     LinearComb<ExpBasis<F, 1> > res;
+    res.SetD1Normalized(a);
+    return res;
+    /*
     F   c = a.c(); // normalization term
     int n = a.n(); // principle number
     F   z = a.z(); // orbital expoent
@@ -168,10 +303,14 @@ namespace l2func {
     res += F(1) * ExpBasis<F, 1>(-c, n+1, z);
 
     return res;
+    */
   }
   template<class F>
   LinearComb<ExpBasis<F,2> > D1Normalized(const ExpBasis<F, 2>& a) {
     LinearComb<ExpBasis<F, 2> > res;
+    res.SetD1Normalized(a);
+    return res;
+    /*
     F   c = a.c(); // normalization term
     int n = a.n(); // principle number
     F   z = a.z(); // orbital expoent
@@ -182,10 +321,15 @@ namespace l2func {
     res += 1.0 * ExpBasis<F, 2>(-c, n+2, z);
 
     return res;
+    */
+
   }
   template<class F>
   LinearComb<ExpBasis<F,1> > D2Normalized(const ExpBasis<F, 1>& a) {
     LinearComb<ExpBasis<F, 1> > res;
+    res.SetD2Normalized(a);
+    return res;
+    /*
     F   c = a.c(); // normalization term
     int n = a.n(); // principle number
     F   z = a.z(); // orbital expoent
@@ -198,10 +342,14 @@ namespace l2func {
     res += F(1) * ExpBasis<F, 1>(c,          n+2, z);
 
     return res;
+    */
   }
   template<class F>
   LinearComb<ExpBasis<F,2> > D2Normalized(const ExpBasis<F, 2>& a) {
     LinearComb<ExpBasis<F, 2> > res;
+    res.SetD2Normalized(a);
+    return res;
+    /*
     F   c = a.c(); // normalization term
     int n = a.n(); // principle number
     F   z = a.z(); // orbital expoent
@@ -214,6 +362,7 @@ namespace l2func {
     res += 1.0 * ExpBasis<F, 2>(c,         n+4, z);
 
     return res;
+    */
   }    
   template LinearComb<RSTO> D1Normalized(const RSTO&);
   template LinearComb<CSTO> D1Normalized(const CSTO&);

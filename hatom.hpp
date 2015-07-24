@@ -10,7 +10,6 @@ namespace {
   using std::string;
 }
 
-
 namespace l2func {
 
   template<class F=double>
@@ -26,6 +25,7 @@ namespace l2func {
     
   public:
     // -------- constructor --------
+    HLikeAtom();
     HLikeAtom(int _n, F _z, int _l);
 
     // -------- Getter -------------
@@ -45,7 +45,7 @@ namespace l2func {
       op.Add(-z_, OpRM<Prim>(-1));
       return op;
     }
-    template<class Prim> Op<Prim> HMinusEnergy(F ene) const {
+    template<class Prim> Op<Prim> HMinusEnergy(typename Prim::Field ene) const {
       Op<Prim> op = this->Hamiltonian<Prim>();
       op.AddOther(OpCst<Prim>(-ene));
       return op;
