@@ -171,8 +171,8 @@ namespace l2func {
   void setD2Normalized(const ExpBasis<F, 1>& s, 
 		       LinearComb<ExpBasis<F, 1> >* res) {
 
-    if(res->size() != 2)
-      res->resize(2);
+    if(res->size() != 3)
+      res->resize(3);
 
     F   c = s.c(); // normalization term
     int n = s.n(); // principle number
