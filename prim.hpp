@@ -55,6 +55,7 @@ namespace l2func {
     int n() const { return n_; }
     F z() const { return z_; }
     void set_z(F z) { z_ = z; }    
+    F& ref_z() { return z_; }
     F at(F x) const;
     // ------------ Operation -----------------------
     void SetComplexConjugate(const ExpBasis<F,m>& a);

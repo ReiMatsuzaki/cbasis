@@ -50,40 +50,44 @@ BOOST_PYTHON_MODULE(l2func_bind) {
   def("factorial", fact::Factorial);
 
   class_<STO>("STO", init<F, int, F>())
-    .def("c", &STO::c)
-    .def("n", &STO::n)
-    .def("z", &STO::z)
-    .def("set_z", &STO::set_z)
-    .def("at_x", &STO::at);
-  
+    .add_property("c", &STO::c)
+    .add_property("n", &STO::n)
+    .add_property("z", &STO::z, &STO::set_z)
+    .def("at", &STO::at)
+    .def("set_cc", &STO::SetComplexConjugate);
 
   class_<GTO>("GTO", init<F, int, F>())
-    .def("c", &GTO::c)
-    .def("n", &GTO::n)
-    .def("z", &GTO::z)
-    .def("set_z", &GTO::set_z)
-    .def("at_x", &GTO::at);
+    .add_property("c", &GTO::c)
+    .add_property("n", &GTO::n)
+    .add_property("z", &GTO::z, &GTO::set_z)
+    .def("at", &GTO::at)
+    .def("set_cc", &GTO::SetComplexConjugate);
 
   class_<STOs>("STOs", init<>())
     .def("clone", &STOs::Clone)
     .def("size", &STOs::size)
     .def("coef_i", &STOs::coef_i)
     .def("add", &STOs::AddOther)
-    .def("at_x", &STOs::at)
+    .def("at", &STOs::at)
     .def("add_one", &STOs::AddCoefPrim)
     .def("scalar_prod", &STOs::ScalarProduct)
-    .def("prim_i", &STOs::prim_i_copied);
-  
+    .def("prim_i", &STOs::prim_i_copied)
+    .def("set_cc", &STOs::SetComplexConjugate)
+    .def("set_d1_normalized", &STOs::SetD1Normalized)
+    .def("set_d2_normalized", &STOs::SetD1Normalized);
 
   class_<GTOs>("GTOs", init<>())
     .def("clone", &GTOs::Clone)
     .def("size", &GTOs::size)
     .def("coef_i", &GTOs::coef_i)
     .def("add", &GTOs::AddOther)
-    .def("at_x", &GTOs::at)
+    .def("at", &GTOs::at)
     .def("add_one", &GTOs::AddCoefPrim)
     .def("scalar_prod", &GTOs::ScalarProduct)
-    .def("prim_i", &GTOs::prim_i_copied);
+    .def("prim_i", &GTOs::prim_i_copied)
+    .def("set_cc", &STOs::SetComplexConjugate)
+    .def("set_d1_normalized", &STOs::SetD1Normalized)
+    .def("set_d2_normalized", &STOs::SetD1Normalized);
 
   def("normalized_sto", NormalizedBasis<STO>);
   def("normalized_gto", NormalizedBasis<GTO>);

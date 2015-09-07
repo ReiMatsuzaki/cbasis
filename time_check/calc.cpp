@@ -28,6 +28,17 @@ void CalcMatrixByBasis(const vector<Prim>& us, Op<Prim> op) {
 }
 
 template<class Prim>
+void CalcD1BasisTimes(const vector<Prim>& us) {
+
+  int us_size(us.size());
+  vector<LinearComb<Prim> > d_us(us_size);
+
+  for(int j = 0; j < us_size; j++) 
+    d_us[j].SetD1Normalized(us[j]);
+
+}
+
+template<class Prim>
 void CalcVector(const vector<Prim>& us, const LinearComb<CSTO>& driv) {
   
   complex<double> acc(0.0);
@@ -79,6 +90,9 @@ int main() {
   CalcVector(g50, driv);
   timer.End("driv_50GTO");
 
+  timer.Start("d1_basis");
+  CalcD1BasisTimes(g50);
+  timer.End(  "d1_basis");
   timer.Display();
 }
 

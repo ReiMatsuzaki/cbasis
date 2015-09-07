@@ -258,9 +258,10 @@ namespace l2func {
     F   z = f.z();
     
     LinearComb<Prim> res;
-    res += c * Prim(n*(n-1),        n-2,     z);
-    res += c * Prim(-m*z*(2*n+m-1), n+m-2,   z);
-    res += c * Prim(m*m*z*z,        n+2*m-2, z);
+    if(n != 0 && n != 1) 
+      res += c * Prim(n*(n-1),        n-2,     z);
+    res +=   c * Prim(-m*z*(2*n+m-1), n+m-2,   z);
+    res +=   c * Prim(m*m*z*z,        n+2*m-2, z);
     return res;
   }
   template LinearComb<RSTO> OperateDDr(const RSTO&);
