@@ -83,7 +83,7 @@ def sympy_symbol(m):
         cum = 0
         for i in range(self.size()):
             prim = self.prim_i(i)
-            cum += self.coef_i(i) * prim.c() * (x ** prim.n()) * sp.exp(-prim.z() * (x ** m))
+            cum += self.coef_i(i) * prim.c * (x ** prim.n) * sp.exp(-prim.z * (x ** m))
         return cum
     return __func__
 

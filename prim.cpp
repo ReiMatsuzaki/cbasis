@@ -54,13 +54,8 @@ namespace l2func {
   ExpBasis<F,m>::ExpBasis(int _n, F _z, ENormalized):
     c_(1), n_(_n), z_(_z) {
 
-      F c2;
-      if(m == 1)
-	c2 = STO_Int<F>(2 * z_, 2 * n_);
-      else
-	c2 = GTO_Int<F>(2 * z_, 2 * n_);
-      
-      c_ = F(1) / sqrt(c2);
+    this->SetNormalization();
+
     }
 
   template<class F, int m>
@@ -91,6 +86,11 @@ namespace l2func {
     ExpBasis<F,m> res;
     res.SetComplexConjugate(*this);
     return res;
+  }
+  template<class F, int m>
+  void ExpBasis<F, m>::SetNormalization() {
+    F c = CIP(*this, *this);
+    this->c_ = this->c_ / sqrt(c);
   }
   
   template<class F, int m>

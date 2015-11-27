@@ -1,5 +1,6 @@
 #include "lcomb.hpp"
 
+
 namespace l2func {
 
   template<class Prim>
@@ -131,6 +132,15 @@ namespace l2func {
     return ComplexConjugateOfLinearComb<CGTO>(*this);
   }
 
+  template<class Prim>
+  void setD1Normalized(const Prim& s, LinearComb<Prim>* res) {
+    throw std::runtime_error("not implemented setD1Normalized");
+  }
+  template<class Prim>
+  void setD2Normalized(const Prim& s, LinearComb<Prim>* res) {
+    throw std::runtime_error("not implemented setD1Normalized");
+  }
+
   template<class F>
   void setD1Normalized(const ExpBasis<F, 1>& s, 
 		       LinearComb<ExpBasis<F, 1> >* res) {
@@ -221,26 +231,33 @@ namespace l2func {
   }
 
   // ------ explicit instance -------
-  template class LinearComb<RSTO>;
-  template class LinearComb<CSTO>;
-  template class LinearComb<RGTO>;
-  template class LinearComb<CGTO>;
+  template class LinearComb<RSTO    >;
+  template class LinearComb<CSTO    >;
+  template class LinearComb<RGTO    >;
+  template class LinearComb<CGTO    >;
+  template class LinearComb<CutCSTO >;
+  template class LinearComb<CDelta  >;
 
   template<class Prim>
   LinearComb<Prim> OperateDDr(const Prim& f) {
     
     typedef typename Prim::Field F;
-    F c = f.c();
-    int n = f.n();
-    F z = f.z();
     int m = Prim::exp_power;
     
-    Prim a(c * F(n),     n-1, z);
-    Prim b(c * (-z*F(m)), n+m-1, z);
+    // Prim a(c * F(n),     n-1, z);
+    // Prim b(c * (-z*F(m)), n+m-1, z);
+
+    Prim a(f);   // copy constructor
+    Prim a1 = OperateCst(F(f.n()), a);
+    Prim a2 = OperateRm(-1, a1);
+
+    Prim b(f);  // copy constructor
+    Prim b1 = OperateCst(F(-f.z()*m), b);
+    Prim b2 = OperateRm(m-1, b1);
 
     LinearComb<Prim> res;
-    res += F(1) * a;
-    res += F(1) * b;
+    res += F(1) * a2;
+    res += F(1) * b2;
     return(res);
   }
   template<class Prim>
@@ -252,26 +269,45 @@ namespace l2func {
     //     +-zmnr^{n+m-2} +mmzzr^{n+2m-2} ) exp(-zr^m)
     
     typedef typename Prim::Field F;
-    F   c = f.c();
+    LinearComb<Prim> res;
+
     int n = f.n();
     int m = Prim::exp_power;
     F   z = f.z();
+
+    Prim a(f);
+    Prim a2 = OperateRm(-2, a);
+    res += F(n*n-n) * a2;
     
-    LinearComb<Prim> res;
+    Prim b(f);
+    Prim b1 = OperateRm(m-2, b);
+    res += F(-m*z*(2*n+m-1)) * b1;
+
+    Prim c(f);
+    Prim c1 = OperateRm(2*m-2, c);
+    res += F(m*m*z*z) * c1;
+    
+    /*
     if(n != 0 && n != 1) 
       res += c * Prim(n*(n-1),        n-2,     z);
     res +=   c * Prim(-m*z*(2*n+m-1), n+m-2,   z);
     res +=   c * Prim(m*m*z*z,        n+2*m-2, z);
+    */
     return res;
   }
-  template LinearComb<RSTO> OperateDDr(const RSTO&);
-  template LinearComb<CSTO> OperateDDr(const CSTO&);
-  template LinearComb<RGTO> OperateDDr(const RGTO&);
-  template LinearComb<CGTO> OperateDDr(const CGTO&);
-  template LinearComb<RSTO> OperateDDr2(const RSTO&);
-  template LinearComb<CSTO> OperateDDr2(const CSTO&);
-  template LinearComb<RGTO> OperateDDr2(const RGTO&);
-  template LinearComb<CGTO> OperateDDr2(const CGTO&);
+  template LinearComb<RSTO     > OperateDDr(const RSTO    &);
+  template LinearComb<CSTO     > OperateDDr(const CSTO    &);
+  template LinearComb<RGTO     > OperateDDr(const RGTO    &);
+  template LinearComb<CGTO     > OperateDDr(const CGTO    &);
+  template LinearComb<CutCSTO  > OperateDDr(const CutCSTO &);
+  //  template LinearComb<CDelta   > OperateDDr(const CDelta  &);
+
+  template LinearComb<RSTO     > OperateDDr2(const RSTO    &);
+  template LinearComb<CSTO     > OperateDDr2(const CSTO    &);
+  template LinearComb<RGTO     > OperateDDr2(const RGTO    &);
+  template LinearComb<CGTO     > OperateDDr2(const CGTO    &);
+  template LinearComb<CutCSTO  > OperateDDr2(const CutCSTO &);
+  //  template LinearComb<CDelta   > OperateDDr2(const CDelta  &);
 
   // --------- derivative basis -------------
   // assuming a is normalized basis set.
@@ -325,6 +361,7 @@ namespace l2func {
     */
 
   }
+
   template<class F>
   LinearComb<ExpBasis<F,1> > D2Normalized(const ExpBasis<F, 1>& a) {
     LinearComb<ExpBasis<F, 1> > res;
@@ -364,14 +401,44 @@ namespace l2func {
 
     return res;
     */
-  }    
-  template LinearComb<RSTO> D1Normalized(const RSTO&);
-  template LinearComb<CSTO> D1Normalized(const CSTO&);
-  template LinearComb<RGTO> D1Normalized(const RGTO&);
-  template LinearComb<CGTO> D1Normalized(const CGTO&);
-  template LinearComb<RSTO> D2Normalized(const RSTO&);
-  template LinearComb<CSTO> D2Normalized(const CSTO&);
-  template LinearComb<RGTO> D2Normalized(const RGTO&);
-  template LinearComb<CGTO> D2Normalized(const CGTO&);
+  }
+
+  template LinearComb<RSTO     > D1Normalized(const RSTO    &);
+  template LinearComb<CSTO     > D1Normalized(const CSTO    &);
+  template LinearComb<RGTO     > D1Normalized(const RGTO    &);
+  template LinearComb<CGTO     > D1Normalized(const CGTO    &);
+
+  template LinearComb<RSTO     > D2Normalized(const RSTO    &);
+  template LinearComb<CSTO     > D2Normalized(const CSTO    &);
+  template LinearComb<RGTO     > D2Normalized(const RGTO    &);
+  template LinearComb<CGTO     > D2Normalized(const CGTO    &);
+
+  template<class Prim> Prim D1param(const Prim& a) {
+    /* 
+       derivative of parameter(often orbital exponent)
+       these function do not concern normalization.
+    */
+    typedef typename Prim::Field F; 
+    Prim b(a); // copy constructor
+    int m = a.exp_power();
+    OperateCst(-F(1), b);
+    OperateRm(m, b);
+    return b;
+  }
+  template<class Prim> Prim D2param(const Prim& a) {
+    /* 
+       second derivative of parameter(often orbital exponent)
+       these function do not concern normalization.
+    */
+    typedef typename Prim::Field F; 
+    Prim b(a); // copy constructor
+    int m = a.exp_power();
+    OperateRm(2*m, b);
+    return b;
+  }
+  
+
+
+  
 
 }

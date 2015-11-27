@@ -35,8 +35,9 @@ namespace l2func {
     typedef F Field;
     enum EExpPower { exp_power=m };
     
-    // ---------- Field Member ----------------------
+    
   private:
+    // ---------- Field Member ----------------------
     F c_;    // coefficient
     int n_;  // principle number
     F z_;    // orbital exponent
@@ -60,6 +61,7 @@ namespace l2func {
     // ------------ Operation -----------------------
     void SetComplexConjugate(const ExpBasis<F,m>& a);
     ExpBasis<F, m> ComplexConjugate() const;
+    void SetNormalization();
 
   };
 
@@ -68,7 +70,8 @@ namespace l2func {
   typedef ExpBasis<double, 2> RGTO;
   typedef ExpBasis<CD, 1> CSTO;
   typedef ExpBasis<CD, 2> CGTO;
-  
+
+  // =========== CIP ===============
   template<class F>
   F CIP(const ExpBasis<F, 1>& a, const ExpBasis<F, 1>& b);
   template<class F>

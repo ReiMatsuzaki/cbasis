@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 #include "prim.hpp"
+#include "cut_prim.hpp"
+#include "delta.hpp"
 
 namespace{
   using std::vector;
@@ -134,9 +136,18 @@ namespace l2func {
   template<class F>
   LinearComb<ExpBasis<F,2> > D1Normalized(const ExpBasis<F, 2>& a);
   template<class F>
+  LinearComb<ExpBasis<F,1> > D1Normalized(const CutExpBasis<F, 1>& a);
+  template<class F>
+  LinearComb<ExpBasis<F,2> > D1Normalized(const CutExpBasis<F, 2>& a);
+
+  template<class F>
   LinearComb<ExpBasis<F,1> > D2Normalized(const ExpBasis<F, 1>& a);
   template<class F>
   LinearComb<ExpBasis<F,2> > D2Normalized(const ExpBasis<F, 2>& a);
+
+  template<class Prim> Prim D1param(const Prim&);
+  template<class Prim> Prim D2param(const Prim&);
+  
   
 }
 

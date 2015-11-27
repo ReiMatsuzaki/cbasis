@@ -13,7 +13,7 @@ of these functions are also supported.
 - prim.hpp : STO and GTO
 - lcomb.hpp: linear combinations of primitive basis
 - op.hpp: linear operator object
-- hatom.hpp: hydrogen atom eigensolutions
+- hatom.hpp: hydrogen atom eigen solutions
 
 
 # todo 

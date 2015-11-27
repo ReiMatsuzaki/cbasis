@@ -109,7 +109,7 @@ BOOST_PYTHON_MODULE(l2func_bind) {
 
   class_<Op<GTO> >("Op_gto", init<>())
     .def("add", &Op<GTO>::AddOther)
-    .def("scalar_prod", &Op<STO>::ScalarProduct)
+    .def("scalar_prod", &Op<GTO>::ScalarProduct)
     .def("operate", &Op<GTO>::OperateLC);
 
   def("op_rm_sto", OpRM<STO>);
