@@ -299,6 +299,7 @@ TEST(CIP, Delta) {
   EXPECT_DOUBLE_EQ(sto.at(2.4), CIP(sto, d0));
   
 }
+
 int main (int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
   return RUN_ALL_TESTS();

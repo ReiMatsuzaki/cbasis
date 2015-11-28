@@ -316,7 +316,6 @@ namespace l2func {
   }
 
   // ---- explicit instance ----
-
   template double CIP(const RSTO&, const RSTO&);
   template std::complex<double> CIP(const CSTO&, const CSTO&);
   template double CIP(const RGTO&, const RGTO&);

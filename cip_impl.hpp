@@ -1,8 +1,9 @@
 #ifndef CIP_IMPL_TEMPLATE_H
 #define CIP_IMPL_TEMPLATE_H
 
+#include "cip.hpp"
 #include "delta.hpp"
-
+#include "exp_func.hpp"
 
 namespace l2func {
 
@@ -17,6 +18,13 @@ namespace l2func {
   F _CIP(const A& a, const B& b, func_tag, delta_tag) {
     return _CIP(b, a, delta_tag(), func_tag());
   }
+
+  //  template double CIP(const DiracDelta<double>&, const RSTO&);
+
+  template<class F, class A, class TagA>
+  typename DiracDelta<F>::Field CIP(const A& a, DiracDelta<F>, TagA, delta_tag);
+  template<class F, class A, class TagA>
+  typename DiracDelta<F>::Field CIP(DiracDelta<F>, const A& a, delta_tag,  TagA);
 
   // ==== normalization ====
   template<class A>
