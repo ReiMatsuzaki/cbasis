@@ -2,10 +2,16 @@
 #include <boost/fusion/sequence.hpp>
 #include <boost/fusion/include/sequence.hpp>
 #include <gtest/gtest.h>
+
+#include "utils.hpp"
+
 #include "erfc.hpp"
 #include "fact.hpp"
 #include "lgamma.hpp"
+
 #include "exp_func.hpp"
+#include "cut_exp.hpp"
+
 #include "cip.hpp"
 //#include "op.hpp"
 //#include "cut_exp.hpp"
@@ -13,24 +19,6 @@
 using namespace std;
 using namespace l2func;
 using namespace erfc_mori;
-
-::testing::AssertionResult AssertComplexNear(const char* a_expr,
-					     const char* b_expr,
-					     const char* eps_expr,
-					     complex<double> a,
-					     complex<double> b,
-					     double eps) {
-  if(abs(a-b) < eps)
-    return ::testing::AssertionSuccess();
-
-  return ::testing::AssertionFailure()
-    << a_expr << " and " << b_expr << " are not near." << endl
-    << a_expr << " : " << a << endl 
-    << b_expr << " : " << b << endl
-    << eps_expr << " : " << eps << endl
-    << "|" << a_expr << "-" << b_expr<< "| : " << abs(a-b) << endl;
-
-}
 
 
 TEST(math, Factorial) {
@@ -210,26 +198,66 @@ TEST(ExpFunc, Product) {
   EXPECT_EQ(5, s1.n());
   EXPECT_DOUBLE_EQ(2.4, s1.c().real());
 }
+TEST(CutExp, Construct) {
+
+  double eps = pow(10.0, -10.0);
+
+  CSTO csto(1.2, 2, 2.5);
+  CutCSTO cut_csto(1.2, 2, 2.5, 10.0);
+  
+  EXPECT_PRED_FORMAT3(AssertComplexNear, 
+		      csto.at(1.2), 
+		      cut_csto.at(1.2), 
+		      eps);
+
+  EXPECT_PRED_FORMAT3(AssertComplexNear, 
+		      0.0, 
+		      cut_csto.at(10.1), 
+		      eps);
+
+  CutCSTO cut_csto2(1.1, 3, 1.5, 10.0);
+  double sol = 0.0386718749998404;
+  EXPECT_PRED_FORMAT3(AssertComplexNear, 
+		      sol, 
+		      CIP(cut_csto, cut_csto2), 
+		      eps);
+
+  EXPECT_PRED_FORMAT3(AssertComplexNear, 
+		      sol, 
+		      CIP(cut_csto2, cut_csto), 
+		      eps);
+
+  CSTO csto2(1.1, 3, 1.5);
+  EXPECT_PRED_FORMAT3(AssertComplexNear, 
+		      CIP(cut_csto2, cut_csto),
+		      CIP(csto2, cut_csto),		      
+		      eps);  
+
+  EXPECT_PRED_FORMAT3(AssertComplexNear, 
+		      CIP(cut_csto2, cut_csto),
+		      CIP(cut_csto, csto2),
+		      eps);    
+}
 TEST(CIP, ExpFunc) {
   RSTO s1(2.5, 2, 1.1);
   CSTO s2(1.2, 3, CD(0.4, 0.2));
   RGTO g1(0.3, 1, 1.2);
   CGTO g2(0.4, 4, CD(0.1, -0.1));
-  double eps = 10.0 * machine_eps();
+  double eps = pow(10.0, -12.0);
 
   
   EXPECT_DOUBLE_EQ(2.9105687018397886, CIP(s1, s1));
-  
-  EXPECT_DOUBLE_EQ(20.98619989895233, CIP(CSTO(s1), s2).real());
-  EXPECT_DOUBLE_EQ(20.98619989895233, CIP(s2, CSTO(s1)).real());
-  EXPECT_DOUBLE_EQ(-21.40636768181864, CIP(CSTO(s1), s2).imag());
-  EXPECT_DOUBLE_EQ(-21.40636768181864, CIP(s2, CSTO(s1)).imag());
+
+  CD sol(20.98619989895233, -21.40636768181864);
+  EXPECT_C_NEAR(sol, CIP(CSTO(s1), s2), eps);
+
+  sol = CD(20.98619989895233, -21.40636768181864);
+  EXPECT_C_EQ(sol, CIP(s2, CSTO(s1)));
   
   EXPECT_NEAR(0.0764996359892135, CIP(s1, g1), eps);
   EXPECT_NEAR(0.0764996359892135, CIP(g1, s1), eps);
 
   CSTO c_s1(s1);
-  eps *= 100000;
   EXPECT_NEAR(5.562595882704702, CIP(c_s1, g2).real(),      eps);
   EXPECT_NEAR(5.562595882704702, CIP(g2, CSTO(s1)).real(),  eps);
   EXPECT_NEAR(+22.587241177071004, CIP(CSTO(s1), g2).imag(),eps);

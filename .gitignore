@@ -1,4 +1,5 @@
 utest*
+test*
 opt_cbf
 *.o
 *.so

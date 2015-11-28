@@ -1,10 +1,13 @@
 //#include <boost/static_assert.hpp>
 // #include <boost/type_traits.hpp>
 #include "cip.hpp"
-#include "func.hpp"
-#include "exp_func.hpp"
+#include "lgamma.hpp"
 #include "erfc.hpp"
 #include "fact.hpp"
+
+#include "func.hpp"
+#include "exp_func.hpp"
+#include "cut_exp.hpp"
 
 using namespace erfc_mori;
 using namespace std;
@@ -231,11 +234,13 @@ namespace l2func {
 
     return res;
   }
-
+  template<class F> F CutSTO_Int(F z, int n, double r0) {
+    return LowerGamma<F>(n+1, z*r0) / pow(z, n+1);
+  }
 
   // ==== Inner Product ====
-  // ---- static dispatch ----
 
+  // ---- STO/GTO ----
   template<class F, class A, class B>
   F _CIP(const A& a, const B& b, sto_tag, sto_tag) {
     return a.c() * b.c() * STO_Int(a.z()+b.z(), a.n()+b.n());
@@ -246,12 +251,29 @@ namespace l2func {
   }
   template<class F, class A, class B>
   F _CIP(const A& a, const B& b, sto_tag, gto_tag) {
-     return a.c() * b.c() * STO_GTO_Int(a.z(), b.z(), a.n()+b.n());
+    return a.c() * b.c() * STO_GTO_Int(a.z(), b.z(), a.n()+b.n());
   }
   template<class F, class A, class B>
   F _CIP(const A& a, const B& b, gto_tag, sto_tag) {
     return CIP(b, a);
   }
+
+  // ---- CutSTO/CutGTO ----
+  template<class F, class A, class B>
+  F _CIP(const A& a, const B& b, cut_sto_tag, cut_sto_tag) {
+    double r0 = a.r0() < b.r0() ? a.r0() : b.r0();
+    return a.c() * b.c() * CutSTO_Int(a.z()+b.z(), a.n()+b.n(), r0);
+  }
+  template<class F, class A, class B>
+  F _CIP(const A& a, const B& b, cut_sto_tag, sto_tag) {
+    double r0 = a.r0();
+    return a.c() * b.c() * CutSTO_Int(a.z()+b.z(), a.n()+b.n(), r0);
+  }
+  template<class F, class A, class B>
+  F _CIP(const A& a, const B& b, sto_tag, cut_sto_tag) {
+    return _CIP<F, B, A>(b, a, cut_sto_tag(), sto_tag());
+  }
+
 
 /*
   template<class F, class A, class B>
@@ -303,5 +325,12 @@ namespace l2func {
   template std::complex<double> CIP(const CSTO&, const CGTO&);
   template double CIP(const RGTO&, const RSTO&);
   template std::complex<double> CIP(const CGTO&, const CSTO&);
+
+  template double CIP(const CutRSTO&, const CutRSTO&);
+  template std::complex<double> CIP(const CutCSTO&, const CutCSTO&);
+  template double CIP(const CutRSTO&, const RSTO&);
+  template std::complex<double> CIP(const CutCSTO&, const CSTO&);
+  template double CIP(const RSTO&, const CutRSTO&);
+  template std::complex<double> CIP(const CSTO&, const CutCSTO&);
 
 }

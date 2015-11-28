@@ -10,11 +10,14 @@ of these functions are also supported.
 - macros.hpp : simple macro is defined
 - fact.hpp : calculation of factorial
 - erfc.hpp : evaluations of real and complex error functions
-- prim.hpp : STO and GTO
-- lcomb.hpp: linear combinations of primitive basis
+- exp_func.hpp : STO and GTO
+- cut_exp.hpp : finite ranged STO/GTO
+- cip.hpp  : complex symmetric inner product
+- lin_func.hpp : linear combination of same type functions
+- prim.hpp : to be delete
+- lcomb.hpp: to be delete
 - op.hpp: linear operator object
 - hatom.hpp: hydrogen atom eigen solutions
-
 
 # todo 
 

@@ -3,7 +3,7 @@ CXXFLAGS=${INC_PATH} -Wall -O3
 
 #OBJS=hatom.o op.o lcomb.o cut_prim.o delta.o prim.o erfc.o fact.o
 MATH_OBJS=fact.o erfc.o
-FUNC_OBJS=exp_func.o 
+FUNC_OBJS=cut_exp.o exp_func.o 
 CIP_OBJS=cip.o
 
 OBJS=${CIP_OBJS} ${FUNC_OBJS} ${MATH_OBJS} 
@@ -17,6 +17,7 @@ l2.a: ${OBJS}
 	ar r $@ ${OBJS}
 
 
+cut_exp.o: cut_exp.hpp exp_func.hpp func.hpp
 exp_func.o: exp_func.hpp func.hpp
 erfc.o:  erfc.cpp  erfc.hpp
 fact.o:  fact.cpp  fact.hpp
