@@ -8,21 +8,15 @@ namespace l2func {
   //  template<class F> F STO_Int(F z, int n);
   //  template<class F> F GTO_Int(F z, int n);
 
+
   // ==== Inner product of two function ====
   template<class A, class B>
   typename A::Field CIP(const A& a, const B& b);
 
   // ==== Other Function ====
-  template<class A>
-  typename A::Field CNorm(const A& a) {
-    return sqrt(CIP(a, a));
-  }
-  template<class A>
-  void CNormalize(A *a) {
-    typedef typename A::Field F;
-    F cc = CNorm(*a);
-    a->SetScalarProd(F(1)/cc);
-  }
+  template<class A> typename A::Field CNorm(const A& a);
+  template<class A> void CNormalize(A *a);
+  
 
   // ==== Inner product of operator ====
 /*

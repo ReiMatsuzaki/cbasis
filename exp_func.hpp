@@ -57,8 +57,8 @@ namespace l2func {
   // ==== STO ====
   struct sto_tag :public func_tag {};
   template<class F> struct func_traits<ExpFunc<F, 1> > {
-  typedef sto_tag func_tag;
-};
+    typedef sto_tag func_tag;
+  };
   template<class F> struct is_l2func<ExpFunc<F, 1> > {};
 
   typedef ExpFunc<double, 1> RSTO;

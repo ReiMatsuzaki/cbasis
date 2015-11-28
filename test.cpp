@@ -12,6 +12,7 @@
 #include "exp_func.hpp"
 #include "cut_exp.hpp"
 
+#include "cip_impl.hpp"
 #include "cip.hpp"
 //#include "op.hpp"
 //#include "cut_exp.hpp"
@@ -288,7 +289,16 @@ TEST(CIP, Normalized) {
 	       0.000000000001);  
 */
 }
+TEST(CIP, Delta) {
 
+  double r0(2.4);
+  RDelta d0(r0);
+  RSTO  sto(1.1, 2, 3.2);
+
+  EXPECT_DOUBLE_EQ(sto.at(2.4), CIP(d0, sto));
+  EXPECT_DOUBLE_EQ(sto.at(2.4), CIP(sto, d0));
+  
+}
 int main (int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
   return RUN_ALL_TESTS();

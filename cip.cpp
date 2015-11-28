@@ -8,6 +8,7 @@
 #include "func.hpp"
 #include "exp_func.hpp"
 #include "cut_exp.hpp"
+#include "delta.hpp"
 
 using namespace erfc_mori;
 using namespace std;
@@ -274,7 +275,6 @@ namespace l2func {
     return _CIP<F, B, A>(b, a, cut_sto_tag(), sto_tag());
   }
 
-
 /*
   template<class F, class A, class B>
   F _CIP(const A& a, const B& b, linfunc_tag, func_tag) {
@@ -332,5 +332,7 @@ namespace l2func {
   template std::complex<double> CIP(const CutCSTO&, const CSTO&);
   template double CIP(const RSTO&, const CutRSTO&);
   template std::complex<double> CIP(const CSTO&, const CutCSTO&);
+
+
 
 }
