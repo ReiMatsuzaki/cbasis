@@ -12,6 +12,17 @@ namespace l2func {
   template<class A, class B>
   typename A::Field CIP(const A& a, const B& b);
 
+  // ==== Other Function ====
+  template<class A>
+  typename A::Field CNorm(const A& a) {
+    return sqrt(CIP(a, a));
+  }
+  template<class A>
+  void CNormalize(A *a) {
+    typedef typename A::Field F;
+    F cc = CNorm(*a);
+    a->SetScalarProd(F(1)/cc);
+  }
 
   // ==== Inner product of operator ====
 /*

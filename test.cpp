@@ -200,50 +200,20 @@ TEST(ExpFunc, Product) {
 }
 TEST(CutExp, Construct) {
 
-  double eps = pow(10.0, -10.0);
-
   CSTO csto(1.2, 2, 2.5);
   CutCSTO cut_csto(1.2, 2, 2.5, 10.0);
-  
-  EXPECT_PRED_FORMAT3(AssertComplexNear, 
-		      csto.at(1.2), 
-		      cut_csto.at(1.2), 
-		      eps);
 
-  EXPECT_PRED_FORMAT3(AssertComplexNear, 
-		      0.0, 
-		      cut_csto.at(10.1), 
-		      eps);
+  EXPECT_C_EQ(csto.at(1.2), cut_csto.at(1.2));
+  EXPECT_C_EQ(0.0, cut_csto.at(10.1));
 
-  CutCSTO cut_csto2(1.1, 3, 1.5, 10.0);
-  double sol = 0.0386718749998404;
-  EXPECT_PRED_FORMAT3(AssertComplexNear, 
-		      sol, 
-		      CIP(cut_csto, cut_csto2), 
-		      eps);
 
-  EXPECT_PRED_FORMAT3(AssertComplexNear, 
-		      sol, 
-		      CIP(cut_csto2, cut_csto), 
-		      eps);
-
-  CSTO csto2(1.1, 3, 1.5);
-  EXPECT_PRED_FORMAT3(AssertComplexNear, 
-		      CIP(cut_csto2, cut_csto),
-		      CIP(csto2, cut_csto),		      
-		      eps);  
-
-  EXPECT_PRED_FORMAT3(AssertComplexNear, 
-		      CIP(cut_csto2, cut_csto),
-		      CIP(cut_csto, csto2),
-		      eps);    
 }
 TEST(CIP, ExpFunc) {
   RSTO s1(2.5, 2, 1.1);
   CSTO s2(1.2, 3, CD(0.4, 0.2));
   RGTO g1(0.3, 1, 1.2);
   CGTO g2(0.4, 4, CD(0.1, -0.1));
-  double eps = pow(10.0, -12.0);
+  double eps = pow(10.0, -9.0);
 
   
   EXPECT_DOUBLE_EQ(2.9105687018397886, CIP(s1, s1));
@@ -269,16 +239,33 @@ TEST(CIP, ExpFunc) {
   EXPECT_NEAR(0.012359047425198447, CIP(g2, CGTO(g1)).imag(), eps);
   
 }
-/*
-TEST(ExpFunc, Normalized) {
-  
-  RSTO n_s1(2, 1.1, Normalized);
-  RSTO s1(1.0, 2, 1.1);
-  RSTO n_s2(3, 1.2, Normalized);
-  RSTO s2(1.0, 3, 1.2);
-  
-  EXPECT_DOUBLE_EQ(1.0, CIP(n_s1, n_s1));
+TEST(CIP, CutExpFunc) {
 
+  CutCSTO cut_csto(1.2, 2, 2.5, 10.0);
+  CutCSTO cut_csto2(1.1, 3, 1.5, 10.0);
+  double sol = 0.0386718749998404;
+  EXPECT_C_EQ(sol, CIP(cut_csto, cut_csto2));
+  EXPECT_C_EQ(sol, CIP(cut_csto2, cut_csto));
+
+  CSTO csto2(1.1, 3, 1.5);
+  EXPECT_C_EQ(CIP(csto2, cut_csto), 
+	      CIP(cut_csto, csto2));
+  EXPECT_C_EQ(CIP(cut_csto2, cut_csto), 
+	      CIP(cut_csto, csto2));
+
+}
+TEST(CIP, Normalized) {
+  
+  RSTO s1(1.0, 2, 1.1); CNormalize(&s1);
+  RGTO g1(1.0, 2, 1.1); CNormalize(&g1);
+  CSTO s2(1.0, 3, CD(2.1, -0.3)); CNormalize(&s2);
+  
+  EXPECT_DOUBLE_EQ(1.0, CIP(s1, s1));
+  EXPECT_DOUBLE_EQ(1.0, CNorm(s1));
+  EXPECT_DOUBLE_EQ(1.0, CNorm(g1));
+  EXPECT_C_EQ(1.0, CNorm(s2));
+
+/*
   Op<RSTO> op = OpDDr<RSTO>();
 
   EXPECT_NEAR( CIP(n_s1, op(n_s2)),
@@ -299,9 +286,9 @@ TEST(ExpFunc, Normalized) {
 	       CIP(g1,   op_g(g2)) /
 	       sqrt(CIP(g1, g1) * CIP(g2, g2)),
 	       0.000000000001);  
+*/
 }
 
-*/
 int main (int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
   return RUN_ALL_TESTS();
