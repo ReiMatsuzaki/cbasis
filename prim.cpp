@@ -321,7 +321,7 @@ namespace l2func {
 
     return res;
   }
-  
+   
   template<class F>
   F CIP(const ExpBasis<F, 1>& a, const ExpBasis<F, 1>& b) {
     return STO_Int(a.z() + b.z(), a.n() + b.n()) * a.c() * b.c();
