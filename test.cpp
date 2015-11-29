@@ -11,6 +11,7 @@
 #include "lgamma.hpp"
 
 #include "exp_func.hpp"
+#include "normal_exp.hpp"
 #include "cut_exp.hpp"
 #include "delta.hpp"
 #include "lin_func.hpp"
@@ -159,6 +160,12 @@ TEST(Func, ExpFuncConstruct) {
   EXPECT_DOUBLE_EQ(1.0, s4.z().real());
 
   EXPECT_EQ(1, CSTO::exp_power);
+
+
+  RSTO s0_copy(s0);
+  EXPECT_DOUBLE_EQ(s0.at(0.1), s0_copy.at(0.1));
+  RSTO s0_ass = s0;
+  EXPECT_DOUBLE_EQ(s0.at(0.1), s0_ass.at(0.1));
 }
 TEST(Func, accessor) {
 
@@ -226,6 +233,25 @@ TEST(Func, LinFuncConstruct) {
 
   EXPECT_DOUBLE_EQ(2.5*s1.at(r0) + 1.2*s2.at(r0),
 		   stos.at(r0));
+
+}
+TEST(Func, NormalExpFunc) {
+
+  double dz = 0.0003;
+  NormalRSTO s1(2, 0.3);
+  NormalRSTO s1_p(2, 0.3 + dz);
+  NormalRSTO s1_m(2, 0.3 - dz);
+
+  NormalRSTO::FuncDerivOne d_s1 = s1.DerivParamOne();
+  NormalRSTO::FuncDerivTwo dd_s1= s1.DerivParamTwo();
+
+  double x0 = 3.3;
+	    
+  EXPECT_NEAR( (s1_p.at(x0)-s1_m.at(x0)) / (2.0 * dz),
+	       CIP(RDelta(x0), d_s1),  0.00001);
+
+  EXPECT_NEAR( (s1_p.at(x0) + s1_m.at(x0) - 2.0 * s1.at(x0)) / (dz*dz),
+	       CIP(RDelta(x0), dd_s1), 0.00001);
 
 }
 TEST(CIP, ExpFunc) {
@@ -350,7 +376,6 @@ TEST(CIP, OpD2) {
   
 }
 TEST(CIP, time) {
-
   
   RSTO s1(1.2, 5, 0.3);
   LinFunc<RSTO> ss; 

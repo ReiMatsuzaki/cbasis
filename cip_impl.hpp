@@ -107,14 +107,14 @@ namespace l2func {
 
   // ----CIP for Delta ----
   template<class F, class A, class B> 
-  F _CIP(const A& a, const B& b, delta_tag, func_tag) {
+  F _CIP(const A& a, const B& b, delta_tag, exp_func_tag) {
 
     return b.at(a.r0());
 
   }
   template<class F, class A, class B> 
-  F _CIP(const A& a, const B& b, func_tag, delta_tag) {
-    return _CIP<F, B, A>(b, a, delta_tag(), func_tag());
+  F _CIP(const A& a, const B& b, exp_func_tag, delta_tag) {
+    return _CIP<F, B, A>(b, a, delta_tag(), exp_func_tag());
   }
 
   // ---- CIP for LinFunc ----
