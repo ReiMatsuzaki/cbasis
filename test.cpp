@@ -1,6 +1,7 @@
 #include <iostream>
 #include <boost/fusion/sequence.hpp>
 #include <boost/fusion/include/sequence.hpp>
+#include <boost/timer.hpp>
 #include <gtest/gtest.h>
 
 #include "utils.hpp"
@@ -11,11 +12,15 @@
 
 #include "exp_func.hpp"
 #include "cut_exp.hpp"
+#include "delta.hpp"
+#include "lin_func.hpp"
+#include "lin_func_impl.hpp"
+
+#include "op.hpp"
+#include "op_func.hpp"
 
 #include "cip_impl.hpp"
 #include "cip.hpp"
-//#include "op.hpp"
-//#include "cut_exp.hpp"
 
 using namespace std;
 using namespace l2func;
@@ -209,6 +214,20 @@ TEST(CutExp, Construct) {
 
 
 }
+TEST(LinFunc, Construct) {
+
+  RSTO s1(1.0, 2, 1.2);
+  RSTO s2(1.0, 3, 1.4);
+  LinFunc<RSTO> stos; 
+  stos.Add(2.5, s1);
+  stos.Add(1.2, s2);
+
+  double r0(0.3);
+
+  EXPECT_DOUBLE_EQ(2.5*s1.at(r0) + 1.2*s2.at(r0),
+		   stos.at(r0));
+
+}
 TEST(CIP, ExpFunc) {
   RSTO s1(2.5, 2, 1.1);
   CSTO s2(1.2, 3, CD(0.4, 0.2));
@@ -298,6 +317,125 @@ TEST(CIP, Delta) {
   EXPECT_DOUBLE_EQ(sto.at(2.4), CIP(d0, sto));
   EXPECT_DOUBLE_EQ(sto.at(2.4), CIP(sto, d0));
   
+}
+TEST(CIP, LinFunc) {
+
+  LinFunc<CSTO> f;
+  CD c0(1.0, 1.2);
+  CSTO u0(1.2, 2, CD(0.4, -0.4));
+  f.Add(c0, u0);
+  CD c1(0.3, 0.2);
+  CSTO u1(1.0, 1, CD(0.1, -0.2));
+  f.Add(c1, u1);
+
+  LinFunc<CSTO> g;
+  CD d0(0.1, 1.2);
+  CSTO v0(0.3, 1, CD(0.1, -0.5));
+  g.Add(d0, v0);
+  CD d1(0.1, 0.5);
+  CSTO v1(0.8, 1, CD(0.8, -0.0));
+  g.Add(d1, v1);  
+
+  EXPECT_C_EQ(CIP(f, g),
+	      c0*d0*CIP(u0, v0)+c1*d0*CIP(u1, v0)+c0*d1*CIP(u0, v1)+c1*d1*CIP(u1, v1));
+  
+}
+TEST(CIP, OpD2) {
+
+  RSTO s1(2.0, 3, 4.0);
+  RSTO s2(1.1, 2, 2.2);
+
+  EXPECT_DOUBLE_EQ(CIP(s1, OP(OpD2(), s2)), 
+		   CIP(s1, OpD2(), s2));
+  
+}
+TEST(CIP, time) {
+
+  
+  RSTO s1(1.2, 5, 0.3);
+  LinFunc<RSTO> ss; 
+  for(int i = 0; i < 100; i++)
+    ss.Add(1.2, s1);
+
+  int num(100);
+
+  boost::timer t0;
+  for(int i = 0; i < num; i++) 
+    CIP(s1, OpD2(), s1);  
+  cout << "t[CIP(A,O,B)] = " << t0.elapsed() << endl;
+
+  boost::timer t1;
+  for(int i = 0; i < num; i++) 
+    CIP(ss, OP(OpD2(), ss));
+  cout << "t[CIP(A,O[B])] = " << t1.elapsed() << endl;
+
+}
+TEST(OP, OpRm) {
+
+  RSTO s1(2.3, 2, 1.1);
+  LinFunc<RSTO> r2_s1 = OP(OpRm(2), s1);
+
+  EXPECT_EQ(4, r2_s1.begin()->second.n());
+
+}
+TEST(OP, OpD1) {
+
+  // d/dr 2r^3 exp(-4r)
+  // = (6r^2 -8r^3)exp(-4r)
+
+  RSTO s1(2.0, 3, 4.0);
+  LinFunc<RSTO> s2 = OP(OpD1(), s1);
+  double r = 2.2;
+  EXPECT_DOUBLE_EQ((6.0*r*r-8*r*r*r)*exp(-4*r),
+		   s2.at(r));
+
+  // d/dr 2r^3 exp(-4r^2)
+  // = (6r^2 -16r^4) *exp(-4rr)
+  RGTO g1(2.0, 3, 4.0);
+  LinFunc<RGTO> g2 = OP(OpD1(), g1);
+  EXPECT_DOUBLE_EQ((6.0*r*r-16*r*r*r*r)*exp(-4*r*r),
+		   g2.at(r));
+}
+TEST(OP, OpD2) {
+
+  RSTO s(2.0, 3, 4.0);
+  LinFunc<RSTO> s1 = OP(OpD2(), s);
+  LinFunc<RSTO> ss = OP(OpD1(), s);
+  LinFunc<LinFunc<RSTO> > s2 = OP(OpD1(), ss);
+  
+  cout << s1 << endl;
+  cout << s2 << endl;
+
+  double r0(2.1);
+  EXPECT_DOUBLE_EQ(s1.at(r0), s2.at(r0));
+  
+}
+TEST(OP, Add) {
+
+  RSTO s(1.1, 2, 1.2);
+
+  LinFunc<RSTO> As = OP(OpRm(2), s);
+  LinFunc<RSTO> Bs = OP(OpD2(), s);
+
+  //  LinFunc<RSTO> ABs = OP(OpAdd<OpRm, OpD2>(OpRm(2), OpD2()), s);
+  LinFunc<RSTO> ABs = OP(AddOp(OpRm(2), OpD2()), s);
+
+  double r0(2.1);
+  EXPECT_DOUBLE_EQ(As.at(r0)+Bs.at(r0), 
+		   ABs.at(r0));
+
+}
+TEST(OP, ScalarProd) {
+
+  RSTO s(1.1, 2, 1.2);
+
+  LinFunc<RSTO> s1 = OP(ProdOp(0.3, AddOp(OpRm(2), OpD2())), s);
+
+  double r0(0.4);
+  EXPECT_DOUBLE_EQ(
+		   0.3 * (OP(OpRm(2), s).at(r0) + OP(OpD2(), s).at(r0)),
+		   s1.at(r0));
+
 }
 
 int main (int argc, char **args) {

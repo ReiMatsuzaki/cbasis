@@ -239,41 +239,16 @@ namespace l2func {
     return LowerGamma<F>(n+1, z*r0) / pow(z, n+1);
   }
 
-  // ==== Inner Product ====
-
-  // ---- STO/GTO ----
-  template<class F, class A, class B>
-  F _CIP(const A& a, const B& b, sto_tag, sto_tag) {
-    return a.c() * b.c() * STO_Int(a.z()+b.z(), a.n()+b.n());
-  }
-  template<class F, class A, class B>
-  F _CIP(const A& a, const B& b, gto_tag, gto_tag) {
-    return a.c() * b.c() * GTO_Int(a.z()+b.z(), a.n()+b.n());
-  }
-  template<class F, class A, class B>
-  F _CIP(const A& a, const B& b, sto_tag, gto_tag) {
-    return a.c() * b.c() * STO_GTO_Int(a.z(), b.z(), a.n()+b.n());
-  }
-  template<class F, class A, class B>
-  F _CIP(const A& a, const B& b, gto_tag, sto_tag) {
-    return CIP(b, a);
-  }
-
-  // ---- CutSTO/CutGTO ----
-  template<class F, class A, class B>
-  F _CIP(const A& a, const B& b, cut_sto_tag, cut_sto_tag) {
-    double r0 = a.r0() < b.r0() ? a.r0() : b.r0();
-    return a.c() * b.c() * CutSTO_Int(a.z()+b.z(), a.n()+b.n(), r0);
-  }
-  template<class F, class A, class B>
-  F _CIP(const A& a, const B& b, cut_sto_tag, sto_tag) {
-    double r0 = a.r0();
-    return a.c() * b.c() * CutSTO_Int(a.z()+b.z(), a.n()+b.n(), r0);
-  }
-  template<class F, class A, class B>
-  F _CIP(const A& a, const B& b, sto_tag, cut_sto_tag) {
-    return _CIP<F, B, A>(b, a, cut_sto_tag(), sto_tag());
-  }
+  // ==== explicit ====
+  
+  template double STO_Int<double>(double, int);
+  template CD STO_Int<CD >(CD, int);
+  template double GTO_Int<double>(double, int);
+  template CD GTO_Int<CD >(CD, int);
+  template double STO_GTO_Int<double>(double, double, int);
+  template CD STO_GTO_Int<CD >(CD, CD, int);
+  template double CutSTO_Int<double>(double, int, double);
+  template CD CutSTO_Int<CD >(CD, int, double);
 
 /*
   template<class F, class A, class B>
@@ -298,24 +273,8 @@ namespace l2func {
   }
 */
 
-
-  // ---- static interface ----
-  template<class A, class B>
-  typename A::Field CIP(const A& a, const B& b) {
-    
-    is_l2func<A>(); is_l2func<B>();
-    typedef typename A::Field FA;
-    typedef typename B::Field FB;
-    //    BOOST_STATIC_ASSERT(boost::has_logical_not<boost::is_same<FA, FB> >::value, "Field of A and B must be same");
-			
-			
-    return _CIP<FA, A, B>(a, b,
-			  typename func_traits<A>::func_tag(), 
-			  typename func_traits<B>::func_tag());
-
-  }
-
   // ---- explicit instance ----
+  /*
   template double CIP(const RSTO&, const RSTO&);
   template std::complex<double> CIP(const CSTO&, const CSTO&);
   template double CIP(const RGTO&, const RGTO&);
@@ -331,7 +290,7 @@ namespace l2func {
   template std::complex<double> CIP(const CutCSTO&, const CSTO&);
   template double CIP(const RSTO&, const CutRSTO&);
   template std::complex<double> CIP(const CSTO&, const CutCSTO&);
-
+  */
 
 
 }

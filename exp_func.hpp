@@ -54,8 +54,11 @@ namespace l2func {
   template<class F, int m>
   std::ostream& operator << (std::ostream& os, const ExpFunc<F,m>& a);
 
+  // ==== STO or GTO ====
+  struct exp_func_tag :public func_tag {};
+
   // ==== STO ====
-  struct sto_tag :public func_tag {};
+  struct sto_tag :public exp_func_tag {};
   template<class F> struct func_traits<ExpFunc<F, 1> > {
     typedef sto_tag func_tag;
   };
@@ -65,7 +68,7 @@ namespace l2func {
   typedef ExpFunc<std::complex<double>, 1> CSTO;
 
   // ==== GTO ====
-  struct gto_tag :public func_tag {};
+  struct gto_tag :public exp_func_tag {};
   template<class F> struct func_traits<ExpFunc<F, 2> > {
   typedef gto_tag func_tag;
 };

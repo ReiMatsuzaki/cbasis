@@ -2,7 +2,7 @@ include local.mk
 CXXFLAGS=${INC_PATH} -Wall -O3 
 
 #OBJS=hatom.o op.o lcomb.o cut_prim.o delta.o prim.o erfc.o fact.o
-MATH_OBJS=fact.o erfc.o
+MATH_OBJS=fact.o erfc.o math_utils.o
 FUNC_OBJS=cut_exp.o exp_func.o delta.o
 CIP_OBJS=cip.o
 

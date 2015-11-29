@@ -1,14 +1,10 @@
-#include <boost/static_assert.hpp>
-#include <boost/type_traits.hpp>
+//#include <boost/static_assert.hpp>
+//#include <boost/type_traits.hpp>
 #include "exp_func.hpp"
 #include <complex.h>
+#include "math_utils.hpp"
 
 namespace l2func {
-
-  // ==== Utilities ====
-  template<class F> F ConjugateIfPossible(F x) { return x; }
-  template<> std::complex<double> ConjugateIfPossible<std::complex<double> >(std::complex<double> x) { return std::conj(x); }
-
 
   // ==== Constructors ====
   template<class F, int m>
