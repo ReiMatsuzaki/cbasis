@@ -77,6 +77,19 @@ namespace l2func {
 
   }
 
+  template<class FuncT>
+  LinFunc<FuncT> Expand(const LinFunc<LinFunc<FuncT> >& a) {
+
+    LinFunc<FuncT> res;
+    for(typename LinFunc<LinFunc<FuncT> >::const_iterator it_a = a.begin();
+	it_a != a.end(); ++it_a) {
+      for(typename LinFunc<LinFunc<FuncT> >::const_iterator it = it_a->begin();
+	  it != it_a->end(); ++it) {
+	res.Add(it_a->first * it->first, it->second);
+      }
+    }
+    return res;
+  }
 }
 
 #endif

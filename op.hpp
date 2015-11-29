@@ -55,6 +55,25 @@ namespace l2func {
   }
   template<class OpA, class OpB>
   OpAdd<OpA, OpB> AddOp(OpA a, OpB b) { return OpAdd<OpA, OpB>(a, b); }
+
+  template<int N, class OpT>
+  struct NTermOp {
+    typedef OpAdd<OpT, typename NTermOp<N-1, OpT>::type> type;
+  };
+  template<class OpT>
+  struct NTermOp<1, OpT> {
+    typedef OpT type;
+  };
+
+  template<int N, class OpT>
+  struct NLinOp {
+    typedef OpAdd<OpScalarProd<typename OpT::Field, OpT>,
+		  typename NLinOp<N-1, OpT>::type> type;
+  };
+  template<class OpT>
+  struct NLinOp<1, OpT> {
+    typedef OpScalarProd<typename OpT::Field, OpT> type;
+  };
   
   // ==== D1 operator ====
   class OpD1 {

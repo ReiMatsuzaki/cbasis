@@ -59,5 +59,8 @@ namespace l2func {
   template<class FuncT>
   std::ostream& operator << (std::ostream& os, const LinFunc<FuncT>& a);
 
+  template<class FuncT>
+  LinFunc<FuncT> Expand(const LinFunc<LinFunc<FuncT> >& a);
+
 }
 #endif

@@ -19,43 +19,36 @@ namespace l2func {
   private:
     // ---------- Field ------------
     int n_;
-    F z_;
     int l_;
+    F z_;
 
+  public:
     // ---------- type -------------
-    typedef LinFunc<ExpFunc<F,1> > STOs;
-    
+    typedef ExpFunc<F, 1> STO;
+    typedef LinFunc<ExpFunc<F, 1> > STOs;
+    typedef OpAdd<OpScalarProd<F, OpD2>,
+		  OpAdd<OpScalarProd<F, OpRm>,
+			OpScalarProd<F, OpRm> > > HamiltonianOp;
+    typedef OpAdd<HamiltonianOp, OpRm> HMinusEnergyOp;
+
   public:
     // -------- constructor --------
     HLikeAtom();
-    HLikeAtom(int _n, F _z, int _l);
+    HLikeAtom(int _n, int _l): n_(_n), l_(_l), z_(1) {}
+    HLikeAtom(int _n, int _l, F _z): n_(_n), l_(_l), z_(_z) {}
 
     // -------- Getter -------------
     int n() const { return n_; }
-    F z() const   { return z_; }
     int l() const { return l_; }
+    F z() const   { return z_; }
 
     // -------- operator -----------
-    template<class OpT> OpT Hamiltonian() const {
+    HamiltonianOp Hamiltonian() const {
 
-      OpAdd<OpScalarProd<F, OpD2>, 
-	    OpScalarProd<F, OpRm> > op = AddOp(ProdOp(-0.5, OpD2()),
-						       AddOp(ProdOp(-z_, OpRm(-1))));
+      return AddOp(ProdOp(       -F(1)/F(2),    OpD2()),
+		   AddOp(ProdOp(  -z_,          OpRm(-1)),
+			 ProdOp( F(l_*l_-l_)/F(2), OpRm(-2))));
 
-      if(l_ == 0) 
-	return op;
-      else
-	return AddOp(ProdOp(-0.5, OpD2()), op);
-/*
-      Op<Prim> op;
-      op.Add(-0.5, OpDDr2<Prim>());
-      if(l_ != 0) {
-	F c(l_ * (l_ + 1) * 0.5);
-	op.Add(c, OpRM<Prim>(-2));
-      }
-      op.Add(-z_, OpRM<Prim>(-1));
-      return op;
-*/
     }
     template<class OpT> OpT HMinusEnergy(F ene) const {
 
@@ -63,18 +56,12 @@ namespace l2func {
 		   ProdOp(-ene, OpRm(0)));
 
     }
-    /*
-    template<class Prim> Op<Prim> HMinusEnergy(typename Prim::Field ene) const {
-      Op<Prim> op = this->Hamiltonian<Prim>();
-      op.AddOther(OpCst<Prim>(-ene));
-      return op;
-    }
-    */
+
     // -------- state vector -------
     STOs EigenState() const;
     STOs DipoleInitLength(int l1) const;
     STOs DipoleInitVelocity(int l1) const;
-    double EigenEnergy() const;
+    F EigenEnergy() const;
   };
 }
 #endif

@@ -16,6 +16,7 @@ namespace l2func {
 
   
   // ==== Add ====
+  // ---- Definitiion ----
   template<class FuncA, class FuncB>
   struct FuncAdd {
     typedef typename FuncA::Field Field;
@@ -32,6 +33,17 @@ namespace l2func {
     typedef func_add_tag func_tag;
   };
   template<class FuncA, class FuncB> struct is_l2func<FuncAdd<FuncA, FuncB> > {};
+
+  // ---- utilities ----
+  template<int N, class FuncT>
+  struct NTermFunc {
+    typedef FuncAdd<FuncT, typename NTermFunc<N-1, FuncT>::type> type;
+  };
+  template<class FuncT>
+  struct NTermFunc<1, FuncT> {
+    typedef FuncT type;
+  };
+  
 
 
   // ==== Scalar Product ====

@@ -4,52 +4,45 @@
 #include "prim.hpp"
 #include "lcomb.hpp"
 #include "op.hpp"
+#include "op_func.hpp"
 
 
 namespace l2func {
-
-  template<class F>
-  HLikeAtom<F>::HLikeAtom() :
-    n_(1), z_(1.0), l_(0) {}
-
-  template<class F>
-  HLikeAtom<F>::HLikeAtom(int _n, F _z, int _l) :
-  n_(_n), z_(_z), l_(_l) {}
   
   // ----------- eigen state ------------
+
   template<class F>
-  LinearComb<ExpBasis<F,1> >
-  HLikeAtom<F>::EigenState() const {
+  typename HLikeAtom<F>::STOs HLikeAtom<F>::EigenState() const {
 
     STOs lc;
 
     if( n_ == 1 && l_ ==0) {
       
-      lc += ExpBasis<F,1>(2.0, 1, 1.0);
+      lc.Add(F(1), STO(F(2), 1, F(1)));
       
     } else if ( n_ == 2 && l_ == 0) {
-      
-      lc += ExpBasis<F,1>(1.0/sqrt(2.0), 1, 0.5);
-      lc += ExpBasis<F,1>(-1.0/(2.0*sqrt(2.0)), 2, 0.5);
+
+      lc.Add(F(1), STO(F(1)/sqrt(F(2)), 1, F(1)/F(2)));
+      lc.Add(F(1), STO(-F(1)/(F(2)*sqrt(F(2))), 2, F(1)/F(2)));
       
     } else if ( n_ == 2 && l_ == 1) {
-      
-      lc += ExpBasis<F,1>(1.0/(2.0 * sqrt(6.0)), 2, 0.5);
+
+      lc.Add(F(1), STO(F(1) / (F(2)*sqrt(F(6))), 2, F(1)/F(2)));
 
     } else if (n_ == 3 && l_ == 0) {
 
-      lc += ExpBasis<F,1>(4.0 / (81.0 * sqrt(30.0)), 3, 1.0/3.0);
+      lc.Add(F(1), STO(F(4)/(F(81)*sqrt(F(30))), 3, F(1)/F(3)));
       
     } else if (n_ == 3 && l_ == 1) {
-      double c = 8.0 / (27.0 * sqrt(6.0));
-      double z = 1.0 / 3.0;
-      lc += ExpBasis<F,1>(c,      2, z);
-      lc += ExpBasis<F,1>(-c/6.0, 3, z);
+      F c = F(8) / (F(27) * sqrt(F(6)));
+      F z = F(1) / F(3);
+      lc.Add(F(1), STO(c, 2, z));
+      lc.Add(F(1), STO(-c/F(6), 3, z));
 
     } else if (n_ == 3 && l_ == 2) {
 
-      double c = (1.0 / 81.0) * sqrt(8.0/15.0);
-      lc += ExpBasis<F, 1>(c, 3, 1/3.0);
+      F c = F(1) / F(81) * sqrt(F(8)/F(15));
+      lc.Add(F(1), STO(c, 3, F(1)/F(3)));
       
     } else {
 
@@ -65,10 +58,11 @@ namespace l2func {
     }
 
     return lc;
+    
   }
+
   template<class F>
-  LinearComb<ExpBasis<F,1> >
-  HLikeAtom<F>::DipoleInitLength(int l1) const {
+  typename HLikeAtom<F>::STOs HLikeAtom<F>::DipoleInitLength(int l1) const {
 
     if(l_ != l1 + 1 && l_ != l1 - 1) {
 
@@ -78,48 +72,35 @@ namespace l2func {
 
     }
 
-    typedef ExpBasis<F, 1> Prim;
-    typedef LinearComb<Prim> LC;
-
-    LC psi_n = this->EigenState();
-    LC res = OpRM<Prim>(1)(psi_n);
+    STOs psi_n = this->EigenState();
+    STOs res = Expand(OP(OpRm(1), psi_n));
     return res;
     
   }
   template<class F>
-  LinearComb<ExpBasis<F,1> >
-  HLikeAtom<F>::DipoleInitVelocity(int l1) const {
+  typename HLikeAtom<F>::STOs HLikeAtom<F>::DipoleInitVelocity(int l1) const {
 
     if(l_ != l1 + 1 && l_ != l1 - 1) {
       string msg;
       msg = "|l0 - l1| != 1 in HAtomDipoleInitV";
       throw std::invalid_argument(msg);
     }
-
-    typedef ExpBasis<F,1> Prim;
-    typedef LinearComb<Prim> LC;
     
-    LC psi_n = this->EigenState();
-    LC a = OpDDr<Prim>()(psi_n);
+    STOs psi_n = this->EigenState();
+    STOs res = Expand(OP(OpD1(), psi_n));
 
     if( l_ > 0) {
-      double coef;
-      LC b;
-      if(l_ < l1) 
-	coef = - (l_ + 1);
-      else 
-        coef = l_;
-      
-      Op<Prim> op;
-      op.Add(coef, OpRM<Prim>(-1));
-      b = op(psi_n);
-      a += b;
+      F coef = F(l_ < l1 ? - (l_ + 1) : l_);
+      STOs b = Expand(OP(OpRm(-1), psi_n));
+      b.SetScalarProd(coef);
+      res.Add(b);
     }
-    return a;    	
+
+    return res;    	
   }
   template<class F>
-  double HLikeAtom<F>::EigenEnergy() const {
-    return -1.0 / (2.0 * n_ * n_); 
+  F HLikeAtom<F>::EigenEnergy() const {
+    return -F(1) / (F(2) * n_ * n_); 
   }
 
   // ----------- explicit instance ---------

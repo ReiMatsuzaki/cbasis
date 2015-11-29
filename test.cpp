@@ -23,6 +23,8 @@
 #include "cip_impl.hpp"
 #include "cip.hpp"
 
+#include "hatom.hpp"
+
 using namespace std;
 using namespace l2func;
 using namespace erfc_mori;
@@ -141,6 +143,12 @@ TEST(math, lower_gamma) {
 		      LowerGamma(2, a), 
 		      eps);
 
+}
+TEST(Func, NTermFunc) {
+
+  NTermFunc<3, RSTO>::type stos = AddFunc(RSTO(1.1,2,1.1), 
+					  AddFunc(RSTO(1.0, 3, 0.2), 
+						  RSTO(2.0, 2, 0.1)));
 }
 TEST(Func, ExpFuncConstruct) {
   
@@ -495,6 +503,18 @@ TEST(OP, ScalarProd) {
 		   0.3 * (OP(OpRm(2), s).at(r0) + OP(OpD2(), s).at(r0)),
 		   s1.at(r0));
 
+}
+TEST(HAtom, eigenstate) {
+
+  typedef HLikeAtom<double> H;
+  LinFunc<RSTO> f10 = H(1, 0).EigenState();
+  LinFunc<RSTO> f20 = H(2, 0).EigenState();
+  LinFunc<RSTO> f21 = H(2, 1).EigenState();
+
+  EXPECT_DOUBLE_EQ(H(1, 0).EigenEnergy(),
+		   CIP(f10, H(1, 0).Hamiltonian(), f10));
+
+  
 }
 
 int main (int argc, char **args) {

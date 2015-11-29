@@ -301,24 +301,38 @@ namespace l2func {
 	    linfunc_tag, op_tag,     func_tag,
 	    typename boost::disable_if<
 	    boost::is_same<
-	    typename func_traits<B>::func_tag, linfunc_tag> >::type* =0) {
+	    typename func_traits<B>::func_tag, linfunc_tag> >::type* =0,
+	    typename boost::disable_if<
+	    boost::is_same<
+	    typename func_traits<O>::op_tag, op_add_tag> >::type* =0) {
 
-  F acc(0);
-  for(typename A::const_iterator it = a.begin();
-      a != a.end(); 
-      a++) {
+    F acc(0);
+    for(typename A::const_iterator it = a.begin();
+	it != a.end(); ++it) {
+      
+      acc += it->first * CIP(it->second, o, b);
+      
+    }
 
-    acc += it->first * CIP(a->second, o, b);
-
+    return acc;
   }
-
-  return acc;
-}
   template<class F, class A, class O, class B> 
   F _CIP_op(const A& a,  const O& o, const B& b,
-	    func_tag,     op_tag,     linfunc_tag) {
-  return CIP(b, o, a);
-}
+	    func_tag,     op_tag,     linfunc_tag,
+	    typename boost::disable_if<
+	    boost::is_same<
+	    typename op_traits<O>::op_tag, op_add_tag> >::type* =0) {
+
+    F acc(0);
+    for(typename A::const_iterator it = b.begin();
+	it != b.end(); ++it) {
+
+      acc += it->first * CIP(a, o, it->second);
+      
+    }   
+    
+    return acc;
+  }
 
   template<class F, class A, class B> struct Summer{
   
