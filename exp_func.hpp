@@ -70,8 +70,8 @@ namespace l2func {
   // ==== GTO ====
   struct gto_tag :public exp_func_tag {};
   template<class F> struct func_traits<ExpFunc<F, 2> > {
-  typedef gto_tag func_tag;
-};
+    typedef gto_tag func_tag;
+  };
   template<class F> struct is_l2func<ExpFunc<F, 2> > {};
   
   typedef ExpFunc<double, 2> RGTO;

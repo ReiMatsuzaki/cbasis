@@ -2,8 +2,10 @@
 #define HATOM_HPP
 
 #include <stdexcept>
-#include "prim.hpp"
-#include "lcomb.hpp"
+
+#include "exp_func.hpp"
+#include "lin_func.hpp"
+
 #include "op.hpp"
 
 namespace {
@@ -21,7 +23,7 @@ namespace l2func {
     int l_;
 
     // ---------- type -------------
-    typedef LinearComb<ExpBasis<F,1> > STOs;
+    typedef LinFunc<ExpFunc<F,1> > STOs;
     
   public:
     // -------- constructor --------
@@ -34,8 +36,17 @@ namespace l2func {
     int l() const { return l_; }
 
     // -------- operator -----------
-    template<class Prim> Op<Prim> Hamiltonian() const {
+    template<class OpT> OpT Hamiltonian() const {
 
+      OpAdd<OpScalarProd<F, OpD2>, 
+	    OpScalarProd<F, OpRm> > op = AddOp(ProdOp(-0.5, OpD2()),
+						       AddOp(ProdOp(-z_, OpRm(-1))));
+
+      if(l_ == 0) 
+	return op;
+      else
+	return AddOp(ProdOp(-0.5, OpD2()), op);
+/*
       Op<Prim> op;
       op.Add(-0.5, OpDDr2<Prim>());
       if(l_ != 0) {
@@ -44,13 +55,21 @@ namespace l2func {
       }
       op.Add(-z_, OpRM<Prim>(-1));
       return op;
+*/
     }
+    template<class OpT> OpT HMinusEnergy(F ene) const {
+
+      return AddOp(Hamiltonian(), 
+		   ProdOp(-ene, OpRm(0)));
+
+    }
+    /*
     template<class Prim> Op<Prim> HMinusEnergy(typename Prim::Field ene) const {
       Op<Prim> op = this->Hamiltonian<Prim>();
       op.AddOther(OpCst<Prim>(-ene));
       return op;
     }
-
+    */
     // -------- state vector -------
     STOs EigenState() const;
     STOs DipoleInitLength(int l1) const;

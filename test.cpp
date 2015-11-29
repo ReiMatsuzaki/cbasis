@@ -370,7 +370,7 @@ TEST(CIP, time) {
   cout << "t[CIP(A,O[B])] = " << t1.elapsed() << endl;
 
 }
-TEST(CIP, algebra) {
+TEST(CIP, Op_algebra) {
 
   RSTO s1(1.2, 5, 3.0);
   RSTO s2(1.1, 2, 5.0);
@@ -389,6 +389,19 @@ TEST(CIP, algebra) {
 		   CIP(s1, AddOp(OpRm(2), ProdOp(0.3, OpD1())), s2),
 		   CIP(s1, OpRm(2), s2) + 0.3*CIP(s1, OpD1(), s2)
 		   );
+
+}
+TEST(CIP, Func_algebra) {
+
+  RSTO s1(0.1, 2, 0.4);
+  RSTO s2(0.2, 3, 0.3);
+  RSTO s3(0.3, 2, 0.1);
+
+  EXPECT_DOUBLE_EQ(CIP(s1, AddFunc(s2, s3)),
+		   CIP(s1, s2) + CIP(s1, s3));
+
+  EXPECT_DOUBLE_EQ(CIP(AddFunc(s1, s2), s3),
+		   CIP(s1, s3) + CIP(s2, s3));
 
 }
 TEST(OP, OpRm) {

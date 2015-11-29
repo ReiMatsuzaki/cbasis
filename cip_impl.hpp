@@ -40,6 +40,44 @@ namespace l2func {
 
 
   // ==== Inner Product ====
+  // ---- Add ----
+  template<class F, class A, class B>
+  F _CIP(const A& a, const B& b, func_tag, func_add_tag,
+	 typename boost::disable_if<
+	 boost::is_same<
+	 typename func_traits<A>::func_tag, func_add_tag> >::type* =0
+	 ) {
+
+    return CIP(a, b.funcA) + CIP(a, b.funcB);
+
+  }
+  template<class F, class A, class B>
+  F _CIP(const A& a, const B& b, func_add_tag, func_tag) {
+
+    return CIP(a.funcA, b) + CIP(a.funcB, b);
+
+  }
+
+  // ---- Prod ----
+  template<class F, class A, class B>
+  F _CIP(const A& a, const B& b, func_tag, func_prod_tag,
+	 typename boost::disable_if<
+	 boost::is_same<
+	 typename func_traits<A>::func_tag, func_prod_tag> >::type* =0
+	 ) {
+
+    return b.c * CIP(a, b.f);
+
+  }
+  template<class F, class A, class B>
+  F _CIP(const A& a, const B& b, func_prod_tag, func_tag) {
+
+    return a.c * CIP(a.f, b);
+
+  }
+  
+
+
   // ---- STO/GTO ----
   template<class F, class A, class B>
   F _CIP(const A& a, const B& b, exp_func_tag, exp_func_tag) {
