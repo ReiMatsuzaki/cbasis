@@ -143,42 +143,34 @@ namespace l2func {
 
 
   // ==== Matrix Element of Operator ====
-  // ---- Rm ----
-  template<class ExpFuncA, class ExpFuncB>
-  typename ExpFuncA::Field RmMat(const ExpFuncA& a, const ExpFuncB& b) {
-
+  // ---- Scalar Prod Op ----
+  template<class F, class A, class O, class B>
+  F _CIP_op(const A& a, const O& o, const B& b,
+	    func_tag,   scalar_prod_tag, func_tag) {
     
+    return o.c * CIP(a, o.op, b);
+    
+  }
+
+  // ---- Op Add ----
+  template<class F, class A, class O, class B>
+  F _CIP_op(const A& a, const O& o, const B& b,
+	    func_tag,   op_add_tag, func_tag) {
+
+    return CIP(a, o.opA, b) + CIP(a, o.opB, b);
 
   }
 
-
+  // ---- Rm, ExpFunc ----
   template<class F, class A, class O, class B>
   F _CIP_op(const A& a, const O& o, const B& b, 
-	    sto_tag,    rm_tag,     sto_tag) {
+	    exp_func_tag, rm_tag, exp_func_tag) {
 
-    return STO_Int(a.z() + b.z(), a.n() + o.m() + b.n()) * a.c() * b.c();
-    
-  }
-  template<class F, class A, class O, class B>
-  F _CIP_op(const A& a, const O& o, const B& b, 
-	    gto_tag,    rm_tag,     gto_tag) {
+    return a.c() * b.c() * 
+      ExpExp_Int(a.z(), b.z(), a.n() + b.n() + o.m(),
+		 typename func_traits<A>::func_tag(), 
+		 typename func_traits<B>::func_tag());
 
-    return STO_Int(a.z() + b.z(), a.n() + o.m() + b.n()) * a.c() * b.c();
-    
-  }
-  template<class F, class A, class O, class B>
-  F _CIP_op(const A& a, const O& o, const B& b, 
-	    sto_tag,    rm_tag,     gto_tag) {
-
-    return STO_GTO_Int(a.z(), b.z(), a.n() + b.n()) * a.c() * b.c();
-    
-  }
-  template<class F, class A, class O, class B>
-  F _CIP_op(const A& a, const O& o, const B& b, 
-	    gto_tag,    rm_tag,     sto_tag) {
-
-    return _CIP(b, o, a, sto_tag(), rm_tag(), gto_tag());
-    
   }
 
   template<class F, class A, class O, class B>
@@ -228,28 +220,42 @@ namespace l2func {
 }
 
   // ---- D2 ----
-  template<class F, class A, class O, class B>
-  F _CIP_op(const A& a, const O&, const B& b, 
-	    sto_tag,    d2_tag,   sto_tag) {
-    F c = a.c() * b.c();
-    F z = a.z() + b.z();
-    int n = a.n() + b.n();
-  
-    F acc(0);
+  template<class ExpFuncA, class ExpFuncB>
+  typename ExpFuncA::Field D2Mat(const ExpFuncA& a, const ExpFuncB& b) {
     
-    if(b.n() > 1)
-      acc += F(b.n()*b.n()-b.n()) * STO_Int(z, n-2);
-    
-    if(b.n() > 0)
-      acc += -F(2*b.n())*b.z() * STO_Int(z, n-1);
-    
-    acc += b.z() * b.z() * STO_Int(z, n);
-    
-    acc *= c;
-    
-    return acc;
-  
+    typedef typename ExpFuncA::Field F;
+    int n = b.n();
+    int m = b.exp_power;
+    F   z = b.z();
+
+    F res(0);
+
+    if(n != 1) 
+      res += F(n*n-n)        * CIP(a, OpRm(-2), b);
+
+    res += F(-m*z*(2*n+m-1)) * CIP(a, OpRm(-1), b);
+    res += F(m*m)*z*z        * CIP(a, b);
+
+    return res;
+
   }
+
+  template<class F, class A, class O, class B>
+  F _CIP_op(const A& a,   const O&, const B& b,
+	    exp_func_tag, d2_tag,   exp_func_tag) {
+
+    return D2Mat(a, b);
+
+  }
+
+  template<class F, class A, class O, class B>
+  F _CIP_op(const A& a, const O&, const B& b,
+	    cut_exp_tag, d2_tag, cut_exp_tag) {
+
+    return D1Mat(a, b);
+    
+}
+  
 
   // ---- linfunc ----
   template<class F, class A, class O, class B> 

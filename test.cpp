@@ -141,7 +141,7 @@ TEST(math, lower_gamma) {
 		      eps);
 
 }
-TEST(ExpFunc, Construct) {
+TEST(Func, ExpFuncConstruct) {
   
   RSTO s0(1.0, 1, 1.0);
   RSTO s1(1.0, 2, 1.0);
@@ -160,7 +160,7 @@ TEST(ExpFunc, Construct) {
 
   EXPECT_EQ(1, CSTO::exp_power);
 }
-TEST(ExpFunc, accessor) {
+TEST(Func, accessor) {
 
   RSTO s1(1.1, 2, 0.2);
   double x0(3.0);
@@ -172,11 +172,11 @@ TEST(ExpFunc, accessor) {
 
 
 }
-TEST(ExpFunc, stream) {
+TEST(Func, stream) {
   RSTO n_s1(2.1, 2, 1.1);
   cout << n_s1 << endl;
 }
-TEST(ExpFunc, ComplexConj) {
+TEST(Func, ComplexConj) {
 
   CSTO s(CD(1.1, 1.2), 2, CD(2.1, -2.2));
 
@@ -195,7 +195,7 @@ TEST(ExpFunc, ComplexConj) {
   EXPECT_EQ(2, c_rsto.n());
   EXPECT_DOUBLE_EQ(3.1, c_rsto.z());
 }
-TEST(ExpFunc, Product) {
+TEST(Func, Product) {
 
   CSTO s1(1.2, 3, std::complex<double>(1.5));
   s1.SetScalarProd(2.0);
@@ -204,7 +204,7 @@ TEST(ExpFunc, Product) {
   EXPECT_EQ(5, s1.n());
   EXPECT_DOUBLE_EQ(2.4, s1.c().real());
 }
-TEST(CutExp, Construct) {
+TEST(Func, CutExpConstruct) {
 
   CSTO csto(1.2, 2, 2.5);
   CutCSTO cut_csto(1.2, 2, 2.5, 10.0);
@@ -214,7 +214,7 @@ TEST(CutExp, Construct) {
 
 
 }
-TEST(LinFunc, Construct) {
+TEST(Func, LinFuncConstruct) {
 
   RSTO s1(1.0, 2, 1.2);
   RSTO s2(1.0, 3, 1.4);
@@ -368,6 +368,27 @@ TEST(CIP, time) {
   for(int i = 0; i < num; i++) 
     CIP(ss, OP(OpD2(), ss));
   cout << "t[CIP(A,O[B])] = " << t1.elapsed() << endl;
+
+}
+TEST(CIP, algebra) {
+
+  RSTO s1(1.2, 5, 3.0);
+  RSTO s2(1.1, 2, 5.0);
+
+  EXPECT_DOUBLE_EQ(
+		   CIP(s1, AddOp(OpRm(2), OpD1()), s2),
+		   CIP(s1, OpRm(2), s2) + CIP(s1, OpD1(), s2)
+		   );
+
+  EXPECT_DOUBLE_EQ(
+		   CIP(s1, ProdOp(0.3, OpD1()), s2),
+		   0.3 * CIP(s1, OpD1(), s2)
+		   );
+
+  EXPECT_DOUBLE_EQ(
+		   CIP(s1, AddOp(OpRm(2), ProdOp(0.3, OpD1())), s2),
+		   CIP(s1, OpRm(2), s2) + 0.3*CIP(s1, OpD1(), s2)
+		   );
 
 }
 TEST(OP, OpRm) {
