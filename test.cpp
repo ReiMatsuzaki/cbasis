@@ -528,23 +528,23 @@ TEST(HAtom, eigenstate) {
 
   HLikeAtom<double> hatom;
   
-  HPsi<1,0,double> f10;
-  HPsi<2,0,double> f20;
+  HPsi<1,0,double> f10(hatom);
+  HPsi<2,0,double> f20(hatom);
   //  HPsi<2,1,double> f21;
   EXPECT_DOUBLE_EQ(1.0,
-		   CIP(f10(hatom), f10(hatom)) 
+		   CIP(f10.value, f10.value )
 		   );
   EXPECT_DOUBLE_EQ(0.0,
-		   CIP(f20(hatom), f10(hatom)) 
+		   CIP(f20.value, f10.value )
 		   );
 
-  HOp<0, double> hop;
+  HOp<0, double> hop(hatom);
   EXPECT_DOUBLE_EQ(EigenEnergy<1>(hatom),
-		   CIP(f10(hatom), hop(hatom), f10(hatom))
+		   CIP(f10.value, hop.value, f10.value)
 		   );
 
   EXPECT_DOUBLE_EQ(0.0,
-		   CIP(f20(hatom), hop(hatom), f10(hatom))
+		   CIP(f20.value, hop.value, f10.value)
 		   );
 }
 

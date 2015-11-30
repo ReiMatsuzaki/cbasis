@@ -86,40 +86,47 @@ namespace l2func {
 
   // ==== H operator ====
   template<int L, class F> struct HOp {
-
-    typename HOpType<L, F>::type operator()(const HLikeAtom<F>& h) {
-      return AddOp(ProdOp(-F(1)/F(2), OpD2()),
+    HOp(HLikeAtom<F> const& h) {
+      value = AddOp(ProdOp(-F(1)/F(2), OpD2()),
 		   AddOp(ProdOp(  -h.z(),      OpRm(-1)),
 			 ProdOp( F(L*L-L)/F(2), OpRm(-2))));
     }
+    typename HOpType<L, F>::type value;
   };
   template<class F> struct HOp<0, F> {
-
-    typename HOpType<0, F>::type operator()(const HLikeAtom<F>& h) {
-      return AddOp(ProdOp(-F(1)/F(2), OpD2()),
-		 ProdOp(-h.z(),     OpRm(-1)));
-    }
+    HOp(HLikeAtom<F> const& h) : value(AddOp(ProdOp(-F(1)/F(2), OpD2()),
+					     ProdOp(-h.z(),     OpRm(-1)))) {}
+    typename HOpType<0, F>::type value;
   };
 
   // ==== eigen function ====
   template<int N, int L, class F> struct HPsi;
   template<class F> struct HPsi<1, 0, F> {
-    typename HPsiType<1,0,F>::type operator()(const HLikeAtom<F>&) {
-      return ExpFunc<F, 1>(F(2), 1, F(1));
-    }
+    HPsi(HLikeAtom<F> const&) : val( ExpFunc<F, 1>(F(2), 1, F(1))),
+				value(val) {}
+
+    typename HPsiType<1,0,F>::type const val;
+    typename HPsiType<1,0,F>::type const& value;
   };
   template<class F> struct HPsi<2, 0, F> {
-    typename HPsiType<2,0,F>::type operator()(const HLikeAtom<F>&) {
-      F z = F(1)/F(2);
-      return AddFunc(ExpFunc<F,1>(F(1)/sqrt(F(2)), 1, z),
-		     ExpFunc<F,1>(-F(1)/(F(2)*sqrt(F(2))), 2, z));
-    }
+    HPsi(HLikeAtom<F> const&) : val(AddFunc
+				    (ExpFunc<F,1>(F(1)/sqrt(F(2)), 
+						  1, 
+						  F(1)/F(2)),
+				     ExpFunc<F,1>(-F(1)/(F(2)*sqrt(F(2))), 
+						  2, 
+						  F(1)/F(2)))),
+				value(val) {}
+    typename HPsiType<2,0,F>::type const val;
+    typename HPsiType<2,0,F>::type const& value;
   };
   template<class F> struct HPsi<2, 1, F> {
-
-    typename HPsiType<2,1,F>::type operator()(const HLikeAtom<F>&) {
-      return ExpFunc<F,1>(F(1)/(F(2)*sqrt(F(6))), 2, F(1)/F(2));
-    }
+    HPsi(HLikeAtom<F> const&) : val(ExpFunc<F,1>(F(1)/(F(2)*sqrt(F(6))), 
+						 2, 
+						 F(1)/F(2))),
+				value(val) {}
+    typename HPsiType<2,0,F>::type const val;
+    typename HPsiType<2,0,F>::type const& value;    
   };
   
 
