@@ -546,6 +546,12 @@ TEST(HAtom, eigenstate) {
   EXPECT_DOUBLE_EQ(0.0,
 		   CIP(f20.value, hop.value, f10.value)
 		   );
+
+  HminusEOp<0, double> Lop(hatom, 0.7);
+  EXPECT_DOUBLE_EQ(-1.2,
+		   CIP(f10.value, Lop.value, f10.value)
+		   );
+  
 }
 
 int main (int argc, char **args) {

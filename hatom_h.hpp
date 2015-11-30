@@ -99,6 +99,16 @@ namespace l2func {
     typename HOpType<0, F>::type value;
   };
 
+  template<int L, class F> struct HminusEOp{
+    HminusEOp(HLikeAtom<F> const& h, F ene) : val(AddOp(HOp<L,F>(h).value,
+							ProdOp(-ene, OpRm(0)))),
+					      value(val) {}
+
+    typedef OpAdd<typename HOpType<L, F>::type, OpScalarProd<F, OpRm> > type;
+    type val;
+    type const& value;
+  };
+
   // ==== eigen function ====
   template<int N, int L, class F> struct HPsi;
   template<class F> struct HPsi<1, 0, F> {
