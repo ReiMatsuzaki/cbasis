@@ -294,6 +294,26 @@ namespace l2func {
 
   }
 
+  // ---- FuncAdd ----
+  template<class F, class A, class O, class B>
+  F _CIP_op(const A& a, const O& o, const B& b,
+	    func_tag,   op_tag,     func_add_tag,
+	    typename boost::disable_if< is_compound<O> >::type* = 0,
+	    typename boost::disable_if< is_compound<A> >::type* = 0) {
+    
+    return CIP(a,o,b.funcA) + CIP(a,o,b.funcB);
+
+  }
+  template<class F, class A, class O, class B>
+  F _CIP_op(const A& a, const O& o, const B& b,
+	    func_add_tag,   op_tag,     func_tag,
+	    typename boost::disable_if< is_compound<O> >::type* = 0) {
+    
+    return CIP(a.funcA,o,b) + CIP(a.funcB,o,b);
+
+  }
+
+
 
   // ---- linfunc ----
   template<class F, class A, class O, class B> 

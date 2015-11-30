@@ -8,144 +8,146 @@
 
 #include "op.hpp"
 
-namespace {
-  using std::string;
-}
-
 namespace l2func {
 
+  // ==== type ====
+  // ---- Hamiltonian ----
+  template<int L, class F> struct HOpType {
+    typedef OpAdd<OpScalarProd<F, OpD2>,
+		  OpAdd<OpScalarProd<F, OpRm>,
+			OpScalarProd<F, OpRm> > > type; 
+  }; 
+  template<class F>  struct HOpType<0, F> {
+    typedef OpAdd<OpScalarProd<F, OpD2>,
+		  OpScalarProd<F, OpRm> > type; 
+  };
+
+  // ---- EigenFunc ----
+  template<int N, int L, class F> struct HPsiType;
+  template<class F> struct HPsiType<1,0,F> {
+    typedef ExpFunc<F, 1> type;
+  };
+  template<class F> struct HPsiType<2,0,F> {
+    typedef FuncAdd<ExpFunc<F, 1>, ExpFunc<F,1> > type;
+  };
+  template<class F> struct HPsiType<2,1,F> {
+    typedef ExpFunc<F, 1> type;
+  };
+  
+  // ---- Lenght ----
+  template<int N, int L0, int L1, class F> struct HLengthType;
+  template<class F> struct HLengthType<1,0,1,F> {
+    typedef ExpFunc<F, 1> type;
+  };
+
+  // ---- Velocity ----
+  template<int N, int L0, int L1, class F> struct HVelocityType;
+  template<class F> struct HVelocityType<1,0,1,F> {
+    typedef ExpFunc<F, 1> type;
+  };
+
+
+  // ==== H atom ====
   template<class F=double>
   class HLikeAtom {
   private:
-    // ---------- Field ------------
-    int n_;
-    int l_;
+    // ---- Field ----
     F z_;
+    //    enum ENNum { n_=N };
+    //    enum ELNum { l_=L };
 
   public:
-    // ---------- type -------------
+    // ---- type ----
+    typedef F Field;
+    /*
     typedef ExpFunc<F, 1> STO;
-    typedef LinFunc<ExpFunc<F, 1> > STOs;
+    typedef NTermFunc<N-L, ExpFunc<F, 1> > EigenFunc;
     typedef OpAdd<OpScalarProd<F, OpD2>,
 		  OpAdd<OpScalarProd<F, OpRm>,
 			OpScalarProd<F, OpRm> > > HamiltonianOp;
     typedef OpAdd<HamiltonianOp, 
 		  OpScalarProd<F, OpRm> > HMinusEnergyOp;
+		  */
 
   public:
-    // -------- constructor --------
-    HLikeAtom() : n_(1), l_(0), z_(1) {}
-    HLikeAtom(int _n, int _l) : n_(_n), l_(_l), z_(1) {}
-    HLikeAtom(int _n, int _l, F _z): n_(_n), l_(_l), z_(_z) {}
+    // ---- constructor -----
+    HLikeAtom() : z_(1) {}
+    HLikeAtom(F _z): z_(_z) {}
 
-    // -------- Getter -------------
-    int n() const { return n_; }
-    int l() const { return l_; }
+    // ---- Getter ----
     F z() const   { return z_; }
+    //    int n() const { return n_;}
+    //    int l() const { return l_;}
 
-    // -------- operator -----------
-    STOs EigenState() const {
-
-      STOs lc;
-
-      if( n_ == 1 && l_ ==0) {
-      
-	lc.Add(F(1), STO(F(2), 1, F(1)));
-      
-      } else if ( n_ == 2 && l_ == 0) {
-
-	lc.Add(F(1), STO(F(1)/sqrt(F(2)), 1, F(1)/F(2)));
-	lc.Add(F(1), STO(-F(1)/(F(2)*sqrt(F(2))), 2, F(1)/F(2)));
-      
-      } else if ( n_ == 2 && l_ == 1) {
-	
-	lc.Add(F(1), STO(F(1) / (F(2)*sqrt(F(6))), 2, F(1)/F(2)));
-	
-      } else if (n_ == 3 && l_ == 0) {
-
-	lc.Add(F(1), STO(F(4)/(F(81)*sqrt(F(30))), 3, F(1)/F(3)));
-	
-      } else if (n_ == 3 && l_ == 1) {
-	F c = F(8) / (F(27) * sqrt(F(6)));
-	F z = F(1) / F(3);
-	lc.Add(F(1), STO(c, 2, z));
-	lc.Add(F(1), STO(-c/F(6), 3, z));
-	
-      } else if (n_ == 3 && l_ == 2) {
-	
-	F c = F(1) / F(81) * sqrt(F(8)/F(15));
-	lc.Add(F(1), STO(c, 3, F(1)/F(3)));
-	
-      } else {
-	
-	string msg;
-	SUB_LOCATION(msg);
-	msg += "\ninputted n and l is not supported for HLikeAtom::EigenState\n";
-	msg += "n: ";
-	msg += boost::lexical_cast<string>(n_);
-	msg += "\nl: ";
-	msg += boost::lexical_cast<string>(l_);
-	throw std::invalid_argument(msg);
-      
-      }
-      
-      return lc;
-
-    }
+    // ---- Method ----
+    template<int L> typename HOpType<L, F>::type HOp() const;
     
-    LinFunc<STOs> DipoleInitLength(int l1) const {
-
-    if(l_ != l1 + 1 && l_ != l1 - 1) {
-	
-      string msg;
-      msg = "|l0 - l1| != 1 in HAtomDipoleInitL";
-      throw std::invalid_argument(msg);
-      
-    }
-      
-    STOs psi_n = this->EigenState();
-    return OP(OpRm(1), psi_n);
-
-    }
-
-    LinFunc<STOs> DipoleInitVelocity(int l1) const {
-
-      if(l_ != l1 + 1 && l_ != l1 - 1) {
-	string msg;
-	msg = "|l0 - l1| != 1 in HAtomDipoleInitV";
-	throw std::invalid_argument(msg);
-      }
-    
-      STOs psi_n = this->EigenState();
-      LinFunc<STOs> res = OP(OpD1(), psi_n);
-      
-      if( l_ > 0) {
-	F coef = F(l_ < l1 ? - (l_ + 1) : l_);
-	STOs b = Expand(OP(OpRm(-1), psi_n));
-	res.Add(coef, b);
-      }
-      
-      return res;    	
-    }
-
-    F EigenEnergy() const {
-      return -F(1) / F(2 * n_ * n_); 
-    }
-
-    HamiltonianOp Hamiltonian() const {
-
-      return AddOp(ProdOp(       -F(1)/F(2),    OpD2()),
-		   AddOp(ProdOp(  -z_,          OpRm(-1)),
-			 ProdOp( F(l_*l_-l_)/F(2), OpRm(-2))));
-    }
-
-    HMinusEnergyOp HMinusEnergy(F ene) const {
-
-      return AddOp(Hamiltonian(), 
-		   ProdOp(-ene, OpRm(0)));
-    }
-
   };
+
+  // ==== H operator ====
+  template<int L, class F> struct HOp {
+
+    typename HOpType<L, F>::type operator()(const HLikeAtom<F>& h) {
+      return AddOp(ProdOp(-F(1)/F(2), OpD2()),
+		   AddOp(ProdOp(  -h.z(),      OpRm(-1)),
+			 ProdOp( F(L*L-L)/F(2), OpRm(-2))));
+    }
+  };
+  template<class F> struct HOp<0, F> {
+
+    typename HOpType<0, F>::type operator()(const HLikeAtom<F>& h) {
+      return AddOp(ProdOp(-F(1)/F(2), OpD2()),
+		 ProdOp(-h.z(),     OpRm(-1)));
+    }
+  };
+
+  // ==== eigen function ====
+  template<int N, int L, class F> struct HPsi;
+  template<class F> struct HPsi<1, 0, F> {
+    typename HPsiType<1,0,F>::type operator()(const HLikeAtom<F>&) {
+      return ExpFunc<F, 1>(F(2), 1, F(1));
+    }
+  };
+  template<class F> struct HPsi<2, 0, F> {
+    typename HPsiType<2,0,F>::type operator()(const HLikeAtom<F>&) {
+      F z = F(1)/F(2);
+      return AddFunc(ExpFunc<F,1>(F(1)/sqrt(F(2)), 1, z),
+		     ExpFunc<F,1>(-F(1)/(F(2)*sqrt(F(2))), 2, z));
+    }
+  };
+  template<class F> struct HPsi<2, 1, F> {
+
+    typename HPsiType<2,1,F>::type operator()(const HLikeAtom<F>&) {
+      return ExpFunc<F,1>(F(1)/(F(2)*sqrt(F(6))), 2, F(1)/F(2));
+    }
+  };
+  
+
+  // ==== length ====
+  template<int N, int L0, int L1, class F>
+  typename HLengthType<N,L0,L1,F>::type HLength(const HLikeAtom<F>&);
+  template<class F>
+  typename HLengthType<1,0,1,F>::type HLength(const HLikeAtom<F>&) {
+    return STO(F(2), 2, F(1));
+  }
+
+
+  // ==== Velocity ====
+  template<int N, int L0, int L1, class F>
+  typename HVelocityType<N,L0,L1,F>::type HVelocity(const HLikeAtom<F>&);
+  template<class F>
+  typename HVelocityType<1,0,1,F>::type HVelocity(const HLikeAtom<F>&) {
+    return STO(F(2), 1, F(1));
+  }
+
+
+  // ==== Eigen Energy ====
+  template<int N, class F>
+  F EigenEnergy(const HLikeAtom<F>&) {
+    return -F(1) / (F(2*N*N));
+  }
+
+
 }
 
 #endif

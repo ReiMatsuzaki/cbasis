@@ -526,19 +526,26 @@ TEST(OP, ScalarProd) {
 }
 TEST(HAtom, eigenstate) {
 
-  typedef HLikeAtom<double> H;
-  LinFunc<RSTO> f10 = H(1, 0).EigenState();
-  LinFunc<RSTO> f20 = H(2, 0).EigenState();
-  LinFunc<RSTO> f21 = H(2, 1).EigenState();
-
-  EXPECT_DOUBLE_EQ(H(1, 0).EigenEnergy(),
-		   CIP(f10, H(1, 0).Hamiltonian(), f10));
-  EXPECT_DOUBLE_EQ(0.0,
-		   CIP(f10, H(1, 0).Hamiltonian(), f20));
-  EXPECT_DOUBLE_EQ(0.0,
-		   CIP(f20, H(1, 0).Hamiltonian(), f10));
-
+  HLikeAtom<double> hatom;
   
+  HPsi<1,0,double> f10;
+  HPsi<2,0,double> f20;
+  //  HPsi<2,1,double> f21;
+  EXPECT_DOUBLE_EQ(1.0,
+		   CIP(f10(hatom), f10(hatom)) 
+		   );
+  EXPECT_DOUBLE_EQ(0.0,
+		   CIP(f20(hatom), f10(hatom)) 
+		   );
+
+  HOp<0, double> hop;
+  EXPECT_DOUBLE_EQ(EigenEnergy<1>(hatom),
+		   CIP(f10(hatom), hop(hatom), f10(hatom))
+		   );
+
+  EXPECT_DOUBLE_EQ(0.0,
+		   CIP(f20(hatom), hop(hatom), f10(hatom))
+		   );
 }
 
 int main (int argc, char **args) {

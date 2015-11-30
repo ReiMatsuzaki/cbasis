@@ -1,9 +1,14 @@
 #ifndef FUNC_TEMPLATE_H
 #define FUNC_TEMPLATE_H
 
+//#include <boost/fusion/sequence.hpp>
+//#include <boost/fusion/include/sequence.hpp>
+
 /**
    General L2-function definitions
  */
+
+#include "linspace.hpp"
 
 namespace l2func {
 
@@ -33,6 +38,10 @@ namespace l2func {
     typedef func_add_tag func_tag;
   };
   template<class FuncA, class FuncB> struct is_l2func<FuncAdd<FuncA, FuncB> > {};
+  template<class A, class B> struct is_fundamental<FuncAdd<A,B> > : public boost::false_type {};
+  template<class A, class B> struct is_compound<FuncAdd<A, B> > : public boost::true_type {};
+
+  
 
   // ---- utilities ----
   template<int N, class FuncT>
@@ -63,6 +72,8 @@ namespace l2func {
     typedef func_prod_tag func_tag;
   };
   template<class FuncT> struct is_l2func<FuncProd<FuncT> > {};
+  template<class A> struct is_fundamental<FuncProd<A> > : public boost::false_type {};
+  template<class A> struct is_compound<FuncProd<A> > : public boost::true_type {};
     
   // used to represent calculation with normalization
   //  enum ENormalized { Normalized };
