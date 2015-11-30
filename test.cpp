@@ -538,7 +538,7 @@ TEST(HAtom, eigenstate) {
 		   CIP(f20.value, f10.value )
 		   );
 
-  HOp<0, double> hop(hatom);
+  HOp<0,double> hop(hatom);
   EXPECT_DOUBLE_EQ(EigenEnergy<1>(hatom),
 		   CIP(f10.value, hop.value, f10.value)
 		   );

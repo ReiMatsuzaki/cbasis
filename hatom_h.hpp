@@ -95,7 +95,7 @@ namespace l2func {
   };
   template<class F> struct HOp<0, F> {
     HOp(HLikeAtom<F> const& h) : value(AddOp(ProdOp(-F(1)/F(2), OpD2()),
-					     ProdOp(-h.z(),     OpRm(-1)))) {}
+				  ProdOp(-h.z(),     OpRm(-1)))) {}
     typename HOpType<0, F>::type value;
   };
 
