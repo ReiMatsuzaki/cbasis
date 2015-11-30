@@ -2,7 +2,9 @@
 #define LIN_FUNC_TEMPLATE_H
 
 #include <vector>
+#include "linspace.hpp"
 #include "func.hpp"
+
 
 /**
    Finite linear combination of functions 
@@ -54,13 +56,29 @@ namespace l2func {
     typedef linfunc_tag func_tag;
   };
   template<class T> struct is_l2func<LinFunc<T> > {};
+  template<class T> struct is_compound<LinFunc<T> > : public boost::true_type {};
+  template<class T> struct is_fundamental<LinFunc<T> > : public boost::false_type {};
 
   // ==== Externals ====
-  template<class FuncT>
-  std::ostream& operator << (std::ostream& os, const LinFunc<FuncT>& a);
+  //  template<class FuncT>
+  //  std::ostream& operator << (std::ostream& os, const LinFunc<FuncT>& a);
 
   template<class FuncT>
-  LinFunc<FuncT> Expand(const LinFunc<LinFunc<FuncT> >& a);
+  LinFunc<FuncT> Expand(const LinFunc<LinFunc<FuncT> >& a) {
+
+    LinFunc<FuncT> res;
+    for(typename LinFunc<LinFunc<FuncT> >::const_iterator it_a = a.begin();
+	it_a != a.end(); ++it_a) {
+      for(typename LinFunc<FuncT>::const_iterator it = it_a->second.begin();
+	  it != it_a->second.end(); ++it) {
+	res.Add(it_a->first * it->first, it->second);
+      }
+    }
+    return res;
+  }
+
+  //  template<class FuncT>
+  //  LinFunc<FuncT> Expand(const LinFunc<LinFunc<FuncT> >& a);
 
 }
 #endif

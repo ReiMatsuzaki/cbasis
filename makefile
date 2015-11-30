@@ -6,7 +6,7 @@ MATH_OBJS=fact.o erfc.o math_utils.o
 FUNC_OBJS=cut_exp.o exp_func.o delta.o
 CIP_OBJS=cip.o
 
-OBJS=hatom.o ${CIP_OBJS} ${FUNC_OBJS} ${MATH_OBJS} 
+OBJS=${CIP_OBJS} ${FUNC_OBJS} ${MATH_OBJS} 
 
 # this command run correctly on rcclsc
 #l2.a: ${OBJS}

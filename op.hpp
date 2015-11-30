@@ -8,12 +8,15 @@
 #include <boost/fusion/sequence.hpp>
 #include <boost/fusion/include/sequence.hpp>
 
+#include "linspace.hpp"
+
 namespace l2func {
 
   // ==== General Operator ====
   // should be move other source file.
   template<typename OpT> struct op_traits;
   template<typename OpT> struct is_op;
+  template<typename OpT> struct is_prim_op;
   struct op_tag {};
 
   // ==== Scalar Product ====
@@ -25,6 +28,9 @@ namespace l2func {
   };
   struct scalar_prod_tag : public op_tag {};
   template<class F, class OpT> struct is_op<OpScalarProd<F, OpT> > {};
+  template<class A, class B> struct is_fundamental<OpScalarProd<A,B> > : public boost::false_type {};
+  template<class A, class B> struct is_compound<OpScalarProd<A, B> > : public boost::true_type {};
+
   template<class F, class OpT> struct op_traits<OpScalarProd<F, OpT> > {
     typedef scalar_prod_tag op_tag;
   };
@@ -45,9 +51,13 @@ namespace l2func {
   };
   struct op_add_tag : public op_tag {};
   template<class OpA, class OpB> struct is_op<OpAdd<OpA, OpB> > {};
+  template<class A, class B> struct is_fundamental<OpAdd<A,B> > : public boost::false_type {};
+  template<class A, class B> struct is_compound<OpAdd<A,B> > : public boost::true_type {};
   template<class OpA, class OpB> struct op_traits<OpAdd<OpA, OpB> > {
     typedef op_add_tag op_tag;
   };
+
+
   template<class OpA, class OpB>
   std::ostream& operator << (std::ostream& os, const OpAdd<OpA, OpB>& a) {
     os << a.opA << " + " << a.opB;
@@ -82,6 +92,9 @@ namespace l2func {
   };
   struct d1_tag : public op_tag {};
   template<> struct is_op<OpD1> {};
+  template<> struct is_fundamental<OpD1> : public boost::true_type {};
+  template<> struct is_compound<OpD1> : public boost::false_type {};
+
   template<> struct op_traits<OpD1> {
     typedef d1_tag op_tag;
   };
@@ -97,6 +110,8 @@ namespace l2func {
   };
   struct d2_tag : public op_tag {};
   template<> struct is_op<OpD2> {};
+  template<> struct is_fundamental<OpD2> : public boost::true_type {};
+  template<> struct is_compound<OpD2> : public boost::false_type {};
   template<> struct op_traits<OpD2> {
   typedef d2_tag op_tag;
 };
@@ -115,6 +130,8 @@ namespace l2func {
   };
   struct rm_tag : public op_tag {};
   template<> struct is_op<OpRm> {};
+  template<> struct is_fundamental<OpRm> : public boost::true_type {};
+  template<> struct is_compound<OpRm> : public boost::false_type {};
   template<> struct op_traits<OpRm> {
   typedef rm_tag op_tag;
 };

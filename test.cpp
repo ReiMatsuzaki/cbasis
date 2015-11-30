@@ -14,8 +14,9 @@
 #include "normal_exp.hpp"
 #include "cut_exp.hpp"
 #include "delta.hpp"
-#include "lin_func.hpp"
 #include "lin_func_impl.hpp"
+#include "lin_func.hpp"
+
 
 #include "op.hpp"
 #include "op_func.hpp"
@@ -23,7 +24,7 @@
 #include "cip_impl.hpp"
 #include "cip.hpp"
 
-#include "hatom.hpp"
+#include "hatom_h.hpp"
 
 using namespace std;
 using namespace l2func;
@@ -187,6 +188,19 @@ TEST(Func, accessor) {
 
 
 }
+TEST(Func, DerivExpFunc) {
+
+  RSTO s(0.1, 2, 0.3);
+  RSTO ds = s.DerivParamOne();
+  RSTO dds = s.DerivParamTwo();
+
+  EXPECT_DOUBLE_EQ(-0.1, ds.c());
+  EXPECT_EQ(3, ds.n());
+
+  EXPECT_DOUBLE_EQ(0.1, dds.c());
+  EXPECT_EQ(4, dds.n());
+
+}
 TEST(Func, stream) {
   RSTO n_s1(2.1, 2, 1.1);
   cout << n_s1 << endl;
@@ -250,6 +264,8 @@ TEST(Func, NormalExpFunc) {
   NormalRSTO s1_p(2, 0.3 + dz);
   NormalRSTO s1_m(2, 0.3 - dz);
 
+  EXPECT_DOUBLE_EQ(1.0, CIP(s1, s1));
+
   NormalRSTO::FuncDerivOne d_s1 = s1.DerivParamOne();
   NormalRSTO::FuncDerivTwo dd_s1= s1.DerivParamTwo();
 
@@ -260,6 +276,10 @@ TEST(Func, NormalExpFunc) {
 
   EXPECT_NEAR( (s1_p.at(x0) + s1_m.at(x0) - 2.0 * s1.at(x0)) / (dz*dz),
 	       CIP(RDelta(x0), dd_s1), 0.00001);
+
+
+  s1.set_z(0.4);
+  EXPECT_DOUBLE_EQ(1.0, CIP(s1, s1));
 
 }
 TEST(CIP, ExpFunc) {
@@ -470,8 +490,8 @@ TEST(OP, OpD2) {
   LinFunc<RSTO> ss = OP(OpD1(), s);
   LinFunc<LinFunc<RSTO> > s2 = OP(OpD1(), ss);
   
-  cout << s1 << endl;
-  cout << s2 << endl;
+  //  cout << s1 << endl;
+  //  cout << s2 << endl;
 
   double r0(2.1);
   EXPECT_DOUBLE_EQ(s1.at(r0), s2.at(r0));
@@ -513,6 +533,10 @@ TEST(HAtom, eigenstate) {
 
   EXPECT_DOUBLE_EQ(H(1, 0).EigenEnergy(),
 		   CIP(f10, H(1, 0).Hamiltonian(), f10));
+  EXPECT_DOUBLE_EQ(0.0,
+		   CIP(f10, H(1, 0).Hamiltonian(), f20));
+  EXPECT_DOUBLE_EQ(0.0,
+		   CIP(f20, H(1, 0).Hamiltonian(), f10));
 
   
 }

@@ -5,6 +5,7 @@
 //#include <math.h>
 #include <iostream>
 #include <complex>
+#include "linspace.hpp"
 #include "func.hpp"
 //#include <boost/share_ptr.hpp>
 
@@ -14,9 +15,11 @@ namespace l2func {
   template<class F, int m>
   class ExpFunc {
   public:
-    // ---- type export ----
+    // ---- type ----
     typedef F Field;
     enum EExpPower { exp_power=m };
+    typedef ExpFunc<F,m> FuncDerivOne;
+    typedef ExpFunc<F,m> FuncDerivTwo;
     
   private:
     class Impl {
@@ -63,6 +66,9 @@ namespace l2func {
     void SetDerivParam();
     void SetScalarProd(F c);
     void SetRmProd(int n);
+
+    FuncDerivOne DerivParamOne();
+    FuncDerivTwo DerivParamTwo();
   };
 
   // ==== External ====
@@ -71,6 +77,10 @@ namespace l2func {
 
   // ==== STO or GTO ====
   struct exp_func_tag :public func_tag {};
+  template<class F, int m> 
+  struct is_fundamental<ExpFunc<F, m> > : public boost::true_type {};
+  template<class F, int m> 
+  struct is_compound<ExpFunc<F, m> > : public boost::false_type {};
 
   // ==== STO ====
   struct sto_tag :public exp_func_tag {};
@@ -78,6 +88,7 @@ namespace l2func {
     typedef sto_tag func_tag;
   };
   template<class F> struct is_l2func<ExpFunc<F, 1> > {};
+  
 
   typedef ExpFunc<double, 1> RSTO;
   typedef ExpFunc<std::complex<double>, 1> CSTO;

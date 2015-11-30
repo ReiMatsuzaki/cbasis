@@ -1,6 +1,7 @@
 #ifndef DELTA_TEMPLATE_H
 #define DELTA_TEMPLATE_H
 
+#include "linspace.hpp"
 #include "func.hpp"
 #include <complex>
 
@@ -47,6 +48,7 @@ namespace l2func {
   template<class F> struct func_traits<DiracDelta<F> > { 
     typedef delta_tag func_tag; };
   template<class F> struct is_l2func<DiracDelta<F> > {};
+  template<class F> struct is_fundamental<DiracDelta<F> > {};
 
   typedef DiracDelta<double> RDelta;
   typedef DiracDelta<std::complex<double> > CDelta;

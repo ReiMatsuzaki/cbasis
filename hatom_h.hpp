@@ -1,21 +1,50 @@
-#include "hatom.hpp"
+#ifndef HATOM_H_TEMPLATE_H
+#define HATOM_H_TEMPLATE_H
+
 #include <boost/lexical_cast.hpp>
 #include "macros.hpp"
-#include "op.hpp"
-#include "op_func.hpp"
+#include "exp_func.hpp"
+#include "lin_func.hpp"
 
+#include "op.hpp"
+
+namespace {
+  using std::string;
+}
 
 namespace l2func {
 
-  template<class F>
-  HLikeAtom<F>::HLikeAtom(): n_(1), l_(0), z_() {}
-  template<class F>
-  HLikeAtom<F>::HLikeAtom(int _n, int _l): n_(_n), l_(_l), z_() {}
-  template<class F>
-  HLikeAtom<F>::HLikeAtom(int _n, int _l, F _z): n_(_n), l_(_l), z_(_z) {}
-  
-  template<class F>
-  typename HLikeAtom<F>::STOs HLikeAtom<F>::EigenState() const {
+  template<class F=double>
+  class HLikeAtom {
+  private:
+    // ---------- Field ------------
+    int n_;
+    int l_;
+    F z_;
+
+  public:
+    // ---------- type -------------
+    typedef ExpFunc<F, 1> STO;
+    typedef LinFunc<ExpFunc<F, 1> > STOs;
+    typedef OpAdd<OpScalarProd<F, OpD2>,
+		  OpAdd<OpScalarProd<F, OpRm>,
+			OpScalarProd<F, OpRm> > > HamiltonianOp;
+    typedef OpAdd<HamiltonianOp, 
+		  OpScalarProd<F, OpRm> > HMinusEnergyOp;
+
+  public:
+    // -------- constructor --------
+    HLikeAtom() : n_(1), l_(0), z_(1) {}
+    HLikeAtom(int _n, int _l) : n_(_n), l_(_l), z_(1) {}
+    HLikeAtom(int _n, int _l, F _z): n_(_n), l_(_l), z_(_z) {}
+
+    // -------- Getter -------------
+    int n() const { return n_; }
+    int l() const { return l_; }
+    F z() const   { return z_; }
+
+    // -------- operator -----------
+    STOs EigenState() const {
 
       STOs lc;
 
@@ -61,11 +90,10 @@ namespace l2func {
       }
       
       return lc;
-    
+
     }
     
-  template<class F>
-  LinFunc<typename  HLikeAtom<F>::STOs> HLikeAtom<F>::DipoleInitLength(int l1) const {
+    LinFunc<STOs> DipoleInitLength(int l1) const {
 
     if(l_ != l1 + 1 && l_ != l1 - 1) {
 	
@@ -77,11 +105,10 @@ namespace l2func {
       
     STOs psi_n = this->EigenState();
     return OP(OpRm(1), psi_n);
-    
-  }
 
-  template<class F>
-  LinFunc<typename  HLikeAtom<F>::STOs>  HLikeAtom<F>::DipoleInitVelocity(int l1) const {
+    }
+
+    LinFunc<STOs> DipoleInitVelocity(int l1) const {
 
       if(l_ != l1 + 1 && l_ != l1 - 1) {
 	string msg;
@@ -100,45 +127,25 @@ namespace l2func {
       
       return res;    	
     }
-  
-  template<class F>
-  F HLikeAtom<F>::EigenEnergy() const {
+
+    F EigenEnergy() const {
       return -F(1) / F(2 * n_ * n_); 
     }
 
-  template<class F>
-  typename HLikeAtom<F>::HamiltonianOp HLikeAtom<F>::Hamiltonian() const {
+    HamiltonianOp Hamiltonian() const {
 
       return AddOp(ProdOp(       -F(1)/F(2),    OpD2()),
 		   AddOp(ProdOp(  -z_,          OpRm(-1)),
 			 ProdOp( F(l_*l_-l_)/F(2), OpRm(-2))));
-
     }
 
-  template<class F>
-  typename HLikeAtom<F>::HMinusEnergyOp HLikeAtom<F>::HMinusEnergy(F ene) const {
+    HMinusEnergyOp HMinusEnergy(F ene) const {
 
-    return AddOp(Hamiltonian(), 
-		 ProdOp(-ene, OpRm(0)));
+      return AddOp(Hamiltonian(), 
+		   ProdOp(-ene, OpRm(0)));
+    }
 
-  }
-
-
-  // ----------- explicit instance ---------
-  typedef std::complex<double> CD;
-  template class HLikeAtom<double>;
-  template class HLikeAtom<CD>;
-
-  /*
-  template Op<RSTO> HLikeAtom<double>::Hamiltonian<RSTO>();
-  template Op<CSTO> HLikeAtom<CD>::Hamiltonian<CSTO>();
-  template Op<RGTO> HLikeAtom<double>::Hamiltonian<RGTO>();
-  template Op<CGTO> HLikeAtom<CD>::Hamiltonian<CGTO>();
-
-  template Op<RSTO> HLikeAtom<double>::HMinusEnergy<RSTO>(double e);
-  template Op<CSTO> HLikeAtom<CD>::HMinusEnergy<CSTO>(CD);
-  template Op<RGTO> HLikeAtom<double>::HMinusEnergy<RGTO>(double);
-  template Op<CGTO> HLikeAtom<CD>::HMinusEnergy<CGTO>(CD);
-  */
-  
+  };
 }
+
+#endif

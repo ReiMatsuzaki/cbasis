@@ -39,6 +39,19 @@ namespace l2func {
     this->set_n(this->n() + n);
   }
 
+  template<class F, int m>
+  typename ExpFunc<F,m>::FuncDerivOne ExpFunc<F,m>::DerivParamOne() {
+    FuncDerivOne s(*this);
+    s.SetDerivParam();
+    return s;
+  }
+  template<class F, int m>
+  typename ExpFunc<F,m>::FuncDerivTwo ExpFunc<F,m>::DerivParamTwo() {
+    FuncDerivOne s(*this);
+    s.SetDerivParam();
+    s.SetDerivParam();
+    return s;
+  }
 
   // ==== Externals ====
   template<class F, int m>

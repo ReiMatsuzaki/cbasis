@@ -181,24 +181,6 @@ namespace l2func {
 
 
   // ==== Matrix Element of Operator ====
-  // ---- Scalar Prod Op ----
-  template<class F, class A, class O, class B>
-  F _CIP_op(const A& a, const O& o, const B& b,
-	    func_tag,   scalar_prod_tag, func_tag) {
-    
-    return o.c * CIP(a, o.op, b);
-    
-  }
-
-  // ---- Op Add ----
-  template<class F, class A, class O, class B>
-  F _CIP_op(const A& a, const O& o, const B& b,
-	    func_tag,   op_add_tag, func_tag) {
-
-    return CIP(a, o.opA, b) + CIP(a, o.opB, b);
-
-  }
-
   // ---- Rm, ExpFunc ----
   template<class F, class A, class O, class B>
   F _CIP_op(const A& a, const O& o, const B& b, 
@@ -294,6 +276,24 @@ namespace l2func {
     
 }
   
+  // ---- Scalar Prod Op ----
+  template<class F, class A, class O, class B>
+  F _CIP_op(const A& a, const O& o, const B& b,
+	    func_tag,   scalar_prod_tag, func_tag) {
+    
+    return o.c * CIP(a, o.op, b);
+    
+  }
+
+  // ---- Op Add ----
+  template<class F, class A, class O, class B>
+  F _CIP_op(const A& a, const O& o, const B& b,
+	    func_tag,   op_add_tag, func_tag) {
+
+    return CIP(a, o.opA, b) + CIP(a, o.opB, b);
+
+  }
+
 
   // ---- linfunc ----
   template<class F, class A, class O, class B> 
@@ -302,9 +302,7 @@ namespace l2func {
 	    typename boost::disable_if<
 	    boost::is_same<
 	    typename func_traits<B>::func_tag, linfunc_tag> >::type* =0,
-	    typename boost::disable_if<
-	    boost::is_same<
-	    typename func_traits<O>::op_tag, op_add_tag> >::type* =0) {
+	    typename boost::disable_if< is_compound<O> >::type* = 0) {
 
     F acc(0);
     for(typename A::const_iterator it = a.begin();
@@ -319,9 +317,7 @@ namespace l2func {
   template<class F, class A, class O, class B> 
   F _CIP_op(const A& a,  const O& o, const B& b,
 	    func_tag,     op_tag,     linfunc_tag,
-	    typename boost::disable_if<
-	    boost::is_same<
-	    typename op_traits<O>::op_tag, op_add_tag> >::type* =0) {
+	    typename boost::disable_if<is_compound<O> >::type* = 0) {
 
     F acc(0);
     for(typename A::const_iterator it = b.begin();

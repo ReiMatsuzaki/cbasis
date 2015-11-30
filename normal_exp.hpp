@@ -39,13 +39,21 @@ namespace l2func {
     typedef FuncAdd<Func, FuncAdd<Func, Func> > FuncDerivTwo;
 
   public:
-    NormalExpFunc(int n, F z) : ExpFunc<F,m>(1, n, z) {
+    void setNormalize() {
       F cc = CNorm(*this);
       this->SetScalarProd(F(1)/cc);
     }
+    NormalExpFunc(int n, F z) : ExpFunc<F,m>(1, n, z) {
+      setNormalize();
+      //      F cc = CNorm(*this);
+      //      this->SetScalarProd(F(1)/cc);
+    }
     NormalExpFunc(const NormalExpFunc<F,m>& o) : ExpFunc<F,m>(o) {}
     ~NormalExpFunc() {}
-    
+
+    void set_z(F z) { Func::set_z(z); setNormalize(); }
+    void set_n(int n) { Func::set_n(n); setNormalize(); }
+
     FuncDerivOne DerivParamOne() {
 
       /*

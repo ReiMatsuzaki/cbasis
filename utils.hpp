@@ -1,5 +1,5 @@
-#ifndef H_TEMPLATE_H
-#define H_TEMPLATE_H
+#ifndef MACROS_TEMPLATE_H
+#define MACROS_TEMPLATE_H
 
 #include <complex>
 #include <gtest/gtest.h>

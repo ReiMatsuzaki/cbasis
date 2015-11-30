@@ -55,6 +55,19 @@ namespace l2func {
 
   }
 
+  template<class F, int m>
+  typename CutExpFunc<F,m>::FuncDerivOne CutExpFunc<F,m>::DerivParamOne() {
+    FuncDerivOne s(*this);
+    s.SetDerivParam();
+    return s;
+  }
+  template<class F, int m>
+  typename CutExpFunc<F,m>::FuncDerivTwo CutExpFunc<F,m>::DerivParamTwo() {
+    FuncDerivOne s(*this);
+    s.SetDerivParam();
+    s.SetDerivParam();
+    return s;
+  }
 
   // ==== Externals ====
   template<class F, int m>

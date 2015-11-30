@@ -12,39 +12,12 @@
 #include "lin_func.hpp"
 
 namespace l2func {
-
-  // ==== Scalar Prod of Operator ====
-  template<class FuncRes, class OpT, class FuncA>
-  FuncRes _OP(const OpT& op,   const FuncA& a,
-	      scalar_prod_tag, func_tag) {
-    
-    typedef typename FuncA::Field F;
-
-    LinFunc<FuncA> res = OP(op.op, a);
-    res.SetScalarProd(op.c);
-
-    return res;
-  }
-
-  // ==== Add ====
-  template<class FuncRes, class OpT, class FuncA>
-  FuncRes _OP(const OpT& op, const FuncA& f,
-	      op_add_tag,    func_tag) {
-
-    LinFunc<FuncA> Af = OP(op.opA, f);
-    LinFunc<FuncA> Bf = OP(op.opB, f);
-
-    Af.Add(Bf);
-
-    return Af;
-
-  }
-
   
   // ==== r^m operator ====
   template<class FuncRes, class OpT, class FuncA>
   FuncRes _OP(const OpT& op, const FuncA& a, 
-	      rm_tag, func_tag) {
+	      rm_tag, func_tag,
+	      typename boost::disable_if< is_compound<FuncA> >::type* = 0) {
     typedef typename FuncA::Field F;
     LinFunc<FuncA> res;
     FuncA aa(a); aa.SetRmProd(op.m());
@@ -69,7 +42,7 @@ namespace l2func {
     FuncA a2(a); 
     if(m != 1 )
       a2.SetRmProd(m-1);
-    res.Add(-a.z()*m, a2);
+    res.Add(-a.z()*F(m), a2);
 
     return res;
   }
@@ -127,10 +100,38 @@ namespace l2func {
     return OperateD2_ExpFunc(a);
   }
 
+  // ==== Scalar Prod of Operator ====
+  template<class FuncRes, class OpT, class FuncA>
+  FuncRes _OP(const OpT& op,   const FuncA& a,
+	      scalar_prod_tag, func_tag) {
+    
+    typedef typename FuncA::Field F;
+
+    LinFunc<FuncA> res = OP(op.op, a);
+    res.SetScalarProd(op.c);
+
+    return res;
+  }
+
+  // ==== Add ====
+  template<class FuncRes, class OpT, class FuncA>
+  FuncRes _OP(const OpT& op, const FuncA& f,
+	      op_add_tag,    func_tag) {
+
+    LinFunc<FuncA> Af = OP(op.opA, f);
+    LinFunc<FuncA> Bf = OP(op.opB, f);
+
+    Af.Add(Bf);
+
+    return Af;
+
+  }
+
   // ==== LinFunc ====
   template<class FuncRes, class OpT, class FuncA>
   FuncRes _OP(const OpT& o, const FuncA& a,
-	      op_tag,       linfunc_tag) {
+	      op_tag,       linfunc_tag, 
+	      typename boost::disable_if< is_compound<OpT> >::type* = 0) {
 
     typedef typename FuncA::Field F;
     LinFunc<FuncA> res;
@@ -158,9 +159,6 @@ namespace l2func {
 					   typename func_traits<FuncA>::func_tag());
 
   }
-
-
-  
 
 }
 

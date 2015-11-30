@@ -16,6 +16,8 @@ namespace l2func {
     // ---- type ----
     typedef F Field;
     enum EExpPower {exp_power=m};
+    typedef CutExpFunc<F,m> FuncDerivOne;
+    typedef CutExpFunc<F,m> FuncDerivTwo;
 
   private:
     // ---- Member Field ----
@@ -49,6 +51,9 @@ namespace l2func {
     void SetDerivParam();
     void SetScalarProd(F c);
     void SetRmProd(int n);
+
+    FuncDerivOne DerivParamOne();
+    FuncDerivTwo DerivParamTwo();
   };
 
 
@@ -58,6 +63,7 @@ namespace l2func {
 
   // ==== STO or GTO ====
   struct cut_exp_tag :public func_tag {};
+  template<class F, int m> struct is_fundamental<CutExpFunc<F, m> > {};
 
   // ==== STO ====
   struct cut_sto_tag :public cut_exp_tag {};
