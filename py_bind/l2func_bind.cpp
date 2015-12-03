@@ -31,10 +31,10 @@ BOOST_PYTHON_MODULE(l2func_bind) {
   def("cip_gs", CIP<GTO, STO>);
   def("cip_gg", CIP<GTO, GTO>);
 
-  class_<OpRm>("OpRm", init<int>())
-    .add_property("c", &OpRm::m);
-  class_<OpD1>("OpD1", init<>());
-  class_<OpD2>("OpD2", init<>());
+  class_<OpRm>("Rm", init<int>())
+    .add_property("m", &OpRm::m);
+  class_<OpD1>("D1", init<>());
+  class_<OpD2>("D2", init<>());
 
   def("cip_s_d2_s", CIP<STO, OpD2, STO>);
   def("cip_s_d2_g", CIP<STO, OpD2, GTO>);
