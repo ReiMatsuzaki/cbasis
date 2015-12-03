@@ -1,14 +1,24 @@
 from l2func_bind import *
 
-class Add:
+class FuncAdd:
     def __init__(self, a, b):
         self.left = a
         self.right = b
 
-class ScalarMult:
-    def __init__(self, scalar, other):
+class ScalarFuncMult:
+    def __init__(self, scalar, func):
         self.scalar = scalar
-        self.other = other
+        self.func = func
+
+class OpAdd:
+    def __init__(self, a, b):
+        self.left = a
+        self.right = b
+
+class ScalarOpMult:
+    def __init__(self, scalar, op):
+        self.scalar = scalar
+        self.op = op
 
 class OpMult:
     def __init__(self, op, func):
@@ -20,24 +30,46 @@ class Sc:
     def __init__(self, value):
         self.value = value
     def __mul__(self, other):
-        return ScalarMult(self.value, other)
+        return other.scalar_mult(self.value)
 
-def add(self, other):
-    return Add(self, other)
+def add_func(self, other):
+    return FuncAdd(self, other)
+
+def scalar_func_mult(self, scalar):
+    return ScalarFuncMult(scalar)
+
+def add_op(self, other):
+    return OpAdd(self, other)
+
+def scalar_op_mult(self, scalar):
+    return ScalarOpMult(scalar, self)
 
 def op_mult(self, func):
     return OpMult(self, func)
 
-STO.__add__ = add
-GTO.__add__ = add
+STO.__add__ = add_func
+GTO.__add__ = add_func
 
-D1.__add__ = add
-D2.__add__ = add
-Rm.__add__ = add
+STO.scalar_mult = scalar_func_mult
+GTO.scalar_mult = scalar_func_mult
+
+D1.__add__ = add_op
+D2.__add__ = add_op
+Rm.__add__ = add_op
+OpAdd.__add__ = add_op
+ScalarOpMult.__add__ = add_op
 
 D1.__mul__ = op_mult
 D2.__mul__ = op_mult
 Rm.__mul__ = op_mult
+OpAdd.__mul__ = op_mult
+ScalarOpMult.__mul__ = op_mult
+
+D1.scalar_mult = scalar_op_mult
+D2.scalar_mult = scalar_op_mult
+Rm.scalar_mult = scalar_op_mult
+OpAdd.scalar_mult = scalar_op_mult
+ScalarOpMult.scalar_mult = scalar_op_mult
 
 cip_dict = {}
 cip_dict[(STO, STO)] = cip_ss
@@ -70,21 +102,21 @@ def get_cip_op(a, o, b):
 
 def cip_op(a, o, b):
     """a and b is not Add neither ScalarMult"""
-    if(isinstance(o, Add)):
+    if(isinstance(o, OpAdd)):
         return  cip_op(a, o.left, b) + cip_op(a, o.right, b)
-    if(isinstance(o, ScalarMult)):
-        return o.scalar * cip_op(a, o.other, b)
+    if(isinstance(o, ScalarOpMult)):
+        return o.scalar * cip_op(a, o.op, b)
     return get_cip_op(a, o, b)(a, o, b)
 
 def cip(a, b):
 
-    if(isinstance(a, Add)):
+    if(isinstance(a, FuncAdd)):
         return cip(a.left, b) + cip(a.right, b)
-    if(isinstance(a, ScalarMult)):
+    if(isinstance(a, ScalarFuncMult)):
         return a.scalar * cip(a.other, b)
-    if(isinstance(b, Add)):
+    if(isinstance(b, FuncAdd)):
         return cip(a, b.left) + cip(a, b.right)
-    if(isinstance(b, ScalarMult)):
+    if(isinstance(b, ScalarFuncMult)):
         return b.scalar * cip(a, b.other)
 
     if(isinstance(a, OpMult)):
