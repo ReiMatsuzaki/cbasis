@@ -43,18 +43,15 @@ namespace l2func {
       F cc = CNorm(*this);
       this->SetScalarProd(F(1)/cc);
     }
-    NormalExpFunc(int n, F z) : ExpFunc<F,m>(1, n, z) {
-      setNormalize();
-      //      F cc = CNorm(*this);
-      //      this->SetScalarProd(F(1)/cc);
-    }
+    NormalExpFunc() : ExpFunc<F,m>(1, 1, 1) { setNormalize(); }
+    NormalExpFunc(int n, F z) : ExpFunc<F,m>(1, n, z) { setNormalize(); }
     NormalExpFunc(const NormalExpFunc<F,m>& o) : ExpFunc<F,m>(o) {}
     ~NormalExpFunc() {}
 
     void set_z(F z) { Func::set_z(z); setNormalize(); }
     void set_n(int n) { Func::set_n(n); setNormalize(); }
 
-    FuncDerivOne DerivParamOne() {
+    FuncDerivOne DerivParamOne() const {
 
       /*
 	N r^n e^(-zr^m) -> N'/N Nr^ne^(-zr^m)  -   N r^(n+m)e^(-zr^m)
@@ -69,7 +66,7 @@ namespace l2func {
       return AddFunc(a, b);
     }
 
-    FuncDerivTwo DerivParamTwo() {
+    FuncDerivTwo DerivParamTwo() const {
 
       /*
 	N r^n e^(-zr^m) -> N'/N Nr^ne^(-zr^m)  -   N r^(n+m)e^(-zr^m)
@@ -90,6 +87,12 @@ namespace l2func {
     }
 
   };
+
+  // ==== STO/GTO ====
+  template<class F, int m> 
+  struct is_fundamental<NormalExpFunc<F, m> > : public boost::true_type {};
+  template<class F, int m> 
+  struct is_compound<NormalExpFunc<F, m> > : public boost::false_type {};
 
   // ==== STO ====
   typedef NormalExpFunc<double, 1> NormalRSTO;

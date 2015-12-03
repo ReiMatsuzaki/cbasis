@@ -1,9 +1,6 @@
 #ifndef L2FUNC_HPP
 #define L2FUNC_HPP
 
-
-#include "utils.hpp"
-
 #include "erfc.hpp"
 #include "fact.hpp"
 #include "lgamma.hpp"

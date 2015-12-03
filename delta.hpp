@@ -32,6 +32,7 @@ namespace l2func {
     DiracDelta(const DiracDelta<F>& o);
 
     // ---- Accessor ----
+    double h() const { return this->h_; }
     double r0() const { return this->r0_; }
     void set_r0(double r0) { this->r0_ = r0; }
 

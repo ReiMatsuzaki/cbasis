@@ -56,13 +56,13 @@ namespace l2func {
   }
 
   template<class F, int m>
-  typename CutExpFunc<F,m>::FuncDerivOne CutExpFunc<F,m>::DerivParamOne() {
+  typename CutExpFunc<F,m>::FuncDerivOne CutExpFunc<F,m>::DerivParamOne() const {
     FuncDerivOne s(*this);
     s.SetDerivParam();
     return s;
   }
   template<class F, int m>
-  typename CutExpFunc<F,m>::FuncDerivTwo CutExpFunc<F,m>::DerivParamTwo() {
+  typename CutExpFunc<F,m>::FuncDerivTwo CutExpFunc<F,m>::DerivParamTwo() const {
     FuncDerivOne s(*this);
     s.SetDerivParam();
     s.SetDerivParam();

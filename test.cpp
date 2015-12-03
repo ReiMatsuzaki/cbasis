@@ -327,6 +327,13 @@ TEST(CIP, CutExpFunc) {
   EXPECT_C_EQ(CIP(cut_csto2, cut_csto), 
 	      CIP(cut_csto, csto2));
 
+  CutCSTO cut_csto3(1.0, 2, 0.2, 4.0);
+  DiracDelta<std::complex<double> >d4(4.0);
+  EXPECT_TRUE(abs(CIP(cut_csto3, d4)) > 0.001) << CIP(cut_csto3, d4);
+
+  DiracDelta<std::complex<double> >d3(3.0);
+  EXPECT_C_EQ(cut_csto.at(3.0), CIP(d3, cut_csto));
+
 }
 TEST(CIP, Normalized) {
   
@@ -551,7 +558,20 @@ TEST(HAtom, eigenstate) {
   EXPECT_DOUBLE_EQ(-1.2,
 		   CIP(f10.value, Lop.value, f10.value)
 		   );
-  
+
+  HLength<1, 0, 1, double> mu_phi(hatom);
+  EXPECT_EQ(2, mu_phi.value.n());
+}
+TEST(HAtom, p_wave) {
+
+  HLikeAtom<double> hatom;
+  HPsi<2,1,double> f(hatom);
+  HOp<1,double> hop(hatom);
+
+  EXPECT_DOUBLE_EQ(EigenEnergy<2>(hatom),
+		   CIP(f.value, hop.value, f.value)
+		   );
+
 }
 
 int main (int argc, char **args) {

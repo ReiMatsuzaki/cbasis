@@ -88,7 +88,6 @@ namespace l2func {
     typedef sto_tag func_tag;
   };
   template<class F> struct is_l2func<ExpFunc<F, 1> > {};
-  
 
   typedef ExpFunc<double, 1> RSTO;
   typedef ExpFunc<std::complex<double>, 1> CSTO;

@@ -117,6 +117,22 @@ namespace l2func {
     return _CIP<F, B, A>(b, a, delta_tag(), exp_func_tag());
   }
 
+  template<class F, class A, class B> 
+  F _CIP(const A& a, const B& b, delta_tag, cut_exp_tag) {
+
+    if(a.r0() - a.h() < b.r0())
+      return b.get_func().at(a.r0());
+    else
+      return F(0);
+
+  }
+  template<class F, class A, class B> 
+  F _CIP(const A& a, const B& b, cut_exp_tag, delta_tag) {
+
+    return _CIP<F, B, A>(b, a, delta_tag(), cut_exp_tag());
+
+  }
+
   // ---- CIP for LinFunc ----
   template<class F, class A, class B>
   F _CIP(const A& a, const B& b, linfunc_tag, func_tag, 
@@ -219,7 +235,7 @@ namespace l2func {
     int n = b.n();
     int m = b.exp_power;
 
-    return F(n) * CIP(a, OpRm(-1), b) + F(-b.z()*m) * CIP(a, OpRm(m-1), b);
+    return F(n) * CIP(a, OpRm(-1), b) - b.z()*F(m) * CIP(a, OpRm(m-1), b);
 
   }
 
@@ -253,7 +269,7 @@ namespace l2func {
     if(n != 1) 
       res += F(n*n-n)        * CIP(a, OpRm(-2), b);
 
-    res += F(-m*z*(2*n+m-1)) * CIP(a, OpRm(-1), b);
+    res += -z*F(m*(2*n+m-1)) * CIP(a, OpRm(-1), b);
     res += F(m*m)*z*z        * CIP(a, b);
 
     return res;

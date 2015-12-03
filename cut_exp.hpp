@@ -52,24 +52,28 @@ namespace l2func {
     void SetScalarProd(F c);
     void SetRmProd(int n);
 
-    FuncDerivOne DerivParamOne();
-    FuncDerivTwo DerivParamTwo();
+    FuncDerivOne DerivParamOne() const;
+    FuncDerivTwo DerivParamTwo() const;
   };
 
 
   // ==== External ====
   template<class F, int m>
-  std::ostream& operator << (std::ostream& os, const ExpFunc<F,m>& a);
+  std::ostream& operator << (std::ostream& os, const CutExpFunc<F,m>& a);
 
   // ==== STO or GTO ====
-  struct cut_exp_tag :public func_tag {};
-  template<class F, int m> struct is_fundamental<CutExpFunc<F, m> > {};
+  //  struct cut_exp_tag :public func_tag {};
+    struct cut_exp_tag :public exp_func_tag {};
+  template<class F, int m> 
+  struct is_fundamental<CutExpFunc<F, m> > : public is_fundamental<ExpFunc<F,m> >{};
+  template<class F, int m> 
+  struct is_compound<CutExpFunc<F, m> > : public is_compound<ExpFunc<F,m> >{};
 
   // ==== STO ====
   struct cut_sto_tag :public cut_exp_tag {};
   template<class F> struct func_traits<CutExpFunc<F, 1> > {
     typedef cut_sto_tag func_tag;
-  };
+  }; 
   template<class F> struct is_l2func<CutExpFunc<F, 1> > {};
 
   typedef CutExpFunc<double, 1> CutRSTO;

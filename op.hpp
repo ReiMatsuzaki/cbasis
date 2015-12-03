@@ -177,20 +177,5 @@ namespace l2func {
     typedef linop_tag op_tag;
   };
 
-/*
-struct streamer {
-  template<typename F, typename OpT>
-  std::ostream& operator()(std::ostream& os, const std::pair<F, OpT>& a) const {
-    os << a.first << a.second << "+";
-    return os;
-  }
-};
-
-template<class F, class T1, class T2, class T3> 
-std::ostream& operator << (std::ostream& os, const OpLin<F, T1, T2, T3>& a) {
-  //  a.print();
-  return boost::fusion::fold(a.CoefOp(), os, streamer());
-}
-*/
 }
 #endif

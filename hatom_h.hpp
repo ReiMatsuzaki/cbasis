@@ -86,12 +86,13 @@ namespace l2func {
 
   // ==== H operator ====
   template<int L, class F> struct HOp {
-    HOp(HLikeAtom<F> const& h) {
-      value = AddOp(ProdOp(-F(1)/F(2), OpD2()),
-		   AddOp(ProdOp(  -h.z(),      OpRm(-1)),
-			 ProdOp( F(L*L-L)/F(2), OpRm(-2))));
-    }
-    typename HOpType<L, F>::type value;
+    HOp(HLikeAtom<F> const& h) :val (AddOp(ProdOp(-F(1)/F(2), OpD2()),
+					   AddOp(ProdOp(  -h.z(),       OpRm(-1)),
+						 ProdOp( F(L*L+L)/F(2), OpRm(-2))))),
+				value(val) {}
+    typedef typename HOpType<L, F>::type type;
+    type val;
+    type const& value;
   };
   template<class F> struct HOp<0, F> {
     HOp(HLikeAtom<F> const& h) : value(AddOp(ProdOp(-F(1)/F(2), OpD2()),
@@ -99,6 +100,7 @@ namespace l2func {
     typename HOpType<0, F>::type value;
   };
 
+  // ==== H-E operator ====
   template<int L, class F> struct HminusEOp{
     HminusEOp(HLikeAtom<F> const& h, F ene) : val(AddOp(HOp<L,F>(h).value,
 							ProdOp(-ene, OpRm(0)))),
@@ -135,19 +137,21 @@ namespace l2func {
 						 2, 
 						 F(1)/F(2))),
 				value(val) {}
-    typename HPsiType<2,0,F>::type const val;
-    typename HPsiType<2,0,F>::type const& value;    
+    typedef typename HPsiType<2,1,F>::type type;
+    type const val;
+    type const& value;    
   };
   
 
   // ==== length ====
-  template<int N, int L0, int L1, class F>
-  typename HLengthType<N,L0,L1,F>::type HLength(const HLikeAtom<F>&);
-  template<class F>
-  typename HLengthType<1,0,1,F>::type HLength(const HLikeAtom<F>&) {
-    return STO(F(2), 2, F(1));
-  }
-
+  template<int N, int L, int L0, class F> struct HLength;
+  template<class F> struct HLength<1, 0, 1, F> {
+    HLength(HLikeAtom<F> const&) : val( ExpFunc<F, 1>(F(2), 2, F(1))),
+				   value(val) {}
+    typedef ExpFunc<F, 1> type;
+    type  val;
+    type const& value; 
+  };
 
   // ==== Velocity ====
   template<int N, int L0, int L1, class F>
