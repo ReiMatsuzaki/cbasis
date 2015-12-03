@@ -26,12 +26,12 @@ namespace l2func {
 
   public:
     // ---- Constructors ----
-    ExpFunc(): c_(0), n_(0), z_(0) {}
-    ExpFunc(F c, int n, F z) : c_(c), n_(n), z_(z) {}
-    ExpFunc(const ExpFunc<F, m>& o) : c_(o.c_), n_(o.n_), z_(o.z_) {}
+    ExpFunc();
+    ExpFunc(F c, int n, F z);
+    ExpFunc(const ExpFunc<F, m>& o);
     template<class F2>
     ExpFunc(const ExpFunc<F2,m>& o): c_(o.c()), n_(o.n()), z_(o.z()) {}
-    ~ExpFunc() {}
+    ~ExpFunc();
 
     // ---- Accessor ----
     F c() const { return this->c_; }

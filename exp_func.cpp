@@ -7,6 +7,16 @@
 
 namespace l2func {
 
+  // ==== Constructors ====
+  template<class F, int m>
+  ExpFunc<F,m>::ExpFunc(): c_(0), n_(0), z_(0) {}
+  template<class F, int m>
+  ExpFunc<F,m>::ExpFunc(F c, int n, F z) : c_(c), n_(n), z_(z) {}
+  template<class F, int m>
+  ExpFunc<F,m>::ExpFunc(const ExpFunc<F, m>& o) : c_(o.c_), n_(o.n_), z_(o.z_) {}
+  template<class F, int m>
+  ExpFunc<F,m>::~ExpFunc() {}
+
   // ==== Methods =====
   template<class F, int m>
   F ExpFunc<F,m>::at(F x) const {
