@@ -17,6 +17,7 @@ BOOST_PYTHON_MODULE(l2func_bind) {
     .add_property("c", &STO::c, &STO::set_c)
     .add_property("n", &STO::n, &STO::set_n)
     .add_property("z", &STO::z, &STO::set_z)
+    .def("__str__", &STO::str)
     .def("at", &STO::at);
 
   typedef ExpFunc<F,2> GTO;
@@ -24,6 +25,7 @@ BOOST_PYTHON_MODULE(l2func_bind) {
     .add_property("c", &GTO::c, &GTO::set_c)
     .add_property("n", &GTO::n, &GTO::set_n)
     .add_property("z", &GTO::z, &GTO::set_z)
+    .def("__str__", &GTO::str)
     .def("at", &GTO::at);
 
   def("cip_ss", CIP<STO, STO>);

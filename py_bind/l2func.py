@@ -1,76 +1,160 @@
 from l2func_bind import *
 
+# ==== Basic Component for Linear Space ====
+# ---- Linear Algebra ----
 class FuncAdd:
+
     def __init__(self, a, b):
         self.left = a
         self.right = b
+
+    def __repr__(self):
+        return "{0} + {1}".format(self.left, self.right)
+
+    def __str__(self):
+        return "{0} + {1}".format(self.left, self.right)
 
 class ScalarFuncMult:
     def __init__(self, scalar, func):
         self.scalar = scalar
         self.func = func
 
+    def __repr__(self):
+        if(isinstance(self.func, FuncAdd)):
+            return "{0}*({1})".format(self.scalar, self.func)
+        else:
+            return "{0}*{1}".format(self.scalar, self.func)
+
+    def __str__(self):
+        return self.__repr__()
+
 class OpAdd:
     def __init__(self, a, b):
         self.left = a
         self.right = b
+
+    def __repr__(self):
+        return "{0} + {1}".format(self.left, self.right)
+
+    def __str__(self):
+        return "{0} + {1}".format(self.left, self.right)
+
 
 class ScalarOpMult:
     def __init__(self, scalar, op):
         self.scalar = scalar
         self.op = op
 
+    def __repr__(self):
+        if(isinstance(self.op, OpAdd)):
+            return "{0}*({1})".format(self.scalar, self.op)
+        else:
+            return "{0}*{1}".format(self.scalar, self.op)
+
+    def __str__(self):
+        return self.__repr__()
+
+
 class OpMult:
+
     def __init__(self, op, func):
         self.op = op
         self.func = func
 
-# represent scalar        
-class Sc:
-    def __init__(self, value):
-        self.value = value
-    def __mul__(self, other):
-        return other.scalar_mult(self.value)
+    def __repr__(self):
+        return "{0}({1})".format(self.scalar, self.func)
 
-def add_func(self, other):
+    def __str__(self):
+        return "{0}[{1}]".format(self.scalar, self.func)
+
+
+# ---- +,-,* ----
+def func_add(self, other):
     return FuncAdd(self, other)
 
 def scalar_func_mult(self, scalar):
-    return ScalarFuncMult(scalar)
+    return ScalarFuncMult(scalar, self)
 
-def add_op(self, other):
+def func_neg(self):
+    return ScalarFuncMult(-1.0, self)
+
+def func_sub(self, other):
+    return FuncAdd(self, func_neg(other))
+
+def op_add(self, other):
     return OpAdd(self, other)
 
 def scalar_op_mult(self, scalar):
     return ScalarOpMult(scalar, self)
 
-def op_mult(self, func):
+def op_func_mult(self, func):
     return OpMult(self, func)
 
-STO.__add__ = add_func
-GTO.__add__ = add_func
+def op_neg(self):
+    return ScalarFuncMult(-1.0, self)
 
-STO.scalar_mult = scalar_func_mult
-GTO.scalar_mult = scalar_func_mult
+def op_sub(self, other):
+    return OpAdd(self, op_neg(other))
 
-D1.__add__ = add_op
-D2.__add__ = add_op
-Rm.__add__ = add_op
-OpAdd.__add__ = add_op
-ScalarOpMult.__add__ = add_op
 
-D1.__mul__ = op_mult
-D2.__mul__ = op_mult
-Rm.__mul__ = op_mult
-OpAdd.__mul__ = op_mult
-ScalarOpMult.__mul__ = op_mult
+# ==== Set Func ====
+# ---- general ----
+def set_as_func(FuncType):
+    FuncType.__add__ = func_add
+    FuncType.__neg__ = func_neg
+    FuncType.__sub__ = func_sub
+    FuncType.__rmul__ = scalar_func_mult
+    FuncType.__mul__ = scalar_func_mult
 
-D1.scalar_mult = scalar_op_mult
-D2.scalar_mult = scalar_op_mult
-Rm.scalar_mult = scalar_op_mult
-OpAdd.scalar_mult = scalar_op_mult
-ScalarOpMult.scalar_mult = scalar_op_mult
+map(set_as_func, [GTO, STO, FuncAdd, ScalarFuncMult])
 
+# ---- at ----
+def func_add_at(self, x):
+    return self.left.at(x) + self.right.at(x)
+
+FuncAdd.at = func_add_at
+def func_mult_scalar_at(self, x):
+    return self.scalar * self.func.at(x)
+
+ScalarFuncMult.at = func_mult_scalar_at
+
+# ---- repr/str ----
+def STO_repr(self):
+    return "STO({0},{1},{2})".format(self.c, self.n, self.z)
+
+def GTO_repr(self):
+    return "GTO({0},{1},{2})".format(self.c, self.n, self.z)
+
+STO.__repr__ = STO_repr
+GTO.__repr__ = GTO_repr
+
+# ==== Set Operator ====
+# ---- general ----
+def set_as_op(OpType):
+    OpType.__add__ = op_add
+    OpType.__call__ = op_func_mult
+    OpType.__neg__ = op_neg
+    OpType.__sub__ = op_sub
+    OpType.__rmul__ = scalar_op_mult
+    OpType.__mul__ = scalar_op_mult
+
+map(set_as_op, [D1, D2, Rm, OpAdd, ScalarOpMult])
+
+# ---- repr ----
+def d1_repr(self):
+    return "D1"
+
+def d2_repr(self):
+    return "D2"
+
+def rm_repr(self):
+    return "Rm({0})".format(self.m)
+
+D1.__repr__ = d1_repr
+D2.__repr__ = d2_repr
+Rm.__repr__ = rm_repr
+
+# ==== inner product ====
 cip_dict = {}
 cip_dict[(STO, STO)] = cip_ss
 cip_dict[(GTO, STO)] = cip_gs
@@ -97,11 +181,11 @@ cip_op_dict[(GTO, Rm, STO)] = cip_g_rm_s
 cip_op_dict[(GTO, Rm, GTO)] = cip_g_rm_g
 
 def get_cip_op(a, o, b):
-
     return cip_op_dict[(type(a), type(o), type(b))]
 
 def cip_op(a, o, b):
     """a and b is not Add neither ScalarMult"""
+    
     if(isinstance(o, OpAdd)):
         return  cip_op(a, o.left, b) + cip_op(a, o.right, b)
     if(isinstance(o, ScalarOpMult)):
@@ -113,7 +197,7 @@ def cip(a, b):
     if(isinstance(a, FuncAdd)):
         return cip(a.left, b) + cip(a.right, b)
     if(isinstance(a, ScalarFuncMult)):
-        return a.scalar * cip(a.other, b)
+        return a.scalar * cip(a.func, b)
     if(isinstance(b, FuncAdd)):
         return cip(a, b.left) + cip(a, b.right)
     if(isinstance(b, ScalarFuncMult)):

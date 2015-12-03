@@ -1,7 +1,8 @@
 //#include <boost/static_assert.hpp>
 //#include <boost/type_traits.hpp>
-#include "exp_func.hpp"
 #include <complex.h>
+#include <sstream>
+#include "exp_func.hpp"
 #include "math_utils.hpp"
 
 namespace l2func {
@@ -10,6 +11,17 @@ namespace l2func {
   template<class F, int m>
   F ExpFunc<F,m>::at(F x) const {
     return this->c() * pow(x, this->n()) * exp(-this->z() * pow(x, m));
+  }
+
+  template<class F, int m>
+  std::string ExpFunc<F,m>::str() const {
+    std::stringstream ss;
+    if(m == 1)
+      ss << "STO[";
+    else
+      ss << "GTO[";
+    ss << c() << "," << n() << "," << z() <<  "]";
+    return ss.str();
   }
 
   template<class F, int m>

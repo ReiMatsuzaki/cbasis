@@ -62,6 +62,7 @@ namespace l2func {
     
     // ---- Method ----
     F at(F x) const;
+    std::string str() const;
     void SetComplexConjugate();
     void SetDerivParam();
     void SetScalarProd(F c);
