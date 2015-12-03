@@ -1,13 +1,10 @@
 #ifndef EXP_FUNC_TEMPLATE_H
 #define EXP_FUNC_TEMPLATE_H
 
-//#include <type_traits>
-//#include <math.h>
 #include <iostream>
 #include <complex>
 #include "linspace.hpp"
 #include "func.hpp"
-//#include <boost/share_ptr.hpp>
 
 namespace l2func {
 
@@ -20,45 +17,30 @@ namespace l2func {
     enum EExpPower { exp_power=m };
     typedef ExpFunc<F,m> FuncDerivOne;
     typedef ExpFunc<F,m> FuncDerivTwo;
-    
-  private:
-    class Impl {
-    public:
-      F c_;
-      int n_;
-      F z_;
-      Impl() : c_(0), n_(0), z_(0) {}
-      Impl(F c, int n, F z) : c_(c), n_(n), z_(z) {}
-      Impl(const Impl& o) : c_(o.c_), n_(o.n_), z_(o.z_) {}
-    };
 
-    Impl *impl_;
-    
+  private:    
+    // ---- Member Field ----
+    F c_;
+    int n_;
+    F z_;
+
   public:
     // ---- Constructors ----
-    ExpFunc() : impl_(new Impl()) {};
-    ExpFunc(F _c, int _n, F _z): impl_(new Impl(_c, _n, _z)) {}
-    ExpFunc(const ExpFunc<F,m>& o): impl_(new Impl(o.c(), o.n(), o.z())) {}
+    ExpFunc(): c_(0), n_(0), z_(0) {}
+    ExpFunc(F c, int n, F z) : c_(c), n_(n), z_(z) {}
+    ExpFunc(const ExpFunc<F, m>& o) : c_(o.c_), n_(o.n_), z_(o.z_) {}
     template<class F2>
-    ExpFunc(const ExpFunc<F2,m>& o): impl_(new Impl(o.c(), o.n(), o.z())) {}
-    ~ExpFunc() {
-      delete impl_;
-    }
-    ExpFunc<F,m>& operator=(const ExpFunc<F,m>& o) {
-      if(this == &o) return *this;
-      delete impl_;
-      impl_ = new Impl(*o.impl_);
-      return *this;
-    }
+    ExpFunc(const ExpFunc<F2,m>& o): c_(o.c()), n_(o.n()), z_(o.z()) {}
+    ~ExpFunc() {}
 
     // ---- Accessor ----
-    F c() const { return impl_->c_; }
-    int n() const {return impl_->n_; }
-    F z() const { return impl_->z_; }
+    F c() const { return this->c_; }
+    int n() const {return this->n_; }
+    F z() const { return this->z_; }
     
-    void set_c(F c) { impl_->c_ = c; }
-    void set_n(int n) { impl_->n_ = n;}
-    void set_z(F z) { impl_->z_ = z;}
+    void set_c(F c) { this->c_ = c; }
+    void set_n(int n) { this->n_ = n;}
+    void set_z(F z) { this->z_ = z;}
     
     // ---- Method ----
     F at(F x) const;
