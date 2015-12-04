@@ -223,5 +223,13 @@ def linear_combination(cs, fs):
 
     return reduce(one, zip(cs, fs), FuncZero())
 
-
-    
+"""
+def expand(f):
+    if(isinstance(f, FuncAdd)):
+        return f.expand(lambda x: expand(x))
+    if(isinstance(f, ScalarFuncMult)):
+        if(isinstance(f.base, FuncAdd)):
+            
+        return f.expand(lambda x: expand(x))
+    return f
+"""
