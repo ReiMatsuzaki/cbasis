@@ -1,14 +1,14 @@
 # Overview
 
 This library support numerical calculations using l2 basis
-functions. Now only one dimendional Slater Type Orbital(STO) 
+functions. Now some one dimendional function such as Slater Type Orbital(STO) 
 and Gauss Type Orbitals are supported. Complex version
 of these functions are also supported.
 
 # Source files
 ## Utilities
 
-	- macros.hpp : simple macro is defined
+	- macros.hpp : simple macros
 
 
 ## Math
@@ -20,10 +20,12 @@ of these functions are also supported.
 
 ## Linear Space
 
+	-linspace.hpp
 	-func.hpp
 	
 	- exp_func.hpp : STO and GTO
 	- cut_exp.hpp : finite ranged STO/GTO
+	- delta.hpp   : dirac delta function
 	- lin_func.hpp : linear combination of same type functions
 
 	- op.hpp: linear operator object	
@@ -35,13 +37,6 @@ of these functions are also supported.
 
 	- hatom.hpp : hydrogen atom eigen solutions
 	- hatom_h.hpp: header version of hatom.hpp
-
-
-# todo 
-
- - refactoring for linear operators
- - python bindings only LinearComb?
- - consider for create new operator from existing one (e.g. Hamiltonian of Hydrogen atom)
 
 
 
