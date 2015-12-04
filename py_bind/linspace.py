@@ -1,12 +1,38 @@
+import numpy as np
+
 # ==== Basic Component for Linear Space ====
-# ---- Base ----
+class OpId:
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        return "OpId()"
+
+    def __str__(self):
+        return "id"
+
+class FuncZero:
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        return "FuncZero()"
+
+    def __str(self):
+        return "zero"
+
 class BaseAdd:
     def __init__(self, left, right):
         self.left = left
         self.right = right
 
     def expand(self, f):
-        return f(self.left) + f(self.right)
+        if(isinstance(self.left, FuncZero)):
+            return f(self.right)
+        if(isinstance(self.right, FuncZero)):
+            return f(self.right)
+        else:
+            return f(self.left) + f(self.right)
 
     def __str__(self):
         return "{0} + {1}".format(self.left, self.right)
@@ -55,18 +81,6 @@ class OpMult:
         return "{0}[{1}]".format(self.scalar, self.func)
 
 
-# ---- identity operator ----
-class OpId:
-    def __init__(self):
-        pass
-
-    def __repr__(self):
-        return "OpId()"
-
-    def __str__(self):
-        return "id"
-
-
 # ==== +,-,* ====
 def func_add(self, other):
     return FuncAdd(self, other)
@@ -103,7 +117,7 @@ def set_as_func(FuncType):
     FuncType.__rmul__ = scalar_func_mult
     FuncType.__mul__ = scalar_func_mult
 
-map(set_as_func, [FuncAdd, ScalarFuncMult])
+map(set_as_func, [FuncZero, FuncAdd, ScalarFuncMult])
 
 def set_as_op(OpType):
     OpType.__add__ = op_add
@@ -178,12 +192,12 @@ def cip(a, b, c = None):
         return cip_impl(a, b, c)
 
 
-# ==== induced from inner product ====
+# ==== other operation ====
 def cnorm2(f):
     return cip(f, f)
 
 def cnorm(f):
-    return sqrt(cnorm2(f))
+    return np.sqrt(cnorm2(f))
 
 def cnormalize(f):
     c = cnorm(f)
@@ -205,7 +219,9 @@ def linear_combination(cs, fs):
 
     def one(cumsum, cf):
         (c, f) = cf
-        cumsum = cumsum + c*f
+        return cumsum + c*f
 
-    return reduce(one, zip(cs, fs))
+    return reduce(one, zip(cs, fs), FuncZero())
 
+
+    
