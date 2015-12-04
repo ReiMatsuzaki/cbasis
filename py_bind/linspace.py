@@ -1,55 +1,47 @@
 # ==== Basic Component for Linear Space ====
-# ---- Linear Algebra ----
-class FuncAdd:
+# ---- Base ----
+class BaseAdd:
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
 
-    def __init__(self, a, b):
-        self.left = a
-        self.right = b
+    def expand(self, f):
+        return f(self.left) + f(self.right)
 
+    def __str__(self):
+        return "{0} + {1}".format(self.left, self.right)
+
+class BaseScalarMult:
+    def __init__(self, scalar, base):
+        self.scalar = scalar
+        self.base = base
+
+    def expand(self, f):
+        return self.scalar * f(self.base)
+
+    def __str__(self):
+        if(isinstance(self.base, BaseAdd)):
+            return "{0}*({1})".format(self.scalar, self.base)
+        else:
+            return "{0}*{1}".format(self.scalar, self.base)
+
+
+# ---- Func/Op ----        
+class FuncAdd(BaseAdd): 
     def __repr__(self):
         return "FuncAdd({0}, {1})".format(self.left, self.right)
 
-    def __str__(self):
-        return "{0} + {1}".format(self.left, self.right)
-
-class ScalarFuncMult:
-    def __init__(self, scalar, func):
-        self.scalar = scalar
-        self.func = func
-
+class ScalarFuncMult(BaseScalarMult):
     def __repr__(self):
-        return "ScalarFuncMult({0}, {1})".format(self.scalar, self.func)
+        return "ScalarFuncMult({0}, {1})".format(self.scalar, self.base)
 
-    def __str__(self):
-        if(isinstance(self.func, FuncAdd)):
-            return "{0}*({1})".format(self.scalar, self.func)
-        else:
-            return "{0}*{1}".format(self.scalar, self.func)
-
-class OpAdd:
-    def __init__(self, a, b):
-        self.left = a
-        self.right = b
-
+class OpAdd(BaseAdd):
     def __repr__(self):
         return "OpAdd({0}, {1})".format(self.left, self.right)
 
-    def __str__(self):
-        return "{0} + {1}".format(self.left, self.right)
-
-class ScalarOpMult:
-    def __init__(self, scalar, op):
-        self.scalar = scalar
-        self.op = op
-
+class ScalarOpMult(BaseScalarMult):
     def __repr__(self):
-        return "ScalarOpMult({0}, {1})".format(self.scalar, self.op)
-
-    def __str__(self):
-        if(isinstance(self.op, OpAdd)):
-            return "{0}*({1})".format(self.scalar, self.op)
-        else:
-            return "{0}*{1}".format(self.scalar, self.op)
+        return "ScalarOpMult({0}, {1})".format(self.scalar, self.base)
 
 class OpMult:
     def __init__(self, op, func):
@@ -62,6 +54,8 @@ class OpMult:
     def __str__(self):
         return "{0}[{1}]".format(self.scalar, self.func)
 
+
+# ---- identity operator ----
 class OpId:
     def __init__(self):
         pass
@@ -123,15 +117,14 @@ map(set_as_op, [OpAdd, ScalarOpMult])
 
 # ==== set at ====
 def func_add_at(self, x):
-    return self.left.at(x) + self.right.at(x)
+    return self.expand(lambda y: y.at(x))
 
 FuncAdd.at = func_add_at
 def func_mult_scalar_at(self, x):
-    return self.scalar * self.func.at(x)
+    return self.expand(lambda y: y.at(x))
 
 ScalarFuncMult.at = func_mult_scalar_at
     
-
 # ==== Inner Product ====
 cip_dict = {}
 cip_op_dict = {}
@@ -155,29 +148,21 @@ def get_cip_op(a, o, b):
         raise KeyError(msg)
     return the_cip
 
-"""
-def cip_op(a, o, b):
-    if(isinstance(o, OpAdd)):
-        return  cip_op(a, o.left, b) + cip_op(a, o.right, b)
-    if(isinstance(o, ScalarOpMult)):
-        return o.scalar * cip_op(a, o.op, b)
-    return get_cip_op(a, o, b)(a, o, b)
-"""
 
 def cip_impl(a, o, b):
 
     if(isinstance(a, FuncAdd)):
-        return cip_impl(a.left, o, b) + cip_impl(a.right, o, b)
+        return a.expand(lambda x:cip_impl(x, o, b))
     if(isinstance(a, ScalarFuncMult)):
-        return a.scalar * cip_impl(a.func, o, b)
+        return a.expand(lambda x:cip_impl(x, o, b))
     if(isinstance(o, OpAdd)):
-        return cip_impl(a, o.left, b) + cip_impl(a, o.right, b)
+        return o.expand(lambda x:cip_impl(a, x, b))
     if(isinstance(o, ScalarOpMult)):
-        return o.scalar * cip_impl(a, o.op, b)
+        return o.expand(lambda x:cip_impl(a, x, b))
     if(isinstance(b, FuncAdd)):
-        return cip_impl(a, o, b.left) + cip_impl(a, o, b.right)
+        return b.expand(lambda x:cip_impl(a, o, x))
     if(isinstance(b, ScalarFuncMult)):
-        return b.scalar * cip_impl(a, o, b.func)
+        return b.expand(lambda x:cip_impl(a, o, x))
 
     if(isinstance(o, OpId)):
         return get_cip(a, b)(a, b)
@@ -188,18 +173,9 @@ def cip_impl(a, o, b):
 def cip(a, b, c = None):
     
     if(c == None):
-        """
-        if(isinstance(b, OpMult) and isinstance(a, OpMult)):
-            raise Exception("a:OpMult and b:OpMult is not supported")
-        if(isinstance(b, OpMult)):
-            return cip_impl(a, b.op, b.func)
-        if(isinstance(a, OpMult)):
-            return cip_impl(a.func, a.op, b)
-        """
         return cip_impl(a, OpId(), b)
     else:
         return cip_impl(a, b, c)
-
 
 
 # ==== induced from inner product ====
