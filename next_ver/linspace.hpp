@@ -9,7 +9,7 @@
 
 namespace l2func {
 
-  // ==== Basic component in L2function ====  
+  // ==== L2 function space ====  
   // ---- base class ----
   template<class _Field, class _Coord>
   struct L2funcComponent {
@@ -38,6 +38,11 @@ namespace l2func {
   template<class _Field, class _Coord> 
   class ZeroFunc : public Func<_Field, _Coord> {};
 
+  // ---- one ----
+  struct One {};
+  template<class Field, class Coord>
+  class OneOp : public Op<Field, Coord>, One {};
+
   // ---- func_add_func ----
   template<class A, class B>
   struct FuncAdd : public Func<typename A::Field, typename A::Coord> {
@@ -55,9 +60,11 @@ namespace l2func {
     return FuncAdd<A, B>(a, b);
   }
   template<class B>
-  B func_add_func(const ZeroFunc<typename B::Field, typename B::Coord>&, const B& b) { return b; }
+  B func_add_func(const ZeroFunc<typename B::Field, typename B::Coord>&, const B& b) {
+    return b; }
   template<class A>
-  A func_add_func(const A& a, const ZeroFunc<typename A::Field, typename A::Coord>&) { return a; }
+  A func_add_func(const A& a, const ZeroFunc<typename A::Field, typename A::Coord>&) {
+    return a; }
   
 
   // ---- scalar_mult_func ----
@@ -111,44 +118,63 @@ namespace l2func {
 
   // ==== inner product ====
   // ---- primitive ----
-  template<class A, class B>
-  typename A::Field cip_impl_prim(const A&, const B&) {
-    BOOST_STATIC_ASSERT((in_same_space<A, B>::value));
+  template<class A, class OpT, class B>
+  typename A::Field cip_impl_prim(const A&, const OpT&, const B&) {
+    //    BOOST_STATIC_ASSERT((in_same_space<A, B>::value));
+    //    BOOST_STATIC_ASSERT((in_same_space<A, OpT>::value));
+    //    BOOST_STATIC_ASSERT((boost::mpl::false_::value));
+    return typename A::Field(777);
   }
 
   // ---- linearly separate ----
-  template<class A, class B>
+  template<class A, class OpT, class B>
   typename A::Field 
-  cip_impl_lin(const A& a, const B& b, 
+  cip_impl_lin(const A& a, const OpT& o, const B& b, 
 	       typename boost::disable_if<is_lin_separable<A> >::type* =0,
+	       typename boost::disable_if<is_lin_separable<OpT> >::type* =0,
 	       typename boost::disable_if<is_lin_separable<B> >::type* =0) {
-    return cip_impl_prim(a, b);
+    return cip_impl_prim(a, o, b);
   }
 
-  template<class A, class B, class C>
+  template<class A,class OpT, class B, class C>
   typename A::Field 
-  cip_impl_lin(const A& a, const FuncAdd<B, C>& bc,
+  cip_impl_lin(const A& a, const OpT& o, const FuncAdd<B, C>& bc,
+	       typename boost::disable_if<is_lin_separable<A> >::type* =0,
+	       typename boost::disable_if<is_lin_separable<OpT> >::type* =0) {
+    return cip_impl_lin(a, o, bc.left) + cip_impl_lin(a, o, bc.right);
+  }
+
+  template<class A, class OpT, class B>
+  typename A::Field 
+  cip_impl_lin(const A& a, const OpT& o, const ScalarFuncMult<B>& b,
+	       typename boost::disable_if<is_lin_separable<A> >::type* =0,
+	       typename boost::disable_if<is_lin_separable<OpT> >::type* =0) {
+    return b.scalar * cip_impl_lin(a, o, b.func);
+  }
+
+  template<class A, class OpT, class OpS, class B>
+  typename A::Field
+  cip_impl_lin(const A& a, const OpAdd<OpT, OpS>& o, const B& b,
 	       typename boost::disable_if<is_lin_separable<A> >::type* =0) {
-    return cip_impl_lin(a, bc.left) + cip_impl_lin(a, bc.right);
+    return cip_impl_lin(a, o.left, b) + cip_impl_lin(a, o.right, b);
   }
-
-  template<class A, class B>
-  typename A::Field 
-  cip_impl_lin(const A& a, const ScalarFuncMult<B>& b,
+  template<class A, class OpT, class B>
+  typename A::Field
+  cip_impl_lin(const A& a, const ScalarOpMult<OpT>& o, const B& b,
 	       typename boost::disable_if<is_lin_separable<A> >::type* =0) {
-    return b.scalar * cip_impl_lin(a, b.func);
+    return o.scalar * cip_impl_lin(a, o.op, b);
   }
 
-  template<class A, class B, class C>
+  template<class A, class B, class OpT, class C>
   typename A::Field 
-  cip_impl_lin(const FuncAdd<A, B>& ab, const C& c) {
-    return cip_impl_lin(ab.left, c) + cip_impl_lin(ab.right, c);
+  cip_impl_lin(const FuncAdd<A, B>& ab, const OpT& o, const C& c) {
+    return cip_impl_lin(ab.left, o, c) + cip_impl_lin(ab.right, o, c);
   }
 
-  template<class A, class B>
+  template<class A, class OpT, class B>
   typename A::Field 
-  cip_impl_lin(const ScalarFuncMult<A>& a, const B& b) {
-    return a.scalar * cip_impl_lin(a.func, b);
+  cip_impl_lin(const ScalarFuncMult<A>& a, const OpT& o, const B& b) {
+    return a.scalar * cip_impl_lin(a.func, o, b);
   }
 
 
@@ -156,7 +182,15 @@ namespace l2func {
   template<class A, class B>
   typename A::Field cip(const A& a, const B& b) {
     BOOST_STATIC_ASSERT((in_same_space<A, B>::value));
-    return cip_impl_lin(a, b);
+    // return cip_impl_lin(a, OneOp<typename A::Field, typename A::Coord>(), b);
+    return cip_impl_lin(a, One(), b);
+  }
+
+  template<class A, class O, class B>
+  typename A::Field cip(const A& a, const O& o, const B& b) {
+    BOOST_STATIC_ASSERT((in_same_space<A, B>::value));
+    // return cip_impl_lin(a, OneOp<typename A::Field, typename A::Coord>(), b);
+    return cip_impl_lin(a, o, b);
   }
 
 
@@ -169,9 +203,8 @@ namespace l2func {
   class RealBasisOn3D : public Func<double, boost::array<double, 3> > {};
   class ComplexBasisOn1D : public Func< std::complex<double>, double> {};
 
-  template<>
-  double cip_impl_prim<RealBasisOn1D, RealBasisOn1D>(const RealBasisOn1D& a,
-						     const RealBasisOn1D& b) {
+  template<>double cip_impl_prim<RealBasisOn1D, One, RealBasisOn1D>
+  (const RealBasisOn1D& a, const One&, const RealBasisOn1D& b) {
     return a.param * b.param;
   }
 
