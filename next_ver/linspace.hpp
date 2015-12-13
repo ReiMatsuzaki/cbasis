@@ -34,7 +34,11 @@ namespace l2func {
     boost::is_same<typename A::Coord, typename B::Coord> > {};
 
   // ==== Linear space operation ====
-  // ---- add ----
+  // ---- zero ----
+  template<class _Field, class _Coord> 
+  class ZeroFunc : public Func<_Field, _Coord> {};
+
+  // ---- func_add_func ----
   template<class A, class B>
   struct FuncAdd : public Func<typename A::Field, typename A::Coord> {
     BOOST_STATIC_ASSERT((in_same_space<A, B>::value));
@@ -42,7 +46,7 @@ namespace l2func {
     B right;
     FuncAdd(A a, B b): left(a), right(b) {}
   };
-  
+
   template<class A, class B>
   struct is_lin_separable<FuncAdd<A, B> > : boost::mpl::true_ {};
 
@@ -50,8 +54,13 @@ namespace l2func {
   FuncAdd<A, B> func_add_func(const A& a, const B& b) {
     return FuncAdd<A, B>(a, b);
   }
+  template<class B>
+  B func_add_func(const ZeroFunc<typename B::Field, typename B::Coord>&, const B& b) { return b; }
+  template<class A>
+  A func_add_func(const A& a, const ZeroFunc<typename A::Field, typename A::Coord>&) { return a; }
+  
 
-  // ---- scalar mult ----
+  // ---- scalar_mult_func ----
   template<class A>
   struct ScalarFuncMult : public Func<typename A::Field, typename A::Coord> {
     typename A::Field scalar;
@@ -66,7 +75,39 @@ namespace l2func {
   ScalarFuncMult<A> scalar_mult_func(typename A::Field c, const A& a) {
     return ScalarFuncMult<A>(c, a);
   }
+  
+  // ---- op_add_op ----
+  template<class A, class B>
+  struct OpAdd :public Op<typename A::Field, typename A::Coord> {
+    BOOST_STATIC_ASSERT((in_same_space<A, B>::value));
+    A left;
+    B right;
+    OpAdd(A a, B b): left(a), right(b) {}
+  };
+  
+  template<class A, class B>
+  struct is_lin_separable<OpAdd<A, B> > : boost::mpl::true_ {};
 
+  template<class A, class B>
+  OpAdd<A, B> op_add_op(const A& a, const B& b) { 
+    return OpAdd<A, B>(a, b);
+  }
+
+  // ---- scalar_mult_op ----
+  template<class A>
+  struct ScalarOpMult :public Op<typename A::Field, typename A::Coord> {
+    typename A::Field scalar;
+    A op;
+    ScalarOpMult(typename A::Field c, A a): scalar(c), op(a) {}    
+  };
+
+  template<class A>
+  struct is_lin_separable<ScalarOpMult<A> > : boost::mpl::true_{};
+
+  template<class A>
+  ScalarOpMult<A> scalar_mult_op(typename A::Field c, const A& a) {
+    return ScalarOpMult<A>(c, a);
+  }
 
   // ==== inner product ====
   // ---- primitive ----
@@ -126,7 +167,7 @@ namespace l2func {
     RealBasisOn1D(double p) : param(p) {}
   };
   class RealBasisOn3D : public Func<double, boost::array<double, 3> > {};
-  class ComplexBasisOn1D : public Func<std::complex<double>, double> {};
+  class ComplexBasisOn1D : public Func< std::complex<double>, double> {};
 
   template<>
   double cip_impl_prim<RealBasisOn1D, RealBasisOn1D>(const RealBasisOn1D& a,
