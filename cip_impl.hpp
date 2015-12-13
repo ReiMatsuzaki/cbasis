@@ -258,6 +258,10 @@ namespace l2func {
   // ---- D2 ----
   template<class ExpFuncA, class ExpFuncB>
   typename ExpFuncA::Field D2Mat(const ExpFuncA& a, const ExpFuncB& b) {
+
+    // r^n exp(-zr^m) -> n r^(n-1) exp() -zr^(n+m-1) exp()
+    //                -> n(n-1) r^(n-2) exp() -nz(m-1)r^(n+m-2) exp() 
+    //                   -z*(n+m-1)r^(n+2m-2) exp() + zz r^(n+2m-2) exp()
     
     typedef typename ExpFuncA::Field F;
     int n = b.n();
@@ -269,8 +273,8 @@ namespace l2func {
     if(n != 1) 
       res += F(n*n-n)        * CIP(a, OpRm(-2), b);
 
-    res += -z*F(m*(2*n+m-1)) * CIP(a, OpRm(-1), b);
-    res += F(m*m)*z*z        * CIP(a, b);
+    res += -z*F(2*n*m+m*m-m) * CIP(a, OpRm(m-2), b);
+    res += F(m*m)*z*z        * CIP(a, OpRm(2*m-2), b);
 
     return res;
 

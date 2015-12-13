@@ -55,11 +55,13 @@ class BaseScalarMult:
 # ---- Func/Op ----        
 class FuncAdd(BaseAdd): 
     def __repr__(self):
-        return "FuncAdd({0}, {1})".format(self.left, self.right)
+        return "FuncAdd({0}, {1})".format(self.left.__repr__(), 
+                                          self.right.__repr__())
 
 class ScalarFuncMult(BaseScalarMult):
     def __repr__(self):
-        return "ScalarFuncMult({0}, {1})".format(self.scalar, self.base)
+        return "ScalarFuncMult({0}, {1})".format(self.scalar, 
+                                                 self.base.__repr__())
 
 class OpAdd(BaseAdd):
     def __repr__(self):
@@ -192,6 +194,26 @@ def cip(a, b, c = None):
         return cip_impl(a, b, c)
 
 
+# ==== Operatng Function ====
+op_apply_dict = {}
+
+def op_apply(o, f):
+    if(isinstance(o, OpAdd)):
+        return o.expand(lambda x: op_apply(x, f))
+    if(isinstance(o, ScalarOpMult)):
+        return o.expand(lambda x: op_apply(x, f))
+    if(isinstance(f, FuncAdd)):
+        return f.expand(lambda x: op_apply(o, x))
+    if(isinstance(f, ScalarFuncMult)):
+        return f.expand(lambda x: op_apply(o, x))
+    try:
+        o_f = op_apply_dict[(type(o), type(f))]
+    except:
+        msg = "o: {0}, {1}\n".format(o.__repr__(), type(o))
+        msg+= "f: {0}, {1}\n".format(f.__repr__(), type(f))
+        raise KeyError(msg)
+    return o_f(o, f)
+
 # ==== other operation ====
 def cnorm2(f):
     return cip(f, f)
@@ -203,6 +225,15 @@ def cnormalize(f):
     c = cnorm(f)
     return (1.0/c) * f
 
+def sum_func(fs):
+    """
+    gives summation of list of functions fs
+    """
+    def one(cumsum, f):
+        return cumsum + f
+    return reduce(one, fs, FuncZero())
+    
+    
 def linear_combination(cs, fs):
     """
     gives linear combination of function set fs with coefficients cs

@@ -327,10 +327,10 @@ TEST(CIP, CutExpFunc) {
   EXPECT_C_EQ(CIP(cut_csto2, cut_csto), 
 	      CIP(cut_csto, csto2));
 
-  CutCSTO cut_csto3(1.0, 2, 0.2, 4.0);
-  DiracDelta<std::complex<double> >d4(4.0);
-  EXPECT_TRUE(abs(CIP(cut_csto3, d4)) > 0.001) << CIP(cut_csto3, d4);
-
+  double r0 = 4.0;
+  CutCSTO cut_csto3(1.0, 2, 0.2, r0);
+  CSTO csto3(1.0, 2, 0.2);
+  EXPECT_C_EQ(csto3.at(r0), cut_csto3.at(r0));
   DiracDelta<std::complex<double> >d3(3.0);
   EXPECT_C_EQ(cut_csto.at(3.0), CIP(d3, cut_csto));
 
@@ -408,6 +408,12 @@ TEST(CIP, OpD2) {
 
   EXPECT_DOUBLE_EQ(CIP(s1, OP(OpD2(), s2)), 
 		   CIP(s1, OpD2(), s2));
+
+  RGTO g1(2.0, 4, 1.0);
+  RGTO g2(2.0, 4, 1.0);
+  
+  EXPECT_DOUBLE_EQ(CIP(g1, OP(OpD2(), g2)), 
+		   CIP(g1, OpD2(), g2));
   
 }
 TEST(CIP, time) {
