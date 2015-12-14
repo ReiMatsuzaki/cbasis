@@ -3,9 +3,8 @@
 
 #include <boost/lexical_cast.hpp>
 #include "macros.hpp"
+#include "linspace.hpp"
 #include "exp_func.hpp"
-#include "lin_func.hpp"
-
 #include "op.hpp"
 
 namespace l2func {
@@ -13,13 +12,13 @@ namespace l2func {
   // ==== type ====
   // ---- Hamiltonian ----
   template<int L, class F> struct HOpType {
-    typedef OpAdd<OpScalarProd<F, OpD2>,
-		  OpAdd<OpScalarProd<F, OpRm>,
-			OpScalarProd<F, OpRm> > > type; 
+    typedef OpAdd<ScalarOpMult<OpD2>,
+		  OpAdd<ScalarOpMult<OpRm>,
+			ScalarOpMult<OpRm> > > type; 
   }; 
   template<class F>  struct HOpType<0, F> {
-    typedef OpAdd<OpScalarProd<F, OpD2>,
-		  OpScalarProd<F, OpRm> > type; 
+    typedef OpAdd<ScalarOpMult<OpD2>,
+		  ScalarOpMult<OpRm> > type; 
   };
 
   // ---- EigenFunc ----
@@ -62,11 +61,11 @@ namespace l2func {
     /*
     typedef ExpFunc<F, 1> STO;
     typedef NTermFunc<N-L, ExpFunc<F, 1> > EigenFunc;
-    typedef OpAdd<OpScalarProd<F, OpD2>,
-		  OpAdd<OpScalarProd<F, OpRm>,
-			OpScalarProd<F, OpRm> > > HamiltonianOp;
+    typedef OpAdd<ScalarOpMult<F, OpD2>,
+		  OpAdd<ScalarOpMult<F, OpRm>,
+			ScalarOpMult<F, OpRm> > > HamiltonianOp;
     typedef OpAdd<HamiltonianOp, 
-		  OpScalarProd<F, OpRm> > HMinusEnergyOp;
+		  ScalarOpMult<F, OpRm> > HMinusEnergyOp;
 		  */
 
   public:
@@ -106,7 +105,7 @@ namespace l2func {
 							ProdOp(-ene, OpRm(0)))),
 					      value(val) {}
 
-    typedef OpAdd<typename HOpType<L, F>::type, OpScalarProd<F, OpRm> > type;
+    typedef OpAdd<typename HOpType<L, F>::type, ScalarOpMult<OpRm> > type;
     type val;
     type const& value;
   };

@@ -9,26 +9,27 @@
 
 namespace l2func {
 
-  template<class F, int m>
-  class CutExpFunc {
+  template<class Field, int m>
+  class CutExpFunc :public Func<Field, double> {
     
   public:
     // ---- type ----
-    typedef F Field;
+    typedef Field F;
     enum EExpPower {exp_power=m};
-    typedef CutExpFunc<F,m> FuncDerivOne;
-    typedef CutExpFunc<F,m> FuncDerivTwo;
+    typedef CutExpFunc<Field,  m> type;
+    typedef type FuncDerivOne;
+    typedef type FuncDerivTwo;
 
   private:
     // ---- Member Field ----
-    ExpFunc<F, m> func;
+    ExpFunc<Field, m> func;
     double r0_;          // R-matrix radius
 
   public:
     // ---- Constructors ----
     CutExpFunc();
     CutExpFunc(F _c, int _n, F _z, double r0);
-    CutExpFunc(const CutExpFunc<F, m>& o);
+    CutExpFunc(const type& o);
     template<class U> CutExpFunc(const CutExpFunc<U,m>& o):
       func(o.func), r0_(o.r0_)  {}
 
@@ -62,31 +63,11 @@ namespace l2func {
   template<class F, int m>
   std::ostream& operator << (std::ostream& os, const CutExpFunc<F,m>& a);
 
-  // ==== STO or GTO ====
-  //  struct cut_exp_tag :public func_tag {};
-    struct cut_exp_tag :public exp_func_tag {};
-  template<class F, int m> 
-  struct is_fundamental<CutExpFunc<F, m> > : public is_fundamental<ExpFunc<F,m> >{};
-  template<class F, int m> 
-  struct is_compound<CutExpFunc<F, m> > : public is_compound<ExpFunc<F,m> >{};
-
   // ==== STO ====
-  struct cut_sto_tag :public cut_exp_tag {};
-  template<class F> struct func_traits<CutExpFunc<F, 1> > {
-    typedef cut_sto_tag func_tag;
-  }; 
-  template<class F> struct is_l2func<CutExpFunc<F, 1> > {};
-
   typedef CutExpFunc<double, 1> CutRSTO;
   typedef CutExpFunc<std::complex<double>, 1> CutCSTO;
 
   // ==== GTO ====
-  struct cut_gto_tag :public cut_exp_tag {};
-  template<class F> struct func_traits<CutExpFunc<F, 2> > {
-    typedef cut_gto_tag func_tag;
-  };
-  template<class F> struct is_l2func<CutExpFunc<F, 2> > {};
-  
   typedef CutExpFunc<double, 2> CutRGTO;
   typedef CutExpFunc<std::complex<double>, 2> CutCGTO;
 }

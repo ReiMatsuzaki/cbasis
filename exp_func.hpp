@@ -4,13 +4,13 @@
 #include <iostream>
 #include <complex>
 #include "linspace.hpp"
-#include "func.hpp"
+#include "op.hpp"
 
 namespace l2func {
 
   // ==== STO or GTO ====
   template<class F, int m>
-  class ExpFunc {
+  class ExpFunc :public Func<F, double> {
   public:
     // ---- type ----
     typedef F Field;
@@ -54,33 +54,63 @@ namespace l2func {
     FuncDerivTwo DerivParamTwo();
   };
 
+  /*
+  // ==== Operator ====
+  // ---- Rm ----
+  template<class F, int m>
+  struct op_func_res<OpRm<F, double>, ExpFunc<F, m> > {
+    typedef ExpFunc<F, m>  type;
+  };
+
+  template<class F, int m>
+  typename op_func_res<OpRm<F, double>, ExpFunc<F, m> >::type 
+  OP_prim(const OpRm<F, double>& o, const ExpFunc<F, m>& a) {
+    ExpFunc<F, m> res(a);
+    res.n += o.m();
+    return res;
+  }
+
+  // ---- D1 ----
+  template<class F, int m>
+  struct op_func_res<OpD<F, double, 1>, ExpFunc<F, m> > {
+    typedef typename NTermFunc<2, ExpFunc<F, m> >::type  type;
+  };
+
+  template<class F, int m>
+  typename op_func_res<OpD<F, double, 1>, ExpFunc<F, m> >::type 
+  OP_prim(const OpD<F, double, 1>&, const ExpFunc<F, m>& a) {
+    typedef ExpFunc<F, m> Func;
+    Func f(a); f.set_n(f.n()-1);
+    Func g(a); g.set_c(-a.z()*F(m)*f.c()); g.set_n(g.n()-1);
+    return func_add_func(f, g);
+  }
+	  
+
+  // ---- D2 ----
+  template<class F, int m>
+  struct op_func_res<OpD<F, double, 2>, ExpFunc<F, m> > {
+    typedef typename NTermFunc<3, ExpFunc<F, m> >::type  type;
+  };
+
+  template<class F, int m>
+  NTermFunc<3, ExpFunc<F, m> > OP_prim(const OpD<F, double, 2>&,
+				       const ExpFunc<F, m>& a) {
+    int n = a.n();
+    F   c = a.c();
+    F   z = a.z();
+    ExpFunc<F, m> s(a); s.set_c(c* F(n*n-n));            s.set_n(n-2);
+    ExpFunc<F, m> t(a); t.set_c(c* (-z*F(2*n*m+m*m-m))); t.set_n(n+m-2);
+    ExpFunc<F, m> u(a); u.set_c(c* (z*z*F(m*m)));        u.set_n(n+2*m-2);
+    return func_add_func(s, func_add_func(t, u));
+  }
+
+*/
   // ==== External ====
   template<class F, int m>
   std::ostream& operator << (std::ostream& os, const ExpFunc<F,m>& a);
 
-  // ==== STO or GTO ====
-  struct exp_func_tag :public func_tag {};
-  template<class F, int m> 
-  struct is_fundamental<ExpFunc<F, m> > : public boost::true_type {};
-  template<class F, int m> 
-  struct is_compound<ExpFunc<F, m> > : public boost::false_type {};
-
-  // ==== STO ====
-  struct sto_tag :public exp_func_tag {};
-  template<class F> struct func_traits<ExpFunc<F, 1> > {
-    typedef sto_tag func_tag;
-  };
-  template<class F> struct is_l2func<ExpFunc<F, 1> > {};
-
   typedef ExpFunc<double, 1> RSTO;
   typedef ExpFunc<std::complex<double>, 1> CSTO;
-
-  // ==== GTO ====
-  struct gto_tag :public exp_func_tag {};
-  template<class F> struct func_traits<ExpFunc<F, 2> > {
-    typedef gto_tag func_tag;
-  };
-  template<class F> struct is_l2func<ExpFunc<F, 2> > {};
   
   typedef ExpFunc<double, 2> RGTO;
   typedef ExpFunc<std::complex<double>, 2> CGTO;

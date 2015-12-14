@@ -2,7 +2,6 @@
 #define DELTA_TEMPLATE_H
 
 #include "linspace.hpp"
-#include "func.hpp"
 #include <complex>
 
 /**
@@ -13,46 +12,50 @@
 
 namespace l2func {
 
-  template<class F>
-  class DiracDelta {
+  template<class Field, class Coord>
+  class DiracDelta :public Func<Field, Coord>{
     
   public:
-    // ---- type ----
-    typedef F Field;
-
   private:
     // ---- Field Member ----
     double r0_; // location of delta function
-    double h_;  // width (most calculation are done as h=0)
 
   public:
     // ---- Constructors ----
     DiracDelta();
-    DiracDelta(double _r0);
-    DiracDelta(const DiracDelta<F>& o);
+    DiracDelta(Coord _r0);
+    DiracDelta(const DiracDelta<Field, Coord>& o);
 
     // ---- Accessor ----
-    double h() const { return this->h_; }
     double r0() const { return this->r0_; }
     void set_r0(double r0) { this->r0_ = r0; }
 
     // ---- Method ----
-    F at(F x) const;
+    //    Field at(Coord x) const;
   };
 
   // ==== External ====
-  template<class F>
-  std::ostream& operator << (std::ostream& os, const DiracDelta<F>& a);
+  template<class Field, class Coord>
+  std::ostream& operator << (std::ostream& os, const DiracDelta<Field, Coord>& a);
 
-  // ==== Traits ====
-  struct delta_tag :public func_tag {};
-  template<class F> struct func_traits<DiracDelta<F> > { 
-    typedef delta_tag func_tag; };
-  template<class F> struct is_l2func<DiracDelta<F> > {};
-  template<class F> struct is_fundamental<DiracDelta<F> > {};
+  // ==== typedef ====
+  typedef DiracDelta<double,double> RDelta;
+  typedef DiracDelta<std::complex<double>,double > CDelta;
 
-  typedef DiracDelta<double> RDelta;
-  typedef DiracDelta<std::complex<double> > CDelta;
+  // ==== CIP ====
+  template<class F, class FuncA>
+  F CIP_impl_prim(const DiracDelta<F, double>& d,
+		  const One&,
+		  const FuncA& a) {
+    return a.at(d.r0());
+  }
+  template<class F, class FuncA>
+  F CIP_impl_prim(const FuncA& a,
+		  const One&,
+		  const DiracDelta<F, double>& d
+		  ) {
+    return a.at(d.r0());
+  }
 
 }
 

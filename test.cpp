@@ -14,17 +14,19 @@
 #include "normal_exp.hpp"
 #include "cut_exp.hpp"
 #include "delta.hpp"
-#include "lin_func_impl.hpp"
-#include "lin_func.hpp"
+
+#include "cip_exp.hpp"
+// #include "lin_func_impl.hpp"
+//#include "lin_func.hpp"
 
 
-#include "op.hpp"
-#include "op_func.hpp"
+//#include "op.hpp"
+//#include "op_func.hpp"
 
-#include "cip_impl.hpp"
-#include "cip.hpp"
+//#include "cip_impl.hpp"
+//#include "cip.hpp"
 
-#include "hatom_h.hpp"
+// #include "hatom_h.hpp"
 
 using namespace std;
 using namespace l2func;
@@ -147,9 +149,9 @@ TEST(math, lower_gamma) {
 }
 TEST(Func, NTermFunc) {
 
-  NTermFunc<3, RSTO>::type stos = AddFunc(RSTO(1.1,2,1.1), 
-					  AddFunc(RSTO(1.0, 3, 0.2), 
-						  RSTO(2.0, 2, 0.1)));
+  NTermFunc<3, RSTO>::type stos = func_add_func(RSTO(1.1,2,1.1), 
+						func_add_func(RSTO(1.0, 3, 0.2), 
+							      RSTO(2.0, 2, 0.1)));
 }
 TEST(Func, ExpFuncConstruct) {
   
@@ -331,20 +333,21 @@ TEST(CIP, CutExpFunc) {
   CutCSTO cut_csto3(1.0, 2, 0.2, r0);
   CSTO csto3(1.0, 2, 0.2);
   EXPECT_C_EQ(csto3.at(r0), cut_csto3.at(r0));
-  DiracDelta<std::complex<double> >d3(3.0);
+  CDelta d3(3.0);
   EXPECT_C_EQ(cut_csto.at(3.0), CIP(d3, cut_csto));
 
 }
 TEST(CIP, Normalized) {
   
-  RSTO s1(1.0, 2, 1.1); CNormalize(&s1);
-  RGTO g1(1.0, 2, 1.1); CNormalize(&g1);
-  CSTO s2(1.0, 3, CD(2.1, -0.3)); CNormalize(&s2);
+  RSTO s1(1.0, 2, 1.1);
+  RGTO g1(1.0, 2, 1.1);
+  CSTO s2(1.0, 3, CD(2.1, -0.3));
   
-  EXPECT_DOUBLE_EQ(1.0, CIP(s1, s1));
-  EXPECT_DOUBLE_EQ(1.0, CNorm(s1));
-  EXPECT_DOUBLE_EQ(1.0, CNorm(g1));
-  EXPECT_C_EQ(1.0, CNorm(s2));
+  EXPECT_DOUBLE_EQ(CIP(s1, s1), CNorm(s1)*CNorm(s1));
+  EXPECT_DOUBLE_EQ(CIP(s1, s1), CNorm2(s1));
+  EXPECT_DOUBLE_EQ(1.0, CNorm(CNormalize(s1)));
+  EXPECT_DOUBLE_EQ(1.0, CNorm(CNormalize(g1)));
+
 
 /*
   Op<RSTO> op = OpDDr<RSTO>();
@@ -401,23 +404,41 @@ TEST(CIP, LinFunc) {
 	      c0*d0*CIP(u0, v0)+c1*d0*CIP(u1, v0)+c0*d1*CIP(u0, v1)+c1*d1*CIP(u1, v1));
   
 }
+/*
+
+TEST(CIP, OpRm) {
+
+
+  RSTO s1(2.0, 3, 4.0);
+  RSTO s2(1.1, 2, 2.2);
+
+
+  EXPECT_DOUBLE_EQ(CIP(s1, OP_lin(RRm(2), s2)), 
+		   CIP(s1, RRm(2), s2));
+
+  RGTO g1(2.0, 4, 1.0);
+  RGTO g2(2.0, 4, 1.0);
+  
+  EXPECT_DOUBLE_EQ(CIP(g1, OP_lin(RRm(3), g2)), 
+		   CIP(g1, RRm(3), g2));
+
+}
 TEST(CIP, OpD2) {
 
   RSTO s1(2.0, 3, 4.0);
   RSTO s2(1.1, 2, 2.2);
 
-  EXPECT_DOUBLE_EQ(CIP(s1, OP(OpD2(), s2)), 
-		   CIP(s1, OpD2(), s2));
+
+  EXPECT_DOUBLE_EQ(CIP(s1, OP_lin(RD2(), s2)), 
+		   CIP(s1, RD2(), s2));
 
   RGTO g1(2.0, 4, 1.0);
   RGTO g2(2.0, 4, 1.0);
   
-  EXPECT_DOUBLE_EQ(CIP(g1, OP(OpD2(), g2)), 
-		   CIP(g1, OpD2(), g2));
-  
+  EXPECT_DOUBLE_EQ(CIP(g1, OP_lin(RD2(), g2)), 
+		   CIP(g1, RD2(), g2));
 }
 TEST(CIP, time) {
-  
   RSTO s1(1.2, 5, 0.3);
   LinFunc<RSTO> ss; 
   for(int i = 0; i < 100; i++)
@@ -432,28 +453,29 @@ TEST(CIP, time) {
 
   boost::timer t1;
   for(int i = 0; i < num; i++) 
-    CIP(ss, OP(OpD2(), ss));
+    CIP(ss, OP_lin(OpD2(), ss));
   cout << "t[CIP(A,O[B])] = " << t1.elapsed() << endl;
 
 }
+*/ 
 TEST(CIP, Op_algebra) {
 
   RSTO s1(1.2, 5, 3.0);
   RSTO s2(1.1, 2, 5.0);
 
   EXPECT_DOUBLE_EQ(
-		   CIP(s1, AddOp(OpRm(2), OpD1()), s2),
-		   CIP(s1, OpRm(2), s2) + CIP(s1, OpD1(), s2)
+		   CIP(s1, op_add_op(RRm(2), RD1()), s2),
+		   CIP(s1, RRm(2), s2) + CIP(s1, RD1(), s2)
 		   );
 
   EXPECT_DOUBLE_EQ(
-		   CIP(s1, ProdOp(0.3, OpD1()), s2),
-		   0.3 * CIP(s1, OpD1(), s2)
+		   CIP(s1, scalar_mult_op(0.3, RD1()), s2),
+		   0.3 * CIP(s1, RD1(), s2)
 		   );
 
   EXPECT_DOUBLE_EQ(
-		   CIP(s1, AddOp(OpRm(2), ProdOp(0.3, OpD1())), s2),
-		   CIP(s1, OpRm(2), s2) + 0.3*CIP(s1, OpD1(), s2)
+		   CIP(s1, op_add_op(RRm(2), scalar_mult_op(0.3, RD1())), s2),
+		   CIP(s1, RRm(2), s2) + 0.3*CIP(s1, RD1(), s2)
 		   );
 
 }
@@ -463,28 +485,32 @@ TEST(CIP, Func_algebra) {
   RSTO s2(0.2, 3, 0.3);
   RSTO s3(0.3, 2, 0.1);
 
-  EXPECT_DOUBLE_EQ(CIP(s1, AddFunc(s2, s3)),
+  EXPECT_DOUBLE_EQ(CIP(s1, func_add_func(s2, s3)),
 		   CIP(s1, s2) + CIP(s1, s3));
 
-  EXPECT_DOUBLE_EQ(CIP(AddFunc(s1, s2), s3),
+  EXPECT_DOUBLE_EQ(CIP(func_add_func(s1, s2), s3),
 		   CIP(s1, s3) + CIP(s2, s3));
 
 }
-TEST(OP, OpRm) {
+
+/*
+
+TEST(OP, RRm) {
+
 
   RSTO s1(2.3, 2, 1.1);
-  LinFunc<RSTO> r2_s1 = OP(OpRm(2), s1);
+  RSTO r2_s1 = OP_lin(RRm(2), s1);
 
-  EXPECT_EQ(4, r2_s1.begin()->second.n());
+  EXPECT_EQ(4, r2_s1.n());
 
 }
-TEST(OP, OpD1) {
+TEST(OP, RD1) {
 
   // d/dr 2r^3 exp(-4r)
   // = (6r^2 -8r^3)exp(-4r)
-
+  
   RSTO s1(2.0, 3, 4.0);
-  LinFunc<RSTO> s2 = OP(OpD1(), s1);
+  FuncAdd<RSTO, RSTO> s2 = OP_lin(RD1(), s1);
   double r = 2.2;
   EXPECT_DOUBLE_EQ((6.0*r*r-8*r*r*r)*exp(-4*r),
 		   s2.at(r));
@@ -492,53 +518,44 @@ TEST(OP, OpD1) {
   // d/dr 2r^3 exp(-4r^2)
   // = (6r^2 -16r^4) *exp(-4rr)
   RGTO g1(2.0, 3, 4.0);
-  LinFunc<RGTO> g2 = OP(OpD1(), g1);
+  FuncAdd<RGTO, RGTO> g2 = OP_lin(RD1(), g1);
   EXPECT_DOUBLE_EQ((6.0*r*r-16*r*r*r*r)*exp(-4*r*r),
 		   g2.at(r));
+
 }
-TEST(OP, OpD2) {
+TEST(OP, RD2) {
 
   RSTO s(2.0, 3, 4.0);
-  LinFunc<RSTO> s1 = OP(OpD2(), s);
-  LinFunc<RSTO> ss = OP(OpD1(), s);
-  LinFunc<LinFunc<RSTO> > s2 = OP(OpD1(), ss);
   
   //  cout << s1 << endl;
   //  cout << s2 << endl;
 
   double r0(2.1);
-  EXPECT_DOUBLE_EQ(s1.at(r0), s2.at(r0));
+  EXPECT_DOUBLE_EQ(OP_lin(RD1(), OP_lin(RD1(), s)).at(r0),
+		   OP_lin(RD2(), s).at(r0));
   
 }
-TEST(OP, Add) {
+TEST(OP_lin, Add) {
+
 
   RSTO s(1.1, 2, 1.2);
-
-  LinFunc<RSTO> As = OP(OpRm(2), s);
-  LinFunc<RSTO> Bs = OP(OpD2(), s);
-
-  //  LinFunc<RSTO> ABs = OP(OpAdd<OpRm, OpD2>(OpRm(2), OpD2()), s);
-  LinFunc<RSTO> ABs = OP(AddOp(OpRm(2), OpD2()), s);
-
   double r0(2.1);
-  EXPECT_DOUBLE_EQ(As.at(r0)+Bs.at(r0), 
-		   ABs.at(r0));
+  EXPECT_DOUBLE_EQ(OP_lin(RRm(2), s).at(r0) + OP_lin(RD2(), s).at(r0),
+		   OP_lin(op_add_op(RRm(2), RD2()), s).at(r0));
+
 
 }
-TEST(OP, ScalarProd) {
+TEST(OP_lin, ScalarProd) {
 
   RSTO s(1.1, 2, 1.2);
-
-  LinFunc<RSTO> s1 = OP(ProdOp(0.3, AddOp(OpRm(2), OpD2())), s);
 
   double r0(0.4);
   EXPECT_DOUBLE_EQ(
-		   0.3 * (OP(OpRm(2), s).at(r0) + OP(OpD2(), s).at(r0)),
-		   s1.at(r0));
-
+		   0.3 * (OP_lin(RRm(2), s).at(r0) + OP_lin(RD2(), s).at(r0)),
+		   OP_lin(scalar_mult_op(0.3, op_add_op(RRm(2), RD2())), s).at(r0));
 }
-TEST(HAtom, eigenstate) {
 
+TEST(HAtom, eigenstate) {
   HLikeAtom<double> hatom;
   
   HPsi<1,0,double> f10(hatom);
@@ -567,6 +584,7 @@ TEST(HAtom, eigenstate) {
 
   HLength<1, 0, 1, double> mu_phi(hatom);
   EXPECT_EQ(2, mu_phi.value.n());
+
 }
 TEST(HAtom, p_wave) {
 
@@ -579,7 +597,7 @@ TEST(HAtom, p_wave) {
 		   );
 
 }
-
+*/
 int main (int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
   return RUN_ALL_TESTS();

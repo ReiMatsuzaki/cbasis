@@ -3,23 +3,21 @@ CXXFLAGS=${INC_PATH} -Wall -O3
 
 MATH_OBJS=fact.o erfc.o math_utils.o
 FUNC_OBJS=cut_exp.o exp_func.o delta.o
-CIP_OBJS=cip.o
+CIP_OBJS=cip_exp.o
 
 OBJS=${CIP_OBJS} ${FUNC_OBJS} ${MATH_OBJS} 
-
-# this command run correctly on rcclsc
-#l2.a: ${OBJS}
-#	ar -cr -o $@ ${OBJS}
 
 # this command run correctly on mac
 l2.a: ${OBJS}
 	ar r $@ ${OBJS}
 
+fact.o:  fact.cpp  fact.hpp 
+erfc.o:  erfc.cpp  erfc.hpp 
+math_utils.o: math_utils.cpp math_utils.hpp
+cut_exp.o: cut_exp.hpp exp_func.hpp linspace.hpp
+exp_func.o: exp_func.cpp exp_func.hpp linspace.hpp
+cip_exp.o: cip_exp.cpp cip_exp.hpp
 
-cut_exp.o: cut_exp.hpp exp_func.hpp func.hpp
-exp_func.o: exp_func.hpp func.hpp
-erfc.o:  erfc.cpp  erfc.hpp
-fact.o:  fact.cpp  fact.hpp
 test.o: test.cpp
 
 test: test.o l2.a
