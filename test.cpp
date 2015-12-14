@@ -16,15 +16,8 @@
 #include "delta.hpp"
 
 #include "cip_exp.hpp"
-// #include "lin_func_impl.hpp"
-//#include "lin_func.hpp"
 
-
-//#include "op.hpp"
-//#include "op_func.hpp"
-
-//#include "cip_impl.hpp"
-//#include "cip.hpp"
+#include "hatom_h.hpp"
 
 // #include "hatom_h.hpp"
 
@@ -32,6 +25,7 @@ using namespace std;
 using namespace l2func;
 using namespace erfc_mori;
 
+typedef std::complex<double> CD;
 
 TEST(math, Factorial) {
 
@@ -313,7 +307,8 @@ TEST(CIP, ExpFunc) {
   EXPECT_NEAR(0.05270913901892936, CIP(g2, CGTO(g1)).real(), eps);
   EXPECT_NEAR(0.012359047425198447, CIP(CGTO(g1), g2).imag(), eps);
   EXPECT_NEAR(0.012359047425198447, CIP(g2, CGTO(g1)).imag(), eps);
-  
+
+
 }
 TEST(CIP, CutExpFunc) {
 
@@ -492,6 +487,63 @@ TEST(CIP, Func_algebra) {
 		   CIP(s1, s3) + CIP(s2, s3));
 
 }
+TEST(CIP, symmetry) {
+  using namespace l2func::h_atom_rad;
+
+  RSTO s1(1.1, 2, 0.3);
+  RSTO s2(1.2, 2, 0.4);
+  RSTO s3(1.3, 2, 0.5);
+
+  EXPECT_DOUBLE_EQ(CIP(s1, RRm(2), s2),
+		   CIP(s2, RRm(2), s1));
+
+  EXPECT_DOUBLE_EQ(CIP(s1, RD2(), s2),
+		   CIP(s2, RD2(), s1));
+
+  EXPECT_DOUBLE_EQ(CIP(s1, HOp<double, 0>()(), func_add_func(s2, s3)),
+		   -0.5*CIP(s1, RD2(), s2) -0.5*CIP(s1, RD2(), s3)
+		   -1.0*CIP(s1, RRm(-1), s2) -1.0*CIP(s1, RRm(-1), s3));
+
+  EXPECT_DOUBLE_EQ(CIP(s1, HOp<double, 0>()(), s2),
+		   CIP(s2, HOp<double, 0>()(), s1));
+
+}
+TEST(HAtom, hop) {
+  using namespace l2func::h_atom_rad;
+  EXPECT_DOUBLE_EQ(1.0, CNorm2(EigenFunc<double, 1, 0>()()));
+  EXPECT_DOUBLE_EQ(0.0, CIP(EigenFunc<double, 1, 0>()(),
+			    EigenFunc<double, 2, 0>()()));
+  EXPECT_DOUBLE_EQ(0.0, CIP(EigenFunc<double, 2, 0>()(),
+			    EigenFunc<double, 1, 0>()()));
+
+  EXPECT_DOUBLE_EQ(-0.5, CIP(EigenFunc<double, 1, 0>()(),
+			     HOp<double, 0>()(),
+			     EigenFunc<double, 1, 0>()()));
+
+  EXPECT_DOUBLE_EQ(-0.125, CIP(EigenFunc<double, 2, 0>()(),
+			       HOp<double, 0>()(),
+			       EigenFunc<double, 2, 0>()()));
+
+  EXPECT_DOUBLE_EQ(0.0, CIP(EigenFunc<double, 2, 0>()(),
+			    HOp<double, 0>()(),
+			    EigenFunc<double, 1, 0>()()));
+
+  EXPECT_DOUBLE_EQ(0.0, CIP(EigenFunc<double, 1, 0>()(),
+			    HOp<double, 0>()(),
+			    EigenFunc<double, 2, 0>()()));
+
+  EXPECT_DOUBLE_EQ(-0.125, CIP(EigenFunc<double, 2, 1>()(),
+			       HOp<double, 1>()(),
+			       EigenFunc<double, 2, 1>()()));
+			    
+}
+TEST(HAtom, length) {
+  using namespace l2func::h_atom_rad;
+  typedef Length<double, 1, 0, 1> LengthForm;
+  LengthForm::type s = LengthForm()();
+  EXPECT_EQ(2, s.n());
+}
+
 
 /*
 

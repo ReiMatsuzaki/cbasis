@@ -5,7 +5,6 @@
 #include <complex>
 
 namespace {
-  typedef std::complex<double> CD;
 }
 
 namespace erfc_mori {

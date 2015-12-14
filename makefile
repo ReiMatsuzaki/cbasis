@@ -16,7 +16,7 @@ erfc.o:  erfc.cpp  erfc.hpp
 math_utils.o: math_utils.cpp math_utils.hpp
 cut_exp.o: cut_exp.hpp exp_func.hpp linspace.hpp
 exp_func.o: exp_func.cpp exp_func.hpp linspace.hpp
-cip_exp.o: cip_exp.cpp cip_exp.hpp
+cip_exp.o: cip_exp.cpp
 
 test.o: test.cpp
 

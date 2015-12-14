@@ -69,9 +69,9 @@ namespace l2func {
   
   template<class F, int m1, int m2>
   F CIP_impl_prim(const ExpFunc<F, m1>& a, 
-		  const OpRm<F, double>&, 
+		  const OpRm<F, double>& o, 
 		  const ExpFunc<F, m2>& b) {
-    return ExpInt<F, m1, m2>()(a.z(), b.z(), a.n()+b.n()) * a.c() * b.c();
+    return ExpInt<F, m1, m2>()(a.z(), b.z(), o.m()+a.n()+b.n()) * a.c() * b.c();
   }
 
   template<class F, int m1, int m2>
@@ -96,7 +96,7 @@ namespace l2func {
     F cumsum(0);
     
     if(n!=1)
-      cumsum += F(n*n-n) * CIP_impl_prim(a, Rm(-2), b);
+      cumsum += F(n*n-n)        * CIP_impl_prim(a, Rm(-2), b);
     cumsum += -z*F(2*n*m+m*m-m) * CIP_impl_prim(a, Rm(m-2), b);
     cumsum += F(m*m)*z*z        * CIP_impl_prim(a, Rm(2*m-2), b);
     return cumsum;

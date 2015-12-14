@@ -367,8 +367,12 @@ namespace l2func {
     return scalar_mult_func(one/CNorm(a), a);
   }
   
+  // ==== type ====
+  typedef double R1d;
+  typedef boost::array<double, 3> R3d;
 
   // ==== For practice ====
+  /*
   class RealBasisOn1D : public Func<double, double> { 
   public:
     double param; 
@@ -380,7 +384,7 @@ namespace l2func {
   (const RealBasisOn1D& a, const One&, const RealBasisOn1D& b) {
     return a.param * b.param;
   }
-
+  */
 }
 
 #endif

@@ -1,5 +1,4 @@
 #include <complex>
-#include "cip_exp.hpp"
 #include "lgamma.hpp"
 #include "erfc.hpp"
 #include "fact.hpp"
