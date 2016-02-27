@@ -12,6 +12,7 @@
 
 namespace l2func {
 
+  // ==== Delta function ====
   template<class Field, class Coord>
   class DiracDelta :public Func<Field, Coord>{
     

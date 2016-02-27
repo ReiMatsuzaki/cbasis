@@ -1,8 +1,9 @@
 #include <boost/python.hpp>
+#include "../linspace.hpp"
 #include "../exp_func.hpp"
 #include "../cut_exp.hpp"
-#include "../cip.hpp"
-#include "../cip_impl.hpp"
+#include "../delta.hpp"
+#include "../cip_exp.hpp"
 #include "../op.hpp"
 
 namespace {
@@ -57,27 +58,29 @@ BOOST_PYTHON_MODULE(l2func_bind) {
   //  def("cip_cut_gg", CIP<CutGTO, CutGTO>);
   
 
-  class_<OpRm>("Rm", init<int>())
-    .add_property("m", &OpRm::m);
-  class_<OpD1>("D1", init<>());
-  class_<OpD2>("D2", init<>());
+  class_<CRm>("Rm", init<int>())
+    .add_property("m", &CRm::m);
+  class_<CD1>("D1", init<>());
+  class_<CD2>("D2", init<>());
+  class_<Cut<F, double> >("Cut", init<double>())
+    .add_property("r0", &Cut<F, double>::r0);
 
-  def("cip_s_d2_s", CIP<STO, OpD2, STO>);
-  def("cip_s_d2_g", CIP<STO, OpD2, GTO>);
-  def("cip_g_d2_s", CIP<GTO, OpD2, STO>);
-  def("cip_g_d2_g", CIP<GTO, OpD2, GTO>);
-  def("cip_cut_s_d2_s", CIP<CutSTO, OpD2, CutSTO>);
+  def("cip_s_d2_s", CIP<STO, CD2, STO>);
+  def("cip_s_d2_g", CIP<STO, CD2, GTO>);
+  def("cip_g_d2_s", CIP<GTO, CD2, STO>);
+  def("cip_g_d2_g", CIP<GTO, CD2, GTO>);
+  def("cip_cut_s_d2_s", CIP<CutSTO, CD2, CutSTO>);
 
-  def("cip_s_d1_s", CIP<STO, OpD1, STO>);
-  def("cip_s_d1_g", CIP<STO, OpD1, GTO>);
-  def("cip_g_d1_s", CIP<GTO, OpD1, STO>);
-  def("cip_g_d1_g", CIP<GTO, OpD1, GTO>);
-  def("cip_cut_s_d1_s", CIP<CutSTO, OpD1, CutSTO>);
+  def("cip_s_d1_s", CIP<STO, CD1, STO>);
+  def("cip_s_d1_g", CIP<STO, CD1, GTO>);
+  def("cip_g_d1_s", CIP<GTO, CD1, STO>);
+  def("cip_g_d1_g", CIP<GTO, CD1, GTO>);
+  def("cip_cut_s_d1_s", CIP<CutSTO, CD1, CutSTO>);
 
-  def("cip_s_rm_s", CIP<STO, OpRm, STO>);
-  def("cip_s_rm_g", CIP<STO, OpRm, GTO>);
-  def("cip_g_rm_s", CIP<GTO, OpRm, STO>);
-  def("cip_g_rm_g", CIP<GTO, OpRm, GTO>);
-  def("cip_cut_s_rm_s", CIP<CutSTO, OpRm, CutSTO>);
+  def("cip_s_rm_s", CIP<STO, CRm, STO>);
+  def("cip_s_rm_g", CIP<STO, CRm, GTO>);
+  def("cip_g_rm_s", CIP<GTO, CRm, STO>);
+  def("cip_g_rm_g", CIP<GTO, CRm, GTO>);
+  def("cip_cut_s_rm_s", CIP<CutSTO, CRm, CutSTO>);
 }
 

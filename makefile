@@ -19,15 +19,22 @@ exp_func.o: exp_func.cpp exp_func.hpp linspace.hpp
 cip_exp.o: cip_exp.cpp
 
 test.o: test.cpp
-
 test: test.o l2.a
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} test.o l2.a
+
+test_gto3d.o: test_gto3d.cpp
+test_gto3d: test_gto3d.o cints.o
+	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} $^
+.PHONY: check_gto3d
+check_gto3d: test_gto3d
+	./test_gto3d
 
 l2func_bind.so: wrapper.cpp ${OBJS}
 	${CXX} -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -DPIC -bundle -fPIC -o $@ wrapper.cpp ${OBJS} ${CXXFLAGS} -lboost_python  -framework Python
 
 utest_py: l2func_bind.so utest.py
 	python utest.py
+
 
 .PHONY: check
 check: test

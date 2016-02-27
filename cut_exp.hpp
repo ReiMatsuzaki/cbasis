@@ -63,6 +63,17 @@ namespace l2func {
   template<class F, int m>
   std::ostream& operator << (std::ostream& os, const CutExpFunc<F,m>& a);
 
+  // ==== Operator ====
+  // ---- ExpFunc->CutExpFunc ----
+  template<class Field, class Coord>
+  class Cut:public Op<Field, Coord> {
+  private:
+    Coord r0_;
+  public:
+    Cut(Coord _r0): r0_(_r0){}
+    Coord r0() const { return r0_; }
+  };
+
   // ==== STO ====
   typedef CutExpFunc<double, 1> CutRSTO;
   typedef CutExpFunc<std::complex<double>, 1> CutCSTO;

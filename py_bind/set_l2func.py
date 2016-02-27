@@ -3,7 +3,7 @@ from linspace import cip_dict, cip_op_dict, set_as_func, set_as_op, OpId, op_app
 
 # ==== Set Func ====
 # ---- general ----
-map(set_as_func, [GTO, STO])
+map(set_as_func, [GTO, STO, CutSTO])
 
 # ---- repr/str ----
 def STO_repr(self):
@@ -22,7 +22,7 @@ CutSTO.__repr__ = CutSTO_repr
 
 # ==== Set Operator ====
 # ---- general ----
-map(set_as_op, [D1, D2, Rm])
+map(set_as_op, [D1, D2, Rm, Cut])
 
 # ---- repr ----
 def d1_repr(self):
@@ -63,6 +63,12 @@ cip_op_dict[(GTO, Rm, STO)] = cip_g_rm_s
 cip_op_dict[(GTO, Rm, GTO)] = cip_g_rm_g
 cip_op_dict[(CutSTO, Rm, CutSTO)] = cip_cut_s_rm_s
 
+def cip_sss(a, o, b):
+    ao = STO(a.c * o.c, a.n + o.n, a.z + o.z)
+    return cip_ss(ao, b)
+
+cip_op_dict[(STO, STO, STO)] = cip_sss
+
 
 # ==== op func ====
 def d1_sto(dum, sto):
@@ -71,6 +77,15 @@ def d1_sto(dum, sto):
     z = sto.z
     s1 = STO(c*n,  n-1, z)
     s2 = STO(-z*c, n,   z)
+    return s1+s2
+
+def d1_cutsto(dum, sto):
+    c = sto.c
+    n = sto.n
+    z = sto.z
+    r0 = sto.r0
+    s1 = CutSTO(c*n,  n-1, z, r0)
+    s2 = CutSTO(-z*c, n,   z, r0)
     return s1+s2
 
 def d1_gto(dum, gto):
@@ -82,10 +97,16 @@ def d1_gto(dum, gto):
     return s1+s2
 
 op_apply_dict[(D1, STO)] = d1_sto
+op_apply_dict[(D1, CutSTO)] = d1_cutsto
 op_apply_dict[(D1, GTO)] = d1_gto
+
 
 def rm_sto(rm, s):
     f = STO(s.c, s.n+rm.m, s.z)
+    return f
+
+def rm_cutsto(rm, s):
+    f = CutSTO(s.c, s.n+rm.m, s.z, s.r0)
     return f
 
 def rm_gto(rm, s):
@@ -93,8 +114,10 @@ def rm_gto(rm, s):
     return f
     
 op_apply_dict[(Rm, STO)] = rm_sto
+op_apply_dict[(Rm, CutSTO)] = rm_cutsto
 op_apply_dict[(Rm, GTO)] = rm_gto
 
+# ==== convenient ====
 def dr(m):
     if(m==1):
         return D1()
@@ -105,3 +128,25 @@ def dr(m):
 
 def rm(m):
     return Rm(m)
+
+
+def rhankel(k, L):
+    if(L != 0):
+        raise Exception("Not impl")
+    return STO(1.0, 0, -1.0j * k)
+
+def rbessel(k, L):
+    if(L != 0):
+        raise Exception("Not impl")
+    ii = 1.0j
+    return STO(-0.5j, 0, -ii*k) + STO(0.5j, 0, ii*k)
+
+def __cut_exp_func(type_func):
+    def __func__(cut, exp_func):
+        f = exp_func
+        return type_func(f.c, f.n, f.z, cut.r0)
+    return __func__
+
+op_apply_dict[(Cut, STO)] = __cut_exp_func(CutSTO)
+
+

@@ -6,7 +6,7 @@ from hatom import *
 from basis_set import *
 from l2func_io import *
 from lindep import *
-
+from d_basis import *
 
 
 

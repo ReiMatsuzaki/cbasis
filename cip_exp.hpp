@@ -112,10 +112,13 @@ namespace l2func {
   }  
   template<class F, int m1, int m2>
   F CIP_impl_prim(const CutExpFunc<F, m1>& a,
-		  const OpRm<F, double>&,
+		  const OpRm<F, double>& o,
 		  const CutExpFunc<F, m2>& b) {
     double r0 = a.r0() < b.r0() ? a.r0() : b.r0();
-    return CutExpInt<F, 1, 1>()(a.z(), b.z(), a.n()+b.n(), r0) * a.c() * b.c();
+    return CutExpInt<F, 1, 1>()(a.z(), 
+				b.z(), 
+				a.n() + b.n() + o.m(), 
+				r0) * a.c() * b.c();
   }
 
   template<class F, int m1, int m2>

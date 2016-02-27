@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include "utils.hpp"
+#include "math_utils.hpp"
 
 #include "erfc.hpp"
 #include "fact.hpp"
@@ -27,6 +28,13 @@ using namespace erfc_mori;
 
 typedef std::complex<double> CD;
 
+TEST(array, math_utils) {
+  array3<double> xs(1.1, 1.2, 1.3);
+  EXPECT_DOUBLE_EQ(1.2, xs[1]);
+
+  array3<CD> ys(xs);
+  EXPECT_DOUBLE_EQ(1.2, real(ys[1]));
+}
 TEST(math, Factorial) {
 
   using namespace fact;
