@@ -76,9 +76,8 @@ namespace l2func {
   };
 
   // ==== Spherical GTO ====
-  /*
   template<class F, class FC>
-  class SpheGTO :public Func<F, l2func::array3<FC> > {
+  class SphericalGTO :public Func<F, l2func::array3<FC> > {
   public:
     // ---- type ----
     typedef F Field;
@@ -87,9 +86,20 @@ namespace l2func {
 
   private:
     // ---- Member Field ----
-    F c_;
+    int L_;
+    int M_;
+    LinFunc<CartGTO<F, FC3> > funcs_;
+  public:
+    SphericalGTO(int L, int M, FC3 xyz, Field zeta): L_(L), M_(M) {
+      SetSphericalGTO(L, M, xyz, zeta, &funcs_);
+    }
+    ~SphericalGTO() {
+      delete funcs_;
+    }
+    const LinFunc<CartGTO<F, FC3> >& GetLinFunc() const { return funcs_;}
   };
-  */
+  
+
   // ---- Exception class ----
   class ExceptionBadYlm : public std::exception, public boost::exception {
   public:
@@ -226,6 +236,29 @@ namespace l2func {
 				   b.zeta(),
 				   b.nml()[0], b.nml()[1], b.nml()[2],
 				   b.xyz()[0], b.xyz()[1], b.xyz()[2]);    
+  }
+
+  template<class F, class FC>
+  F CIP_impl_prim(const SphericalGTO<F, FC>& a, const One&, const SphericalGTO<F, FC>& b) {
+    return CIP(a.GetLinFunc(), b.GetLinFunc());
+  }
+  template<class F, class FC>
+  F CIP_impl_prim(const SphericalGTO<F, FC>& a,
+		  const OpKE<F,FC>&,
+		  const SphericalGTO<F, FC>& b) {
+    return CIP(a.GetLinFunc(), OpKE<F,FC>(), b.GetLinFunc());
+  }
+  template<class F, class FC>
+  F CIP_impl_prim(const SphericalGTO<F, FC>& a,
+		  const OpNA<F,FC>& v,
+		  const SphericalGTO<F, FC>& b) {
+    return CIP(a.GetLinFunc(), v, b.GetLinFunc());
+  }
+  template<class F, class FC>
+  F CIP_impl_prim(const SphericalGTO<F, FC>& a,
+		  const OpXyz<F,FC>& op,
+		  const SphericalGTO<F, FC>& b) {
+    return CIP(a.GetLinFunc(), op, b.GetLinFunc());
   }
 }
 
