@@ -106,7 +106,8 @@ namespace l2func {
     typedef typename A::Coord Coord;
     typedef std::list<std::pair<typename A::Field, A> > CFList;
     typedef typename CFList::const_iterator const_iterator;
-    CFList c_f_list_;
+    // typedef typename CFList::iterator iterator;
+    CFList c_f_list_;    
     void Add(Field c, const A& a)  {
       c_f_list_.push_back(std::make_pair(c, a));
     }
@@ -117,6 +118,16 @@ namespace l2func {
 	cumsum += it->first * it->second.at(x);
       }
       return cumsum;
+    }
+    void SetScalarProd(Field c) {
+      for(typename CFList::iterator it = c_f_list_.begin();
+	  it != c_f_list_.end(); ++it) {
+	it->first *= c;
+      }
+    }
+    void SetNormalize() {
+      Field norm2 = CIP(*this, *this);
+      this->SetScalarProd(Field(1)/sqrt(norm2));
     }
     typename CFList::const_iterator begin() const { return c_f_list_.begin(); }
     typename CFList::const_iterator end() const { return c_f_list_.end(); }

@@ -35,6 +35,7 @@ TEST(array, math_utils) {
   array3<CD> ys(xs);
   EXPECT_DOUBLE_EQ(1.2, real(ys[1]));
 }
+
 TEST(math, Factorial) {
 
   using namespace fact;
@@ -149,6 +150,7 @@ TEST(math, lower_gamma) {
 		      eps);
 
 }
+
 TEST(Func, NTermFunc) {
 
   NTermFunc<3, RSTO>::type stos = func_add_func(RSTO(1.1,2,1.1), 
@@ -260,6 +262,17 @@ TEST(Func, LinFuncConstruct) {
   EXPECT_DOUBLE_EQ(2.5*s1.at(r0) + 1.2*s2.at(r0),
 		   stos.at(r0));
 
+}
+TEST(Func, LinFuncSetter) {
+  LinFunc<RSTO> func;
+  //RSTO s1(1.1, 2, 1.3); func.Add(1.2, s1);
+  func.Add(1.2, RSTO(1.1, 2, 1.3));
+  RSTO s2(1.3, 3, 1.4); func.Add(1.2, s2);
+  func.SetScalarProd(1.4);
+  EXPECT_DOUBLE_EQ(1.2*1.4, func.begin()->first);
+
+  func.SetNormalize();
+  EXPECT_DOUBLE_EQ(1.0, CIP(func, func));
 }
 TEST(Func, NormalExpFunc) {
 

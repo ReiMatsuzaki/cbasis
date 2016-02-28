@@ -3,7 +3,10 @@
 
 #include <iostream>
 #include <complex>
-// #include <boost/array.hpp>
+#include <sstream>
+// #include <boost/exception/exception.hpp>
+#include <boost/exception/all.hpp>
+#include <boost/throw_exception.hpp>
 
 #include "math_utils.hpp"
 #include "linspace.hpp"
@@ -87,6 +90,24 @@ namespace l2func {
     F c_;
   };
   */
+  // ---- Exception class ----
+  class ExceptionBadYlm : public std::exception, public boost::exception {
+  public:
+    int L_, M_;
+    std::string msg_;
+    ExceptionBadYlm(int L, int M): std::exception(), L_(L), M_(M) {
+      stringstream ss;
+      ss << "Unphysical (L, M) pair. (L, M) = (" << L_ << ", " << M_ << ")";
+      msg_ = ss.str();
+    }
+    ~ExceptionBadYlm() throw() {}
+    virtual const char* what() const throw() {
+      return msg_.c_str();
+    }
+
+  };
+  //  typedef boost::error_info<struct tag_errno_code, int> error_code;
+
   template<class Field, class Coord>
   void SetSphericalGTO(int L, int M, Coord xyz, Field zeta,
 		       LinFunc<CartGTO<Field, Coord> >* target) {
@@ -95,35 +116,40 @@ namespace l2func {
       CartGTO<Field, Coord> gto(Field(1), i3(0, 0, 0), xyz, zeta);
       gto.SetNormalize();
       target->Add(Field(1), gto);
+    } else if(L == 1 && M == 0) {
+      CartGTO<Field, Coord> g3(Field(1), i3(0, 0, 1), xyz, zeta);
+      g3.SetNormalize(); target->Add(1, g3);
+    } else if(L == 1 && M == 1) {
+      CartGTO<Field, Coord> g1(1, i3(1, 0, 0), xyz, zeta);
+      g1.SetNormalize(); target->Add(1, g1);
+    } else if(L == 1 && M == -1) {
+      CartGTO<Field, Coord> g1(Field(1), i3(0, 1, 0), xyz, zeta);
+      g1.SetNormalize(); target->Add(1, g1);
+    } else if(L == 2 && M == 1) {
+      CartGTO<Field, Coord> g(Field(1), i3(1, 0, 1), xyz, zeta); 
+      g.SetNormalize(); target->Add(Field(1), g);
+    } else if(L == 2 && M == -1) {
+      CartGTO<Field, Coord> g(Field(1), i3(0, 1, 1), xyz, zeta); 
+      g.SetNormalize(); target->Add(Field(1), g);
+    } else if(L == 2 && M == 2) {
+      CartGTO<Field, Coord> g1(Field(1), i3(2, 0, 0), xyz, zeta); 
+      g1.SetNormalize(); target->Add(Field(1), g1);
+      CartGTO<Field, Coord> g2(Field(1), i3(0, 2, 0), xyz, zeta); 
+      g2.SetNormalize(); target->Add(-Field(1), g2);	
+    } else if(L == 2 && M == -2) {
+      CartGTO<Field, Coord> g1(Field(1), i3(1, 1, 0), xyz, zeta); 
+      g1.SetNormalize(); target->Add(1, g1);
+    } else if(L == 2 && M == 0) {
+      CartGTO<Field, Coord> g1(Field(1), i3(2, 0, 0), xyz, zeta); 
+      g1.SetNormalize(); target->Add(-Field(1), g1);
+      CartGTO<Field, Coord> g2(Field(1), i3(0, 2, 0), xyz, zeta); 
+      g2.SetNormalize(); target->Add(-Field(1), g2);
+      CartGTO<Field, Coord> g3(Field(1), i3(0, 0, 2), xyz, zeta); 
+      g3.SetNormalize(); target->Add(Field(2), g3);
+    } else {
+      BOOST_THROW_EXCEPTION(ExceptionBadYlm(L, M));
     }
-    if(L == 1) {
-      if(M == 0) {
-	// CartGTO<Field, Coord> g1(Field(1), i3(1, 0, 0), xyz, zeta);
-	// CartGTO<Field, Coord> g2(Field(1), i3(0, 1, 0), xyz, zeta);
-	CartGTO<Field, Coord> g3(Field(1), i3(0, 0, 1), xyz, zeta);
-	g3.SetNormalize();
-	target->Add(Field(1), g3);
-      } else if(M == 1) {
-	Field c(Field(1)/sqrt(Field(2)));
-	CartGTO<Field, Coord> g1(Field(1), i3(1, 0, 0), xyz, zeta);
-	g1.SetNormalize();
-	target->Add(c, g1);
-
-	CartGTO<Field, Coord> g2(Field(1), i3(0, 1, 0), xyz, zeta);
-	g2.SetNormalize();
-	target->Add(c, g2);
-      } else if(M == -1) {
-	Field c(Field(1)/sqrt(Field(2)));
-	CartGTO<Field, Coord> g1(Field(1), i3(1, 0, 0), xyz, zeta);
-	g1.SetNormalize();
-	target->Add(c, g1);
-
-	CartGTO<Field, Coord> g2(Field(1), i3(0, 1, 0), xyz, zeta);
-	g2.SetNormalize();
-	target->Add(-c, g2);
-      }
-    }
-
+    target->SetNormalize();
   }
   
   // ==== External ====

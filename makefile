@@ -22,7 +22,7 @@ test.o: test.cpp
 test: test.o l2.a
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} test.o l2.a
 
-test_gto3d.o: test_gto3d.cpp
+test_gto3d.o: test_gto3d.cpp gto3d.hpp
 test_gto3d: test_gto3d.o cints.o
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} $^
 .PHONY: check_gto3d
