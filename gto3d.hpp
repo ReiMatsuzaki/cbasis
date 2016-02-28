@@ -59,7 +59,13 @@ namespace l2func {
     void set_z(F z) {this->z_ = z; } 
 
     // ---- Method ----
-    F at(FC xyz) const;
+    F at(FC x) const {
+      return c_ *
+	pow(x[0]-xyz_[0], nml_[0]) *
+	pow(x[1]-xyz_[1], nml_[1]) *
+	pow(x[2]-xyz_[2], nml_[2]) *
+	exp(-zeta_ * pow(x[0]-xyz_[0], 2) * pow(x[1]-xyz_[1], 2) * pow(x[2]-xyz_[2], 2));
+    }
     std::string str() const;
     
     void SetComplexConjugate() {
@@ -93,10 +99,9 @@ namespace l2func {
     SphericalGTO(int L, int M, FC3 xyz, Field zeta): L_(L), M_(M) {
       SetSphericalGTO(L, M, xyz, zeta, &funcs_);
     }
-    ~SphericalGTO() {
-      delete funcs_;
-    }
+    ~SphericalGTO() {}
     const LinFunc<CartGTO<F, FC3> >& GetLinFunc() const { return funcs_;}
+    F at(FC3 x) const { return funcs_.at(x); }
   };
   
 
@@ -116,7 +121,6 @@ namespace l2func {
     }
 
   };
-  //  typedef boost::error_info<struct tag_errno_code, int> error_code;
 
   template<class Field, class Coord>
   void SetSphericalGTO(int L, int M, Coord xyz, Field zeta,
