@@ -219,9 +219,9 @@ C kinetic(C alpha1, int l1, int m1, int n1,
 }
 
 C overlap(C alpha1, int l1, int m1, int n1,
-		      C xa, C ya, C za,
-		      C alpha2, int l2, int m2, int n2,
-		      C xb, C yb, C zb){
+	  C xa, C ya, C za,
+	  C alpha2, int l2, int m2, int n2,
+	  C xb, C yb, C zb){
   /*Taken from THO eq. 2.12*/
   C rab2,gamma,xp,yp,zp,pre,wx,wy,wz;
 
