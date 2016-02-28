@@ -91,11 +91,39 @@ namespace l2func {
   void SetSphericalGTO(int L, int M, Coord xyz, Field zeta,
 		       LinFunc<CartGTO<Field, Coord> >* target) {
     
-    if(L == 0 and M == 0) {
+    if(L == 0 && M == 0) {
       CartGTO<Field, Coord> gto(Field(1), i3(0, 0, 0), xyz, zeta);
       gto.SetNormalize();
       target->Add(Field(1), gto);
     }
+    if(L == 1) {
+      if(M == 0) {
+	// CartGTO<Field, Coord> g1(Field(1), i3(1, 0, 0), xyz, zeta);
+	// CartGTO<Field, Coord> g2(Field(1), i3(0, 1, 0), xyz, zeta);
+	CartGTO<Field, Coord> g3(Field(1), i3(0, 0, 1), xyz, zeta);
+	g3.SetNormalize();
+	target->Add(Field(1), g3);
+      } else if(M == 1) {
+	Field c(Field(1)/sqrt(Field(2)));
+	CartGTO<Field, Coord> g1(Field(1), i3(1, 0, 0), xyz, zeta);
+	g1.SetNormalize();
+	target->Add(c, g1);
+
+	CartGTO<Field, Coord> g2(Field(1), i3(0, 1, 0), xyz, zeta);
+	g2.SetNormalize();
+	target->Add(c, g2);
+      } else if(M == -1) {
+	Field c(Field(1)/sqrt(Field(2)));
+	CartGTO<Field, Coord> g1(Field(1), i3(1, 0, 0), xyz, zeta);
+	g1.SetNormalize();
+	target->Add(c, g1);
+
+	CartGTO<Field, Coord> g2(Field(1), i3(0, 1, 0), xyz, zeta);
+	g2.SetNormalize();
+	target->Add(-c, g2);
+      }
+    }
+
   }
   
   // ==== External ====
