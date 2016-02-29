@@ -150,3 +150,44 @@ def __cut_exp_func(type_func):
 op_apply_dict[(Cut, STO)] = __cut_exp_func(CutSTO)
 
 
+# ==== Basis set 3D ====
+def lambda_s_mat(self, other = None):
+    if(other == None):
+        other = self
+    mat = calc_s_mat(self, other)
+    return mat.reshape((self.size, other.size))
+
+def lambda_t_mat(self, other = None):
+    if(other == None):
+        other = self
+    mat = calc_t_mat(self, other)
+    return mat.reshape((self.size, other.size))
+
+def lambda_v_mat(self, q, xyz, other = None):
+    if(other == None):
+        other = self
+    (x, y, z) = xyz
+    mat = calc_v_mat(self, q, x, y, z, other)
+    return mat.reshape((self.size, other.size))
+
+def lambda_xyz_mat(self, lmn, other = None):
+    if(other == None):
+        other = self
+    (nx, ny, nz) = lmn
+    mat = calc_xyz_mat(self, nx, ny, nz, other)
+    return mat.reshape((self.size, other.size))
+
+def lambda_add_one_basis(self, L, M, xyz, zeta):
+    (x, y, z) = xyz
+    self.add_one_basis_cpp(L, M, x, y, z, zeta)
+
+def lambda_add_basis(self, L, xyz, zeta):
+    (x, y, z) = xyz
+    self.add_basis_cpp(L, x, y, z, zeta)
+    
+SphericalGTOSet.s_mat = lambda_s_mat
+SphericalGTOSet.t_mat = lambda_t_mat
+SphericalGTOSet.v_mat = lambda_v_mat
+SphericalGTOSet.xyz_mat = lambda_xyz_mat
+SphericalGTOSet.add_one_basis = lambda_add_one_basis
+SphericalGTOSet.add_basis = lambda_add_basis

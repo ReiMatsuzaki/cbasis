@@ -380,7 +380,7 @@ TEST(GTOSet, Create) {
 		  1.1);
   
   std::complex<double>* vs;
-  vs = gtos.SMatWithOther(gtos);
+  vs = gtos.SMat(gtos);
   EXPECT_C_EQ(1, vs[0]);
   EXPECT_C_EQ(0, vs[1]);
   EXPECT_C_EQ(0, vs[2]);
