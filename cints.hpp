@@ -67,10 +67,15 @@ typedef complex<double> C;
  C overlap_1D(int l1, int l2, C PAx,
 			 C PBx, C gamma);
  C nuclear_attraction(C x1, C y1, C z1, C norm1,
-				 int l1, int m1, int n1, C alpha1,
-				 C x2, C y2, C z2, C norm2,
-				 int l2, int m2, int n2, C alpha2,
-				 C x3, C y3, C z3);
+		      int l1, int m1, int n1, C alpha1,
+		      C x2, C y2, C z2, C norm2,
+		      int l2, int m2, int n2, C alpha2,
+		      C x3, C y3, C z3);
+ C nuclear_attraction0(C x1, C y1, C z1, 
+		      int l1, int m1, int n1, C alpha1,
+		      C x2, C y2, C z2,
+		      int l2, int m2, int n2, C alpha2,
+		      C x3, C y3, C z3);
  C A_term(int i, int r, int u, int l1, int l2,
 		     C PAx, C PBx, C CPx, C gamma);
  C *A_array(int l1, int l2, C PA, C PB,

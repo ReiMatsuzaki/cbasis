@@ -5,6 +5,7 @@
 #include "utils.hpp"
 #include "cints.hpp"
 #include "gto3d.hpp"
+#include "gto3dset.hpp"
 #include <gtest/gtest.h>
 
 using namespace std;
@@ -293,7 +294,6 @@ TEST(CartGTO, NuclearAttraction) {
 		   c3(0.1, -0.22, C(-0.3,-0.7)),
 		   C(1.3,0.02));
   OpNA<C, c3> op_na(q1, c3(-0.1, C(-0.1,0.1), 0.3));
-		
     
   C s = CIP(g1, op_na, g2);
   C se(-0.0111712963403, -0.0039848461450);
@@ -315,6 +315,7 @@ TEST(CartGTO, Dip) {
   EXPECT_C_EQ(CIP(g1, op, g2), CIP(g3, g4));
 
 }
+
 TEST(SphericalGTO, OrthNormality) {
   double eps(0.000000001);
   c3 xyz(0.1, 0.2, 0.3);
@@ -363,13 +364,27 @@ TEST(SphericalGTO, Exception) {
   
   LinFunc<CartGTO<C, c3> > func;
   try {
-    SetSphericalGTO<C, c3>(1, 2, c3(1.1, 1.2, 1.3), 1.2, &func);
+    SetSphericalGTO<C, C>(1, 2, c3(1.1, 1.2, 1.3), 1.2, &func);
   } catch(const ExceptionBadYlm& e) {
     std::cerr << diagnostic_information(e);
   }
 
 }
 
+TEST(GTOSet, Create) {
+
+  SphericalGTOSet gtos;
+  for(int L = 0; L <= 2; L++)
+    gtos.AddBasis(L,
+		  0.1, 0.2, 0.3,
+		  1.1);
+  
+  std::complex<double>* vs;
+  vs = gtos.SMatWithOther(gtos);
+  EXPECT_C_EQ(1, vs[0]);
+  EXPECT_C_EQ(0, vs[1]);
+  EXPECT_C_EQ(0, vs[2]);
+}
 
 int main(int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);

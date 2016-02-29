@@ -31,6 +31,9 @@ namespace l2func {
 
   template<class F>
   class array3 {
+  public:
+    typedef F Field;
+
     // ---- member field ----
   private:
     F xs_[3];
@@ -49,7 +52,13 @@ namespace l2func {
     }
 
     // ---- accessors ----
-    F operator [](int i) const { return xs_[i]; }      
+    F operator [](int i) const { return xs_[i]; }
+    F x() const { return xs_[0]; }
+    F y() const { return xs_[1]; }
+    F z() const { return xs_[2]; }
+    void set_x(F x) { xs_[0] = x; }
+    void set_y(F y) { xs_[1] = y; }
+    void set_z(F z) { xs_[2] = z; }
   };
 
   template<class F> F ConjugateIfPossible(F x);

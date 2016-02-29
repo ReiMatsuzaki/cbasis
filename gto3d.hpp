@@ -1,16 +1,15 @@
-#ifndef H_TEMPLATE_H
-#define H_TEMPLATE_H
+#ifndef GTO3D_HPP
+#define GTO3D_HPP
 
 #include <iostream>
 #include <complex>
-#include <sstream>
-// #include <boost/exception/exception.hpp>
-#include <boost/exception/all.hpp>
-#include <boost/throw_exception.hpp>
+
 
 #include "math_utils.hpp"
 #include "linspace.hpp"
 #include "op.hpp"
+
+#include "angmoment.hpp"
 #include "cints.hpp"
 
 typedef l2func::array3<double> d3;
@@ -19,13 +18,42 @@ typedef l2func::array3<std::complex<double> > c3;
 
 namespace l2func {
 
+  // ==== Operators ====
+  template<class Field, class Coord>
+  class OpKE : public Op<Field, Coord> {};
+  template<class Field, class Coord>
+  class OpNA :public Op<Field, Coord>  {
+  private:
+    Field q_;
+    Coord xyz_;
+  public:
+    OpNA(Field q, const Coord& xyz): q_(q), xyz_(xyz) {}
+    Field q() const { return q_;}
+    const Coord& xyz() const { return xyz_;}
+  };
+  template<class Field, class Coord>
+  class OpXyz :public Op<Field, Coord>  {
+  private:
+    i3 nml_;
+  public:
+    OpXyz(int n, int m, int l) : nml_(n, m, l) {}
+    const i3& nml() const { return nml_; }
+    int n() const { return nml_[0]; }
+    int m() const { return nml_[1]; }
+    int l() const { return nml_[2]; }
+  };
+
+
   // ==== Cartesian GTO ====
+  // F : Field
+  // FC : Field of coordinate
   template<class F, class FC>
   class CartGTO :public Func<F, FC> {
   public:
     // ---- type ----
     typedef F Field;
     typedef FC FieldCoord;
+    typedef typename FC::Field CoordRad;
     //typedef l2func::array3<FC> FC3;
     
   private:
@@ -38,6 +66,8 @@ namespace l2func {
   public:
     // ---- Constructors ----
     CartGTO(F c, const i3& nml, const FC& xyz, F z) : c_(c), nml_(nml), xyz_(xyz), zeta_(z) {}
+    //    CartGTO(F c, int n, int m, int l, CoordRad x, CoordRad y, CoordRad z, F zeta) :
+    //      c_(c), nml_(n, m, l), xyz_(x, y, z), zeta_(zeta) {}
     template<class F2, class FC2>
     CartGTO(const CartGTO<F2, FC2>& o): c_(o.c()), nml_(o.nml()), xyz_(o.xyz()), zeta_(o.z()) {}
     
@@ -79,126 +109,14 @@ namespace l2func {
       F norm2 = CIP(*this, *this);
       this->SetScalarProd(F(1)/sqrt(norm2));
     }
-  };
-
-  // ==== Spherical GTO ====
-  template<class F, class FC>
-  class SphericalGTO :public Func<F, l2func::array3<FC> > {
-  public:
-    // ---- type ----
-    typedef F Field;
-    typedef FC FieldCoord;
-    typedef l2func::array3<FC> FC3;
-
-  private:
-    // ---- Member Field ----
-    int L_;
-    int M_;
-    LinFunc<CartGTO<F, FC3> > funcs_;
-  public:
-    SphericalGTO(int L, int M, FC3 xyz, Field zeta): L_(L), M_(M) {
-      SetSphericalGTO(L, M, xyz, zeta, &funcs_);
-    }
-    ~SphericalGTO() {}
-    const LinFunc<CartGTO<F, FC3> >& GetLinFunc() const { return funcs_;}
-    F at(FC3 x) const { return funcs_.at(x); }
-  };
-  
-
-  // ---- Exception class ----
-  class ExceptionBadYlm : public std::exception, public boost::exception {
-  public:
-    int L_, M_;
-    std::string msg_;
-    ExceptionBadYlm(int L, int M): std::exception(), L_(L), M_(M) {
-      stringstream ss;
-      ss << "Unphysical (L, M) pair. (L, M) = (" << L_ << ", " << M_ << ")";
-      msg_ = ss.str();
-    }
-    ~ExceptionBadYlm() throw() {}
-    virtual const char* what() const throw() {
-      return msg_.c_str();
-    }
 
   };
 
-  template<class Field, class Coord>
-  void SetSphericalGTO(int L, int M, Coord xyz, Field zeta,
-		       LinFunc<CartGTO<Field, Coord> >* target) {
-    
-    if(L == 0 && M == 0) {
-      CartGTO<Field, Coord> gto(Field(1), i3(0, 0, 0), xyz, zeta);
-      gto.SetNormalize();
-      target->Add(Field(1), gto);
-    } else if(L == 1 && M == 0) {
-      CartGTO<Field, Coord> g3(Field(1), i3(0, 0, 1), xyz, zeta);
-      g3.SetNormalize(); target->Add(1, g3);
-    } else if(L == 1 && M == 1) {
-      CartGTO<Field, Coord> g1(1, i3(1, 0, 0), xyz, zeta);
-      g1.SetNormalize(); target->Add(1, g1);
-    } else if(L == 1 && M == -1) {
-      CartGTO<Field, Coord> g1(Field(1), i3(0, 1, 0), xyz, zeta);
-      g1.SetNormalize(); target->Add(1, g1);
-    } else if(L == 2 && M == 1) {
-      CartGTO<Field, Coord> g(Field(1), i3(1, 0, 1), xyz, zeta); 
-      g.SetNormalize(); target->Add(Field(1), g);
-    } else if(L == 2 && M == -1) {
-      CartGTO<Field, Coord> g(Field(1), i3(0, 1, 1), xyz, zeta); 
-      g.SetNormalize(); target->Add(Field(1), g);
-    } else if(L == 2 && M == 2) {
-      CartGTO<Field, Coord> g1(Field(1), i3(2, 0, 0), xyz, zeta); 
-      g1.SetNormalize(); target->Add(Field(1), g1);
-      CartGTO<Field, Coord> g2(Field(1), i3(0, 2, 0), xyz, zeta); 
-      g2.SetNormalize(); target->Add(-Field(1), g2);	
-    } else if(L == 2 && M == -2) {
-      CartGTO<Field, Coord> g1(Field(1), i3(1, 1, 0), xyz, zeta); 
-      g1.SetNormalize(); target->Add(1, g1);
-    } else if(L == 2 && M == 0) {
-      CartGTO<Field, Coord> g1(Field(1), i3(2, 0, 0), xyz, zeta); 
-      g1.SetNormalize(); target->Add(-Field(1), g1);
-      CartGTO<Field, Coord> g2(Field(1), i3(0, 2, 0), xyz, zeta); 
-      g2.SetNormalize(); target->Add(-Field(1), g2);
-      CartGTO<Field, Coord> g3(Field(1), i3(0, 0, 2), xyz, zeta); 
-      g3.SetNormalize(); target->Add(Field(2), g3);
-    } else {
-      BOOST_THROW_EXCEPTION(ExceptionBadYlm(L, M));
-    }
-    target->SetNormalize();
-  }
-  
-  // ==== External ====
+  // ---- External ----
   template<class F, class FC>
   std::ostream& operator << (std::ostream& os, const CartGTO<F, FC>& a);
 
-  typedef CartGTO<double, double> CartRGTO;
-  typedef CartGTO<std::complex<double>, double> CartCGTO;
-
-  // ==== Operator ====
-  template<class Field, class Coord>
-  class OpKE : public Op<Field, Coord> {};
-  template<class Field, class Coord>
-  class OpNA :public Op<Field, Coord>  {
-  private:
-    Field q_;
-    Coord xyz_;
-  public:
-    OpNA(Field q, const Coord& xyz): q_(q), xyz_(xyz) {}
-    Field q() const { return q_;}
-    const Coord& xyz() const { return xyz_;}
-  };
-  template<class Field, class Coord>
-  class OpXyz :public Op<Field, Coord>  {
-  private:
-    i3 nml_;
-  public:
-    OpXyz(int n, int m, int l) : nml_(n, m, l) {}
-    const i3& nml() const { return nml_; }
-    int n() const { return nml_[0]; }
-    int m() const { return nml_[1]; }
-    int l() const { return nml_[2]; }
-  };
-
-  // ==== Inner product ====
+  // ---- inner product ----
   template<class F, class FC>
   F CIP_impl_prim(const CartGTO<F, FC>& a, const One&, const CartGTO<F, FC>& b) {
     return a.c() * b.c() * overlap(a.zeta(),
@@ -242,25 +160,107 @@ namespace l2func {
 				   b.xyz()[0], b.xyz()[1], b.xyz()[2]);    
   }
 
+
+  // ==== Spherical GTO ====
+  // ---- external ----
+  template<class Field, class FieldCoordOne>
+  void SetSphericalGTO(int L, int M, array3<FieldCoordOne> xyz, Field zeta,
+		       LinFunc<CartGTO<Field, array3<FieldCoordOne> > >* target) {
+
+    typedef array3<FieldCoordOne> FC3;
+    if(L == 0 && M == 0) {
+      CartGTO<Field, FC3> gto(Field(1), i3(0, 0, 0), xyz, zeta);
+      gto.SetNormalize();
+      target->Add(Field(1), gto);
+    } else if(L == 1 && M == 0) {
+      CartGTO<Field, FC3> g3(Field(1), i3(0, 0, 1), xyz, zeta);
+      g3.SetNormalize(); target->Add(1, g3);
+    } else if(L == 1 && M == 1) {
+      CartGTO<Field, FC3> g1(1, i3(1, 0, 0), xyz, zeta);
+      g1.SetNormalize(); target->Add(1, g1);
+    } else if(L == 1 && M == -1) {
+      CartGTO<Field, FC3> g1(Field(1), i3(0, 1, 0), xyz, zeta);
+      g1.SetNormalize(); target->Add(1, g1);
+    } else if(L == 2 && M == 1) {
+      CartGTO<Field, FC3> g(Field(1), i3(1, 0, 1), xyz, zeta); 
+      g.SetNormalize(); target->Add(Field(1), g);
+    } else if(L == 2 && M == -1) {
+      CartGTO<Field, FC3> g(Field(1), i3(0, 1, 1), xyz, zeta); 
+      g.SetNormalize(); target->Add(Field(1), g);
+    } else if(L == 2 && M == 2) {
+      CartGTO<Field, FC3> g1(Field(1), i3(2, 0, 0), xyz, zeta); 
+      g1.SetNormalize(); target->Add(Field(1), g1);
+      CartGTO<Field, FC3> g2(Field(1), i3(0, 2, 0), xyz, zeta); 
+      g2.SetNormalize(); target->Add(-Field(1), g2);	
+    } else if(L == 2 && M == -2) {
+      CartGTO<Field, FC3> g1(Field(1), i3(1, 1, 0), xyz, zeta); 
+      g1.SetNormalize(); target->Add(1, g1);
+    } else if(L == 2 && M == 0) {
+      CartGTO<Field, FC3> g1(Field(1), i3(2, 0, 0), xyz, zeta); 
+      g1.SetNormalize(); target->Add(-Field(1), g1);
+      CartGTO<Field, FC3> g2(Field(1), i3(0, 2, 0), xyz, zeta); 
+      g2.SetNormalize(); target->Add(-Field(1), g2);
+      CartGTO<Field, FC3> g3(Field(1), i3(0, 0, 2), xyz, zeta); 
+      g3.SetNormalize(); target->Add(Field(2), g3);
+    } else {
+      BOOST_THROW_EXCEPTION(ExceptionBadYlm(L, M));
+    }
+    target->SetNormalize();
+  }
+
+  // ---- class ----
+  template<class F, class FC1>
+  class SphericalGTO :public Func<F, l2func::array3<FC1> > {
+  public:
+    // ---- type ----
+    typedef F Field;
+    typedef FC1 FieldCoord;
+    typedef l2func::array3<FC1> FC3;
+
+  private:
+    // ---- Member Field ----
+    int L_;
+    int M_;
+    LinFunc<CartGTO<F, FC3> > funcs_;
+  public:
+    SphericalGTO(int L, int M, FC3 xyz, Field zeta): L_(L), M_(M) {
+      try {
+	SetSphericalGTO(L, M, xyz, zeta, &funcs_);
+      } catch(const ExceptionBadYlm& e) {
+	BOOST_THROW_EXCEPTION(e);
+      }
+    }
+    ~SphericalGTO() {}
+    const LinFunc<CartGTO<F, FC3> >& GetLinFunc() const { return funcs_;}
+    F at(FC3 x) const { return funcs_.at(x); }
+    int L() const { return L_; }
+    int M() const { return M_; }
+    F zeta() const { return funcs_.begin()->second.zeta(); }
+    FC3 xyz() const { return funcs_.begin()->second.xyz(); }
+  };
+  
+  // ---- inner product ----
   template<class F, class FC>
-  F CIP_impl_prim(const SphericalGTO<F, FC>& a, const One&, const SphericalGTO<F, FC>& b) {
+  F CIP_impl_prim(const SphericalGTO<F, FC>& a,
+		  const One&,
+		  const SphericalGTO<F, FC>& b) {
     return CIP(a.GetLinFunc(), b.GetLinFunc());
   }
   template<class F, class FC>
-  F CIP_impl_prim(const SphericalGTO<F, FC>& a,
-		  const OpKE<F,FC>&,
-		  const SphericalGTO<F, FC>& b) {
-    return CIP(a.GetLinFunc(), OpKE<F,FC>(), b.GetLinFunc());
+   F CIP_impl_prim(const SphericalGTO<F, FC>& a,
+		   const OpKE<F,array3<FC> >& op,
+		   const SphericalGTO<F, FC>& b) {
+    return CIP(a.GetLinFunc(), op, b.GetLinFunc());
   }
   template<class F, class FC>
   F CIP_impl_prim(const SphericalGTO<F, FC>& a,
-		  const OpNA<F,FC>& v,
+		  const OpNA<F,array3<FC> >& op,
 		  const SphericalGTO<F, FC>& b) {
-    return CIP(a.GetLinFunc(), v, b.GetLinFunc());
+    return CIP(a.GetLinFunc(), op, b.GetLinFunc());
   }
   template<class F, class FC>
   F CIP_impl_prim(const SphericalGTO<F, FC>& a,
-		  const OpXyz<F,FC>& op,
+		  const OpXyz<F,array3<FC> >& op,
 		  const SphericalGTO<F, FC>& b) {
     return CIP(a.GetLinFunc(), op, b.GetLinFunc());
   }

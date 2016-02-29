@@ -38,6 +38,9 @@ The comment of original source is followed :
 #define FPMIN 1.0e-30
 #define SMALL 0.00000001
 
+// ---- gto_at ----
+ 
+
 // safaty pow
 C spow(C z, int n) {
   if(n == 0) 
@@ -252,10 +255,10 @@ C overlap_1D(int l1, int l2, C PAx,
 }
     
 C nuclear_attraction(C x1, C y1, C z1, C norm1,
-				 int l1, int m1, int n1, C alpha1,
-				 C x2, C y2, C z2, C norm2,
-				 int l2, int m2, int n2, C alpha2,
-				 C x3, C y3, C z3){
+		     int l1, int m1, int n1, C alpha1,
+		     C x2, C y2, C z2, C norm2,
+		     int l2, int m2, int n2, C alpha2,
+		     C x3, C y3, C z3){
   int II,J,K;
   C gamma,xp,yp,zp,sum,rab2,rcp2;
   C *Ax,*Ay,*Az;
@@ -285,7 +288,40 @@ C nuclear_attraction(C x1, C y1, C z1, C norm1,
   return -norm1*norm2*
     2.0*M_PI/gamma*exp(-alpha1*alpha2*rab2/gamma)*sum;
 }
-    
+C nuclear_attraction0(C x1, C y1, C z1,
+		     int l1, int m1, int n1, C alpha1,
+		     C x2, C y2, C z2,
+		     int l2, int m2, int n2, C alpha2,
+		     C x3, C y3, C z3){
+  int II,J,K;
+  C gamma,xp,yp,zp,sum,rab2,rcp2;
+  C *Ax,*Ay,*Az;
+
+  gamma = alpha1+alpha2;
+
+  xp = product_center_1D(alpha1,x1,alpha2,x2);
+  yp = product_center_1D(alpha1,y1,alpha2,y2);
+  zp = product_center_1D(alpha1,z1,alpha2,z2);
+
+  rab2 = dist2(x1,y1,z1,x2,y2,z2);
+  rcp2 = dist2(x3,y3,z3,xp,yp,zp);
+
+  Ax = A_array(l1,l2,xp-x1,xp-x2,xp-x3,gamma);
+  Ay = A_array(m1,m2,yp-y1,yp-y2,yp-y3,gamma);
+  Az = A_array(n1,n2,zp-z1,zp-z2,zp-z3,gamma);
+
+  sum = 0.;
+  for (II=0; II<l1+l2+1; II++)
+    for (J=0; J<m1+m2+1; J++)
+      for (K=0; K<n1+n2+1; K++)
+	sum += Ax[II]*Ay[J]*Az[K]*Fgamma(II+J+K,rcp2*gamma);
+
+  free(Ax);
+  free(Ay);
+  free(Az);
+  return -2.0*M_PI/gamma*exp(-alpha1*alpha2*rab2/gamma)*sum;
+}
+        
 C A_term(int i, int r, int u, int l1, int l2,
 		     C PAx, C PBx, C CPx, C gamma){
   /* THO eq. 2.18 */
