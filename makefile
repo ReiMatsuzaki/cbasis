@@ -1,5 +1,6 @@
 include local.mk
-CXXFLAGS=${INC_PATH} -Wall -O3 
+#CXXFLAGS=${INC_PATH} -Wall -O3  
+CXXFLAGS=${INC_PATH} -Wall -g
 
 MATH_OBJS=fact.o erfc.o math_utils.o
 FUNC_OBJS=cut_exp.o exp_func.o delta.o
@@ -18,6 +19,8 @@ cut_exp.o: cut_exp.hpp exp_func.hpp linspace.hpp
 exp_func.o: exp_func.cpp exp_func.hpp linspace.hpp
 cip_exp.o: cip_exp.cpp
 angmoment.o: angmoment.cpp angmoment.hpp
+	${CXX} -c -o $@ ${CXXFLAGS} $<
+
 gto3dset.o: gto3dset.cpp gto3dset.hpp
 
 test.o: test.cpp
@@ -26,7 +29,7 @@ test: test.o l2.a
 
 test_gto3d.o: test_gto3d.cpp gto3d.hpp 
 test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o
-	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} $^
+	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} $^ -lgsl
 .PHONY: check_gto3d
 check_gto3d: test_gto3d
 	./test_gto3d

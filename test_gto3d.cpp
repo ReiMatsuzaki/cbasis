@@ -4,12 +4,18 @@
 
 #include "utils.hpp"
 #include "cints.hpp"
+#include "angmoment.hpp"
 #include "gto3d.hpp"
 #include "gto3dset.hpp"
 #include <gtest/gtest.h>
 
+
 using namespace std;
 using namespace l2func;
+
+int lm(int l, int m) {
+  return lm_index(l, m);
+}
 
 TEST(CINTS, First) {
   EXPECT_TRUE(true);
@@ -316,6 +322,141 @@ TEST(CartGTO, Dip) {
 
 }
 
+TEST(Angmoment, cg_coef) {
+  int j1 = 2;
+  int m1 = 1;
+  EXPECT_DOUBLE_EQ(-1.0/sqrt(2*j1+1),
+		   cg_coef(j1,j1,m1,-m1, 0,0));
+  EXPECT_NEAR(pow(fact(2*j1),2)/(6 * sqrt(fact(8)*1.0)),
+	      cg_coef(j1,j1,m1,-m1,2*j1,0),
+	      0.0000000001);
+  std::cout << cg_coef(1,1,1,0,0,0) << std::endl;
+}
+TEST(Angmoment, lm_pair) {
+
+  EXPECT_EQ(0, lm_index(0, 0));
+
+  EXPECT_EQ(1, lm_index(1, -1));
+  EXPECT_EQ(2, lm_index(1,  0));
+  EXPECT_EQ(3, lm_index(1, +1));
+
+  EXPECT_EQ(4, lm_index(2, -2));
+  EXPECT_EQ(5, lm_index(2, -1));
+  EXPECT_EQ(6, lm_index(2,  0));
+  EXPECT_EQ(7, lm_index(2, +1));
+  EXPECT_EQ(8, lm_index(2, +2));
+
+  EXPECT_EQ(9,  lm_index(3, -3));
+  EXPECT_EQ(10, lm_index(3, -2));
+  EXPECT_EQ(11, lm_index(3, -1));
+  EXPECT_EQ(12, lm_index(3,  0));
+  EXPECT_EQ(13, lm_index(3, +1));
+  EXPECT_EQ(14, lm_index(3, +2));
+  EXPECT_EQ(15, lm_index(3, +3));
+}
+TEST(Angmoment, num_lm_pair) {
+
+  EXPECT_EQ(1, num_lm_pair(0));
+  EXPECT_EQ(1+3, num_lm_pair(1));
+  EXPECT_EQ(1+3+5, num_lm_pair(2));
+  EXPECT_EQ(1+3+5+7, num_lm_pair(3));
+
+}
+TEST(Angmoment, mod_spherical_bessel) {
+
+  C xs[3];
+  xs[0] = C(1.1, 0.3);
+  xs[1] = C(0.1, 0.002);
+  xs[2] = C(100.0, 20.0);
+  
+  for(int i = 0; i < 3; i++) {
+    C x(xs[i]);
+    C* vs = ModSphericalBessel(x, 10);
+  
+    EXPECT_C_EQ(sinh(x)/x,                 vs[0]);
+    EXPECT_C_EQ((x*cosh(x)-sinh(x))/(x*x), vs[1]);
+    EXPECT_C_EQ(((x*x+3.0)*sinh(x)-3.0*x*cosh(x))/(x*x*x), vs[2]);
+    EXPECT_C_EQ(((x*x*x+15.0*x)*cosh(x)-(6.0*x*x+15.0)*sinh(x))/pow(x, 4.0), vs[3]);
+    
+    delete vs;
+  }
+
+  xs[0] = C(0.000001, 0.000002);
+  xs[1] = C(0.00005, 0.002);
+  xs[2] = C(0.0001, 0.002);
+  for(int i = 0; i < 3; i++) {
+    C* vs = ModSphericalBessel(xs[i], 10);
+    for(int n = 2; n <= 8; n++) {
+      EXPECT_C_EQ(vs[n-1]-vs[n+1], (2*n+1.0)*vs[n]/xs[i]);    
+    }
+    delete vs;
+  }
+    
+  C x(0.0, 0.0);
+  C* vs = ModSphericalBessel(x, 10);
+  EXPECT_C_EQ(1.0, vs[0]);
+  for(int i = 1; i < 10; i++)
+    EXPECT_C_EQ(0.0, vs[i]);
+  delete vs;
+
+}
+TEST(Angmoment, associated_legendre) {
+
+  C x( 0.6, 0.0);
+  C* vs = AssociatedLegendre(x, 10);  
+  EXPECT_C_EQ(1.0, vs[lm(0, +0)]);
+
+  EXPECT_C_EQ(-sqrt(1.0-x*x), vs[lm(1, +1)]);
+  EXPECT_C_EQ(x,              vs[lm(1, +0)]);  
+
+  EXPECT_C_EQ(0.5*(3.0*x*x-1.0),  vs[lm(2, 0)]);
+  EXPECT_C_EQ(-3.0*x*sqrt(1.0-x*x), vs[lm(2, 1)]);
+  EXPECT_C_EQ(3.0*(1.0-x*x),      vs[lm(2,+2)]);
+
+  for(int L = 0; L < 4; L++) 
+    for(int M = 1; M <= L; M++) 
+      EXPECT_C_EQ(vs[lm(L, -M)], pow(-1.0, M)*fact(L-M)*1.0/fact(L+M)*vs[lm(L, M)]);
+
+}
+TEST(Angmoment, real_spherical_harm) {
+
+  C t = C(1.1, 0.2);
+  C p = C(1.1, 0.1);
+
+  C* vs = RealSphericalHarmonics(t, p, 10);
+  
+  C a = 1.0/sqrt(4.0*M_PI);
+  EXPECT_C_EQ(a,                         vs[lm(0, 0)]);
+  EXPECT_C_EQ(a*sqrt(3.0)*cos(t),        vs[lm(1, 0)]);
+  EXPECT_C_EQ(a*sqrt(3.0)*sin(t)*cos(p), vs[lm(1,+1)]);
+  EXPECT_C_EQ(a*sqrt(3.0)*sin(t)*sin(p), vs[lm(1,-1)]);
+  
+  EXPECT_C_EQ(a*sqrt(5.0/4.0)*(3.0*cos(t)*cos(t)-1.0),   vs[lm(2, 0)]);
+  EXPECT_C_EQ(a*sqrt(15.0)*sin(t)*cos(t)*cos(p),         vs[lm(2,+1)]);
+  EXPECT_C_EQ(a*sqrt(15.0)*sin(t)*cos(t)*sin(p),         vs[lm(2,-1)]);
+  EXPECT_C_EQ(a*sqrt(15.0/4.0)*sin(t)*sin(t)*cos(2.0*p), vs[lm(2,+2)]);
+  EXPECT_C_EQ(a*sqrt(15.0/4.0)*sin(t)*sin(t)*sin(2.0*p), vs[lm(2,-2)]);
+}
+
+TEST(Angmoment, gto_00_r) {
+
+  double pi(M_PI);  
+  int num_r(5);
+  C* rs = new C[num_r];
+  for(int i = 0; i < num_r; i++) {
+    rs[i] = 0.1 + 0.2*i;
+  }
+  C zeta(1.0, 0.0);
+  int L(0);
+  int M(0);
+  C* vs = gto_00_r(0.0, 0.0, 0.0, L, M, rs, num_r, zeta);
+  for(int i = 0; i < num_r; i++) {
+    C r(rs[i]);
+    C calc(sqrt(4.0*pi)*exp(-zeta*r*r));    
+    EXPECT_C_EQ(vs[i], calc) << i;    
+  }
+}
+
 TEST(SphericalGTO, OrthNormality) {
   double eps(0.000000001);
   c3 xyz(0.1, 0.2, 0.3);
@@ -385,6 +526,7 @@ TEST(GTOSet, Create) {
   EXPECT_C_EQ(0, vs[1]);
   EXPECT_C_EQ(0, vs[2]);
 }
+
 
 int main(int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
