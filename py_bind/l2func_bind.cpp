@@ -27,34 +27,34 @@ using namespace std;
 using namespace boost;
 using namespace boost::python;
 
-np::ndarray array_transform(dcmplx* xs, int n) {  
+np::ndarray array_transform(dcomplex* xs, int n) {  
   return np::from_data(xs,
-		       np::dtype::get_builtin<dcmplx>(),
+		       np::dtype::get_builtin<dcomplex>(),
 		       bp::make_tuple(n),
-		       bp::make_tuple(sizeof(dcmplx)),
+		       bp::make_tuple(sizeof(dcomplex)),
 		       bp::object());
 
 }
 
 np::ndarray CalcSMat(const SphericalGTOSet& a, const SphericalGTOSet& b) {
-  dcmplx* vs = a.SMat(b);
+  dcomplex* vs = a.SMat(b);
   np::ndarray res = array_transform(vs, a.size() * b.size());
   return res;
 }
 np::ndarray CalcTMat(const SphericalGTOSet& a, const SphericalGTOSet& b) {
-  dcmplx* vs = a.TMat(b);
+  dcomplex* vs = a.TMat(b);
   return array_transform(vs, a.size() * b.size());
 }
 np::ndarray CalcVMat(const SphericalGTOSet& a,
-		     dcmplx q, dcmplx x, dcmplx y, dcmplx z,
+		     dcomplex q, dcomplex x, dcomplex y, dcomplex z,
 		     const SphericalGTOSet& b) {
-  dcmplx* vs = a.VMat(q, x, y, z, b);
+  dcomplex* vs = a.VMat(q, x, y, z, b);
   return array_transform(vs, a.size() * b.size());
 }
 np::ndarray CalcXyzMat(const SphericalGTOSet& a,
 		       int nx, int ny, int nz,
 		       const SphericalGTOSet& b) {
-  dcmplx* vs = a.XyzMat(nx, ny, nz, b);
+  dcomplex* vs = a.XyzMat(nx, ny, nz, b);
   return array_transform(vs, a.size() * b.size());
 }
 

@@ -6,7 +6,7 @@
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>
 #include <complex>
-#include "cints.hpp"
+#include "math_utils.hpp"
 
 namespace l2func {
 
@@ -61,20 +61,24 @@ namespace l2func {
   // ==== Spherical GTO single expansion ====
   double GTOExpansionCoef(int l, int m, int lp, int lppp,
 			  int Jp, int Mp, int Jpp, int Mpp);
-  C* ModSphericalBessel(C x, int max_n);
-  C* AssociatedLegendre(C x, int max_l);
-  C* RealSphericalHarmonics(C theta, C phi, int max_l);  
-  C* SphericalHarm(int J, int M, C theta, C phi);  
+  dcomplex* ModSphericalBessel(dcomplex x, int max_n);
+  dcomplex* AssociatedLegendre(dcomplex x, int max_l);
+  dcomplex* RealSphericalHarmonics(dcomplex theta, dcomplex phi, int max_l);  
+  dcomplex* SphericalHarm(int J, int M, dcomplex theta, dcomplex phi);  
   
   // <Y(Jpp,Mpp) | GTO(zeta; (x,y,z); (l, m)>
-  C* gto_00_r(C x, C y, C z, int Jpp, int Mpp, C* r, int num_r, C zeta);
-  C* gto_lm_r_center(int l, int m, int Jpp, int Mpp, C* r, int num_r, C zeta);
-  C* gto_lm_r(int l, int m,       
-	      C x, C y, C z,      
-	      int Jpp, int Mpp,   
-	      C* r, int num_r,
-	      C zeta,
-	      int lppp_max);
+  dcomplex* gto_00_r(dcomplex x, dcomplex y, dcomplex z,
+		     int Jpp, int Mpp,
+		     dcomplex* r, int num_r,
+		     dcomplex zeta);
+  dcomplex* gto_lm_r_center(int l, int m, int Jpp, int Mpp,
+			    dcomplex* r, int num_r, dcomplex zeta);
+  dcomplex* gto_lm_r(int l, int m,       
+		     dcomplex x, dcomplex y, dcomplex z,      
+		     int Jpp, int Mpp,   
+		     dcomplex* r, int num_r,
+		     dcomplex zeta,
+		     int lppp_max);
   
 				
 

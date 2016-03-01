@@ -1,7 +1,7 @@
 #include <complex>
 #include "lgamma.hpp"
 #include "erfc.hpp"
-#include "fact.hpp"
+#include "math_utils.hpp"
 
 namespace {
   using namespace erfc_mori;
@@ -24,7 +24,7 @@ namespace l2func {
   }
 
   template<class F> F STO_Int(F z, int n) {
-    return pow(z, -n-1.0) * (1.0 * fact::Factorial(n));
+    return pow(z, -n-1.0) * (1.0 * Factorial(n));
   }
   template<class F> F GTO_Int(F z, int n) {
     
@@ -32,13 +32,13 @@ namespace l2func {
     if(n % 2 == 0) {
       
     int nn = n/2;
-    res = fact::DoubleFactorial(2*nn-1) * sqrt(M_PI) /
+    res = DoubleFactorial(2*nn-1) * sqrt(M_PI) /
       (F(int_pow(2, nn+1)) * pow(sqrt(z), 2*nn+1));
     
     } else {
       
       int nn = (n-1)/2;
-      res = F(fact::Factorial(nn)) / (F(2) * pow(z, nn+1));
+      res = F(Factorial(nn)) / (F(2) * pow(z, nn+1));
     
     }
     return res;

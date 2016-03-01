@@ -1,7 +1,7 @@
 #ifndef MATH_UTILS_TEMPLATE_H
 #define MATH_UTILS_TEMPLATE_H
 
-
+#include <complex>
 
 namespace l2func {
 
@@ -28,6 +28,13 @@ namespace l2func {
     F operator [](int i) const { return xs_[i]; }  
   };
 */
+
+  typedef std::complex<double> dcomplex;
+
+  int Factorial(int n);
+  double DFactorial(int n);
+  int DoubleFactorial(int n);
+  double DDoubleFactorial(int n);
 
   template<class F>
   class array3 {

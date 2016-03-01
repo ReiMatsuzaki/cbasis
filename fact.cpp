@@ -1,6 +1,6 @@
 #include <stdexcept>
 #include "fact.hpp"
-
+/*
 namespace fact {
   int Factorial(int n) {
 
@@ -29,3 +29,4 @@ namespace fact {
     return acc;
   }
 }
+*/

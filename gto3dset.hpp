@@ -8,8 +8,7 @@
 
 namespace l2func {
 
-  typedef std::complex<double> dcmplx;
-  typedef SphericalGTO<dcmplx, dcmplx> SGTO;
+  typedef SphericalGTO<dcomplex, dcomplex> SGTO;
 
   class SphericalGTOSet {
   private:
@@ -24,12 +23,12 @@ namespace l2func {
     ~SphericalGTOSet();
     int size() const;
     const SGTO& basis(int i) const;
-    void AddOneBasis(int L, int M, dcmplx x, dcmplx y, dcmplx z, dcmplx zeta);
-    void AddBasis(int L, dcmplx x, dcmplx y, dcmplx z, dcmplx zeta);
-    dcmplx* SMat(const SphericalGTOSet& o) const;
-    dcmplx* TMat(const SphericalGTOSet& o) const;
-    dcmplx* VMat(dcmplx q, dcmplx x, dcmplx y, dcmplx z, const SphericalGTOSet& o) const;
-    dcmplx* XyzMat(int nx, int ny, int nz, const SphericalGTOSet& o) const;
+    void AddOneBasis(int L, int M, dcomplex x, dcomplex y, dcomplex z, dcomplex zeta);
+    void AddBasis(int L, dcomplex x, dcomplex y, dcomplex z, dcomplex zeta);
+    dcomplex* SMat(const SphericalGTOSet& o) const;
+    dcomplex* TMat(const SphericalGTOSet& o) const;
+    dcomplex* VMat(dcomplex q, dcomplex x, dcomplex y, dcomplex z, const SphericalGTOSet& o) const;
+    dcomplex* XyzMat(int nx, int ny, int nz, const SphericalGTOSet& o) const;
 		   
     // np::ndarray SMatWtihOther(const SphericalGTOSet& o);
   };

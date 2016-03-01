@@ -8,7 +8,6 @@
 #include "math_utils.hpp"
 
 #include "erfc.hpp"
-#include "fact.hpp"
 #include "lgamma.hpp"
 
 #include "exp_func.hpp"
@@ -37,8 +36,6 @@ TEST(array, math_utils) {
 }
 
 TEST(math, Factorial) {
-
-  using namespace fact;
 
   EXPECT_ANY_THROW(Factorial(-1));
   EXPECT_EQ(1, Factorial(0));
