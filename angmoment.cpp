@@ -1,34 +1,20 @@
 #include "angmoment.hpp"
-#include "math_utils.hpp"
+#include "macros.hpp"
 #include <iostream>
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
 #include <gsl/gsl_sf_coupling.h>
 #include <math.h>
-#ifdef __cplusplus
-}
-#endif 
 
 namespace l2func {
 
   // ==== Exception class ====
-  ExceptionBadYlm::ExceptionBadYlm(int L, int M) :std::exception() {
+  ExceptionBadYlm::ExceptionBadYlm(int L, int M, std::string msg) :std::exception() {
       std::stringstream ss;
-      ss << "Unphysical (L, M) pair. (L, M) = (" << L << ", " << M << ")";
-      msg_ = ss.str();
+      ss << "\nUnphysical (L, M) pair. (L, M) = (" << L << ", " << M << ")";
+      msg_ = msg + ss.str();
   }
   ExceptionBadYlm::~ExceptionBadYlm() throw() {}
   const char* ExceptionBadYlm::what() const throw() {
-    return msg_.c_str();
-  }
-
-  ExceptionNotImpl::ExceptionNotImpl(std::string msg) {
-    msg_ = msg;
-  }
-  ExceptionNotImpl::~ExceptionNotImpl() throw() {}
-  const char* ExceptionNotImpl::what() const throw() {
     return msg_.c_str();
   }
 
@@ -142,8 +128,10 @@ namespace l2func {
   }
   dcomplex* SphericalHarmonics(dcomplex phi, dcomplex theta, int max_l) {
 
-    std::string msg("Not tested");
-    BOOST_THROW_EXCEPTION(ExceptionNotImpl(msg));
+    std::string msg;
+    SUB_LOCATION(msg);
+    msg += "Not tested";
+    throw std::runtime_error(msg);
 
     dcomplex* ps = AssociatedLegendre(cos(theta), max_l);
     dcomplex* vs = new dcomplex[num_lm_pair(max_l)];
@@ -195,7 +183,10 @@ namespace l2func {
 		      dcomplex* rs, int num_r,
 		      dcomplex zeta,
 		      int lppp_max) {
-    BOOST_THROW_EXCEPTION(ExceptionNotImpl("not implimented for general case"));
+    std::string msg;
+    SUB_LOCATION(msg);
+    msg += "not implemented for general case";
+    throw std::runtime_error(msg);
 
     dcomplex theta = acos(z / sqrt(x*x+y*y+z*z));
     dcomplex phi = acos(x / sqrt(x*x+y*y));

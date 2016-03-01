@@ -506,8 +506,8 @@ TEST(SphericalGTO, Exception) {
   LinFunc<CartGTO<C, c3> > func;
   try {
     SetSphericalGTO<C, C>(1, 2, c3(1.1, 1.2, 1.3), 1.2, &func);
-  } catch(const ExceptionBadYlm& e) {
-    std::cerr << diagnostic_information(e);
+  } catch(const std::exception& e) {
+    std::cerr << e.what() << std::endl;    
   }
 
 }

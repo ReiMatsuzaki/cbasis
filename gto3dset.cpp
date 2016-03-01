@@ -21,7 +21,7 @@ namespace l2func {
     try {
       ptr = new SGTO(L, M, c3(x, y, z), zeta);
     } catch(const ExceptionBadYlm& e) {
-      BOOST_THROW_EXCEPTION(e);
+      throw(e);
     }
     this->basis_list_.push_back(ptr);
   }

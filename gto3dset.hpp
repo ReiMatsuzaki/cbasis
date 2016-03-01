@@ -2,8 +2,6 @@
 #define GTO3DSET_H
 
 #include <vector>
-//#include <boost/python.hpp>
-//#include <boost/numpy.hpp>
 #include "gto3d.hpp"
 
 namespace l2func {

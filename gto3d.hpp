@@ -2,10 +2,9 @@
 #define GTO3D_HPP
 
 #include <iostream>
-#include <complex>
-
 
 #include "math_utils.hpp"
+#include "macros.hpp"
 #include "linspace.hpp"
 #include "op.hpp"
 
@@ -203,7 +202,9 @@ namespace l2func {
       CartGTO<Field, FC3> g3(Field(1), i3(0, 0, 2), xyz, zeta); 
       g3.SetNormalize(); target->Add(Field(2), g3);
     } else {
-      BOOST_THROW_EXCEPTION(ExceptionBadYlm(L, M));
+      std::string msg;
+      SUB_LOCATION(msg);
+      throw(ExceptionBadYlm(L, M, msg));
     }
     target->SetNormalize();
   }
@@ -227,7 +228,7 @@ namespace l2func {
       try {
 	SetSphericalGTO(L, M, xyz, zeta, &funcs_);
       } catch(const ExceptionBadYlm& e) {
-	BOOST_THROW_EXCEPTION(e);
+	throw(e);
       }
     }
     ~SphericalGTO() {}
