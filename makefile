@@ -19,7 +19,7 @@ cut_exp.o: cut_exp.hpp exp_func.hpp linspace.hpp
 exp_func.o: exp_func.cpp exp_func.hpp linspace.hpp
 cip_exp.o: cip_exp.cpp
 angmoment.o: angmoment.cpp math_utils.hpp  angmoment.hpp 
-#	${CXX} -c -o $@ ${CXXFLAGS} $<
+molint.o: molint.cpp molint.hpp math_utils.hpp macros.hpp
 
 gto3dset.o: gto3dset.cpp gto3dset.hpp
 
@@ -28,7 +28,7 @@ test: test.o l2.a
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} test.o l2.a
 
 test_gto3d.o: test_gto3d.cpp gto3d.hpp 
-test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o
+test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o molint.o
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} $^ -lgsl
 .PHONY: check_gto3d
 check_gto3d: test_gto3d

@@ -2,12 +2,14 @@
   Unit test for cints.cpp, 
 */
 
+#include <gtest/gtest.h>
 #include "utils.hpp"
 #include "cints.hpp"
 #include "angmoment.hpp"
 #include "gto3d.hpp"
 #include "gto3dset.hpp"
-#include <gtest/gtest.h>
+#include "molint.hpp"
+
 
 
 using namespace std;
@@ -17,10 +19,233 @@ int lm(int l, int m) {
   return lm_index(l, m);
 }
 
+TEST(MOLINT, overlap) {
+
+  dcomplex old = overlap(C(1.2,0.2), 2, 1, 0,
+			 1.0,  0.0,   0.0,
+			 C(0.7,-0.5), 1, 1, 2,
+			 0.0, 0.3, 0.0);
+  dcomplex calc = gto_overlap(2, 1, 0,
+			   1.0, 0.0, 0.0,
+			   dcomplex(1.2, 0.2),
+			   1, 1, 2,
+			   0.0, 0.3, 0.0,
+			      dcomplex(0.7, -0.5));
+  EXPECT_C_EQ(old, calc);
+
+  old = overlap(C(1.2,0.2), 2, 1, 0,
+		0.0,  0.0,   0.0,
+		C(0.7,-0.5), 2, 1, 0,
+		0.0, 0.0, 0.0);
+  calc = gto_overlap(2, 1, 0,
+		     0.0, 0.0, 0.0,
+		     dcomplex(1.2, 0.2),
+		     2, 1, 0,
+		     0.0, 0.0, 0.0,
+		     dcomplex(0.7, -0.5));
+  EXPECT_TRUE(abs(calc)>0.0001);  
+  EXPECT_C_EQ(old, calc);
+
+}
+TEST(MOLINT, kinetic) {
+
+  dcomplex old = kinetic(C(1.2,0.2), 0, 0, 0,
+			 0.0,  0.0,   0.0,
+			 C(0.7,-0.5), 0, 0, 0,
+			 0.0, 0.0, 0.0);
+  dcomplex calc = gto_kinetic(0, 0, 0,
+			      0.0, 0.0, 0.0,
+			      dcomplex(1.2, 0.2),
+			      0, 0, 0,
+			      0.0, 0.0, 0.0,
+			      dcomplex(0.7, -0.5));
+  EXPECT_TRUE(abs(calc)>0.0001);  
+  EXPECT_C_EQ(old, calc);
+
+  old = kinetic(C(1.2,0.2), 0, 1, 0,
+		0.0,  0.0,   0.0,
+		C(0.7,-0.5), 0, 1, 0,
+		0.0, 0.0, 0.0);
+  calc = gto_kinetic(0, 1, 0,
+		     0.0, 0.0, 0.0,
+		     dcomplex(1.2, 0.2),
+		     0, 1, 0,
+		     0.0, 0.0, 0.0,
+		     dcomplex(0.7, -0.5));
+  EXPECT_TRUE(abs(calc)>0.0001);  
+  EXPECT_C_EQ(old, calc);
+
+  old = kinetic(dcomplex(1.2,0.2), 2, 0, 3,
+		0.2,  0.3,   0.4,
+		dcomplex(0.7,-0.5), 1, 1, 2,
+		0.0, 0.0, 0.0);
+  calc = gto_kinetic(2, 0, 3,
+		     0.2, 0.3, 0.4,
+		     dcomplex(1.2, 0.2),
+		     1, 1, 2,
+		     0.0, 0.0, 0.0,
+		     dcomplex(0.7, -0.5));
+  EXPECT_TRUE(abs(calc)>0.0001);  
+  EXPECT_C_EQ(old, calc);
+
+}
+TEST(MOLINT, IncGamma) {
+
+  /*
+    python code :
+    from scipy.special import hyp1f1
+    def inc_gamma(m, z):
+        return 1.0/(2*m+1) * hyp1f1(m+0.5, m+1.5, -z)
+    print inc_gamma(0, 50.0-5.50j)
+    print inc_gamma(1, 50.0-5.50j)
+    print inc_gamma(2, 50.0-5.50j)
+   */
+
+  dcomplex* us = IncompleteGamma(10, dcomplex(0.1, -0.2));
+  EXPECT_C_EQ(dcomplex(0.96392503253589557,
+		       +0.06262986651323893),		       
+	      us[0]);
+  EXPECT_C_EQ(dcomplex(0.100986690286, 0.0166268474338),
+	      us[4]);
+  delete us;
+
+  dcomplex* vs1 = IncompleteGamma(10, dcomplex(21.0, 15.5));
+  EXPECT_C_EQ(dcomplex(-3.59002512901*pow(10.0, -6),
+		       -0.000190939738972),
+	      vs1[2]);
+  
+  dcomplex* vs = IncompleteGamma(10, dcomplex(50.0, -5.5));
+
+  double step(0.00001);
+  EXPECT_C_EQ(dcomplex(0.124767690392,
+		       0.00684158939256),
+	      vs[0]);
+  EXPECT_C_EQ(dcomplex(0.0012253247264,
+		       0.00020320161383),
+	      vs[1]);
+  EXPECT_C_EQ(dcomplex(3.5657718077638774*step,
+		       1.0018397403429266*step),
+	      vs[2]);
+  delete vs;
+
+  dcomplex* v0s = IncompleteGamma(10, 0.0);
+  EXPECT_C_EQ(1.0, v0s[0]);
+  EXPECT_C_EQ(1.0/3.0, v0s[1]);
+  EXPECT_C_EQ(1.0/5.0, v0s[2]);
+
+
+  
+}
+TEST(MOLINT, nuclear_attraction) {
+
+  dcomplex zetaA(1.2, -0.3);
+  dcomplex zetaB(0.6, 0.0);  
+  dcomplex old = nuclear_attraction(0.0,  0.0,  0.0,
+				    1.0,
+				    0, 0, 0, zetaA,
+				    0.0, 0.0, 0.0,
+				    1.0,
+				    0, 0, 0, zetaB,
+				    0.0, 0.0, 0.0);
+  dcomplex calc = gto_nuclear_attraction(0, 0, 0, 
+					 0.0, 0.0, 0.0,
+					 zetaA,
+					 0, 0, 0,
+					 0.0, 0.0, 0.0,
+					 zetaB,
+					 0.0, 0.0, 0.0);  
+  EXPECT_C_EQ(old, calc);
+
+  old = nuclear_attraction(0.0,  0.0,  0.0,
+			   1.0,
+			   1, 0, 0, zetaA,
+			   0.0, 0.0, 0.0,
+			   1.0,
+			   0, 0, 0, zetaB,
+			   0.0, 0.0, 0.0);
+
+  calc = gto_nuclear_attraction(1, 0, 0, 
+				0.0, 0.0, 0.0,
+				zetaA,
+				0, 0, 0,
+				0.0, 0.0, 0.0,
+				zetaB,
+				0.0, 0.0, 0.0);
+  EXPECT_C_EQ(old, calc);  
+
+  old = nuclear_attraction(0.3,  0.0,  0.0,
+			   1.0,
+			   0, 0, 0, zetaA,
+			   0.0, 0.0, 0.0,
+			   1.0,
+			   0, 0, 0, zetaB,
+			   0.0, 0.0, 0.0);
+
+  calc = gto_nuclear_attraction(0, 0, 0, 
+				0.3, 0.0, 0.0,
+				zetaA,
+				0, 0, 0,
+				0.0, 0.0, 0.0,
+				zetaB,
+				0.0, 0.0, 0.0);
+  EXPECT_C_EQ(old, calc);  
+
+  old = nuclear_attraction(0.3,  0.0,  0.0,
+			   1.0,
+			   1, 0, 0, zetaA,
+			   0.0, 0.0, 0.0,
+			   1.0,
+			   0, 0, 0, zetaB,
+			   0.0, 0.0, 0.0);
+
+  calc = gto_nuclear_attraction(1, 0, 0, 
+				0.3, 0.0, 0.0,
+				zetaA,
+				0, 0, 0,
+				0.0, 0.0, 0.0,
+				zetaB,
+				0.0, 0.0, 0.0);
+  EXPECT_C_EQ(old, calc);  
+
+  old = nuclear_attraction(0.3,  0.0,  0.0,
+			   1.0,
+			   1, 2, 0, zetaA,
+			   0.0, dcomplex(0.1, 0.01), 0.0,
+			   1.0,
+			   0, 2, 0, zetaB,
+			   0.3, 0.0, 0.0);
+
+  calc = gto_nuclear_attraction(1, 2, 0, 
+				0.3, 0.0, 0.0,
+				zetaA,
+				0, 2, 0,
+				0.0, dcomplex(0.1, 0.01), 0.0,
+				zetaB,
+				0.3, 0.0, 0.0);
+  EXPECT_C_EQ(old, calc);  
+
+  old = nuclear_attraction(0.0,  0.0,  0.0,
+			   1.0,
+			   0, 0, 1, zetaA,
+			   0.0, 0.0, 0.0,
+			   1.0,
+			   0, 0, 1, zetaB,
+			   0.0, 0.0, 0.0);
+
+  calc = gto_nuclear_attraction(0, 0, 1, 
+				0.0, 0.0, 0.0,
+				zetaA,
+				0, 0, 1,
+				0.0, 0.0, 0.0,
+				zetaB,
+				0.0, 0.0, 0.0);
+  EXPECT_C_EQ(old, calc);  
+
+}
+
 TEST(CINTS, First) {
   EXPECT_TRUE(true);
 }
-
 TEST(CINTS, lgamma) {
   C val(-0.008197780565406, -0.05732294041672);
   C calc(lgamma(C(1.0, 0.1)));
@@ -526,7 +751,6 @@ TEST(GTOSet, Create) {
   EXPECT_C_EQ(0, vs[1]);
   EXPECT_C_EQ(0, vs[2]);
 }
-
 
 int main(int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
