@@ -655,6 +655,14 @@ namespace l2func {
     dcomplex* T = new dcomplex[nb*nb];
     dcomplex* Dz = new dcomplex[nb*nb];
     dcomplex* V = new dcomplex[nb*nb];    
+    dcomplex* smat_prim = new dcomplex[nb*nb];
+    dcomplex* zmat_prim = new dcomplex[nb*nb];
+    dcomplex* tmat_prim = new dcomplex[nb*nb];
+    dcomplex* vmat_prim = new dcomplex[nb*nb];
+    dcomplex* dxs = new dcomplex[21];
+    dcomplex* dys = new dcomplex[21];
+    dcomplex* dzs = new dcomplex[21];
+
     for(int idx=0; idx<nb*nb; idx++) {
       S[idx] = 7.7; T[idx] = 7.7; Dz[idx] = 7.7; V[idx] = 7.7;
     }
@@ -674,10 +682,6 @@ namespace l2func {
 	int npi = this->size_prim_ish(ish);
 	int npj = this->size_prim_ish(jsh);
 	int idx_prim(0);	
-	dcomplex* smat_prim = new dcomplex[npi*npj];
-	dcomplex* zmat_prim = new dcomplex[npi*npj];
-	dcomplex* tmat_prim = new dcomplex[npi*npj];
-	dcomplex* vmat_prim = new dcomplex[npi*npj];
 	
 	for(int iprim = 0; iprim < npi; iprim++) {
 	  for(int jprim = 0; jprim < npj; jprim++) {
@@ -718,9 +722,6 @@ namespace l2func {
 	    tmat_prim[idx_prim] = -0.5 * ce * tmp;
 
 	    // ---- v mat ----
-	    dcomplex* dxs = new dcomplex[nxi + nxj + 1];
-	    dcomplex* dys = new dcomplex[nyi + nyj + 1];
-	    dcomplex* dzs = new dcomplex[nzi + nzj + 1];
 	    dcomplex cx(0.0); dcomplex cy(0.0); dcomplex cz(0.0);
 	    for(int nx = 0; nx <= nxi+nxj; nx++)
 	      dxs[nx] = coef_d(zetaP, wPx, xi, xj, nxi, nxj, nx);
@@ -739,7 +740,6 @@ namespace l2func {
 				    nx, ny, nz, 0, Fjs));
 		}
 	    vmat_prim[idx_prim] = -2.0*M_PI/zetaP * eAB * cumsum;
-	    delete dxs; delete dys; delete dzs;
 	    delete Fjs;
 
 	    // ---- index ----
@@ -773,13 +773,17 @@ namespace l2func {
 	    S[idx] = s; Dz[idx] = dz; T[idx] = t; V[idx] = v;	    
 	  }
 	}
-	delete smat_prim;
-	delete tmat_prim;
-	delete zmat_prim;
-	delete vmat_prim;
+
       }
     }
     *s = S; *dz = Dz; *t = T; *v = V;    
+    delete smat_prim;
+    delete tmat_prim;
+    delete zmat_prim;
+    delete vmat_prim;
+    delete dxs;
+    delete dys;
+    delete dzs;
   }
   /*
   MatrixSet CalcMat(const CartGTOs& a, const MolePot& v, const CartGTOs& b) {
