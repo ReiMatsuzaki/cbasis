@@ -666,6 +666,18 @@ namespace l2func {
     for(int idx=0; idx<nb*nb; idx++) {
       S[idx] = 7.7; T[idx] = 7.7; Dz[idx] = 7.7; V[idx] = 7.7;
     }
+    
+    int* maxn_ish = new int[this->size_sh()];
+    for(int ish = 0; ish < this->size_sh(); ish++) {
+      int sum_ni(0);
+      for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++) {
+	  int ni = (nx_ish_iprim[ish][iprim] +
+		    ny_ish_iprim[ish][iprim] +
+		    nz_ish_iprim[ish][iprim]); 
+	  sum_ni = sum_ni < ni ? ni : sum_ni;
+      }
+      maxn_ish[ish] = sum_ni;
+    }
     for(int ish = 0; ish < this->size_sh(); ish++) {
       for(int jsh = ish; jsh < this->size_sh(); jsh++) {
 	dcomplex zetai = zeta_ish[ish]; dcomplex zetaj = zeta_ish[jsh];	
@@ -681,6 +693,10 @@ namespace l2func {
 
 	int npi = this->size_prim_ish(ish);
 	int npj = this->size_prim_ish(jsh);
+
+	dcomplex cx(0.0); dcomplex cy(0.0); dcomplex cz(0.0);
+	dcomplex* Fjs = IncompleteGamma(maxn_ish[ish] + maxn_ish[jsh],
+					zetaP * dist2(wPx-cx,wPy-cy,wPz-cz));
 	
 	for(int iprim = 0; iprim < npi; iprim++) {
 	  int jprim0 = ish == jsh ? iprim : 0;
@@ -718,15 +734,14 @@ namespace l2func {
 	    }
 
 	    // ---- v mat ----
-	    dcomplex cx(0.0); dcomplex cy(0.0); dcomplex cz(0.0);
+	    
 	    for(int nx = 0; nx <= nxi+nxj; nx++)
 	      dxs[nx] = coef_d(zetaP, wPx, xi, xj, nxi, nxj, nx);
 	    for(int ny = 0; ny <= nyi+nyj; ny++)
 	      dys[ny] = coef_d(zetaP, wPy, yi, yj, nyi, nyj, ny);
 	    for(int nz = 0; nz <= nzi+nzj; nz++)
 	      dzs[nz] = coef_d(zetaP, wPz, zi, zj, nzi, nzj, nz);
-	    dcomplex* Fjs = IncompleteGamma(nxi+nxj+nyi+nyj+nzi+nzj,
-					    zetaP * dist2(wPx-cx,wPy-cy,wPz-cz));
+	    
 	    dcomplex v_ele(0);
 	    for(int nx = 0; nx <= nxi + nxj; nx++)
 	      for(int ny = 0; ny <= nyi + nyj; ny++)
@@ -735,9 +750,7 @@ namespace l2func {
 			     coef_R(zetaP, wPx, wPy, wPz, 0.0, 0.0, 0.0,
 				    nx, ny, nz, 0, Fjs));
 		}
-	    
-	    delete Fjs;
-
+	    	    
 	    int idx = iprim * npj + jprim;
 	    smat_prim[idx] = ce * dx00 * dy00 * dz00;
 	    zmat_prim[idx] = ce*(dx00*dy00*dz10 + zi*dx00*dy00*dz00);
@@ -752,6 +765,9 @@ namespace l2func {
 	    }
 	  }	      
 	}
+
+	delete Fjs;
+
 	for(int ibasis = 0; ibasis < this->size_basis_ish(ish); ibasis++) {
 	  int jbasis0 = ish == jsh ? ibasis : 0;
 	  for(int jbasis = jbasis0; jbasis < this->size_basis_ish(jsh); jbasis++) {

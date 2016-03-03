@@ -49,7 +49,9 @@ void molint() {
 
   // 2016/3/4  : 2.70645
   //           : 2.66855 (reduce new)
-  //           : 1.25852 (symmetry)
+  //           : 1.25852 (add transpose)
+  //           : 0.40530 (reduce number of calling IncompleteGamma)
+  
 
   Timer timer;
   GTOs gtos;
