@@ -1,6 +1,6 @@
 include local.mk
 #CXXFLAGS=${INC_PATH} -Wall -O3  
-CXXFLAGS=${INC_PATH} -Wall -g
+CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
 
 MATH_OBJS=erfc.o math_utils.o
 FUNC_OBJS=cut_exp.o exp_func.o delta.o
@@ -34,12 +34,25 @@ test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o molint.o
 check_gto3d: test_gto3d
 	./test_gto3d
 
+test_gto3d_time.o: test_gto3d_time.cpp
+test_gto3d_time: test_gto3d_time.o  cints.o angmoment.o gto3dset.o math_utils.o molint.o timer.o
+	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} $^ -lgsl
+.PHONY: check_gto3d_time
+check_gto3d_time: test_gto3d_time
+	./test_gto3d_time
+
+inc_gamma_grid.o: inc_gamma_grid.cpp
+inc_gamma_grid: inc_gamma_grid.o molint.o
+	${CXX} -o $@ ${CXXFLAGS} $^ -lgsl
+.PHONY: run_inc_gamma_grid
+run_inc_gamma_grid: inc_gamma_grid
+	./inc_gamma_grid 
+
 l2func_bind.so: wrapper.cpp ${OBJS}
 	${CXX} -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -DPIC -bundle -fPIC -o $@ wrapper.cpp ${OBJS} ${CXXFLAGS} -lboost_python  -framework Python
 
 utest_py: l2func_bind.so utest.py
 	python utest.py
-
 
 .PHONY: check
 check: test

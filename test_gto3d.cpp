@@ -11,12 +11,106 @@
 #include "molint.hpp"
 
 
-
 using namespace std;
 using namespace l2func;
 
 int lm(int l, int m) {
   return lm_index(l, m);
+}
+
+/*
+TEST(GTOSet, Create) {
+
+  SphericalGTOSet gtos;
+  for(int L = 0; L <= 2; L++)
+    gtos.AddBasis(L,
+		  0.1, 0.2, 0.3,
+		  1.1);
+  
+  std::complex<double>* vs;
+  vs = gtos.SMat(gtos);
+  EXPECT_C_EQ(1, vs[0]);
+  EXPECT_C_EQ(0, vs[1]);
+  EXPECT_C_EQ(0, vs[2]);
+}
+TEST(GTOSet, Time) {
+
+  #define USE_MOLINT
+  //#undef USE_MOLINT
+  // molint => 3318 ms (in macbook air)
+  // cints  => 3260 ms (in macbook air)     
+  std::cout << 0 << std::endl;
+  SphericalGTOSet gtos;
+  for(int L = 0; L <= 2; L++)
+    for(int n = -5; n < 5; n++)
+      gtos.AddBasis(L, 0.1, 0.2, 0.3, pow(2.0, n));
+  std::cout << 0.5 << std::endl;
+  dcomplex* smat = gtos.SMat(gtos);
+  std::cout << 0.6 << std::endl;
+  dcomplex* vmat = gtos.VMat(1.0, 0.0, 0.0, 0.0, gtos);
+  std::cout << 0.7 << std::endl;
+  dcomplex* tmat = gtos.TMat(gtos);
+  std::cout << 1 << std::endl;
+  delete smat;
+  std::cout << 2 << std::endl;
+  delete vmat;
+  std::cout << 3 << std::endl;
+  delete tmat;
+
+}
+*/
+TEST(GTOs, offset) {
+
+  GTOs gtos;
+  gtos.AddSphericalGTO(1, 0.0, 0.0, 0.0, 1.2);
+  gtos.AddSphericalGTO(2, 0.0, 0.0, 0.0, 1.2);
+  gtos.AddSphericalGTO(0, 0.0, 0.0, 0.0, 1.2);
+  EXPECT_EQ(0, gtos.offset_ish[0]);
+  EXPECT_EQ(3, gtos.offset_ish[1]);
+  EXPECT_EQ(8, gtos.offset_ish[2]);
+
+}
+TEST(GTOs, Create) {
+
+  SphericalGTOSet gto_ref;
+  GTOs gtos;
+
+  
+  for(int L = 0; L < 3; L++)
+    for(int n = 0; n < 2; n++ ) {
+      dcomplex zeta(0.1+n*0.1, 0.0);
+      dcomplex x(0.4*(n+1));
+      dcomplex y(-0.1+0.1*(n+1));
+      dcomplex z(0.3+0.2*(n+1));
+
+      gtos.AddSphericalGTO(L, x, y, z, zeta);
+      gto_ref.AddBasis(    L, x, y, z, zeta);
+  }
+  gtos.Normalize();
+  dcomplex* smat_ref  = gto_ref.SMat(gto_ref);
+  dcomplex* tmat_ref  = gto_ref.TMat(gto_ref);
+  dcomplex* zmat_ref  = gto_ref.XyzMat(0, 0, 1, gto_ref);
+  dcomplex* vmat_ref = gto_ref.VMat(1.0, 0.0, 0.0, 0.0, gto_ref);
+  //  dcomplex* vmat_ref  = gto_ref.VMat(1.1, -0.1, 0.22, 0.31, gto_ref);
+  dcomplex* smat_calc;
+  dcomplex* tmat_calc;
+  dcomplex* zmat_calc;
+  dcomplex* vmat_calc;
+  gtos.CalcMat(&smat_calc, &tmat_calc, &zmat_calc, &vmat_calc);
+  int num = gtos.size_basis();
+  double eps(pow(10.0, -10.0));
+  for(int i = 0; i < num; i++)
+    for(int j = 0; j < num; j++) {
+      int idx = i * num + j;
+      EXPECT_C_NEAR(smat_ref[idx], smat_calc[idx], eps) 
+	<< "(" << i << ", " << j << ")" << std::endl;
+      EXPECT_C_NEAR(tmat_ref[idx], tmat_calc[idx], eps) 
+	<< "(" << i << ", " << j << ")" << std::endl;
+      EXPECT_C_NEAR(zmat_ref[idx], zmat_calc[idx], eps) 
+	<< "(" << i << ", " << j << ")" << std::endl;
+      EXPECT_C_NEAR(vmat_ref[idx], vmat_calc[idx], eps)
+	<< "(" << i << ", " << j << ")" << std::endl;
+    }
 }
 
 TEST(MOLINT, overlap) {
@@ -136,6 +230,7 @@ TEST(MOLINT, IncGamma) {
 
   
 }
+
 TEST(MOLINT, nuclear_attraction) {
 
   dcomplex zetaA(1.2, -0.3);
@@ -240,6 +335,11 @@ TEST(MOLINT, nuclear_attraction) {
 				zetaB,
 				0.0, 0.0, 0.0);
   EXPECT_C_EQ(old, calc);  
+
+}
+TEST(MOLINT, Time) {
+
+  
 
 }
 
@@ -641,7 +741,7 @@ TEST(Angmoment, associated_legendre) {
   for(int L = 0; L < 4; L++) 
     for(int M = 1; M <= L; M++) 
       EXPECT_C_EQ(vs[lm(L, -M)], pow(-1.0, M)*fact(L-M)*1.0/fact(L+M)*vs[lm(L, M)]);
-
+  delete vs;
 }
 TEST(Angmoment, real_spherical_harm) {
 
@@ -713,8 +813,7 @@ TEST(SphericalGTO, OrthNormality) {
 }
 TEST(SphericalGTO, at) {
 
-  c3 xyz(0.1, 0.2, 0.3);
-  C zeta(1.1, -0.3);
+  c3 xyz(0.1, 0.2, 0.3); C zeta(1.1, -0.3);
 
   SphericalGTO<C, C> g(1, 0, xyz, zeta);
   EXPECT_C_EQ(0.0, g.at(c3(0.33, 0.44, 0.3)));
@@ -735,21 +834,6 @@ TEST(SphericalGTO, Exception) {
     std::cerr << e.what() << std::endl;    
   }
 
-}
-
-TEST(GTOSet, Create) {
-
-  SphericalGTOSet gtos;
-  for(int L = 0; L <= 2; L++)
-    gtos.AddBasis(L,
-		  0.1, 0.2, 0.3,
-		  1.1);
-  
-  std::complex<double>* vs;
-  vs = gtos.SMat(gtos);
-  EXPECT_C_EQ(1, vs[0]);
-  EXPECT_C_EQ(0, vs[1]);
-  EXPECT_C_EQ(0, vs[2]);
 }
 
 int main(int argc, char **args) {

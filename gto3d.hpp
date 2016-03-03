@@ -10,12 +10,13 @@
 
 #include "angmoment.hpp"
 #include "cints.hpp"
-
-typedef l2func::array3<double> d3;
-typedef l2func::array3<int>    i3;
-typedef l2func::array3<std::complex<double> > c3;
+#include "molint.hpp"
 
 namespace l2func {
+
+  typedef l2func::array3<double> d3;
+  typedef l2func::array3<int>    i3;
+  typedef l2func::array3<dcomplex> c3;
 
   // ==== Operators ====
   template<class Field, class Coord>
@@ -40,6 +41,9 @@ namespace l2func {
     int n() const { return nml_[0]; }
     int m() const { return nml_[1]; }
     int l() const { return nml_[2]; }
+    void show() const {
+      std::cout << nml_[0] << nml_[1] << nml_[2] << std::endl;
+    }
   };
 
 
@@ -65,8 +69,6 @@ namespace l2func {
   public:
     // ---- Constructors ----
     CartGTO(F c, const i3& nml, const FC& xyz, F z) : c_(c), nml_(nml), xyz_(xyz), zeta_(z) {}
-    //    CartGTO(F c, int n, int m, int l, CoordRad x, CoordRad y, CoordRad z, F zeta) :
-    //      c_(c), nml_(n, m, l), xyz_(x, y, z), zeta_(zeta) {}
     template<class F2, class FC2>
     CartGTO(const CartGTO<F2, FC2>& o): c_(o.c()), nml_(o.nml()), xyz_(o.xyz()), zeta_(o.z()) {}
     
@@ -118,25 +120,51 @@ namespace l2func {
   // ---- inner product ----
   template<class F, class FC>
   F CIP_impl_prim(const CartGTO<F, FC>& a, const One&, const CartGTO<F, FC>& b) {
+    /*
+#ifndef USE_MOLINT
     return a.c() * b.c() * overlap(a.zeta(),
 				   a.nml()[0], a.nml()[1], a.nml()[2],
 				   a.xyz()[0], a.xyz()[1], a.xyz()[2],
 				   b.zeta(),
 				   b.nml()[0], b.nml()[1], b.nml()[2],
 				   b.xyz()[0], b.xyz()[1], b.xyz()[2]);
+				       
+#endif
+    cout << "molint" << endl;
+    */
+    return a.c() * b.c() * gto_overlap(a.nml()[0], a.nml()[1], a.nml()[2],
+				       a.xyz()[0], a.xyz()[1], a.xyz()[2],
+				       a.zeta(),
+				       b.nml()[0], b.nml()[1], b.nml()[2],
+				       b.xyz()[0], b.xyz()[1], b.xyz()[2],
+				       b.zeta());
+	
+
   }
   template<class F, class FC>
   F CIP_impl_prim(const CartGTO<F, FC>& a, const OpKE<F, FC>&, const CartGTO<F, FC>& b) {
+    /*
+#ifndef USE_MOLINT
     return a.c() * b.c() * kinetic(a.zeta(),
 				   a.nml()[0], a.nml()[1], a.nml()[2],
 				   a.xyz()[0], a.xyz()[1], a.xyz()[2],
 				   b.zeta(),
 				   b.nml()[0], b.nml()[1], b.nml()[2],
 				   b.xyz()[0], b.xyz()[1], b.xyz()[2]);
+#endif
+*/
+    return a.c() * b.c() * gto_kinetic(a.nml()[0], a.nml()[1], a.nml()[2],
+				       a.xyz()[0], a.xyz()[1], a.xyz()[2],
+				       a.zeta(),
+				       b.nml()[0], b.nml()[1], b.nml()[2],
+				       b.xyz()[0], b.xyz()[1], b.xyz()[2],
+				       b.zeta());
+
   }
   template<class F, class FC>
   F CIP_impl_prim(const CartGTO<F, FC>& a, const OpNA<F, FC>& v, const CartGTO<F, FC>& b) {
-
+/*
+#ifndef USE_MOLINT
     return v.q() *  nuclear_attraction(a.xyz()[0], a.xyz()[1], a.xyz()[2],
 				       a.c(),
 				       a.nml()[0], a.nml()[1], a.nml()[2],
@@ -146,17 +174,50 @@ namespace l2func {
 				       b.nml()[0], b.nml()[1], b.nml()[2],
 				       b.zeta(),
 				       v.xyz()[0], v.xyz()[1], v.xyz()[2]);
+#endif 
+    */
+    return v.q() * a.c() *b.c() *
+      gto_nuclear_attraction(a.nml()[0], a.nml()[1], a.nml()[2],
+			     a.xyz()[0], a.xyz()[1], a.xyz()[2],
+			     a.zeta(),
+			     b.nml()[0], b.nml()[1], b.nml()[2],
+			     b.xyz()[0], b.xyz()[1], b.xyz()[2],
+			     b.zeta(),
+			     v.xyz()[0], v.xyz()[1], v.xyz()[2]);
+
   }
   template<class F, class FC>
   F CIP_impl_prim(const CartGTO<F, FC>& a, const OpXyz<F, FC> & op, const CartGTO<F, FC>& b) {
-    return a.c() * b.c() * overlap(a.zeta(),
-				   a.nml()[0] + op.nml()[0],
-				   a.nml()[1] + op.nml()[1],
-				   a.nml()[2] + op.nml()[2],
-				   a.xyz()[0], a.xyz()[1], a.xyz()[2],
-				   b.zeta(),
-				   b.nml()[0], b.nml()[1], b.nml()[2],
-				   b.xyz()[0], b.xyz()[1], b.xyz()[2]);    
+
+    if(op.nml()[0] == 0 && op.nml()[1] == 0 && op.nml()[2] == 0) {
+      return CIP_impl_prim(a, One(), b);
+    }
+
+    if(op.nml()[0] != 0 || op.nml()[1] != 0 || op.nml()[2] != 1) {
+      std::string msg;
+      SUB_LOCATION(msg);
+      msg += "only OpXyz(0,0,1) is supported";
+      std::cout << op.nml()[0] << op.nml()[1] << op.nml()[2] << std::endl;
+      throw std::runtime_error(msg);
+    }
+
+    return a.c() * b.c() * (overlap(a.zeta(),
+				    a.nml()[0],
+				    a.nml()[1],
+				    a.nml()[2] + 1,
+				    a.xyz()[0], a.xyz()[1], a.xyz()[2],
+				    b.zeta(),
+				    b.nml()[0], b.nml()[1], b.nml()[2],
+				    b.xyz()[0], b.xyz()[1], b.xyz()[2])
+			    + a.xyz()[2] *
+			    overlap(a.zeta(),
+				    a.nml()[0],
+				    a.nml()[1],
+				    a.nml()[2],
+				    a.xyz()[0], a.xyz()[1], a.xyz()[2],
+				    b.zeta(),
+				    b.nml()[0], b.nml()[1], b.nml()[2],
+				    b.xyz()[0], b.xyz()[1], b.xyz()[2]));    
   }
 
 

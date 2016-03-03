@@ -69,6 +69,7 @@ namespace l2func {
   }
   dcomplex* SphericalGTOSet::XyzMat(int nx, int ny, int nz,
 				  const SphericalGTOSet& o) const {
+    
     OpXyz<dcomplex, c3> op(nx, ny, nz);
     return CalcMat(*this, op, o);
   }
