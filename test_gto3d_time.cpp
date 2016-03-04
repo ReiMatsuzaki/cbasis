@@ -64,15 +64,21 @@ void molint() {
   dcomplex* zmat;
   dcomplex* vmat;
 
-  timer.Start("molint");
+  //timer.Start("molint");
+  std::cout << 1;
   gtos.CalcMat(&smat, &tmat, &zmat, &vmat);
-  timer.End("molint");
-  timer.Display();
+  //  timer.End("molint");
+  //  timer.Display();
+
+  delete[] smat;
+  delete[] tmat;
+  delete[] zmat;
+  delete[] vmat;
 }
 
 int main(){
 
-  gto_set();
+  //  gto_set();
   molint();
 
 }

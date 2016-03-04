@@ -23,6 +23,9 @@ namespace l2func {
     const SGTO& basis(int i) const;
     void AddOneBasis(int L, int M, dcomplex x, dcomplex y, dcomplex z, dcomplex zeta);
     void AddBasis(int L, dcomplex x, dcomplex y, dcomplex z, dcomplex zeta);
+    dcomplex SMatEle(int i, int j) const;
+    dcomplex TMatEle(int i, int j) const;
+    dcomplex VMatEle(int i, int j, dcomplex q, dcomplex x, dcomplex y, dcomplex z) const;
     dcomplex* SMat(const SphericalGTOSet& o) const;
     dcomplex* TMat(const SphericalGTOSet& o) const;
     dcomplex* VMat(dcomplex q, dcomplex x, dcomplex y, dcomplex z, const SphericalGTOSet& o) const;

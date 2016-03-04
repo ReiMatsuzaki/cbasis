@@ -45,7 +45,7 @@ TEST(math, MultArray3) {
   for(int i = -2; i <= 3; i++)
     for(int j = -1; j <= 4; j++)
       for(int k = 0; k <= 5; k++) {
-	xs.set(i, j, k, 100*i+10*j+k);
+	xs.set_safe(i, j, k, 100*i+10*j+k);
       }
 
   for(int i = -2; i <= 3; i++)

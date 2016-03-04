@@ -41,6 +41,24 @@ test_gto3d_time: test_gto3d_time.o  cints.o angmoment.o gto3dset.o math_utils.o 
 .PHONY: check_gto3d_time
 check_gto3d_time: test_gto3d_time
 	./test_gto3d_time
+check_gto3d_time_10: test_gto3d_time
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
+	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
 
 inc_gamma_grid.o: inc_gamma_grid.cpp
 inc_gamma_grid: inc_gamma_grid.o molint.o

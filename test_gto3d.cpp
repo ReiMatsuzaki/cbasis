@@ -18,7 +18,7 @@ int lm(int l, int m) {
   return lm_index(l, m);
 }
 
-/*
+
 TEST(GTOSet, Create) {
 
   SphericalGTOSet gtos;
@@ -58,7 +58,7 @@ TEST(GTOSet, Time) {
   delete tmat;
 
 }
-*/
+
 TEST(GTOs, offset) {
 
   GTOs gtos;
@@ -122,66 +122,13 @@ TEST(GTOs, size) {
   EXPECT_EQ(5, gtos.size_basis());
 
 }
-TEST(GTOs, Create1) {
-
-  SphericalGTOSet gto_ref;
-  GTOs gtos;
-
-  
-  for(int L = 0; L < 3; L++)
-    for(int n = 0; n < 1; n++ ) {
-
-      dcomplex zeta(0.1+n*0.1, 0.0);
-      dcomplex x(0.4*(n+1));
-      dcomplex y(-0.1+0.1*(n+1));
-      dcomplex z(0.3+0.2*(n+1));
-/*
-      dcomplex zeta(0.3, 0.0);
-      dcomplex x(0.0);
-      dcomplex y(0.0);
-      dcomplex z(0.0);
-      */
-
-      gtos.AddSphericalGTO(L, x, y, z, zeta);
-      gto_ref.AddBasis(    L, x, y, z, zeta);
-  }
-  gtos.Normalize();
-  dcomplex* smat_ref  = gto_ref.SMat(gto_ref);
-  dcomplex* tmat_ref  = gto_ref.TMat(gto_ref);
-  dcomplex* zmat_ref  = gto_ref.XyzMat(0, 0, 1, gto_ref);
-  dcomplex* vmat_ref = gto_ref.VMat(1.0, 0.0, 0.0, 0.0, gto_ref);
-  //  dcomplex* vmat_ref  = gto_ref.VMat(1.1, -0.1, 0.22, 0.31, gto_ref);
-  dcomplex* smat_calc;
-  dcomplex* tmat_calc;
-  dcomplex* zmat_calc;
-  dcomplex* vmat_calc;
-  
-  //gtos.Show();
-  int num = gtos.size_basis();
-  gtos.CalcMat(&smat_calc, &tmat_calc, &zmat_calc, &vmat_calc);    
-  
-  std::cout << tmat_calc[(2+4) + num * (2+4)] << std::endl;
-  std::cout << tmat_ref[(2+4) + num * (2+4)] << std::endl;
-  double eps(pow(10.0, -10.0));
-  for(int i = 0; i < num; i++)
-    for(int j = 0; j < num; j++) {
-      int idx = i * num + j;
-      EXPECT_C_NEAR(smat_ref[idx], smat_calc[idx], eps) 
-	<< "(" << i << ", " << j << ")" << std::endl;
-      EXPECT_C_NEAR(tmat_ref[idx], tmat_calc[idx], eps) 
-	<< "(" << i << ", " << j << ")" << std::endl;
-      EXPECT_C_NEAR(zmat_ref[idx], zmat_calc[idx], eps) 
-	<< "(" << i << ", " << j << ")" << std::endl;
-      EXPECT_C_NEAR(vmat_ref[idx], vmat_calc[idx], eps)
-	<< "(" << i << ", " << j << ")" << std::endl;
-    }
-}
 TEST(GTOs, Create) {
 
-  SphericalGTOSet gto_ref;
+  //  SphericalGTOSet gto_ref;
+  typedef SphericalGTO<dcomplex, dcomplex> GY;
   GTOs gtos;
-  
-  for(int L = 2; L < 3; L++)
+  vector<GY*> gs;
+  for(int L = 0; L < 3; L++)
     for(int n = 0; n < 1; n++ ) {
       
       dcomplex zeta(0.1+n*0.1, 0.0);
@@ -190,38 +137,49 @@ TEST(GTOs, Create) {
       dcomplex z(0.3+0.2*(n+1));
 
       gtos.AddSphericalGTO(L, x, y, z, zeta);
-      gto_ref.AddBasis(    L, x, y, z, zeta);
+      //      for(int M = -L; M <= L; M++)
+      //	gs.push_back(new GY(L, M, c3(x, y, z), zeta));
+      //      gto_ref.AddBasis(    L, x, y, z, zeta);
   }
-  gtos.Normalize();
-  dcomplex* smat_ref  = gto_ref.SMat(gto_ref);
-  dcomplex* tmat_ref  = gto_ref.TMat(gto_ref);
-  dcomplex* zmat_ref  = gto_ref.XyzMat(0, 0, 1, gto_ref);
-  dcomplex* vmat_ref = gto_ref.VMat(1.0, 0.0, 0.0, 0.0, gto_ref);
+  
+  //  dcomplex* smat_ref  = gto_ref.SMat(gto_ref);
+  //  dcomplex* tmat_ref  = gto_ref.TMat(gto_ref);
+  //  dcomplex* zmat_ref  = gto_ref.XyzMat(0, 0, 1, gto_ref);
+  //  dcomplex* vmat_ref = gto_ref.VMat(1.0, 0.0, 0.0, 0.0, gto_ref);
   //  dcomplex* vmat_ref  = gto_ref.VMat(1.1, -0.1, 0.22, 0.31, gto_ref);
   dcomplex* smat_calc;
   dcomplex* tmat_calc;
   dcomplex* zmat_calc;
   dcomplex* vmat_calc;
-  
   //gtos.Show();
   int num = gtos.size_basis();
+  gtos.Normalize();
   gtos.CalcMat(&smat_calc, &tmat_calc, &zmat_calc, &vmat_calc);    
-  
-  std::cout << tmat_calc[(2+4) + num * (2+4)] << std::endl;
-  std::cout << tmat_ref[(2+4) + num * (2+4)] << std::endl;
+
   double eps(pow(10.0, -10.0));
+
+  //  EXPECT_EQ(gtos.size_basis(), gs.size());
   for(int i = 0; i < num; i++)
     for(int j = 0; j < num; j++) {
       int idx = i * num + j;
-      EXPECT_C_NEAR(smat_ref[idx], smat_calc[idx], eps) 
-	<< "(" << i << ", " << j << ")" << std::endl;
+      std::cout << smat_calc[idx];
+      //      std::cout << i << j << std::endl;
+      //      EXPECT_C_NEAR(CIP(*gs[i], *gs[j]), smat_calc[idx], eps) 
+      //	<< "(" << i << ", " << j << ")" << std::endl;
+      /*
       EXPECT_C_NEAR(tmat_ref[idx], tmat_calc[idx], eps) 
 	<< "(" << i << ", " << j << ")" << std::endl;
       EXPECT_C_NEAR(zmat_ref[idx], zmat_calc[idx], eps) 
 	<< "(" << i << ", " << j << ")" << std::endl;
       EXPECT_C_NEAR(vmat_ref[idx], vmat_calc[idx], eps)
 	<< "(" << i << ", " << j << ")" << std::endl;
+	*/
     }
+  std::cout << std::endl;
+  delete[] smat_calc;
+  delete[] tmat_calc;
+  delete[] zmat_calc;
+  delete[] vmat_calc;
 }
 
 TEST(MOLINT, overlap) {
@@ -539,134 +497,6 @@ TEST(CINTS, product_center_1D) {
   EXPECT_NEAR_COMPLEX(rys, cints, eps);
   */
 }
-/*
-TEST(CINTS, ee_time) {
-
-  C one(1.0, 0.0);
-  C a1(1.1,0.2), a2(1.3,0.5), a3(1.1,0.2), a4(1.3,0.02);
-
-  UniqueTimer timer;
-  C ti;
-  int stepNum = 60 * 60 * 60 * 60 / 8;
-
-  timer.Start("Rys");
-  for(int i = 0; i < stepNum; i++) {
-    ti = coulomb_repulsion_Rys
-      (0.1,  0.2,   0.3, one,
-       0,1,0, a1,
-       0.1, -0.22, -0.3, one,
-       0, 0, 0, a2, 
-       0.1,  C(0.2, 0.03), 0.3, one,
-       1, 0, 0, a3,
-       0.1, -0.22, C(-0.3,-0.7), one, 
-       0, 1, 0, a4);
-  }  
-  timer.End("Rys");
-  timer.Start("Huzinaga");
-  for(int i = 0; i < stepNum; i++) {
-    ti = coulomb_repulsion
-      (0.1,  0.2,   0.3, one,
-       0,1,0, a1,
-       0.1, -0.22, -0.3, one,
-       0, 0, 0, a2, 
-       0.1,  C(0.2, 0.03), 0.3, one,
-       1, 0, 0, a3,
-       0.1, -0.22, C(-0.3,-0.7), one, 
-       0, 1, 0, a4);
-  }
-  timer.End("Huzinaga");
-
-  timer.Display();
-
-}
-TEST(CINTS,  ee ) {
-
-  C one(1.0, 0.0);
-  C a1(1.1,0.2), a2(1.3,0.5), a3(1.1,0.2), a4(1.3,0.02);
-  
-  C sc = coulomb_repulsion(
-		    0.1,  0.2,   0.3, one,
-		    0,0,0, a1,
-		    0.1, -0.22, -0.3, one,
-		    0, 0, 0, a2, 
-		    0.1,  C(0.2, 0.03), 0.3, one,
-		    2, 1, 0, a3,
-		    0.1, -0.22, C(-0.3,-0.7), one, 
-		    0, 1, 3, a4);
-
-  C sc_Rys = coulomb_repulsion_Rys
-    (0.1,  0.2,   0.3, one,
-     0,0,0, a1,
-     0.1, -0.22, -0.3, one,
-     0, 0, 0, a2, 
-     0.1,  C(0.2, 0.03), 0.3, one,
-     2, 1, 0, a3,
-     0.1, -0.22, C(-0.3,-0.7), one, 
-     0, 1, 3, a4);
-
-  
-  C se(0.010125449275747, -0.000826749400705);
-  EXPECT_NEAR_COMPLEX(sc, se, eps);
-  EXPECT_NEAR_COMPLEX(sc_Rys, se, eps);
-
-  sc = coulomb_repulsion(
-			 0.1,  0.2,   0.3, one,
-			 0,0,0, a1,
-			 0.1,  0.2,   0.3, one,
-			 0,0,0, a1,
-			 0.1,  0.2,   0.3, one,
-			 0,0,0, a1,
-			 0.1,  0.2,   0.3, one,
-			 0,0,0, a1);
-  sc_Rys = coulomb_repulsion_Rys(
-			 0.1,  0.2,   0.3, one,
-			 0,0,0, a1,
-			 0.1,  0.2,   0.3, one,
-			 0,0,0, a1,
-			 0.1,  0.2,   0.3, one,
-			 0,0,0, a1,
-			 0.1,  0.2,   0.3, one,
-			 0,0,0, a1);			 
-
-  se = C(2.979971963342084066,-1.438144700585544071);
-  
-  EXPECT_NEAR_COMPLEX(sc, se, 0.000005);
-  EXPECT_NEAR_COMPLEX(sc_Rys, se, 0.000005);
-
-}
-TEST(CINTS,  ee_property) {
-
-  C x=0.0; C y = 0.0; C z=0.0;
-  C x1=0.0; C y1=0.0;
-  C oe = 1.0;
-
-  cout << endl;
-  cout << "coulomb repulsion test for property " << endl;
-  cout << "r is distance between u and v;" << endl;
-  cout << "r, (uu|vv), (uv|uv)" << endl;
-
-  for(C z1 = 0.0; real(z1) < 15.0; z1 += 1.0) {
-    C uuvv = coulomb_repulsion(
-			       x, y, z, 1.0, 0, 0, 0, oe,
-			       x, y, z, 1.0, 0, 0, 0, oe,
-			       x1,y1,z1,1.0, 0, 0, 0, oe,
-			       x1,y1,z1,1.0, 0, 0, 0, oe);
-    C uvuv = coulomb_repulsion(
-			       x, y, z, 1.0, 0, 0, 0, oe,
-			       x1,y1,z1,1.0, 0, 0, 0, oe,
-			       x, y, z, 1.0, 0, 0, 0, oe,			   
-			       x1,y1,z1,1.0, 0, 0, 0, oe);
-
-    cout << z1 << "  " << uuvv << "  " << uvuv << endl;
-
-
-    //      Seeing the result, (uu|vv) decay slowly while (uv|uv) decay rapidly.
-    // So, (pq|rs) = Int p(1)q(1)r(2)s(2) .
-
-  }
-
-}
-*/
 TEST(CINTS,  nuclear_attraction) {
   double eps(0.000000001);
   C sc = nuclear_attraction(0.1,  C(0.2, 0.03), 0.3, 1.0, 
@@ -741,21 +571,6 @@ TEST(CartGTO, NuclearAttraction) {
   C se(-0.0111712963403, -0.0039848461450);
   
   EXPECT_C_NEAR(s, q1*c1*c2*se, eps);    
-}
-TEST(CartGTO, Dip) {
-
-  double c1(1.1);
-  double c2(1.2);
-  CartGTO<C, c3> g1(c1, i3(2, 1, 1), c3(0.0, 0.0, 0.0),        C(0.2, 0.3));
-  CartGTO<C, c3> g2(c2, i3(2, 1, 2), c3(0.0, C(0.2,-0.1), 0.3), C(0.2, -0.7));
-
-  OpXyz<C, c3> op(1, 2, 3);
-
-  CartGTO<C, c3> g3(c1, i3(3, 2, 2), c3(0.0, 0.0, 0.0),        C(0.2, 0.3));
-  CartGTO<C, c3> g4(c2, i3(2, 2, 4), c3(0.0, C(0.2,-0.1), 0.3), C(0.2, -0.7));
-  
-  EXPECT_C_EQ(CIP(g1, op, g2), CIP(g3, g4));
-
 }
 
 TEST(Angmoment, cg_coef) {
@@ -873,7 +688,6 @@ TEST(Angmoment, real_spherical_harm) {
   EXPECT_C_EQ(a*sqrt(15.0/4.0)*sin(t)*sin(t)*cos(2.0*p), vs[lm(2,+2)]);
   EXPECT_C_EQ(a*sqrt(15.0/4.0)*sin(t)*sin(t)*sin(2.0*p), vs[lm(2,-2)]);
 }
-
 TEST(Angmoment, gto_00_r) {
 
   double pi(M_PI);  

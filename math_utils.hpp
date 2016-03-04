@@ -11,6 +11,7 @@ namespace l2func {
   class MultArray3 {
   private:
     F* data_;
+    int num_;
     int n0_[3];
     int n1_[3];
   public:
@@ -18,30 +19,41 @@ namespace l2func {
       data_ = data;
       n0_[0] = nx0; n0_[1] = ny0; n0_[2] = nz0;
       n1_[0] = nx1; n1_[1] = ny1; n1_[2] = nz1;
-      data_ = new F[(nx1-nx0+1)*(ny1-ny0+1)*(nz1-nz0+1)];
+      num_ = (nx1-nx0+1)*(ny1-ny0+1)*(nz1-nz0+1);
+      data_ = new F[num_];
     }
     int idx(int nx, int ny, int nz) {
-      return (nx +
-	      ny * (n1_[0] - n0_[0] + 1) + 
-	      nz * (n1_[0] - n0_[0] + 1) * (n1_[1] - n0_[1] + 1)); 
+      return ((nx - n0_[0]) +
+	      (ny - n0_[1]) * (n1_[0] - n0_[0] + 1) + 
+	      (nz - n0_[2]) * (n1_[0] - n0_[0] + 1) * (n1_[1] - n0_[1] + 1)); 
     }
-    void set(int nx, int ny, int nz, F v) {
-      data_[idx(nx, ny, nz)] = v;
-    }
-    F get(int nx, int ny, int nz) {
-      return data_[idx(nx, ny, nz)];
-    }
-    F get_safe(int nx, int ny, int nz) {
-      if(nx < n0_[0] || n1_[0] < nx ||
+    void check_index(int nx, int ny, int nz) {
+      int index = this->idx(nx, ny, nz);
+      if(index < 0   || num_-1 < index ||
+	 nx < n0_[0] || n1_[0] < nx ||
 	 ny < n0_[1] || n1_[1] < ny ||
 	 nz < n0_[2] || n1_[2] < nz) {
 	std::string msg;
 	std::stringstream ss;
 	SUB_LOCATION(msg);
-	ss << "index: (" << nx << ", " << ny << ", " << nz << ")" << std::endl;
+	ss << "index: (" << nx << ", " << ny << ", " << nz << ") "
+	   << index << std::endl;
 	msg += ss.str();
 	throw std::out_of_range(msg);
       }
+    }
+    void set(int nx, int ny, int nz, F v) {
+      data_[idx(nx, ny, nz)] = v;
+    }
+    void set_safe(int nx, int ny, int nz, F v) {
+      check_index(nx, ny, nz);
+      set(nx, ny, nz, v);
+    }
+    F get(int nx, int ny, int nz) {
+      return data_[idx(nx, ny, nz)];
+    }
+    F get_safe(int nx, int ny, int nz) {
+      check_index(nx, ny, nz);
       return this->get(nx, ny, nz);
     }
   };

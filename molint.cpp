@@ -684,17 +684,17 @@ namespace l2func {
     
     int nb = this->size_basis();    
     int np = this->size_prim();
-    dcomplex* S = new dcomplex[nb*nb];
-    dcomplex* T = new dcomplex[nb*nb];
-    dcomplex* Dz = new dcomplex[nb*nb];
-    dcomplex* V = new dcomplex[nb*nb];    
-    dcomplex* smat_prim = new dcomplex[np*np];
-    dcomplex* zmat_prim = new dcomplex[np*np];    
-    dcomplex* vmat_prim = new dcomplex[np*np];
+    dcomplex* S = new dcomplex[nb*nb*10];
+    dcomplex* T = new dcomplex[nb*nb*10];
+    dcomplex* Dz = new dcomplex[nb*nb*10];
+    dcomplex* V = new dcomplex[nb*nb*10];    
+    dcomplex* smat_prim = new dcomplex[np*np*10];
+    dcomplex* zmat_prim = new dcomplex[np*np*10];    
+    dcomplex* vmat_prim = new dcomplex[np*np*10];
     dcomplex* tmat_prim = new dcomplex[np*np];
-    dcomplex* dsx_buff = new dcomplex[100];
-    dcomplex* dsy_buff = new dcomplex[100];
-    dcomplex* dsz_buff = new dcomplex[100];
+    dcomplex* dsx_buff = new dcomplex[1000];
+    dcomplex* dsy_buff = new dcomplex[1000];
+    dcomplex* dsz_buff = new dcomplex[1000];
 
     for(int idx=0; idx<nb*nb; idx++) {
       S[idx] = 7.7; T[idx] = 7.7; Dz[idx] = 7.7; V[idx] = 7.7;
@@ -733,13 +733,11 @@ namespace l2func {
 	dcomplex* Fjs = IncompleteGamma(maxn_ish[ish] + maxn_ish[jsh],
 					zetaP * dist2(wPx-cx,wPy-cy,wPz-cz));
 	int mi = maxn_ish[ish]; int mj = maxn_ish[jsh];
-	int mip= mi+1; int mjp = mj+1;
-	/*
+	int mip= mi+1; int mjp = mj+1;       
 	MultArray3<dcomplex> dxmap = calc_d_coef(mip,mjp,mi+mj+1,zetaP,wPx,xi,xj,dsx_buff);
 	MultArray3<dcomplex> dymap = calc_d_coef(mip,mjp,mi+mj+1,zetaP,wPy,yi,yj,dsy_buff);
 	MultArray3<dcomplex> dzmap = calc_d_coef(mip,mjp,mi+mj+1,zetaP,wPz,zi,zj,dsz_buff);
-	
-	*/
+
 	for(int iprim = 0; iprim < npi; iprim++) {
 	  //int jprim0 = ish == jsh ? iprim : 0;
 	  int jprim0 = 0;
@@ -749,14 +747,13 @@ namespace l2func {
 	    int nzi = nz_ish_iprim[ish][iprim]; int nzj = nz_ish_iprim[jsh][jprim];
 
 	    // ---- S mat ----
-	    dcomplex dx00 = coef_d(zetaP, wPx, xi, xj, nxi, nxj, 0);
-	    dcomplex dy00 = coef_d(zetaP, wPy, yi, yj, nyi, nyj, 0);
-	    dcomplex dz00 = coef_d(zetaP, wPz, zi, zj, nzi, nzj, 0);
-
+	    dcomplex dx00 = dxmap.get_safe(nxi, nxj, 0);
+	    dcomplex dy00 = dymap.get_safe(nyi, nyj, 0);
+	    dcomplex dz00 = dzmap.get_safe(nzi, nzj, 0);
 	    /*
-	    dcomplex dx00 = dxmap.get(nxi, nxj, 0);
-	    dcomplex dy00 = dymap.get(nyi, nyj, 0);
-	    dcomplex dz00 = dzmap.get(nzi, nzj, 0);
+	    dcomplex dx00 = coef_d(zetaP, wPz, zi, zj, nzi, nzj, 0);
+	    dcomplex dy00 = coef_d(zetaP, wPz, zi, zj, nzi, nzj, 0);
+	    dcomplex dz00 = coef_d(zetaP, wPz, zi, zj, nzi, nzj, 0);
 	    */
 
 	    // ---- z mat ----
@@ -770,21 +767,21 @@ namespace l2func {
 	    t_ele += -2.0*zetaj * (2*nxj+2*nyj+2*nzj+3.0) * dx00*dy00*dz00;
 	    t_ele += 4.0*zetaj*zetaj*(dx02*dy00*dz00+dx00*dy02*dz00+dx00*dy00*dz02);
 	    if(nxj > 1) {
-	      dcomplex dx = coef_d(zetaP, wPx, xi, xj, nxi, nxj-2, 0);
-	      // dcomplex dx = dsx[nxi + (nxj-2)*mip];
-	      //dcomplex dx = dxmap.get(nxi, nxj-2, 0);
+	      // dcomplex dx = coef_d(zetaP, wPx, xi, xj, nxi, nxj-2, 0);
+	      //dcomplex dx = dsx[nxi + (nxj-2)*mip];
+	      dcomplex dx = dxmap.get(nxi, nxj-2, 0);
 	      t_ele += 1.0*nxj*(nxj-1) * dx * dy00 * dz00;
 	    }
 	    if(nyj > 1) {
-	      dcomplex dy = coef_d(zetaP, wPy, yi, yj, nyi, nyj-2, 0);
+	      //dcomplex dy = coef_d(zetaP, wPy, yi, yj, nyi, nyj-2, 0);
 	      // dcomplex dy = dsy[nyi + (nyj-2)*mip];
-	      // dcomplex dy = dymap.get(nyi, nyj-2, 0);
+	      dcomplex dy = dymap.get(nyi, nyj-2, 0);
 	      t_ele += 1.0*nyj*(nyj-1) * dx00 * dy * dz00;
 	    }
 	    if(nzj > 1) {
-	      dcomplex dz = coef_d(zetaP, wPz, zi, zj, nzi, nzj-2, 0);
+	      //dcomplex dz = coef_d(zetaP, wPz, zi, zj, nzi, nzj-2, 0);
 	      // dcomplex dz = dsz[nzi + (nzj-2)*mip];
-	      // dcomplex dz = dzmap.get(nzi, nzj-2, 0);
+	      dcomplex dz = dzmap.get(nzi, nzj-2, 0);
 	      t_ele += 1.0*nzj*(nzj-1) * dx00 * dy00 * dz;
 	    }
 
@@ -792,19 +789,20 @@ namespace l2func {
 	    for(int nx = 0; nx <= nxi + nxj; nx++)
 	      for(int ny = 0; ny <= nyi + nyj; ny++)
 		for(int nz = 0; nz <= nzi + nzj; nz++) {
-
+		  /*
 		  v_ele += (coef_d(zetaP, wPx, xi, xj, nxi, nxj, nx) *
 			    coef_d(zetaP, wPy, yi, yj, nyi, nyj, ny) *
 			    coef_d(zetaP, wPz, zi, zj, nzi, nzj, nz) *
 			    coef_R(zetaP, wPx, wPy, wPz, cx, cy, cz,
 				    nx, ny, nz, 0, Fjs));
-				    /*
+				    */
+
 		  v_ele += (dxmap.get(nxi, nxj, nx) *
 			    dymap.get(nyi, nyj, ny) *
 			    dzmap.get(nzi, nzj, nz) *
 			     coef_R(zetaP, wPx, wPy, wPz, cx, cy, cz,
 				    nx, ny, nz, 0, Fjs));
-				    */
+
 		}
 	    	    
 	    int idx = iprim * npj + jprim;

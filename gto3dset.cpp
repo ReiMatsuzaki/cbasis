@@ -33,6 +33,12 @@ namespace l2func {
 
   }
 
+
+  dcomplex SphericalGTOSet::VMatEle(int i, int j, dcomplex q, dcomplex x, dcomplex y, dcomplex z) const {
+    OpNA<dcomplex, c3> op(q, c3(x, y, z));
+    return CIP(this->basis(i), op, this->basis(j));
+  }
+
   template<class TOp>
   dcomplex* CalcMat(const SphericalGTOSet& a, const TOp& op, const SphericalGTOSet& b) {
     int numi = a.size();
@@ -63,7 +69,8 @@ namespace l2func {
     return vs;
   }
   dcomplex* SphericalGTOSet::SMat(const SphericalGTOSet& o) const {
-    return CalcMat(*this, OpXyz<dcomplex, c3>(0, 0, 0), o);
+    dcomplex* v = CalcMat(*this, OpXyz<dcomplex, c3>(0, 0, 0), o);    
+    return v;
   }
   dcomplex* SphericalGTOSet::TMat(const SphericalGTOSet& o) const {
     return CalcMat(*this, OpKE<dcomplex, c3>(), o);
