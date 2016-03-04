@@ -70,6 +70,28 @@ TEST(GTOs, offset) {
   EXPECT_EQ(8, gtos.offset_ish[2]);
 
 }
+TEST(GTOs, d_coef) {
+
+  dcomplex ref[4*5*6];
+  dcomplex* calc = new dcomplex[4*5*6];
+  dcomplex zetaP(1.1, 0.3);
+  for(int ni = 0; ni < 3; ni++)
+    for(int nj = 0; nj < 4; nj++)
+      for(int n = 0; n < 5; n++) {
+	ref[ni + nj*3 + n*4*3] = coef_d(zetaP, 0.5, 0.1, 0.3, ni, nj, n);
+      }
+  calc_d_coef(3, 4, 5, zetaP, 0.5, 0.1, 0.3, &calc);
+
+  int idx(0);
+  for(int ni = 0; ni <= 2; ni++)
+    for(int nj = 0; nj <= 3; nj++)
+      for(int n = 0; n <=4; n++) {
+	EXPECT_C_EQ(ref[idx], calc[idx]) << ni << nj << n;
+	idx++;
+      }
+  
+
+}
 TEST(GTOs, Create) {
 
   SphericalGTOSet gto_ref;

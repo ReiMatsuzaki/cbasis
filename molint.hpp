@@ -11,6 +11,13 @@ namespace l2func {
 
   dcomplex* IncompleteGamma(int max_m, dcomplex z);
 
+  dcomplex coef_d(dcomplex zetap,
+		  dcomplex wPk, dcomplex wAk, dcomplex wBk,
+		  int nAk, int nBk, int Nk);
+  void calc_d_coef(int num_ni, int num_nj, int num_n,
+		   dcomplex zetaP, dcomplex wPx, dcomplex xi, dcomplex xj,
+		   dcomplex** dsx);
+
   dcomplex gto_overlap(int nAx, int nAy, int nAz, 
 		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
 		       dcomplex zetaA,

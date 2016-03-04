@@ -202,6 +202,19 @@ namespace l2func {
     
   }
 
+  void calc_d_coef(int num_ni, int num_nj, int num_n,
+		   dcomplex zetaP, dcomplex wPx, dcomplex xi, dcomplex xj,
+		   dcomplex** dsx) {
+
+	for(int ni = 0; ni < num_ni; ni++)
+	  for(int nj = 0; nj < num_nj; nj++) 
+	    for(int n = 0; n < num_n; n++) {
+	      int idx = ni + nj*num_ni + n*num_ni*num_nj;
+	      (*dsx)[idx] = coef_d(zetaP, wPx, xi, xj, ni, nj, n);
+	    }
+
+  }
+
   dcomplex gto_overlap(int nAx, int nAy, int nAz, 
 		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
 		       dcomplex zetaA,
@@ -659,9 +672,9 @@ namespace l2func {
     dcomplex* zmat_prim = new dcomplex[nb*nb];
     dcomplex* tmat_prim = new dcomplex[nb*nb];
     dcomplex* vmat_prim = new dcomplex[nb*nb];
-    dcomplex* dxs = new dcomplex[21];
-    dcomplex* dys = new dcomplex[21];
-    dcomplex* dzs = new dcomplex[21];
+    dcomplex* dsx = new dcomplex[100];
+    dcomplex* dsy = new dcomplex[100];
+    dcomplex* dsz = new dcomplex[100];
 
     for(int idx=0; idx<nb*nb; idx++) {
       S[idx] = 7.7; T[idx] = 7.7; Dz[idx] = 7.7; V[idx] = 7.7;
@@ -697,6 +710,11 @@ namespace l2func {
 	dcomplex cx(0.0); dcomplex cy(0.0); dcomplex cz(0.0);
 	dcomplex* Fjs = IncompleteGamma(maxn_ish[ish] + maxn_ish[jsh],
 					zetaP * dist2(wPx-cx,wPy-cy,wPz-cz));
+	int mi = maxn_ish[ish]; int mj = maxn_ish[jsh];
+	int mip= mi+1; int mjp = mj+1;
+	calc_d_coef(mip, mjp, mi+mj+1, zetaP, wPx, xi, xj, &dsx);
+	calc_d_coef(mip, mjp, mi+mj+1, zetaP, wPy, yi, yj, &dsy);
+	calc_d_coef(mip, mjp, mi+mj+1, zetaP, wPz, zi, zj, &dsz);
 	
 	for(int iprim = 0; iprim < npi; iprim++) {
 	  int jprim0 = ish == jsh ? iprim : 0;
@@ -706,9 +724,9 @@ namespace l2func {
 	    int nzi = nz_ish_iprim[ish][iprim]; int nzj = nz_ish_iprim[jsh][jprim];
 
 	    // ---- S mat ----
-	    dcomplex dx00 = coef_d(zetaP, wPx, xi, xj, nxi, nxj, 0);
-	    dcomplex dy00 = coef_d(zetaP, wPy, yi, yj, nyi, nyj, 0);
-	    dcomplex dz00 = coef_d(zetaP, wPz, zi, zj, nzi, nzj, 0);
+	    dcomplex dx00 = dsx[nxi + nxj*mip];
+	    dcomplex dy00 = dsy[nyi + nyj*mip];
+	    dcomplex dz00 = dsz[nzi + nzj*mip];
 
 	    // ---- z mat ----
 	    dcomplex dz10 = coef_d(zetaP, wPz, zi, zj, nzi+1, nzj, 0);
@@ -721,32 +739,28 @@ namespace l2func {
 	    t_ele += -2.0*zetaj * (2*nxj+2*nyj+2*nzj+3.0) * dx00*dy00*dz00;
 	    t_ele += 4.0*zetaj*zetaj*(dx02*dy00*dz00+dx00*dy02*dz00+dx00*dy00*dz02);
 	    if(nxj > 1) {
-	      dcomplex dx = coef_d(zetaP, wPx, xi, xj, nxi, nxj-2, 0);
+	      // dcomplex dx = coef_d(zetaP, wPx, xi, xj, nxi, nxj-2, 0);
+	      dcomplex dx = dsx[nxi + (nxj-2)*mip];
 	      t_ele += 1.0*nxj*(nxj-1) * dx * dy00 * dz00;
 	    }
 	    if(nyj > 1) {
-	      dcomplex dy = coef_d(zetaP, wPy, yi, yj, nyi, nyj-2, 0);
+	      // dcomplex dy = coef_d(zetaP, wPy, yi, yj, nyi, nyj-2, 0);
+	      dcomplex dy = dsy[nyi + (nyj-2)*mip];
 	      t_ele += 1.0*nyj*(nyj-1) * dx00 * dy * dz00;
 	    }
 	    if(nzj > 1) {
-	      dcomplex dz = coef_d(zetaP, wPz, zi, zj, nzi, nzj-2, 0);
+	      // dcomplex dz = coef_d(zetaP, wPz, zi, zj, nzi, nzj-2, 0);
+	      dcomplex dz = dsz[nzi + (nzj-2)*mip];
 	      t_ele += 1.0*nzj*(nzj-1) * dx00 * dy00 * dz;
 	    }
 
-	    // ---- v mat ----
-	    
-	    for(int nx = 0; nx <= nxi+nxj; nx++)
-	      dxs[nx] = coef_d(zetaP, wPx, xi, xj, nxi, nxj, nx);
-	    for(int ny = 0; ny <= nyi+nyj; ny++)
-	      dys[ny] = coef_d(zetaP, wPy, yi, yj, nyi, nyj, ny);
-	    for(int nz = 0; nz <= nzi+nzj; nz++)
-	      dzs[nz] = coef_d(zetaP, wPz, zi, zj, nzi, nzj, nz);
-	    
 	    dcomplex v_ele(0);
 	    for(int nx = 0; nx <= nxi + nxj; nx++)
 	      for(int ny = 0; ny <= nyi + nyj; ny++)
 		for(int nz = 0; nz <= nzi + nzj; nz++) {
-		  v_ele += (dxs[nx] * dys[ny] * dzs[nz] *
+		  v_ele += (dsx[nxi + nxj*mip + nx*mip*mjp] *
+			    dsy[nyi + nyj*mip + ny*mip*mjp] *
+			    dsz[nzi + nzj*mip + nz*mip*mjp] *
 			     coef_R(zetaP, wPx, wPy, wPz, cx, cy, cz,
 				    nx, ny, nz, 0, Fjs));
 		}
@@ -804,9 +818,9 @@ namespace l2func {
     delete tmat_prim;
     delete zmat_prim;
     delete vmat_prim;
-    delete dxs;
-    delete dys;
-    delete dzs;
+    delete dsx;
+    delete dsy;
+    delete dsz;
   }
   /*
   MatrixSet CalcMat(const CartGTOs& a, const MolePot& v, const CartGTOs& b) {
