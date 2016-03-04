@@ -39,6 +39,7 @@ namespace l2func {
     int numj = b.size();
     dcomplex* vs = new dcomplex[numi * numj];
 
+    /*
     if(&a == &b) {
       for(int i = 0; i < numi; i++) {
 	vs[i*numj + i] = CIP(a.basis(i), op, a.basis(i));
@@ -52,6 +53,12 @@ namespace l2func {
       for(int i = 0; i < numi; i++) 
 	for(int j = 0; j < numj; j++) 
 	  vs[i*numj + j] = CIP(a.basis(i), op, b.basis(j));
+    }
+    */
+    for(int i = 0; i < numi; i++) {      
+      for(int j = 0; j < numj; j++) {
+	vs[i*numj + j] = CIP(a.basis(i), op, a.basis(j));;
+      }
     }
     return vs;
   }

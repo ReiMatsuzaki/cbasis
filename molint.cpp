@@ -747,7 +747,7 @@ namespace l2func {
 	      for(int ny = 0; ny <= nyi + nyj; ny++)
 		for(int nz = 0; nz <= nzi + nzj; nz++) {
 		  v_ele += (dxs[nx] * dys[ny] * dzs[nz] *
-			     coef_R(zetaP, wPx, wPy, wPz, 0.0, 0.0, 0.0,
+			     coef_R(zetaP, wPx, wPy, wPz, cx, cy, cz,
 				    nx, ny, nz, 0, Fjs));
 		}
 	    	    
