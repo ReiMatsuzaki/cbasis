@@ -309,7 +309,8 @@ TEST(GTOs, d_coef) {
   for(int i = 0; i < 4*5*6; i++)
     buff[i] = 1234.00;
   
-  MultArray3<dcomplex> ary = calc_d_coef(2, 3, 4, zetaP, wPk, xi, xj, buff);
+  dcomplex* buf = new dcomplex[100];
+  MultArray3<dcomplex> ary = calc_d_coef(2, 3, 4, zetaP, wPk, xi, xj, buf);
 
   int idx(0);
   for(int ni = 0; ni <= 2; ni++)

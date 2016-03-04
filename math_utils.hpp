@@ -3,6 +3,7 @@
 
 #include <complex>
 #include <sstream>
+#include <vector>
 #include "macros.hpp"
 
 namespace l2func {
@@ -18,11 +19,10 @@ namespace l2func {
     int n1_[3];
   public:
     MultArray3(F* data, int nx0, int nx1, int ny0, int ny1, int nz0, int nz1) {
-      data_ = data;
       n0_[0] = nx0; n0_[1] = ny0; n0_[2] = nz0;
       n1_[0] = nx1; n1_[1] = ny1; n1_[2] = nz1;
       num_ = (nx1-nx0+1)*(ny1-ny0+1)*(nz1-nz0+1);
-      data_ = new F[num_];
+      data_ = data;
     }
     int idx(int nx, int ny, int nz) {
       return ((nx - n0_[0]) +

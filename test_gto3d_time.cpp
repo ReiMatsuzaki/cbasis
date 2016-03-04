@@ -59,7 +59,6 @@ void molint() {
   //                    19 %: Incomplete Gamma
   //                    16 %: coef_R
   //           : 0.054927 (pre calculation of Fjs)
-  
 
   Timer timer;
   GTOs gtos;

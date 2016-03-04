@@ -41,10 +41,7 @@ TEST(math, array3) {
 }
 TEST(math, MultArray3) {
 
-  int* data = new int[6*6*6];
-
-  MultArray3<int> xs(data,
-		     -2, 3,
+  MultArray3<int> xs(-2, 3,
 		     -1, 4,
 		     0, 5);
   for(int i = -2; i <= 3; i++)
@@ -59,7 +56,6 @@ TEST(math, MultArray3) {
 	EXPECT_EQ(100*i+10*j+k, xs.get_safe(i, j, k));
       }
 
-  delete data;
 }
 TEST(math, Factorial) {
 
