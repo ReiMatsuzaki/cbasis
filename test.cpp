@@ -27,6 +27,11 @@ using namespace erfc_mori;
 
 typedef std::complex<double> CD;
 
+TEST(math, set3) {
+  int* xs = new int[3];
+  set3(xs);
+  EXPECT_EQ(3, xs[0]);
+}
 TEST(math, array3) {
   array3<double> xs(1.1, 1.2, 1.3);
   EXPECT_DOUBLE_EQ(1.2, xs[1]);

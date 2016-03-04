@@ -5,6 +5,8 @@
 
 namespace l2func {
 
+  typedef MultArray3<dcomplex> A3dc;
+
   // ==== Utility ====
   dcomplex dist2(dcomplex dx, dcomplex dy, dcomplex dz) {
     return dx*dx+dy*dy+dz*dz;
@@ -20,7 +22,7 @@ namespace l2func {
   // Warning:
   // Eq. (24)(25)(26) are incorrect.
 
-  dcomplex* IncompleteGamma_F1(int max_m, dcomplex z) {
+  void IncompleteGamma_F1(int max_m, dcomplex z, dcomplex* res_list) {
 
     double x = real(z);
     double y = imag(z);
@@ -85,17 +87,13 @@ namespace l2func {
     }
     //    std::cout << "bmR[2]: " << bmR[2] << std::endl;    
 
-    dcomplex* Fm = new dcomplex[max_m+1];
     for(int m = 0; m <= max_m; m++) 
-      Fm[m] = dcomplex(fmR[m]+bmR[m], fmI[m]+bmI[m]);
+      res_list[m] = dcomplex(fmR[m]+bmR[m], fmI[m]+bmI[m]);
 
     delete anR; delete anI; delete fmR; delete fmI; delete bmR; delete bmI;
-
-    return Fm;
-
   }
 
-  dcomplex* IncompleteGamma_F2(int max_m, dcomplex z) {
+  void IncompleteGamma_F2(int max_m, dcomplex z, dcomplex* res) {
 
     double x = real(z);
     double y = imag(z);
@@ -109,10 +107,9 @@ namespace l2func {
     }
 
     if(y < -eps) {
-      dcomplex* conj_res = IncompleteGamma_F1(max_m, dcomplex(x, -y));
+      IncompleteGamma_F2(max_m, dcomplex(x, -y), res);
       for(int m = 0; m <= max_m; m++)
-	conj_res[m] = conj(conj_res[m]);
-      return conj_res;
+	res[m] = conj(res[m]);
     }
 
     //    double pi(M_PI);
@@ -126,7 +123,6 @@ namespace l2func {
     for(int n = 2; n <= NR; n++) 
       Bn[n] = Bn[n-1] + z*z/(4*(2*n-1)*(2*n-3)*1.0)*Bn[n-2];
 
-    dcomplex* Fm = new dcomplex[max_m+1];
     for(int m = 0; m <= max_m; m++) {
 
       dcomplex* An = new dcomplex[NR+1];
@@ -144,14 +140,11 @@ namespace l2func {
 	double E = -F1;
 	An[n] = (1.0+F1*z)*An[n-1] + (E + F2*z)*z*An[n-2] + F3*z*z*z*An[n-3];
       }
-      Fm[m] = div(1, 2*m+1) * An[NR]/Bn[NR];
+      res[m] = div(1, 2*m+1) * An[NR]/Bn[NR];
     }
-
-    return Fm;
-    
   }
 
-  dcomplex* IncompleteGamma(int max_m, dcomplex z) {
+  void IncompleteGamma(int max_m, dcomplex z, dcomplex* res_list) {
     
     double x = real(z);
     double y = imag(z);
@@ -164,20 +157,16 @@ namespace l2func {
       throw std::runtime_error(msg);
     } 
     
-    dcomplex* res;
     if(x > -eps && y > -eps) {
       if(x < 21.0 && x+y < 37.0) 
-	res = IncompleteGamma_F2(max_m, z);
+	IncompleteGamma_F2(max_m, z, res_list);
       else
-	res = IncompleteGamma_F1(max_m, z);
+	IncompleteGamma_F1(max_m, z, res_list);
     } else {
-      res = IncompleteGamma(max_m, dcomplex(x, -y));
+      IncompleteGamma(max_m, dcomplex(x, -y), res_list);
       for(int m = 0; m <= max_m; m++)
-	res[m] = conj(res[m]);
+	res_list[m] = conj(res_list[m]);
     }
-
-    return res;
-
   }
 
   dcomplex coef_d(dcomplex zetap,
@@ -203,25 +192,18 @@ namespace l2func {
     
   }
 
-  MultArray3<dcomplex> calc_d_coef(int max_ni, int max_nj, int max_n,
-				   dcomplex zetaP, dcomplex wPx, dcomplex xi, dcomplex xj,
-				   dcomplex* buffer) {
+  A3dc calc_d_coef(int max_ni, int max_nj, int max_n,
+		   dcomplex zetaP, dcomplex wPx, dcomplex xi, dcomplex xj,
+		   dcomplex* buffer) {
 
-    MultArray3<dcomplex> data(buffer,
-			      0, max_ni,
-			      0, max_nj,
-			      -max_ni-max_nj, max_ni+max_nj+max_n);
+    A3dc data(buffer,
+	      0, max_ni,
+	      0, max_nj,
+	      -max_ni-max_nj, max_ni+max_nj+max_n);
 
     data.set(0, 0, 0, 1.0);
-    /*
-    for(int n = 1; n <= max_ni + max_nj; n++) {
-      dcomplex v = 
-      data
-    }
-    */
     for(int n = -max_ni -max_nj; n < 0; n++) 
       data.set(0, 0, n, 0.0);
-    
     for(int n = 1; n <= max_ni+max_nj+max_n; n++) 
       data.set(0, 0, n, 0.0);
 
@@ -385,8 +367,9 @@ namespace l2func {
     for(int nz = 0; nz <= nAz+nBz; nz++) 
       dzs[nz] = coef_d(zetaP, wPz, wAz, wBz, nAz, nBz, nz);
     
-    dcomplex* Fjs = IncompleteGamma(nAx+nAy+nAz+nBx+nBy+nBz,
-				    zetaP * dist2(wPx-wCx, wPy-wCy, wPz-wCz));
+    dcomplex* Fjs = new dcomplex[nAx+nAy+nAz+nBx+nBy+nBz+1];
+    IncompleteGamma(nAx+nAy+nAz+nBx+nBy+nBz,
+		    zetaP * dist2(wPx-wCx, wPy-wCy, wPz-wCz), Fjs);
 
     dcomplex cumsum(0);    
     for(int nx = 0; nx <= nAx+nBx; nx++)
@@ -504,7 +487,12 @@ namespace l2func {
     }
 
   }
-
+  void GTOs::AddAtom(dcomplex q, dcomplex x, dcomplex y, dcomplex z) {
+    x_iat.push_back(x);
+    y_iat.push_back(y);
+    z_iat.push_back(z);
+    q_iat.push_back(q);
+  }
 
   void GTOs::Normalize() {
 
@@ -684,22 +672,24 @@ namespace l2func {
     
     int nb = this->size_basis();    
     int np = this->size_prim();
-    dcomplex* S = new dcomplex[nb*nb*10];
-    dcomplex* T = new dcomplex[nb*nb*10];
-    dcomplex* Dz = new dcomplex[nb*nb*10];
-    dcomplex* V = new dcomplex[nb*nb*10];    
-    dcomplex* smat_prim = new dcomplex[np*np*10];
-    dcomplex* zmat_prim = new dcomplex[np*np*10];    
-    dcomplex* vmat_prim = new dcomplex[np*np*10];
+    dcomplex* S = new dcomplex[nb*nb];
+    dcomplex* T = new dcomplex[nb*nb];
+    dcomplex* Dz = new dcomplex[nb*nb];
+    dcomplex* V = new dcomplex[nb*nb];    
+    dcomplex* smat_prim = new dcomplex[np*np];
+    dcomplex* zmat_prim = new dcomplex[np*np];    
+    dcomplex* vmat_prim = new dcomplex[np*np];
     dcomplex* tmat_prim = new dcomplex[np*np];
-    dcomplex* dsx_buff = new dcomplex[1000];
-    dcomplex* dsy_buff = new dcomplex[1000];
-    dcomplex* dsz_buff = new dcomplex[1000];
-
+    dcomplex* dsx_buff = new dcomplex[5*7*10];
+    dcomplex* dsy_buff = new dcomplex[5*7*10];
+    dcomplex* dsz_buff = new dcomplex[5*7*10];
+    dcomplex** Fjs_iat = new dcomplex*[this->size_atom()];
+    
     for(int idx=0; idx<nb*nb; idx++) {
       S[idx] = 7.7; T[idx] = 7.7; Dz[idx] = 7.7; V[idx] = 7.7;
     }
     
+    int maxn(0);
     int* maxn_ish = new int[this->size_sh()];
     for(int ish = 0; ish < this->size_sh(); ish++) {
       int sum_ni(0);
@@ -710,10 +700,16 @@ namespace l2func {
 	  sum_ni = sum_ni < ni ? ni : sum_ni;
       }
       maxn_ish[ish] = sum_ni;
+      if(maxn < sum_ni)
+	maxn = sum_ni;
     }
+    for(int iat = 0; iat < this->size_atom(); iat++) {
+      std::cout << iat << std::endl;
+      Fjs_iat[iat] = new dcomplex[2*maxn+1];
+    }
+    
     for(int ish = 0; ish < this->size_sh(); ish++) {
-      //int jsh0 = ish;
-      int jsh0 = 0;
+      int jsh0 = ish;
       for(int jsh = jsh0; jsh < this->size_sh(); jsh++) {
 	dcomplex zetai = zeta_ish[ish]; dcomplex zetaj = zeta_ish[jsh];	
 	dcomplex zetaP = zetai + zetaj;
@@ -726,21 +722,22 @@ namespace l2func {
 	dcomplex eAB = exp(-zetai*zetaj/zetaP*d2);
 	dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
 
+	int mi = maxn_ish[ish]; int mj = maxn_ish[jsh];
+	A3dc dxmap = calc_d_coef(mi,mj+2,mi+mj,zetaP,wPx,xi,xj,dsx_buff);
+	A3dc dymap = calc_d_coef(mi,mj+2,mi+mj,zetaP,wPy,yi,yj,dsy_buff);
+	A3dc dzmap = calc_d_coef(mi,mj+2,mi+mj,zetaP,wPz,zi,zj,dsz_buff);
+	
+	for(int iat = 0; iat < this->size_atom(); iat++) {
+	  dcomplex cx(x_iat[iat]); dcomplex cy(y_iat[iat]); dcomplex cz(z_iat[iat]);
+	  IncompleteGamma(maxn_ish[ish] + maxn_ish[jsh],
+			  zetaP * dist2(wPx-cx,wPy-cy,wPz-cz),
+			  Fjs_iat[iat]);
+	}
+
 	int npi = this->size_prim_ish(ish);
 	int npj = this->size_prim_ish(jsh);
-
-	dcomplex cx(0.0); dcomplex cy(0.0); dcomplex cz(0.0);
-	dcomplex* Fjs = IncompleteGamma(maxn_ish[ish] + maxn_ish[jsh],
-					zetaP * dist2(wPx-cx,wPy-cy,wPz-cz));
-	int mi = maxn_ish[ish]; int mj = maxn_ish[jsh];
-	int mip= mi+1; int mjp = mj+1;       
-	MultArray3<dcomplex> dxmap = calc_d_coef(mip,mjp,mi+mj+1,zetaP,wPx,xi,xj,dsx_buff);
-	MultArray3<dcomplex> dymap = calc_d_coef(mip,mjp,mi+mj+1,zetaP,wPy,yi,yj,dsy_buff);
-	MultArray3<dcomplex> dzmap = calc_d_coef(mip,mjp,mi+mj+1,zetaP,wPz,zi,zj,dsz_buff);
-
 	for(int iprim = 0; iprim < npi; iprim++) {
-	  //int jprim0 = ish == jsh ? iprim : 0;
-	  int jprim0 = 0;
+	  int jprim0 = ish == jsh ? iprim : 0;
 	  for(int jprim = jprim0; jprim < npj; jprim++) {
 	    int nxi = nx_ish_iprim[ish][iprim]; int nxj = nx_ish_iprim[jsh][jprim];
 	    int nyi = ny_ish_iprim[ish][iprim]; int nyj = ny_ish_iprim[jsh][jprim];
@@ -750,67 +747,49 @@ namespace l2func {
 	    dcomplex dx00 = dxmap.get_safe(nxi, nxj, 0);
 	    dcomplex dy00 = dymap.get_safe(nyi, nyj, 0);
 	    dcomplex dz00 = dzmap.get_safe(nzi, nzj, 0);
-	    /*
-	    dcomplex dx00 = coef_d(zetaP, wPz, zi, zj, nzi, nzj, 0);
-	    dcomplex dy00 = coef_d(zetaP, wPz, zi, zj, nzi, nzj, 0);
-	    dcomplex dz00 = coef_d(zetaP, wPz, zi, zj, nzi, nzj, 0);
-	    */
 
 	    // ---- z mat ----
-	    dcomplex dz10 = coef_d(zetaP, wPz, zi, zj, nzi+1, nzj, 0);
-
+	    dcomplex dz01 = dzmap.get_safe(nzi, nzj+1, 0);
+	    
 	    // ---- t mat ----
-	    dcomplex dx02 = coef_d(zetaP, wPx, xi, xj, nxi, nxj+2, 0);
-	    dcomplex dy02 = coef_d(zetaP, wPy, yi, yj, nyi, nyj+2, 0);
-	    dcomplex dz02 = coef_d(zetaP, wPz, zi, zj, nzi, nzj+2, 0);
+	    dcomplex dx02 = dxmap.get_safe(nxi, nxj+2, 0);
+	    dcomplex dy02 = dymap.get_safe(nyi, nyj+2, 0);
+	    dcomplex dz02 = dzmap.get_safe(nzi, nzj+2, 0);
 	    dcomplex t_ele(0.0);
 	    t_ele += -2.0*zetaj * (2*nxj+2*nyj+2*nzj+3.0) * dx00*dy00*dz00;
 	    t_ele += 4.0*zetaj*zetaj*(dx02*dy00*dz00+dx00*dy02*dz00+dx00*dy00*dz02);
 	    if(nxj > 1) {
-	      // dcomplex dx = coef_d(zetaP, wPx, xi, xj, nxi, nxj-2, 0);
-	      //dcomplex dx = dsx[nxi + (nxj-2)*mip];
 	      dcomplex dx = dxmap.get(nxi, nxj-2, 0);
 	      t_ele += 1.0*nxj*(nxj-1) * dx * dy00 * dz00;
 	    }
 	    if(nyj > 1) {
-	      //dcomplex dy = coef_d(zetaP, wPy, yi, yj, nyi, nyj-2, 0);
-	      // dcomplex dy = dsy[nyi + (nyj-2)*mip];
 	      dcomplex dy = dymap.get(nyi, nyj-2, 0);
 	      t_ele += 1.0*nyj*(nyj-1) * dx00 * dy * dz00;
 	    }
 	    if(nzj > 1) {
-	      //dcomplex dz = coef_d(zetaP, wPz, zi, zj, nzi, nzj-2, 0);
-	      // dcomplex dz = dsz[nzi + (nzj-2)*mip];
 	      dcomplex dz = dzmap.get(nzi, nzj-2, 0);
 	      t_ele += 1.0*nzj*(nzj-1) * dx00 * dy00 * dz;
 	    }
-
+	    
 	    dcomplex v_ele(0);
 	    for(int nx = 0; nx <= nxi + nxj; nx++)
 	      for(int ny = 0; ny <= nyi + nyj; ny++)
-		for(int nz = 0; nz <= nzi + nzj; nz++) {
-		  /*
-		  v_ele += (coef_d(zetaP, wPx, xi, xj, nxi, nxj, nx) *
-			    coef_d(zetaP, wPy, yi, yj, nyi, nyj, ny) *
-			    coef_d(zetaP, wPz, zi, zj, nzi, nzj, nz) *
-			    coef_R(zetaP, wPx, wPy, wPz, cx, cy, cz,
-				    nx, ny, nz, 0, Fjs));
-				    */
-
-		  v_ele += (dxmap.get(nxi, nxj, nx) *
-			    dymap.get(nyi, nyj, ny) *
-			    dzmap.get(nzi, nzj, nz) *
-			     coef_R(zetaP, wPx, wPy, wPz, cx, cy, cz,
-				    nx, ny, nz, 0, Fjs));
-
+		for(int nz = 0; nz <= nzi + nzj; nz++)
+		  for(int iat = 0; iat < this->size_atom(); iat++) {
+		    v_ele += (dxmap.get_safe(nxi, nxj, nx) *
+			      dymap.get_safe(nyi, nyj, ny) *
+			      dzmap.get_safe(nzi, nzj, nz) *
+			      coef_R(zetaP, wPx, wPy, wPz,
+				     x_iat[iat], y_iat[iat], z_iat[iat],
+				     nx, ny, nz, 0, Fjs_iat[iat]));
+		  
 		}
 	    	    
 	    int idx = iprim * npj + jprim;
 	    smat_prim[idx] = ce * dx00 * dy00 * dz00;
-	    zmat_prim[idx] = ce*(dx00*dy00*dz10 + zi*dx00*dy00*dz00);
+	    zmat_prim[idx] = ce*(dx00*dy00*dz01 + zj*dx00*dy00*dz00);
 	    tmat_prim[idx] = -0.5 * ce * t_ele;
 	    vmat_prim[idx] = -2.0*M_PI/zetaP * eAB * v_ele;
-	    /*
 	    if(ish == jsh && iprim != jprim) {
 	      int idx1 = jprim * npj + iprim;
 	      smat_prim[idx1] = smat_prim[idx];
@@ -818,14 +797,11 @@ namespace l2func {
 	      tmat_prim[idx1] = tmat_prim[idx];
 	      vmat_prim[idx1] = vmat_prim[idx];
 	    }
-	    */
 	  }
 	}
-	delete Fjs;
 
 	for(int ibasis = 0; ibasis < this->size_basis_ish(ish); ibasis++) {
-	  //	  int jbasis0 = ish == jsh ? ibasis : 0;
-	  int jbasis0 = 0;
+	  int jbasis0 = ish == jsh ? ibasis : 0;
 	  for(int jbasis = jbasis0; jbasis < this->size_basis_ish(jsh); jbasis++) {
 	    dcomplex s(0.0); dcomplex dz(0.0); dcomplex t(0.0);	dcomplex v(0.0);
 	    
@@ -846,12 +822,10 @@ namespace l2func {
 	    int j = offset_ish[jsh] + jbasis;
 	    int idx = i+j*nb;	
 	    S[idx] = s; Dz[idx] = dz; T[idx] = t; V[idx] = v;
-	    /*
 	    if(ish != jsh || ibasis != jbasis) {
 	      int idx1 = j + i*nb;
 	      S[idx1] = s; Dz[idx1] = dz; T[idx1] = t; V[idx1] = v;
 	    }
-	    */
 	  }
 	}
 
@@ -865,6 +839,9 @@ namespace l2func {
     delete dsx_buff;
     delete dsy_buff;
     delete dsz_buff;
+    for(int iat = 0; iat < this->size_atom(); iat++)
+      delete Fjs_iat[iat];
+    delete[] Fjs_iat;
   }
   void GTOs::Show() const {
     std::cout << "Shell" << std::endl;

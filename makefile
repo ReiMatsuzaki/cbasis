@@ -41,6 +41,9 @@ test_gto3d_time: test_gto3d_time.o  cints.o angmoment.o gto3dset.o math_utils.o 
 .PHONY: check_gto3d_time
 check_gto3d_time: test_gto3d_time
 	./test_gto3d_time
+profile_gto3d_time: test_gto3d_time
+	profiler -timeprofiler ./test_gto3d_time
+
 check_gto3d_time_10: test_gto3d_time
 	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 
 	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 

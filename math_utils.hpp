@@ -7,6 +7,8 @@
 
 namespace l2func {
 
+  void set3(int* xs);
+
   template<class F>
   class MultArray3 {
   private:

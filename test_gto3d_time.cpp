@@ -51,6 +51,14 @@ void molint() {
   //           : 2.66855 (reduce new)
   //           : 1.25852 (add transpose)
   //           : 0.40530 (reduce number of calling IncompleteGamma)
+  // 2016/3/4  : 0.152456 (pre calculate coef d)
+  //             0.089503 (pre calculate for all d)
+  //                in molint
+  //                    27 %: coef_d_coef
+  //                    24 %: 
+  //                    19 %: Incomplete Gamma
+  //                    16 %: coef_R
+  //           : 0.054927 (pre calculation of Fjs)
   
 
   Timer timer;
@@ -64,11 +72,11 @@ void molint() {
   dcomplex* zmat;
   dcomplex* vmat;
 
-  //timer.Start("molint");
+  timer.Start("molint");
   std::cout << 1;
   gtos.CalcMat(&smat, &tmat, &zmat, &vmat);
-  //  timer.End("molint");
-  //  timer.Display();
+  timer.End("molint");
+  timer.Display();
 
   delete[] smat;
   delete[] tmat;
@@ -78,7 +86,7 @@ void molint() {
 
 int main(){
 
-  //  gto_set();
+  gto_set();
   molint();
 
 }

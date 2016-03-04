@@ -9,7 +9,7 @@ namespace l2func {
 
   using std::vector;
 
-  dcomplex* IncompleteGamma(int max_m, dcomplex z);
+  void IncompleteGamma(int max_m, dcomplex z, dcomplex* res);
 
   dcomplex coef_d(dcomplex zetap,
 		  dcomplex wPk, dcomplex wAk, dcomplex wBk,
@@ -54,18 +54,6 @@ namespace l2func {
 				  dcomplex zetaB,
 				  dcomplex wCx, dcomplex wCy, dcomplex wCz);
 
-  /*
-  class GTOShell {
-    typedef boost::array<int, 3> i3;
-  public:
-    dcomplex zeta;
-    dcomplex x;
-    dcomplex y;
-    dcomplex z;
-    vector<i3> nml;
-    vector<dcomplex> 
-  };
-  */
   class GTOs {
   private:
     typedef boost::array<dcomplex, 3> dc3;
@@ -86,12 +74,13 @@ namespace l2func {
     vector<int> offset_ish; // offset_ish[ish] + ibasis gives global index    
     vector<vector<vector<dcomplex> > > coef_ish_icont_iprim;
 
+    vector<dcomplex> x_iat;
+    vector<dcomplex> y_iat;
+    vector<dcomplex> z_iat;
+    vector<dcomplex> q_iat;
+
   public:
     GTOs();
-    void Add(dcomplex _zeta,
-	     dcomplex x, dcomplex y, dcomplex z,
-	     vector<int> _nx, vector<int> _ny, vector<int> _nz, 
-	     vector<vector<dcomplex> > _coef);
     int size_basis() const {
       int cumsum(0);
       for(int ish = 0; ish < this->size_sh(); ish++) {
@@ -115,7 +104,15 @@ namespace l2func {
       }
       return cumsum;
     }
+    int size_atom() const {
+      return x_iat.size();
+    }
+    void Add(dcomplex _zeta,
+	     dcomplex x, dcomplex y, dcomplex z,
+	     vector<int> _nx, vector<int> _ny, vector<int> _nz, 
+	     vector<vector<dcomplex> > _coef);
     void AddSphericalGTO(int L, dcomplex x, dcomplex y, dcomplex z, dcomplex _zeta);
+    void AddAtom(dcomplex q, dcomplex x, dcomplex y, dcomplex z);
     void Normalize();
     dcomplex overlap(int ish, int iprim, int jsh, int jprim) const;
     dcomplex kinetic(int ish, int iprim, int jsh, int jprim) const;

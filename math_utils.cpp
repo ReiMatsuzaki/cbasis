@@ -5,6 +5,11 @@ typedef std::complex<double> CD;
 
 namespace l2func {
 
+   void set3(int* xs){
+    xs[0] = 3;
+    xs[1] = 3;    
+  }
+
   int Factorial(int n) {
 
     if(n < 0) {
