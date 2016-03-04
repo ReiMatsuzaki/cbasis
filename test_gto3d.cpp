@@ -72,34 +72,118 @@ TEST(GTOs, offset) {
 }
 TEST(GTOs, d_coef) {
 
+/*
   dcomplex ref[4*5*6];
-  dcomplex* calc = new dcomplex[4*5*6];
-  dcomplex zetaP(1.1, 0.3);
-  for(int ni = 0; ni < 3; ni++)
-    for(int nj = 0; nj < 4; nj++)
-      for(int n = 0; n < 5; n++) {
+  
+  for(int ni = 0; ni <= 2; ni++)
+    for(int nj = 0; nj <= 3; nj++)
+      for(int n = 0; n <= 4; n++) {
 	ref[ni + nj*3 + n*4*3] = coef_d(zetaP, 0.5, 0.1, 0.3, ni, nj, n);
       }
-  calc_d_coef(3, 4, 5, zetaP, 0.5, 0.1, 0.3, &calc);
+*/
+  dcomplex zetaP(1.1, 0.3);
+  dcomplex wPk(0.666);
+  dcomplex xi(0.111);
+  dcomplex xj(0.125);
+  dcomplex* buff = new dcomplex[4*5*6];
+  for(int i = 0; i < 4*5*6; i++)
+    buff[i] = 1234.00;
+  
+  MultArray3<dcomplex> ary = calc_d_coef(2, 3, 4, zetaP, wPk, xi, xj, buff);
 
   int idx(0);
   for(int ni = 0; ni <= 2; ni++)
     for(int nj = 0; nj <= 3; nj++)
       for(int n = 0; n <=4; n++) {
-	EXPECT_C_EQ(ref[idx], calc[idx]) << ni << nj << n;
+	dcomplex calc = ary.get(ni, nj, n);
+	dcomplex ref0 = coef_d(zetaP, wPk, xi, xj, ni, nj, n);
+	EXPECT_C_EQ(ref0, calc)<< ni << nj << n;	  
 	idx++;
       }
   
 
 }
-TEST(GTOs, Create) {
+TEST(GTOs, size) {
+
+  GTOs gtos;
+  
+  for(int L = 2; L < 3; L++)
+    for(int n = 0; n < 1; n++ ) {
+
+      dcomplex zeta(0.3);
+      dcomplex x(0.0);
+      dcomplex y(0.0);
+      dcomplex z(0.0);
+
+      gtos.AddSphericalGTO(L, x, y, z, zeta);
+  }
+
+  EXPECT_EQ(6, gtos.size_prim());
+  EXPECT_EQ(5, gtos.size_basis());
+
+}
+TEST(GTOs, Create1) {
 
   SphericalGTOSet gto_ref;
   GTOs gtos;
 
   
   for(int L = 0; L < 3; L++)
-    for(int n = 0; n < 2; n++ ) {
+    for(int n = 0; n < 1; n++ ) {
+
+      dcomplex zeta(0.1+n*0.1, 0.0);
+      dcomplex x(0.4*(n+1));
+      dcomplex y(-0.1+0.1*(n+1));
+      dcomplex z(0.3+0.2*(n+1));
+/*
+      dcomplex zeta(0.3, 0.0);
+      dcomplex x(0.0);
+      dcomplex y(0.0);
+      dcomplex z(0.0);
+      */
+
+      gtos.AddSphericalGTO(L, x, y, z, zeta);
+      gto_ref.AddBasis(    L, x, y, z, zeta);
+  }
+  gtos.Normalize();
+  dcomplex* smat_ref  = gto_ref.SMat(gto_ref);
+  dcomplex* tmat_ref  = gto_ref.TMat(gto_ref);
+  dcomplex* zmat_ref  = gto_ref.XyzMat(0, 0, 1, gto_ref);
+  dcomplex* vmat_ref = gto_ref.VMat(1.0, 0.0, 0.0, 0.0, gto_ref);
+  //  dcomplex* vmat_ref  = gto_ref.VMat(1.1, -0.1, 0.22, 0.31, gto_ref);
+  dcomplex* smat_calc;
+  dcomplex* tmat_calc;
+  dcomplex* zmat_calc;
+  dcomplex* vmat_calc;
+  
+  //gtos.Show();
+  int num = gtos.size_basis();
+  gtos.CalcMat(&smat_calc, &tmat_calc, &zmat_calc, &vmat_calc);    
+  
+  std::cout << tmat_calc[(2+4) + num * (2+4)] << std::endl;
+  std::cout << tmat_ref[(2+4) + num * (2+4)] << std::endl;
+  double eps(pow(10.0, -10.0));
+  for(int i = 0; i < num; i++)
+    for(int j = 0; j < num; j++) {
+      int idx = i * num + j;
+      EXPECT_C_NEAR(smat_ref[idx], smat_calc[idx], eps) 
+	<< "(" << i << ", " << j << ")" << std::endl;
+      EXPECT_C_NEAR(tmat_ref[idx], tmat_calc[idx], eps) 
+	<< "(" << i << ", " << j << ")" << std::endl;
+      EXPECT_C_NEAR(zmat_ref[idx], zmat_calc[idx], eps) 
+	<< "(" << i << ", " << j << ")" << std::endl;
+      EXPECT_C_NEAR(vmat_ref[idx], vmat_calc[idx], eps)
+	<< "(" << i << ", " << j << ")" << std::endl;
+    }
+}
+TEST(GTOs, Create) {
+
+  SphericalGTOSet gto_ref;
+  GTOs gtos;
+  
+  for(int L = 2; L < 3; L++)
+    for(int n = 0; n < 1; n++ ) {
+      
       dcomplex zeta(0.1+n*0.1, 0.0);
       dcomplex x(0.4*(n+1));
       dcomplex y(-0.1+0.1*(n+1));
@@ -118,8 +202,13 @@ TEST(GTOs, Create) {
   dcomplex* tmat_calc;
   dcomplex* zmat_calc;
   dcomplex* vmat_calc;
-  gtos.CalcMat(&smat_calc, &tmat_calc, &zmat_calc, &vmat_calc);
+  
+  //gtos.Show();
   int num = gtos.size_basis();
+  gtos.CalcMat(&smat_calc, &tmat_calc, &zmat_calc, &vmat_calc);    
+  
+  std::cout << tmat_calc[(2+4) + num * (2+4)] << std::endl;
+  std::cout << tmat_ref[(2+4) + num * (2+4)] << std::endl;
   double eps(pow(10.0, -10.0));
   for(int i = 0; i < num; i++)
     for(int j = 0; j < num; j++) {

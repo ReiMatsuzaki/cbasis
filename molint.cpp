@@ -2,6 +2,7 @@
 #include "molint.hpp"
 #include "macros.hpp"
 
+
 namespace l2func {
 
   // ==== Utility ====
@@ -202,17 +203,51 @@ namespace l2func {
     
   }
 
-  void calc_d_coef(int num_ni, int num_nj, int num_n,
-		   dcomplex zetaP, dcomplex wPx, dcomplex xi, dcomplex xj,
-		   dcomplex** dsx) {
+  MultArray3<dcomplex> calc_d_coef(int max_ni, int max_nj, int max_n,
+				   dcomplex zetaP, dcomplex wPx, dcomplex xi, dcomplex xj,
+				   dcomplex* buffer) {
 
-	for(int ni = 0; ni < num_ni; ni++)
-	  for(int nj = 0; nj < num_nj; nj++) 
-	    for(int n = 0; n < num_n; n++) {
-	      int idx = ni + nj*num_ni + n*num_ni*num_nj;
-	      (*dsx)[idx] = coef_d(zetaP, wPx, xi, xj, ni, nj, n);
+    MultArray3<dcomplex> data(buffer,
+			      0, max_ni,
+			      0, max_nj,
+			      -max_ni-max_nj, max_ni+max_nj+max_n);
+
+    data.set(0, 0, 0, 1.0);
+    /*
+    for(int n = 1; n <= max_ni + max_nj; n++) {
+      dcomplex v = 
+      data
+    }
+    */
+    for(int n = -max_ni -max_nj; n < 0; n++) 
+      data.set(0, 0, n, 0.0);
+    
+    for(int n = 1; n <= max_ni+max_nj+max_n; n++) 
+      data.set(0, 0, n, 0.0);
+
+    for(int ni_nj = 1; ni_nj <= max_ni + max_nj; ni_nj++) {
+      for(int ni = 0; ni <= std::min(max_ni, ni_nj); ni++) {
+	int nj = ni_nj - ni;
+	if(nj <= max_nj) {
+	  for(int n = -(max_ni + max_nj - ni_nj);
+	      n <= max_ni + max_nj + max_n - ni_nj; n++) {
+	    if(ni > 0) {
+	      dcomplex v = (1.0/(2.0*zetaP) * data.get_safe(ni-1, nj, n-1) +
+			    (wPx - xi)      * data.get_safe(ni-1, nj, n) + 
+			    (n + 1.0)      * data.get_safe(ni-1, nj, n+1));
+	      data.set(ni, nj, n, v);
+	    } else if(nj > 0) {
+	      dcomplex v = (1.0/(2.0*zetaP) * data.get_safe(ni, nj-1, n-1) +
+			    (wPx - xj)      * data.get_safe(ni, nj-1, n) + 
+			    (n + 1.0)      * data.get_safe(ni, nj-1, n+1));
+	      data.set(ni, nj, n, v);	    
 	    }
+	  }
+	}
+      }
+    }
 
+    return data;
   }
 
   dcomplex gto_overlap(int nAx, int nAy, int nAz, 
@@ -288,7 +323,6 @@ namespace l2func {
 		  dcomplex wPx, dcomplex wPy, dcomplex wPz,
 		  dcomplex cx,  dcomplex cy,  dcomplex cz,
 		  int mx, int my, int mz, int j, dcomplex* Fjs) {
-    //    std::cout << mx << my << mz << j << std::endl;
 
     if(mx == 0 && my == 0 && mz == 0) {
       //      dcomplex arg = zetaP * dist2(wPx-cx, wPy-cy, wPz-cz);
@@ -471,22 +505,7 @@ namespace l2func {
 
   }
 
-  int GTOs::size_basis() const {
-    int cumsum(0);
-    for(int ish = 0; ish < this->size_sh(); ish++) {
-      cumsum += this->size_basis_ish(ish);      
-    }
-    return cumsum;
-  }
-  int GTOs::size_sh()  const {
-    return zeta_ish.size();    
-  }
-  int GTOs::size_basis_ish(int ish) const {
-    return coef_ish_icont_iprim[ish].size();    
-  }
-  int GTOs::size_prim_ish(int ish) const {
-    return nx_ish_iprim[ish].size();
-  }
+
   void GTOs::Normalize() {
 
     for(int ish = 0; ish < this->size_sh(); ish++) {
@@ -664,17 +683,18 @@ namespace l2func {
   void GTOs::CalcMat(dcomplex** s, dcomplex** t, dcomplex** dz, dcomplex** v) {
     
     int nb = this->size_basis();    
+    int np = this->size_prim();
     dcomplex* S = new dcomplex[nb*nb];
     dcomplex* T = new dcomplex[nb*nb];
     dcomplex* Dz = new dcomplex[nb*nb];
     dcomplex* V = new dcomplex[nb*nb];    
-    dcomplex* smat_prim = new dcomplex[nb*nb];
-    dcomplex* zmat_prim = new dcomplex[nb*nb];
-    dcomplex* tmat_prim = new dcomplex[nb*nb];
-    dcomplex* vmat_prim = new dcomplex[nb*nb];
-    dcomplex* dsx = new dcomplex[100];
-    dcomplex* dsy = new dcomplex[100];
-    dcomplex* dsz = new dcomplex[100];
+    dcomplex* smat_prim = new dcomplex[np*np];
+    dcomplex* zmat_prim = new dcomplex[np*np];    
+    dcomplex* vmat_prim = new dcomplex[np*np];
+    dcomplex* tmat_prim = new dcomplex[np*np];
+    dcomplex* dsx_buff = new dcomplex[100];
+    dcomplex* dsy_buff = new dcomplex[100];
+    dcomplex* dsz_buff = new dcomplex[100];
 
     for(int idx=0; idx<nb*nb; idx++) {
       S[idx] = 7.7; T[idx] = 7.7; Dz[idx] = 7.7; V[idx] = 7.7;
@@ -692,7 +712,9 @@ namespace l2func {
       maxn_ish[ish] = sum_ni;
     }
     for(int ish = 0; ish < this->size_sh(); ish++) {
-      for(int jsh = ish; jsh < this->size_sh(); jsh++) {
+      //int jsh0 = ish;
+      int jsh0 = 0;
+      for(int jsh = jsh0; jsh < this->size_sh(); jsh++) {
 	dcomplex zetai = zeta_ish[ish]; dcomplex zetaj = zeta_ish[jsh];	
 	dcomplex zetaP = zetai + zetaj;
 	dcomplex xi(x_ish[ish]); dcomplex yi(y_ish[ish]); dcomplex zi(z_ish[ish]);
@@ -712,21 +734,30 @@ namespace l2func {
 					zetaP * dist2(wPx-cx,wPy-cy,wPz-cz));
 	int mi = maxn_ish[ish]; int mj = maxn_ish[jsh];
 	int mip= mi+1; int mjp = mj+1;
-	calc_d_coef(mip, mjp, mi+mj+1, zetaP, wPx, xi, xj, &dsx);
-	calc_d_coef(mip, mjp, mi+mj+1, zetaP, wPy, yi, yj, &dsy);
-	calc_d_coef(mip, mjp, mi+mj+1, zetaP, wPz, zi, zj, &dsz);
+	/*
+	MultArray3<dcomplex> dxmap = calc_d_coef(mip,mjp,mi+mj+1,zetaP,wPx,xi,xj,dsx_buff);
+	MultArray3<dcomplex> dymap = calc_d_coef(mip,mjp,mi+mj+1,zetaP,wPy,yi,yj,dsy_buff);
+	MultArray3<dcomplex> dzmap = calc_d_coef(mip,mjp,mi+mj+1,zetaP,wPz,zi,zj,dsz_buff);
 	
+	*/
 	for(int iprim = 0; iprim < npi; iprim++) {
-	  int jprim0 = ish == jsh ? iprim : 0;
+	  //int jprim0 = ish == jsh ? iprim : 0;
+	  int jprim0 = 0;
 	  for(int jprim = jprim0; jprim < npj; jprim++) {
 	    int nxi = nx_ish_iprim[ish][iprim]; int nxj = nx_ish_iprim[jsh][jprim];
 	    int nyi = ny_ish_iprim[ish][iprim]; int nyj = ny_ish_iprim[jsh][jprim];
 	    int nzi = nz_ish_iprim[ish][iprim]; int nzj = nz_ish_iprim[jsh][jprim];
 
 	    // ---- S mat ----
-	    dcomplex dx00 = dsx[nxi + nxj*mip];
-	    dcomplex dy00 = dsy[nyi + nyj*mip];
-	    dcomplex dz00 = dsz[nzi + nzj*mip];
+	    dcomplex dx00 = coef_d(zetaP, wPx, xi, xj, nxi, nxj, 0);
+	    dcomplex dy00 = coef_d(zetaP, wPy, yi, yj, nyi, nyj, 0);
+	    dcomplex dz00 = coef_d(zetaP, wPz, zi, zj, nzi, nzj, 0);
+
+	    /*
+	    dcomplex dx00 = dxmap.get(nxi, nxj, 0);
+	    dcomplex dy00 = dymap.get(nyi, nyj, 0);
+	    dcomplex dz00 = dzmap.get(nzi, nzj, 0);
+	    */
 
 	    // ---- z mat ----
 	    dcomplex dz10 = coef_d(zetaP, wPz, zi, zj, nzi+1, nzj, 0);
@@ -739,18 +770,21 @@ namespace l2func {
 	    t_ele += -2.0*zetaj * (2*nxj+2*nyj+2*nzj+3.0) * dx00*dy00*dz00;
 	    t_ele += 4.0*zetaj*zetaj*(dx02*dy00*dz00+dx00*dy02*dz00+dx00*dy00*dz02);
 	    if(nxj > 1) {
-	      // dcomplex dx = coef_d(zetaP, wPx, xi, xj, nxi, nxj-2, 0);
-	      dcomplex dx = dsx[nxi + (nxj-2)*mip];
+	      dcomplex dx = coef_d(zetaP, wPx, xi, xj, nxi, nxj-2, 0);
+	      // dcomplex dx = dsx[nxi + (nxj-2)*mip];
+	      //dcomplex dx = dxmap.get(nxi, nxj-2, 0);
 	      t_ele += 1.0*nxj*(nxj-1) * dx * dy00 * dz00;
 	    }
 	    if(nyj > 1) {
-	      // dcomplex dy = coef_d(zetaP, wPy, yi, yj, nyi, nyj-2, 0);
-	      dcomplex dy = dsy[nyi + (nyj-2)*mip];
+	      dcomplex dy = coef_d(zetaP, wPy, yi, yj, nyi, nyj-2, 0);
+	      // dcomplex dy = dsy[nyi + (nyj-2)*mip];
+	      // dcomplex dy = dymap.get(nyi, nyj-2, 0);
 	      t_ele += 1.0*nyj*(nyj-1) * dx00 * dy * dz00;
 	    }
 	    if(nzj > 1) {
-	      // dcomplex dz = coef_d(zetaP, wPz, zi, zj, nzi, nzj-2, 0);
-	      dcomplex dz = dsz[nzi + (nzj-2)*mip];
+	      dcomplex dz = coef_d(zetaP, wPz, zi, zj, nzi, nzj-2, 0);
+	      // dcomplex dz = dsz[nzi + (nzj-2)*mip];
+	      // dcomplex dz = dzmap.get(nzi, nzj-2, 0);
 	      t_ele += 1.0*nzj*(nzj-1) * dx00 * dy00 * dz;
 	    }
 
@@ -758,11 +792,19 @@ namespace l2func {
 	    for(int nx = 0; nx <= nxi + nxj; nx++)
 	      for(int ny = 0; ny <= nyi + nyj; ny++)
 		for(int nz = 0; nz <= nzi + nzj; nz++) {
-		  v_ele += (dsx[nxi + nxj*mip + nx*mip*mjp] *
-			    dsy[nyi + nyj*mip + ny*mip*mjp] *
-			    dsz[nzi + nzj*mip + nz*mip*mjp] *
+
+		  v_ele += (coef_d(zetaP, wPx, xi, xj, nxi, nxj, nx) *
+			    coef_d(zetaP, wPy, yi, yj, nyi, nyj, ny) *
+			    coef_d(zetaP, wPz, zi, zj, nzi, nzj, nz) *
+			    coef_R(zetaP, wPx, wPy, wPz, cx, cy, cz,
+				    nx, ny, nz, 0, Fjs));
+				    /*
+		  v_ele += (dxmap.get(nxi, nxj, nx) *
+			    dymap.get(nyi, nyj, ny) *
+			    dzmap.get(nzi, nzj, nz) *
 			     coef_R(zetaP, wPx, wPy, wPz, cx, cy, cz,
 				    nx, ny, nz, 0, Fjs));
+				    */
 		}
 	    	    
 	    int idx = iprim * npj + jprim;
@@ -770,6 +812,7 @@ namespace l2func {
 	    zmat_prim[idx] = ce*(dx00*dy00*dz10 + zi*dx00*dy00*dz00);
 	    tmat_prim[idx] = -0.5 * ce * t_ele;
 	    vmat_prim[idx] = -2.0*M_PI/zetaP * eAB * v_ele;
+	    /*
 	    if(ish == jsh && iprim != jprim) {
 	      int idx1 = jprim * npj + iprim;
 	      smat_prim[idx1] = smat_prim[idx];
@@ -777,13 +820,14 @@ namespace l2func {
 	      tmat_prim[idx1] = tmat_prim[idx];
 	      vmat_prim[idx1] = vmat_prim[idx];
 	    }
-	  }	      
+	    */
+	  }
 	}
-
 	delete Fjs;
 
 	for(int ibasis = 0; ibasis < this->size_basis_ish(ish); ibasis++) {
-	  int jbasis0 = ish == jsh ? ibasis : 0;
+	  //	  int jbasis0 = ish == jsh ? ibasis : 0;
+	  int jbasis0 = 0;
 	  for(int jbasis = jbasis0; jbasis < this->size_basis_ish(jsh); jbasis++) {
 	    dcomplex s(0.0); dcomplex dz(0.0); dcomplex t(0.0);	dcomplex v(0.0);
 	    
@@ -804,10 +848,12 @@ namespace l2func {
 	    int j = offset_ish[jsh] + jbasis;
 	    int idx = i+j*nb;	
 	    S[idx] = s; Dz[idx] = dz; T[idx] = t; V[idx] = v;
+	    /*
 	    if(ish != jsh || ibasis != jbasis) {
 	      int idx1 = j + i*nb;
 	      S[idx1] = s; Dz[idx1] = dz; T[idx1] = t; V[idx1] = v;
 	    }
+	    */
 	  }
 	}
 
@@ -818,9 +864,33 @@ namespace l2func {
     delete tmat_prim;
     delete zmat_prim;
     delete vmat_prim;
-    delete dsx;
-    delete dsy;
-    delete dsz;
+    delete dsx_buff;
+    delete dsy_buff;
+    delete dsz_buff;
+  }
+  void GTOs::Show() const {
+    std::cout << "Shell" << std::endl;
+    for(int ish = 0; ish < this->size_sh(); ish++)
+      std::cout << ish << ": " << zeta_ish[ish]
+		<< x_ish[ish] << y_ish[ish] << z_ish[ish] << std::endl;
+    std::cout << "Offset" << std::endl;
+    for(int ish = 0; ish < this->size_sh(); ish++)
+      std::cout << ish << offset_ish[ish] << std::endl;
+    std::cout << "n" << std::endl;
+    for(int ish = 0; ish < this->size_sh(); ish++)
+      for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++) {
+	std::cout << ish << iprim << " ";
+	std::cout << nx_ish_iprim[ish][iprim];
+	std::cout << ny_ish_iprim[ish][iprim];
+	std::cout << nz_ish_iprim[ish][iprim];
+	std::cout << std::endl;
+      }
+
+    std::cout << "Coef" << std::endl;
+    for(int ish = 0; ish < this->size_sh(); ish++)
+      for(int ibasis = 0; ibasis < this->size_basis_ish(ish); ibasis++)
+	for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++)
+	  std::cout << ish << ibasis << iprim << coef_ish_icont_iprim[ish][ibasis][iprim] << std::endl;
   }
   /*
   MatrixSet CalcMat(const CartGTOs& a, const MolePot& v, const CartGTOs& b) {

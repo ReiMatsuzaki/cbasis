@@ -2,8 +2,49 @@
 #define MATH_UTILS_TEMPLATE_H
 
 #include <complex>
+#include <sstream>
+#include "macros.hpp"
 
 namespace l2func {
+
+  template<class F>
+  class MultArray3 {
+  private:
+    F* data_;
+    int n0_[3];
+    int n1_[3];
+  public:
+    MultArray3(F* data, int nx0, int nx1, int ny0, int ny1, int nz0, int nz1) {
+      data_ = data;
+      n0_[0] = nx0; n0_[1] = ny0; n0_[2] = nz0;
+      n1_[0] = nx1; n1_[1] = ny1; n1_[2] = nz1;
+      data_ = new F[(nx1-nx0+1)*(ny1-ny0+1)*(nz1-nz0+1)];
+    }
+    int idx(int nx, int ny, int nz) {
+      return (nx +
+	      ny * (n1_[0] - n0_[0] + 1) + 
+	      nz * (n1_[0] - n0_[0] + 1) * (n1_[1] - n0_[1] + 1)); 
+    }
+    void set(int nx, int ny, int nz, F v) {
+      data_[idx(nx, ny, nz)] = v;
+    }
+    F get(int nx, int ny, int nz) {
+      return data_[idx(nx, ny, nz)];
+    }
+    F get_safe(int nx, int ny, int nz) {
+      if(nx < n0_[0] || n1_[0] < nx ||
+	 ny < n0_[1] || n1_[1] < ny ||
+	 nz < n0_[2] || n1_[2] < nz) {
+	std::string msg;
+	std::stringstream ss;
+	SUB_LOCATION(msg);
+	ss << "index: (" << nx << ", " << ny << ", " << nz << ")" << std::endl;
+	msg += ss.str();
+	throw std::out_of_range(msg);
+      }
+      return this->get(nx, ny, nz);
+    }
+  };
 
 /*
   template<class F, int n>

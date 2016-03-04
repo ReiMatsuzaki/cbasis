@@ -14,10 +14,17 @@ namespace l2func {
   dcomplex coef_d(dcomplex zetap,
 		  dcomplex wPk, dcomplex wAk, dcomplex wBk,
 		  int nAk, int nBk, int Nk);
-  void calc_d_coef(int num_ni, int num_nj, int num_n,
-		   dcomplex zetaP, dcomplex wPx, dcomplex xi, dcomplex xj,
-		   dcomplex** dsx);
 
+  MultArray3<dcomplex> calc_d_coef(int max_ni, int max_nj, int max_n,
+				   dcomplex zetaP, dcomplex wPx,
+				   dcomplex xi, dcomplex xj,
+				   dcomplex* buffer);
+
+  void calc_d_coef(int max_ni, int max_nj, int max_n,
+		   dcomplex zetaP, dcomplex wPx,
+		   dcomplex xi, dcomplex xj,
+		   dcomplex* buffer, dcomplex* res);
+  
   dcomplex gto_overlap(int nAx, int nAy, int nAz, 
 		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
 		       dcomplex zetaA,
@@ -85,10 +92,29 @@ namespace l2func {
 	     dcomplex x, dcomplex y, dcomplex z,
 	     vector<int> _nx, vector<int> _ny, vector<int> _nz, 
 	     vector<vector<dcomplex> > _coef);
-    int size_basis() const;
-    int size_sh()  const;
-    int size_basis_ish(int ish) const;
-    int size_prim_ish(int ish) const;
+    int size_basis() const {
+      int cumsum(0);
+      for(int ish = 0; ish < this->size_sh(); ish++) {
+	cumsum += this->size_basis_ish(ish);      
+      }
+      return cumsum;
+    }
+    int size_sh()  const {
+      return zeta_ish.size();    
+    }
+    int size_basis_ish(int ish) const {
+      return coef_ish_icont_iprim[ish].size();    
+    }
+    int size_prim_ish(int ish) const {
+      return nx_ish_iprim[ish].size();
+    }
+    int size_prim() const {
+      int cumsum(0);
+      for(int ish = 0; ish < this->size_sh(); ish++) {
+	cumsum += this->size_prim_ish(ish);
+      }
+      return cumsum;
+    }
     void AddSphericalGTO(int L, dcomplex x, dcomplex y, dcomplex z, dcomplex _zeta);
     void Normalize();
     dcomplex overlap(int ish, int iprim, int jsh, int jprim) const;
@@ -97,6 +123,7 @@ namespace l2func {
     dcomplex* SMat2() const;
     dcomplex* TMat() const;
     void CalcMat(dcomplex** s, dcomplex** t, dcomplex** dz, dcomplex** v);
+    void Show() const;
     // void VMat(dcomplex** v);
   };
   class MolePot {

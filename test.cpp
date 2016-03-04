@@ -27,14 +27,35 @@ using namespace erfc_mori;
 
 typedef std::complex<double> CD;
 
-TEST(array, math_utils) {
+TEST(math, array3) {
   array3<double> xs(1.1, 1.2, 1.3);
   EXPECT_DOUBLE_EQ(1.2, xs[1]);
 
   array3<CD> ys(xs);
   EXPECT_DOUBLE_EQ(1.2, real(ys[1]));
 }
+TEST(math, MultArray3) {
 
+  int* data = new int[6*6*6];
+
+  MultArray3<int> xs(data,
+		     -2, 3,
+		     -1, 4,
+		     0, 5);
+  for(int i = -2; i <= 3; i++)
+    for(int j = -1; j <= 4; j++)
+      for(int k = 0; k <= 5; k++) {
+	xs.set(i, j, k, 100*i+10*j+k);
+      }
+
+  for(int i = -2; i <= 3; i++)
+    for(int j = -1; j <= 4; j++)
+      for(int k = 0; k <= 5; k++) {
+	EXPECT_EQ(100*i+10*j+k, xs.get_safe(i, j, k));
+      }
+
+  delete data;
+}
 TEST(math, Factorial) {
 
   EXPECT_ANY_THROW(Factorial(-1));
