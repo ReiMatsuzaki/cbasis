@@ -59,12 +59,48 @@ void molint() {
   //                    19 %: Incomplete Gamma
   //                    16 %: coef_R
   //           : 0.054927 (pre calculation of Fjs)
+  //           :: 0.047015 (get_safe -> get)
+  //           : 0.118636 (forgot H atom)
+  //           : 0.297726 (in debug)
+  //             in molint
+  //                   27 : x
+  //                   22 : calc_d_coef 
+  //                   20 : coef_R
+  //                   20 : IncompleteGamma
 
   Timer timer;
   GTOs gtos;
   for(int L = 0; L <= 2; L++)
     for(int n = -5; n < 5; n++)
       gtos.AddSphericalGTO(L, 0.1, 0.2, 0.3, pow(2.0, n));
+  gtos.AddAtom(1.0, 0.0, 0.0, 0.0);
+  dcomplex* smat;
+  dcomplex* tmat;
+  dcomplex* zmat;
+  dcomplex* vmat;
+
+  timer.Start("molint");
+  std::cout << 1;
+  gtos.CalcMat(&smat, &tmat, &zmat, &vmat);
+  timer.End("molint");
+  timer.Display();
+
+  delete[] smat;
+  delete[] tmat;
+  delete[] zmat;
+  delete[] vmat;
+}
+void molint2() {
+
+  Timer timer;
+  GTOs gtos;
+  for(int nx = 0; nx < 1; nx++) {
+    dcomplex x = 0.1*nx;
+    gtos.AddAtom(1.0, x, 0.0, 0.0);
+    for(int L = 0; L <= 2; L++)
+      for(int n = -3; n < 3; n++)
+	gtos.AddSphericalGTO(L, x, 0.2, 0.3, pow(2.0, n));
+  }
 
   dcomplex* smat;
   dcomplex* tmat;
@@ -85,8 +121,9 @@ void molint() {
 
 int main(){
 
-  gto_set();
+  gto_set();  
   molint();
-
+  //  molint2();
+  
 }
 

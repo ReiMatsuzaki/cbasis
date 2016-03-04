@@ -1,7 +1,7 @@
 include local.mk
 #CXXFLAGS=${INC_PATH} -Wall -O3  
-CXXFLAGS=${INC_PATH} -Wall
-#CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
+#CXXFLAGS=${INC_PATH} -Wall
+CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
 
 MATH_OBJS=erfc.o math_utils.o
 FUNC_OBJS=cut_exp.o exp_func.o delta.o
@@ -42,7 +42,7 @@ test_gto3d_time: test_gto3d_time.o  cints.o angmoment.o gto3dset.o math_utils.o 
 check_gto3d_time: test_gto3d_time
 	./test_gto3d_time
 profile_gto3d_time: test_gto3d_time
-	profiler -timeprofiler ./test_gto3d_time
+	iprofiler -timeprofiler ./test_gto3d_time
 
 check_gto3d_time_10: test_gto3d_time
 	./test_gto3d_time; ./test_gto3d_time; ./test_gto3d_time; 

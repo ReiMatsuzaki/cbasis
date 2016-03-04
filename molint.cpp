@@ -704,7 +704,6 @@ namespace l2func {
 	maxn = sum_ni;
     }
     for(int iat = 0; iat < this->size_atom(); iat++) {
-      std::cout << iat << std::endl;
       Fjs_iat[iat] = new dcomplex[2*maxn+1];
     }
     
@@ -744,17 +743,17 @@ namespace l2func {
 	    int nzi = nz_ish_iprim[ish][iprim]; int nzj = nz_ish_iprim[jsh][jprim];
 
 	    // ---- S mat ----
-	    dcomplex dx00 = dxmap.get_safe(nxi, nxj, 0);
-	    dcomplex dy00 = dymap.get_safe(nyi, nyj, 0);
-	    dcomplex dz00 = dzmap.get_safe(nzi, nzj, 0);
+	    dcomplex dx00 = dxmap.get(nxi, nxj, 0);
+	    dcomplex dy00 = dymap.get(nyi, nyj, 0);
+	    dcomplex dz00 = dzmap.get(nzi, nzj, 0);
 
 	    // ---- z mat ----
-	    dcomplex dz01 = dzmap.get_safe(nzi, nzj+1, 0);
+	    dcomplex dz01 = dzmap.get(nzi, nzj+1, 0);
 	    
 	    // ---- t mat ----
-	    dcomplex dx02 = dxmap.get_safe(nxi, nxj+2, 0);
-	    dcomplex dy02 = dymap.get_safe(nyi, nyj+2, 0);
-	    dcomplex dz02 = dzmap.get_safe(nzi, nzj+2, 0);
+	    dcomplex dx02 = dxmap.get(nxi, nxj+2, 0);
+	    dcomplex dy02 = dymap.get(nyi, nyj+2, 0);
+	    dcomplex dz02 = dzmap.get(nzi, nzj+2, 0);
 	    dcomplex t_ele(0.0);
 	    t_ele += -2.0*zetaj * (2*nxj+2*nyj+2*nzj+3.0) * dx00*dy00*dz00;
 	    t_ele += 4.0*zetaj*zetaj*(dx02*dy00*dz00+dx00*dy02*dz00+dx00*dy00*dz02);
@@ -776,9 +775,9 @@ namespace l2func {
 	      for(int ny = 0; ny <= nyi + nyj; ny++)
 		for(int nz = 0; nz <= nzi + nzj; nz++)
 		  for(int iat = 0; iat < this->size_atom(); iat++) {
-		    v_ele += (dxmap.get_safe(nxi, nxj, nx) *
-			      dymap.get_safe(nyi, nyj, ny) *
-			      dzmap.get_safe(nzi, nzj, nz) *
+		    v_ele += (dxmap.get(nxi, nxj, nx) *
+			      dymap.get(nyi, nyj, ny) *
+			      dzmap.get(nzi, nzj, nz) *
 			      coef_R(zetaP, wPx, wPy, wPz,
 				     x_iat[iat], y_iat[iat], z_iat[iat],
 				     nx, ny, nz, 0, Fjs_iat[iat]));
@@ -809,12 +808,12 @@ namespace l2func {
 	      
 	      for(int jprim = 0; jprim < npj; jprim++) {
 		int idx_prim0(iprim * npj + jprim);
-		dcomplex ci(coef_ish_icont_iprim[ish][ibasis][iprim]);
-		dcomplex cj(coef_ish_icont_iprim[jsh][jbasis][jprim]);
-		s += ci*cj*smat_prim[idx_prim0];
-		t += ci*cj*tmat_prim[idx_prim0];
-		dz += ci*cj*zmat_prim[idx_prim0];
-		v += ci*cj*vmat_prim[idx_prim0];
+		dcomplex cc(coef_ish_icont_iprim[ish][ibasis][iprim]*
+			    coef_ish_icont_iprim[jsh][jbasis][jprim]);
+		s += cc*smat_prim[idx_prim0];
+		t += cc*tmat_prim[idx_prim0];
+		dz += cc*zmat_prim[idx_prim0];
+		v += cc*vmat_prim[idx_prim0];
 		idx_prim0++;
 	      }
 	    }
