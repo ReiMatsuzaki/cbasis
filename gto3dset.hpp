@@ -26,10 +26,10 @@ namespace l2func {
     dcomplex SMatEle(int i, int j) const;
     dcomplex TMatEle(int i, int j) const;
     dcomplex VMatEle(int i, int j, dcomplex q, dcomplex x, dcomplex y, dcomplex z) const;
-    dcomplex* SMat(const SphericalGTOSet& o) const;
-    dcomplex* TMat(const SphericalGTOSet& o) const;
-    dcomplex* VMat(dcomplex q, dcomplex x, dcomplex y, dcomplex z, const SphericalGTOSet& o) const;
-    dcomplex* XyzMat(int nx, int ny, int nz, const SphericalGTOSet& o) const;
+    dcomplex* SMat() const;
+    dcomplex* TMat() const;
+    dcomplex* VMat(dcomplex q, dcomplex x, dcomplex y, dcomplex z) const;
+    dcomplex* XyzMat(int nx, int ny, int nz) const;
 		   
     // np::ndarray SMatWtihOther(const SphericalGTOSet& o);
   };

@@ -39,28 +39,13 @@ namespace l2func {
     return CIP(this->basis(i), op, this->basis(j));
   }
 
+/*
   template<class TOp>
   dcomplex* CalcMat(const SphericalGTOSet& a, const TOp& op, const SphericalGTOSet& b) {
     int numi = a.size();
     int numj = b.size();
     dcomplex* vs = new dcomplex[numi * numj];
 
-    /*
-    if(&a == &b) {
-      for(int i = 0; i < numi; i++) {
-	vs[i*numj + i] = CIP(a.basis(i), op, a.basis(i));
-	for(int j = 0; j < i; j++) {
-	  dcomplex v = CIP(a.basis(i), op, a.basis(j));
-	  vs[i*numj + j] = v;
-	  vs[j*numj + i] = v;
-	}
-      }
-    } else {
-      for(int i = 0; i < numi; i++) 
-	for(int j = 0; j < numj; j++) 
-	  vs[i*numj + j] = CIP(a.basis(i), op, b.basis(j));
-    }
-    */
     for(int i = 0; i < numi; i++) {      
       for(int j = 0; j < numj; j++) {
 	vs[i*numj + j] = CIP(a.basis(i), op, a.basis(j));;
@@ -68,24 +53,60 @@ namespace l2func {
     }
     return vs;
   }
-  dcomplex* SphericalGTOSet::SMat(const SphericalGTOSet& o) const {
-    dcomplex* v = CalcMat(*this, OpXyz<dcomplex, c3>(0, 0, 0), o);    
-    return v;
+*/
+  dcomplex* SphericalGTOSet::SMat() const {
+
+    int num = this->basis_list_.size();
+    dcomplex* vs = new dcomplex[num * num];
+    int i(0);
+    for(const_iterator it_i = basis_list_.begin();
+	it_i != basis_list_.end(); ++it_i) {      
+      int j(0);
+          for(const_iterator it_j = basis_list_.begin();
+	      it_j != basis_list_.end(); ++it_j) {
+	    vs[i*num + j] = CIP(**it_i, **it_j);
+	    j++;
+	  }
+	  i++;
+    }
+    return vs;
+
+    /*
+      int num = this->size();
+      dcomplex* vs = new dcomplex[num * num];
+    for(int i = 0; i < num; i++)
+      for(int j = 0; j < num; j++)
+	vs[i*num+j] = CIP(this->basis(i), this->basis(j));
+    return vs;
+    */
   }
-  dcomplex* SphericalGTOSet::TMat(const SphericalGTOSet& o) const {
-    return CalcMat(*this, OpKE<dcomplex, c3>(), o);
+  dcomplex* SphericalGTOSet::TMat() const {
+    int num = this->size();
+    dcomplex* vs = new dcomplex[num * num];
+    for(int i = 0; i < num; i++)
+      for(int j = 0; j < num; j++)
+	vs[i*num+j] = CIP(this->basis(i), OpKE<dcomplex, c3>(), this->basis(j));
+    return vs;
   }
   
-  dcomplex* SphericalGTOSet::VMat(dcomplex q, dcomplex x, dcomplex y, dcomplex z,
-				const SphericalGTOSet& o) const {
+  dcomplex* SphericalGTOSet::VMat(dcomplex q, dcomplex x, dcomplex y, dcomplex z) const {
     OpNA<dcomplex, c3> op(q, c3(x, y, z));
-    return CalcMat(*this, op, o);
+    int num = this->size();
+    dcomplex* vs = new dcomplex[num * num];    
+    for(int i = 0; i < num; i++)
+      for(int j = 0; j < num; j++)
+	vs[i*num+j] = CIP(this->basis(i), op, this->basis(j));
+    return vs;
   }
-  dcomplex* SphericalGTOSet::XyzMat(int nx, int ny, int nz,
-				  const SphericalGTOSet& o) const {
+  dcomplex* SphericalGTOSet::XyzMat(int nx, int ny, int nz) const {
     
     OpXyz<dcomplex, c3> op(nx, ny, nz);
-    return CalcMat(*this, op, o);
+    int num = this->size();
+    dcomplex* vs = new dcomplex[num * num];    
+    for(int i = 0; i < num; i++)
+      for(int j = 0; j < num; j++)
+	vs[i*num+j] = CIP(this->basis(i), op, this->basis(j));
+    return vs;
   }
 
 }

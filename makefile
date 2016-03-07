@@ -1,7 +1,7 @@
 include local.mk
 #CXXFLAGS=${INC_PATH} -Wall -O3  
-#CXXFLAGS=${INC_PATH} -Wall
-CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
+CXXFLAGS=${INC_PATH} -Wall
+#CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
 
 MATH_OBJS=erfc.o math_utils.o
 FUNC_OBJS=cut_exp.o exp_func.o delta.o
@@ -29,7 +29,7 @@ test: test.o l2.a
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} test.o l2.a
 
 test_gto3d.o: test_gto3d.cpp gto3d.hpp 
-test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o molint.o
+test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o molint.o eigen_plus.o
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} $^ -lgsl
 .PHONY: check_gto3d
 check_gto3d: test_gto3d

@@ -2,7 +2,6 @@
 #include "molint.hpp"
 #include "macros.hpp"
 
-
 namespace l2func {
 
   typedef MultArray3<dcomplex> A3dc;
@@ -400,6 +399,26 @@ namespace l2func {
     return eAB * cumsum;
   //  dcomplex coef_d(int max_mA, int max_mB, dcomplex* ds, dcomplex zetap,
   }
+
+  MatrixSet::MatrixSet(int nb) {
+    nbasis_ = nb;
+  }
+  int MatrixSet::size_basis() const { return nbasis_;}
+  void MatrixSet::set(std::string label, dcomplex* ptr) {
+    mat_map_[label] = ptr;;
+  }
+  dcomplex* MatrixSet::get(std::string label) {
+    return mat_map_[label];
+  }
+/*
+  np::ndarray MatrixSet::get_py(std::string label) {
+    return   return np::from_data(xs,
+				  np::dtype::get_builtin<dcomplex>(),
+				  bp::make_tuple(this->size_basis() * this->size_basis()),
+				  bp::make_tuple(sizeof(dcomplex)),
+				  bp::object());
+  }
+  */  
   GTOs::GTOs() {
     offset_ish.push_back(0);
   }
@@ -668,6 +687,16 @@ namespace l2func {
     }
     return T;    
   }
+  MatrixSet GTOs::Calc() {
+    dcomplex *s, *t, *dz, *v;
+    this->CalcMat(&s, &t, &dz, &v);
+    MatrixSet matrix_set(this->size_basis());
+    matrix_set.set("s", s);
+    matrix_set.set("t", t);
+    matrix_set.set("v", v);
+    matrix_set.set("z", dz);
+    return matrix_set;
+  }
   void GTOs::CalcMat(dcomplex** s, dcomplex** t, dcomplex** dz, dcomplex** v) {
     
     int nb = this->size_basis();    
@@ -688,7 +717,8 @@ namespace l2func {
     for(int idx=0; idx<nb*nb; idx++) {
       S[idx] = 7.7; T[idx] = 7.7; Dz[idx] = 7.7; V[idx] = 7.7;
     }
-    
+
+    // compute maximum of nk (k=x,y,z) for each shell.
     int maxn(0);
     int* maxn_ish = new int[this->size_sh()];
     for(int ish = 0; ish < this->size_sh(); ish++) {

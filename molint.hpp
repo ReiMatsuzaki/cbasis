@@ -4,6 +4,7 @@
 #include <vector>
 #include <boost/array.hpp>
 #include "math_utils.hpp"
+#include <map>
 
 namespace l2func {
 
@@ -53,6 +54,17 @@ namespace l2func {
 				  dcomplex zetaB,
 				  dcomplex wCx, dcomplex wCy, dcomplex wCz);
 
+  class MatrixSet {
+  private:
+    int nbasis_;
+    std::map<std::string, dcomplex*> mat_map_;
+  public:
+    MatrixSet(int nb);
+    int size_basis() const;
+    void set(std::string label, dcomplex* ptr);    
+    dcomplex* get(std::string label);
+    //np::ndarray get_py(std::string label);
+  };  
   class GTOs {
   private:
     typedef boost::array<dcomplex, 3> dc3;
@@ -118,6 +130,7 @@ namespace l2func {
     dcomplex* SMat() const;
     dcomplex* SMat2() const;
     dcomplex* TMat() const;
+    MatrixSet Calc();
     void CalcMat(dcomplex** s, dcomplex** t, dcomplex** dz, dcomplex** v);
     void Show() const;
     // void VMat(dcomplex** v);
@@ -164,15 +177,6 @@ namespace l2func {
     }    
   };
   */
-  class MatrixSet {
-  public:
-    int numa;
-    int numb;
-    dcomplex* S;
-    dcomplex* V;
-    dcomplex* T;
-    dcomplex* Dz;
-  };
 
   /*
   MatrixSet CalcMat(const CartGTOs& a, const MolePot& v, const CartGTOs& b);

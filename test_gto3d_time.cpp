@@ -29,13 +29,13 @@ void gto_set() {
   timer.End("basis");
 
   timer.Start("S");
-  dcomplex* smat = gtos.SMat(gtos);
+  dcomplex* smat = gtos.SMat();
   timer.End("S");
   timer.Start("V");
-  dcomplex* vmat = gtos.VMat(1.0, 0.0, 0.0, 0.0, gtos);
+  dcomplex* vmat = gtos.VMat(1.0, 0.0, 0.0, 0.0);
   timer.End("V");
   timer.Start("T");
-  dcomplex* tmat = gtos.TMat(gtos);
+  dcomplex* tmat = gtos.TMat();
   timer.End("T");
 
   timer.Display();
@@ -73,6 +73,7 @@ void molint() {
   for(int L = 0; L <= 2; L++)
     for(int n = -5; n < 5; n++)
       gtos.AddSphericalGTO(L, 0.1, 0.2, 0.3, pow(2.0, n));
+  gtos.Normalize();
   gtos.AddAtom(1.0, 0.0, 0.0, 0.0);
   dcomplex* smat;
   dcomplex* tmat;

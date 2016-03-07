@@ -1,7 +1,4 @@
 #include <boost/python.hpp>
-//#include <boost/python/numeric.hpp>
-//#include <numpy/ndarray.h>
-//#include <Python.h>
 #include <boost/numpy.hpp>
 #include "../linspace.hpp"
 #include "../exp_func.hpp"
@@ -33,7 +30,6 @@ np::ndarray array_transform(dcomplex* xs, int n) {
 		       bp::make_tuple(n),
 		       bp::make_tuple(sizeof(dcomplex)),
 		       bp::object());
-
 }
 
 np::ndarray CalcSMat(const SphericalGTOSet& a, const SphericalGTOSet& b) {
