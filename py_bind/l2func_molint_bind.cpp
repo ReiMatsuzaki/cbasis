@@ -185,7 +185,8 @@ BOOST_PYTHON_MODULE(l2func_molint_bind) {
     .def("add_atom_cpp", &GTOs::AddAtom)    
     .def("add_gtos_cpp", &GTOs::AddSphericalGTOs)
     .def("add_one_gto_cpp", &GTOs::AddOneSphericalGTO)
-    .def("at_r_ylm_cpp", GTOs_at_r_ylm);
+    .def("at_r_ylm_cpp", GTOs_at_r_ylm)
+    .def("show", &GTOs::Show);
   
 }
 

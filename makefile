@@ -23,9 +23,19 @@ molint.o: molint.cpp molint.hpp math_utils.hpp macros.hpp
 
 gto3dset.o: gto3dset.cpp gto3dset.hpp
 
+r1gtoint.o: r1gtoint.cpp r1gtoint.hpp math_utils.hpp
+
 test.o: test.cpp
 test: test.o l2.a
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} test.o l2.a
+
+test_r1gtoint.o: test_r1gtoint.cpp utils.hpp r1gtoint.hpp cip_exp.hpp
+test_r1gtoint: test_r1gtoint.o r1gtoint.o cip_exp.o math_utils.o erfc.o
+	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
+.PHONY: check_r1gtoint
+check_r1gtoint: test_r1gtoint
+	./$<
+
 
 test_gto3d.o: test_gto3d.cpp gto3d.hpp 
 #test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o molint.o cip_exp.o exp_func.o eigen_plus.o

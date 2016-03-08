@@ -1,10 +1,12 @@
 #include <iostream>
+#include <iomanip>
 #include "molint.hpp"
 #include "macros.hpp"
 #include "angmoment.hpp"
 
 namespace l2func {
 
+  using namespace std;
   typedef MultArray3<dcomplex> A3dc;
 
   // ==== Utility ====
@@ -546,6 +548,8 @@ namespace l2func {
       cs[4][3] = 0.0; cs[4][4] = 0.0; cs[4][5] = 0.0; 
 
       this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
+      m_ish_iprim.push_back(ms);
+
     } else {
       std::string msg;
       SUB_LOCATION(msg);      
@@ -1078,30 +1082,7 @@ namespace l2func {
     return matrix_set;
   }
 
-  void GTOs::Show() const {
-    std::cout << "Shell" << std::endl;
-    for(int ish = 0; ish < this->size_sh(); ish++)
-      std::cout << ish << ": " << zeta_ish[ish]
-		<< x_ish[ish] << y_ish[ish] << z_ish[ish] << std::endl;
-    std::cout << "Offset" << std::endl;
-    for(int ish = 0; ish < this->size_sh(); ish++)
-      std::cout << ish << offset_ish[ish] << std::endl;
-    std::cout << "n" << std::endl;
-    for(int ish = 0; ish < this->size_sh(); ish++)
-      for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++) {
-	std::cout << ish << iprim << " ";
-	std::cout << nx_ish_iprim[ish][iprim];
-	std::cout << ny_ish_iprim[ish][iprim];
-	std::cout << nz_ish_iprim[ish][iprim];
-	std::cout << std::endl;
-      }
-
-    std::cout << "Coef" << std::endl;
-    for(int ish = 0; ish < this->size_sh(); ish++)
-      for(int ibasis = 0; ibasis < this->size_basis_ish(ish); ibasis++)
-	for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++)
-	  std::cout << ish << ibasis << iprim << coef_ish_icont_iprim[ish][ibasis][iprim] << std::endl;
-  }
+  
   void GTOs::AtR_Ylm(int L, int M, dcomplex* rs, int num_r, dcomplex* cs,
 		     dcomplex* res) {
 
@@ -1161,19 +1142,45 @@ namespace l2func {
       }
     }
   }
-  /*
-  MatrixSet CalcMat(const CartGTOs& a, const MolePot& v, const CartGTOs& b) {
-    
-    int numA = a.size();
-    int numB = b.size();
 
-    for(int A = 0; A < numA; A++)
-      for(int B = 0; B < numB; B++) {
-
-	
-
-
-      }
+  void show_complex(dcomplex x, int n) {
+    double eps(pow(10.0, -10.0));
+    if(abs(x.imag()) < eps) 
+      cout << setw(2*n) << right << x.real();
+    else if(abs(x.real()) < eps) 
+      cout << setw(2*n) << right << x.imag() << "j";
+    else if(x.imag()>0.0) 
+      cout << setw(n) << right << x.real() << "+" << x.imag() << "j";
+    else if(x.imag()<0.0)
+      cout << setw(n) << right << x.real() << "-" << -x.imag() << "j";
   }
-  */
+  void GTOs::Show() const {
+    cout << " ==== GTOs ====" << endl;
+    cout << "ish zeta x   y   z   L M" << endl;
+    for(int ish = 0; ish < this->size_sh(); ish++) {
+      
+      for(int ibasis = 0; ibasis < this->size_basis_ish(ish); ibasis++) {
+	cout << ish << " " << zeta_ish[ish] << " " << x_ish[ish] << " ";
+	cout << y_ish[ish] << " " << z_ish[ish] << " " << l_ish[ish] << " ";
+	cout << m_ish_iprim[ish][ibasis] << endl;
+	/*
+	if(ibasis == 0) {
+	  cout << setw(3) << ish;
+	  show_complex(zeta_ish[ish], 10);
+	  cout << " (";
+	  show_complex(x_ish[ish], 5);
+	  cout << ", ";
+	  show_complex(y_ish[ish], 5);
+	  cout << ", ";
+	  show_complex(z_ish[ish], 5);
+	} else {
+	  cout << "              ";
+	}
+	cout << "(" << l_ish[ish] << ", " << m_ish_iprim[ish][ibasis] << ") ";
+	cout << endl;
+	*/
+      }
+    }
+  }
+
 }

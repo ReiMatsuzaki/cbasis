@@ -71,8 +71,6 @@ namespace l2func {
   };  
   class GTOs {
   private:
-    //    typedef boost::array<dcomplex, 3> dc3;
-    //    typedef boost::array<int, 3>      i3;
     void Normalize();
     void Add(dcomplex _zeta,
 	     dcomplex x, dcomplex y, dcomplex z,
@@ -136,65 +134,18 @@ namespace l2func {
     void AddOneSphericalGTO(int L, int M,
 			    dcomplex x, dcomplex y, dcomplex z, dcomplex _zeta);
     void AddAtom(dcomplex q, dcomplex x, dcomplex y, dcomplex z);
-    //void Normalize();
-    //    dcomplex overlap(int ish, int iprim, int jsh, int jprim) const;
-    //    dcomplex kinetic(int ish, int iprim, int jsh, int jprim) const;
-    //    dcomplex* SMat() const;
-    //    dcomplex* SMat2() const;
-    //    dcomplex* TMat() const;
+
     MatrixSet Calc();
     void CalcMat(dcomplex** s, dcomplex** t, dcomplex** dz, dcomplex** v);
     MatrixSet CalcZMatOther(const GTOs&);
-    void Show() const;
+    
     void AtR_Ylm(int l, int m, dcomplex* rs, int num_r, dcomplex* cs, dcomplex* res);
+
+    void Show() const;
+    
     // void VMat(dcomplex** v);
   };
-  class MolePot {
-  public:
-    vector<dcomplex> cq;
-    vector<dcomplex> cx;
-    vector<dcomplex> cy;
-    vector<dcomplex> cz;
-    void Add(dcomplex _cq, dcomplex _cx, dcomplex _cy, dcomplex _cz) {
-      cq.push_back(_cq);
-      cx.push_back(_cx);
-      cy.push_back(_cy);
-      cz.push_back(_cz);
-    }
-  };
-  /*
-  class CartGTOs {
-  public:
-    vector<dcomplex> zeta;
-    vector<int>      nx;
-    vector<int>      ny;
-    vector<int>      nz;
-    vector<dcomplex> wx;
-    vector<dcomplex> wy;
-    vector<dcomplex> wz;
 
-  public:
-    CartGTOs();
-    ~CartGTOs();
-    void AddGTO(dcomplex _zeta, int _nx, int _ny, int _nz,
-		dcomplex _wx, dcomplex _wy, dcomplex _wz) {
-      zeta.push_back(_zeta);
-      nx.push_back(_nx);
-      ny.push_back(_ny);
-      nz.push_back(_nz);
-      wx.push_back(_wx);
-      wy.push_back(_wy);
-      wz.push_back(_wz);
-    }
-    int size() const {
-      return zeta.size();
-    }    
-  };
-  */
-
-  /*
-  MatrixSet CalcMat(const CartGTOs& a, const MolePot& v, const CartGTOs& b);
-*/
 }
 
 
