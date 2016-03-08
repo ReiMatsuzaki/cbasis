@@ -51,26 +51,26 @@ namespace l2func {
   // ==== Spherical GTO single expansion ====
   double GTOExpansionCoef(int l, int m, int lp, int lppp,
 			  int Jp, int Mp, int Jpp, int Mpp);
-  dcomplex* ModSphericalBessel(dcomplex x, int max_n);
-  dcomplex* AssociatedLegendre(dcomplex x, int max_l);
-  dcomplex* RealSphericalHarmonics(dcomplex theta, dcomplex phi, int max_l);  
-  dcomplex* SphericalHarm(int J, int M, dcomplex theta, dcomplex phi);  
+  void ModSphericalBessel(dcomplex x, int max_n, dcomplex* res);
+  void AssociatedLegendre(dcomplex x, int max_l, dcomplex* res);
+  void RealSphericalHarmonics(dcomplex theta, dcomplex phi, int max_l, dcomplex* res);  
+  //  void SphericalHarm(int J, int M, dcomplex theta, dcomplex phi);  
   
   // <Y(Jpp,Mpp) | GTO(zeta; (x,y,z); (l, m)>
-  dcomplex* gto_00_r(dcomplex x, dcomplex y, dcomplex z,
+  void gto_00_r(dcomplex x, dcomplex y, dcomplex z,		    
 		     int Jpp, int Mpp,
-		     dcomplex* r, int num_r,
-		     dcomplex zeta);
-  dcomplex* gto_lm_r_center(int l, int m, int Jpp, int Mpp,
-			    dcomplex* r, int num_r, dcomplex zeta);
-  dcomplex* gto_lm_r(int l, int m,       
-		     dcomplex x, dcomplex y, dcomplex z,      
-		     int Jpp, int Mpp,   
-		     dcomplex* r, int num_r,
 		     dcomplex zeta,
-		     int lppp_max);
-  
-				
+		     dcomplex* r, int num_r, dcomplex* work, dcomplex* res);
+  void gto_lm_r_center(int l, int m, int Jpp, int Mpp,
+		       dcomplex* r, int num_r, dcomplex zeta, dcomplex* res);
+  void gto_lm_r(int l, int m,       
+		dcomplex x, dcomplex y, dcomplex z,      
+		int Jpp, int Mpp,   
+		dcomplex zeta,
+		int lppp_max,
+		dcomplex* r, int num_r,
+		dcomplex* work,
+		dcomplex* res);
 
   /*
   class GTOCenterExpansion {

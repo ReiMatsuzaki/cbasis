@@ -13,7 +13,6 @@ OBJS=${CIP_OBJS} ${FUNC_OBJS} ${MATH_OBJS}
 l2.a: ${OBJS}
 	ar r $@ ${OBJS}
 
-#fact.o:  fact.cpp  fact.hpp 
 erfc.o:  erfc.cpp  erfc.hpp 
 math_utils.o: math_utils.cpp math_utils.hpp
 cut_exp.o: cut_exp.hpp exp_func.hpp linspace.hpp
@@ -29,8 +28,9 @@ test: test.o l2.a
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} test.o l2.a
 
 test_gto3d.o: test_gto3d.cpp gto3d.hpp 
-test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o molint.o eigen_plus.o
-	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} $^ -lgsl
+#test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o molint.o cip_exp.o exp_func.o eigen_plus.o
+test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o molint.o eigen_plus.o ${OBJS} 
+	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
 .PHONY: check_gto3d
 check_gto3d: test_gto3d
 	./test_gto3d

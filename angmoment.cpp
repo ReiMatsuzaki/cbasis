@@ -62,70 +62,76 @@ namespace l2func {
   }
 
   // ==== Special functions ====
-  dcomplex* ModSphericalBessel(dcomplex x, int max_n) {
+  void ModSphericalBessel(dcomplex x, int max_n, dcomplex* res) {
+
     double eps(0.0001);
-    dcomplex* vs = new dcomplex[max_n+1];
 
     if(abs(x) < eps) {
       dcomplex xx(0.5*x*x);
       dcomplex xn(1);
       for(int n = 0; n < max_n + 1; n++) {
-	vs[n] = xn / (1.0*DoubleFactorial(2*n+1)) * (1.0 + 
-						     xx/(2.0*n+3.0) +
-						     pow(xx,2)/(2.0*(2.0*n+3)*(2.0*n+5)));
+	res[n] = (xn / (1.0*DoubleFactorial(2*n+1)) *
+		  (1.0 + xx/(2.0*n+3.0) +
+		   pow(xx,2)/(2.0*(2.0*n+3)*(2.0*n+5))));
 	xn *= x;
       }
     } else {
-      vs[0] = sinh(x) / x;
-      vs[1] = (x*cosh(x)-sinh(x)) / (x*x);
+      res[0] = sinh(x) / x;
+      res[1] = (x*cosh(x)-sinh(x)) / (x*x);
       for(int n = 1; n < max_n; n++) 
-	vs[n+1] = vs[n-1] - (2.0*n+1.0)/x*vs[n];
+	res[n+1] = res[n-1] - (2.0*n+1.0)/x*res[n];
     }
-    return vs;
   }
-  dcomplex* AssociatedLegendre(dcomplex x, int max_l) {
+  void AssociatedLegendre(dcomplex x, int max_l, dcomplex* res) {
 
-    dcomplex* vs = new dcomplex[num_lm_pair(max_l)];
+    /*
+      before calling this function, pointer res must allocate:
+      // res = new dcomplex[num_lm_pair(max_l)]
+     */
     
-    vs[0] = 1.0;
+    res[0] = 1.0;
     for(int L = 0; L < max_l; L++) {
-      dcomplex val = -(2.0*L+1.0) * sqrt(1.0-x*x) * vs[lm_index(L, L)];
-      vs[lm_index(L+1, L+1)] = val;
-      vs[lm_index(L+1, -L-1)] = pow(-1.0, L+1) / DFactorial(2*(L+1)) * val;
+      dcomplex val = -(2.0*L+1.0) * sqrt(1.0-x*x) * res[lm_index(L, L)];
+      res[lm_index(L+1, L+1)] = val;
+      res[lm_index(L+1, -L-1)] = pow(-1.0, L+1) / DFactorial(2*(L+1)) * val;
     }
 
     for(int L = 1; L <= max_l; L++)
       for(int M = -L; M < L-1; M++) {
-	dcomplex t1 = (L-M)*1.0*x*vs[lm_index(L, M)];
-	dcomplex t2 = (L+M)*1.0*vs[lm_index(L-1, M)];
-	vs[lm_index(L, M+1)] =  (t1 - t2) / sqrt(1.0-x*x);
+	dcomplex t1 = (L-M)*1.0*x*res[lm_index(L, M)];
+	dcomplex t2 = (L+M)*1.0*res[lm_index(L-1, M)];
+	res[lm_index(L, M+1)] =  (t1 - t2) / sqrt(1.0-x*x);
       }
 
-    return vs;
   }
-  dcomplex* RealSphericalHarmonics(dcomplex theta, dcomplex phi, int max_l) {
+  void RealSphericalHarmonics(dcomplex theta, dcomplex phi, int max_l, dcomplex* res) {
 
     // WARNING
     // The expression used for Real valued Spherical Harmonics is different from
     // one in Wiki.
+    // 
+    // res must be allocate before this function:
+    // // res = new dcomplex[num_lm_pair(max_l)];
 
-    dcomplex* vs = new dcomplex[num_lm_pair(max_l)];
-    dcomplex* plm = AssociatedLegendre(cos(theta), max_l);
+    AssociatedLegendre(cos(theta), max_l, res);
     for(int l = 0; l <= max_l; l++) {
-      for(int m = -l; m < 0; m++) {
-	int am = abs(m);
-	dcomplex t0 = pow(-1, m)*sqrt(2.0)*sqrt((2*l+1)/(4.0*M_PI)*DFactorial(l-am)*1.0/DFactorial(l+am));
-	vs[lm_index(l, m)] = t0 * plm[lm_index(l, am)] * sin(am*1.0*phi);
-      }
-      vs[lm_index(l, 0)] = sqrt((2*l+1)/(4.0*M_PI)) * plm[lm_index(l, 0)];
+      
+      res[lm_index(l, 0)] = sqrt((2*l+1)/(4.0*M_PI)) * res[lm_index(l, 0)];
       for(int m = 1; m <= l; m++) {
-	dcomplex t0 = pow(-1, m) * sqrt(2.0) * sqrt((2.0*l+1)/(4.0*M_PI) * DFactorial(l-m)/DFactorial(l+m));
-	vs[lm_index(l, m)] = t0 * plm[lm_index(l, m)] * cos(m*1.0*phi);
+	int am = abs(m);
+	dcomplex plm = res[lm_index(l, am)];
+	dcomplex t0 = pow(-1, m)*sqrt(2.0)*
+	  sqrt((2*l+1) / (4.0*M_PI)*DFactorial(l-am)*1.0/DFactorial(l+am));
+	res[lm_index(l, -m)] = t0 * plm * sin(am*1.0*phi);
+	
+	dcomplex t1 = (pow(-1, m) * sqrt(2.0) *
+		       sqrt((2.0*l+1)/(4.0*M_PI) * DFactorial(l-m)/DFactorial(l+m)));
+	res[lm_index(l,m)] = t1 * plm * cos(m*1.0*phi);
       }
     }
-    delete plm;
-    return vs;
   }
+
+  /*
   dcomplex* SphericalHarmonics(dcomplex phi, dcomplex theta, int max_l) {
 
     std::string msg;
@@ -144,59 +150,77 @@ namespace l2func {
     delete ps;
     return vs;
   }
+  */
   
-  dcomplex* gto_00_r(dcomplex x, dcomplex y, dcomplex z, int Jpp, int Mpp, dcomplex* rs, int num_r, dcomplex zeta) {
+  void gto_00_r(dcomplex x, dcomplex y, dcomplex z, int Jpp, int Mpp,dcomplex zeta,
+		dcomplex* rs, int num_r,  dcomplex* work, dcomplex* res) {
+    /*
+      gives one center expansion values of (Jpp,Mpp) wave for s-GTO at (x,y,z).
+
+      Inputs
+      ------
+      x,y,z : location of s-GTO to expand
+      Jpp,Mpp: partial wave to obtain 
+      zeta   : orbital exponents
+      *rs    : location array for evaluation. (new dcomplex[num_r])
+      num_r  : number of location rs.
+      *work  : working space (new dcomplex[num_lm(Jpp) + Jpp +1])
+     */
+
     dcomplex a2= x*x+y*y+z*z;
     dcomplex a = sqrt(a2);
     dcomplex theta = acos(z / a);
     dcomplex phi   = acos(x/sqrt(x*x+y*y));
-    dcomplex* ylm= RealSphericalHarmonics(theta, phi, Jpp);
-    dcomplex* vs = new dcomplex[num_r];
+
+    dcomplex* ylm = &work[0];
+    dcomplex* il =  &work[num_r];
+
+    RealSphericalHarmonics(theta, phi, Jpp, ylm);
 
     for(int i = 0; i < num_r; i++) {
       dcomplex r(rs[i]);
-      dcomplex* il = AssociatedLegendre(2.0*zeta*a*r, Jpp);
-      //      std::cout << il[Jpp] << ylm[lm_index(Jpp, -Mpp)] <<std::endl;
-      vs[i] = 4.0*M_PI * exp(-zeta*(r*r+a2)) * il[Jpp] * pow(-1.0, Mpp) * ylm[lm_index(Jpp, -Mpp)];
-
-      delete il;
+      ModSphericalBessel(2.0*zeta*a*r, Jpp, il);
+      res[i] = (4.0*M_PI * exp(-zeta*(r*r+a2)) * il[Jpp] *
+		pow(-1.0, Mpp) * ylm[lm_index(Jpp, -Mpp)]);
     }
-    delete ylm;
-    return vs;
   }
-  dcomplex* gto_lm_r_center(int l, int m, int Jpp, int Mpp, dcomplex* rs, int num_r, dcomplex zeta) {
+  void gto_lm_r_center(int l, int m, int Jpp, int Mpp, dcomplex zeta,
+			    dcomplex* rs, int num_r, dcomplex* res) {
 
-    dcomplex* vs = new dcomplex[num_r];
     for(int i = 0; i < num_r; i++) {
       dcomplex r(rs[i]);
       if(l != Jpp || m != Mpp) {
-	vs[i] = dcomplex(0.0, 0.0);
+	res[i] = dcomplex(0.0, 0.0);
       } else {
-	vs[i] = pow(r, l) * exp(-zeta*r*r);
+	res[i] = pow(r, l) * exp(-zeta*r*r);
       }
     }
-    return vs;
   }
-  dcomplex* gto_lm_r_general(int l, int m,
-		      dcomplex x, dcomplex y, dcomplex z,
-		      int Jpp, int Mpp,
-		      dcomplex* rs, int num_r,
-		      dcomplex zeta,
-		      int lppp_max) {
+
+  void gto_lm_r_general(int l, int m,
+			     dcomplex x, dcomplex y, dcomplex z,
+			     int Jpp, int Mpp,
+			     dcomplex zeta,
+			     int lppp_max,
+			     dcomplex* rs, int num_r,
+			     dcomplex* work,
+			     dcomplex* res) {
     std::string msg;
     SUB_LOCATION(msg);
     msg += "not implemented for general case";
     throw std::runtime_error(msg);
 
+
+    dcomplex *ylm = &work[0];
+    dcomplex *il  = &work[num_r];
     dcomplex theta = acos(z / sqrt(x*x+y*y+z*z));
     dcomplex phi = acos(x / sqrt(x*x+y*y));
     dcomplex A = sqrt(x*x + y*y + z*z);
-    dcomplex* y_lm   = SphericalHarmonics(theta, phi, 2*l+lppp_max);
-    dcomplex* vs = new dcomplex[num_r];
+    RealSphericalHarmonics(theta, phi, 2*l+lppp_max, ylm);
 
     for(int i = 0; i < num_r; i++) {
       dcomplex r(rs[i]);
-      dcomplex* i_lppp = ModSphericalBessel(2.0*A * r, lppp_max);
+      ModSphericalBessel(2.0*A * r, lppp_max, il);
       dcomplex e_term = exp(-zeta*(r*r+A*A));
 
       dcomplex cumsum(0);
@@ -205,28 +229,28 @@ namespace l2func {
 	  for(int Jp = abs(l-lp-lppp); Jp <= l+lp+lppp; Jp++) 
 	    for(int Mp = -Jp; Mp <= Jp; Mp++)
 	      cumsum += GTOExpansionCoef(l, m, lp, lppp, Jp, Mp, Jpp, Mpp) *
-		pow(A, l) * pow(r/A, lp) * e_term * i_lppp[lppp] *
-		y_lm[lm_index(Jp, Mp)];
-      vs[i] = cumsum;
-      delete i_lppp;
+		pow(A, l) * pow(r/A, lp) * e_term * il[lppp] *
+		ylm[lm_index(Jp, Mp)];
+      res[i] = cumsum;
     }
-    delete y_lm;
-    return vs;
-    //    return x+y+z+1.0*(Jpp+Mpp+lppp_max) * r * zeta ;
+
   }
-  dcomplex* gto_lm_r(int l, int m,
-	      dcomplex x, dcomplex y, dcomplex z,
-	      int Jpp, int Mpp,
-	      dcomplex* rs, int num_r,
-	      dcomplex zeta,
-	      int lppp_max) {
+  void gto_lm_r(int l, int m,
+		     dcomplex x, dcomplex y, dcomplex z,
+		     int Jpp, int Mpp,
+		     dcomplex zeta,
+		     int lppp_max,
+		     dcomplex* rs, int num_r,
+		     dcomplex* work, dcomplex* res) {
+
     double eps = pow(10.0, -10.0);
     if(l == 0 && m == 0) {
-      return gto_00_r(x, y, z, Jpp, Mpp, rs, num_r, zeta);
+      gto_00_r(x, y, z, Jpp, Mpp, zeta, rs, num_r, work, res);
     } else if(abs(x) < eps && abs(y) < eps && abs(z) < eps) {
-      return gto_lm_r_center(l, m, Jpp, Mpp, rs, num_r, zeta);
+      gto_lm_r_center(l, m, Jpp, Mpp, zeta, rs, num_r, res);
     } else {
-      return gto_lm_r_general(l, m, x, y, z, Jpp, Mpp, rs, num_r, zeta, lppp_max);
+      gto_lm_r_general(l, m, x, y, z, Jpp, Mpp, zeta, lppp_max,
+		       rs, num_r, work, res);
     }
   }
 

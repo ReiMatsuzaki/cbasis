@@ -1,6 +1,7 @@
 #include <iostream>
 #include "molint.hpp"
 #include "macros.hpp"
+#include "angmoment.hpp"
 
 namespace l2func {
 
@@ -14,6 +15,24 @@ namespace l2func {
   double div(int a, int b) {
     return a*1.0/b;
   }
+
+  dcomplex gto_int(dcomplex z, int n) {
+    
+    dcomplex res;
+    if(n % 2 == 0) {
+      
+      int nn = n/2;
+      res = DoubleFactorial(2*nn-1) * sqrt(M_PI) /
+	(dcomplex(pow(2, nn+1)) * pow(sqrt(z), 2*nn+1));
+    
+    } else {
+      
+      int nn = (n-1)/2;
+      res = dcomplex(Factorial(nn)) / (dcomplex(2) * pow(z, nn+1));
+    
+    }
+    return res;
+  } 
 
   // ==== Incomplete Gamma ====
   // K.Ishida J.Comput.Chem. 25, (2004), 739
@@ -400,10 +419,24 @@ namespace l2func {
   //  dcomplex coef_d(int max_mA, int max_mB, dcomplex* ds, dcomplex zetap,
   }
 
-  MatrixSet::MatrixSet(int nb) {
-    nbasis_ = nb;
+  MatrixSet::MatrixSet(int nbi, int nbj) {
+    nbasis_i_ = nbi;
+    nbasis_j_ = nbj;
   }
-  int MatrixSet::size_basis() const { return nbasis_;}
+  MatrixSet::~MatrixSet() {
+
+    /*
+    for(std::map<std::string, dcomplex*>::iterator it = mat_map_.begin();
+	it != mat_map_.end(); ++it) {
+      if(it->second != NULL) {
+	std::cout <<it->first << std::endl;
+	delete[] (it->second);
+      }
+    }    
+    */
+  }
+  int MatrixSet::size_basis_i() const { return nbasis_i_;}
+  int MatrixSet::size_basis_j() const { return nbasis_j_;}
   void MatrixSet::set(std::string label, dcomplex* ptr) {
     mat_map_[label] = ptr;;
   }
@@ -445,26 +478,35 @@ namespace l2func {
     coef_ish_icont_iprim.push_back(_coef);
     
   }
-  void GTOs::AddSphericalGTO(int L, dcomplex x, dcomplex y, dcomplex z,
-			     dcomplex _zeta) {
+  void GTOs::AddSphericalGTOs(int L, dcomplex x, dcomplex y, dcomplex z,
+			      dcomplex _zeta) {
 
+    l_ish.push_back(L);
+    
     if(L == 0) {
       vector<int> n0; n0.push_back(0);
       vector<dcomplex> c1; c1.push_back(1.0);      
-      vector<vector<dcomplex> > c; c.push_back(c1);      
+      vector<vector<dcomplex> > c; c.push_back(c1);
       this->Add(_zeta, x, y, z, n0, n0, n0, c);     
+    
+      vector<int> ms(1); ms[0] = 0;
+      m_ish_iprim.push_back(ms);
+      
     }
     else if(L == 1) {
       vector<int> nx(3), ny(3), nz(3);
       nx[0] = 1; ny[0] = 0; nz[0] = 0;
       nx[1] = 0; ny[1] = 1; nz[1] = 0;
       nx[2] = 0; ny[2] = 0; nz[2] = 1;
+
+      vector<int> ms(3);
       vector<vector<dcomplex> > cs(3, vector<dcomplex>(3));
-      cs[0][0] = 0.0; cs[0][1] = 1.0; cs[0][2] = 0.0; // M =-1
-      cs[1][0] = 0.0; cs[1][1] = 0.0; cs[1][2] = 1.0; // M = 0
-      cs[2][0] = 1.0; cs[2][1] = 0.0; cs[2][2] = 0.0; // M = 1
+      cs[0][0] = 0.0; cs[0][1] = 1.0; cs[0][2] = 0.0; ms[0] = -1; // M =-1
+      cs[1][0] = 0.0; cs[1][1] = 0.0; cs[1][2] = 1.0; ms[1] = +0; // M = 0
+      cs[2][0] = 1.0; cs[2][1] = 0.0; cs[2][2] = 0.0; ms[2] = +1; // M = 1
 
       this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
+      m_ish_iprim.push_back(ms);      
 
     }
     else if(L == 2) {
@@ -476,24 +518,30 @@ namespace l2func {
       nx[4] = 1; ny[4] = 0; nz[4] = 1;
       nx[5] = 0; ny[5] = 1; nz[5] = 1;
       
+      vector<int> ms(5);
       vector<vector<dcomplex> > cs(5, vector<dcomplex>(6));
       // M = -2
+      ms[0] = -2;
       cs[0][0] = 0.0; cs[0][1] = 0.0; cs[0][2] = 0.0;
       cs[0][3] = 1.0; cs[0][4] = 0.0; cs[0][5] = 0.0; 
 
       // M = -1
+      ms[1] = -1;
       cs[1][0] = 0.0; cs[1][1] = 0.0; cs[1][2] = 0.0;
       cs[1][3] = 0.0; cs[1][4] = 0.0; cs[1][5] = 1.0; 
 
       // M = 0
+      ms[2] = 0;
       cs[2][0] = -1.0; cs[2][1] = -1.0; cs[2][2] = 2.0;
       cs[2][3] = +0.0; cs[2][4] = +0.0; cs[2][5] = 0.0; 
 
       // M = 1
+      ms[3] = +1;
       cs[3][0] = 0.0; cs[3][1] = 0.0; cs[3][2] = 0.0;
       cs[3][3] = 0.0; cs[3][4] = 1.0; cs[3][5] = 0.0; 
 
       // M = 2
+      ms[4] = 2;
       cs[4][0] = 1.0; cs[4][1] =-1.0; cs[4][2] = 0.0;
       cs[4][3] = 0.0; cs[4][4] = 0.0; cs[4][5] = 0.0; 
 
@@ -505,6 +553,97 @@ namespace l2func {
       throw std::runtime_error(msg);      
     }
 
+    dcomplex c2 = gto_int(_zeta*2.0, 2*L+2);
+    coef_ylm_ish.push_back(1.0/sqrt(c2));
+    
+    this->Normalize();
+
+  }
+  void GTOs::AddOneSphericalGTO(int L, int M, dcomplex x, dcomplex y, dcomplex z,
+				dcomplex _zeta) {
+    
+    l_ish.push_back(L);
+    
+    if(L == 0 && M == 0) {
+      vector<int> n0; n0.push_back(0);
+      vector<dcomplex> c1; c1.push_back(1.0);      
+      vector<vector<dcomplex> > c; c.push_back(c1);
+      this->Add(_zeta, x, y, z, n0, n0, n0, c);     
+    
+      vector<int> ms(1); ms[0] = 0;
+      m_ish_iprim.push_back(ms);
+      
+    }
+    else if(L == 1 && M == -1) {
+      vector<int> nx(1), ny(1), nz(1), ms(1);
+      vector<vector<dcomplex> > cs(1, vector<dcomplex>(1));
+      nx[0] = 0.0; ny[0] = 1.0; nz[0] = 0; ms[0] = -1; cs[0][0] = 1.0;
+      this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
+      m_ish_iprim.push_back(ms);      
+
+    }
+    else if(L == 1 && M == 0) {
+      vector<int> nx(1), ny(1), nz(1), ms(1);
+      vector<vector<dcomplex> > cs(1, vector<dcomplex>(1));
+      nx[0] = 0; ny[0] = 0; nz[0] = 1; ms[0] = 0; cs[0][0] = 1.0;
+      this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
+      m_ish_iprim.push_back(ms);      
+
+    }
+    else if(L == 1 && M == 1) {
+      vector<int> nx(1), ny(1), nz(1), ms(1);
+      vector<vector<dcomplex> > cs(1, vector<dcomplex>(1));
+      nx[0] = 1; ny[0] = 0; nz[0] = 0; ms[0] = +1; cs[0][0] = 1.0;
+      this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
+      m_ish_iprim.push_back(ms);      
+
+    }
+    else if(L == 2) {
+      vector<int> nx(6), ny(6), nz(6);
+      nx[0] = 2; ny[0] = 0; nz[0] = 0; 
+      nx[1] = 0; ny[1] = 2; nz[1] = 0; 
+      nx[2] = 0; ny[2] = 0; nz[2] = 2; 
+      nx[3] = 1; ny[3] = 1; nz[3] = 0; 
+      nx[4] = 1; ny[4] = 0; nz[4] = 1;
+      nx[5] = 0; ny[5] = 1; nz[5] = 1;
+      vector<int> ms(1);
+      ms[0] = M;
+      vector<vector<dcomplex> > cs(1, vector<dcomplex>(6));
+      if(M == -2) {
+	cs[0][0] = 0.0; cs[0][1] = 0.0; cs[0][2] = 0.0;
+	cs[0][3] = 1.0; cs[0][4] = 0.0; cs[0][5] = 0.0; 
+      }
+      else if(M == -1) {
+	cs[0][0] = 0.0; cs[0][1] = 0.0; cs[0][2] = 0.0;
+	cs[0][3] = 0.0; cs[0][4] = 0.0; cs[0][5] = 1.0; 
+      }
+      else if(M == 0) {
+	cs[0][0] = -1.0; cs[0][1] = -1.0; cs[0][2] = 2.0;
+	cs[0][3] = +0.0; cs[0][4] = +0.0; cs[0][5] = 0.0; 
+      }
+      else if(M == +1) {
+	cs[0][0] = 0.0; cs[0][1] = 0.0; cs[0][2] = 0.0;
+	cs[0][3] = 0.0; cs[0][4] = 1.0; cs[0][5] = 0.0; 
+      }
+      else if(M == +2) {
+	cs[0][0] = 1.0; cs[0][1] =-1.0; cs[0][2] = 0.0;
+	cs[0][3] = 0.0; cs[0][4] = 0.0; cs[0][5] = 0.0; 
+      }
+      this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
+      m_ish_iprim.push_back(ms);
+
+    } else {
+      std::string msg;
+      SUB_LOCATION(msg);      
+      msg += "Not implemented yet for this L";
+      throw std::runtime_error(msg);      
+    }
+
+    dcomplex c2 = gto_int(_zeta*2.0, 2*L+2);
+    coef_ylm_ish.push_back(1.0/sqrt(c2));
+    
+    this->Normalize();
+
   }
   void GTOs::AddAtom(dcomplex q, dcomplex x, dcomplex y, dcomplex z) {
     x_iat.push_back(x);
@@ -512,7 +651,6 @@ namespace l2func {
     z_iat.push_back(z);
     q_iat.push_back(q);
   }
-
   void GTOs::Normalize() {
 
     for(int ish = 0; ish < this->size_sh(); ish++) {
@@ -541,6 +679,7 @@ namespace l2func {
       }
     }    
   }
+/*
   dcomplex* GTOs::SMat() const {
 
     int nb = this->size_basis();    
@@ -687,10 +826,11 @@ namespace l2func {
     }
     return T;    
   }
+  */
   MatrixSet GTOs::Calc() {
     dcomplex *s, *t, *dz, *v;
     this->CalcMat(&s, &t, &dz, &v);
-    MatrixSet matrix_set(this->size_basis());
+    MatrixSet matrix_set(this->size_basis(), this->size_basis());
     matrix_set.set("s", s);
     matrix_set.set("t", t);
     matrix_set.set("v", v);
@@ -872,6 +1012,72 @@ namespace l2func {
       delete Fjs_iat[iat];
     delete[] Fjs_iat;
   }
+  MatrixSet GTOs::CalcZMatOther(const GTOs& o) {
+
+    dcomplex* Z = new dcomplex[this->size_basis() * o.size_basis()];
+    dcomplex* z_prim = new dcomplex[this->size_prim() * o.size_prim()];
+    dcomplex* dsx_buff = new dcomplex[5*7*10];
+    dcomplex* dsy_buff = new dcomplex[5*7*10];
+    dcomplex* dsz_buff = new dcomplex[5*7*10];
+
+    for(int ish = 0; ish < this->size_sh(); ish++)
+      for(int jsh = 0; jsh < o.size_sh(); jsh++) {
+
+	// -- compute d coeff --
+	dcomplex zetai = this->zeta_ish[ish];
+	dcomplex zetaj =  o.zeta_ish[jsh];
+	dcomplex zetaP = zetai + zetaj;
+	dcomplex xi(this->x_ish[ish]); dcomplex xj(o.x_ish[jsh]);
+	dcomplex yi(this->y_ish[ish]); dcomplex yj(o.y_ish[jsh]);
+	dcomplex zi(this->z_ish[ish]); dcomplex zj(o.z_ish[jsh]);
+	dcomplex wPx = (zetai*xi + zetaj*xj)/zetaP;
+	dcomplex wPy = (zetai*yi + zetaj*yj)/zetaP;
+	dcomplex wPz = (zetai*zi + zetaj*zj)/zetaP;
+	dcomplex eAB = exp(-zetai*zetaj/zetaP*dist2(xi-xj,yi-yj,zi-zj));
+	dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
+	A3dc dxmap = calc_d_coef(this->l_ish[ish], o.l_ish[jsh], 0,
+				 zetaP, wPx, xi, xj, dsx_buff);
+	A3dc dymap = calc_d_coef(this->l_ish[ish], o.l_ish[jsh], 0,
+				 zetaP, wPy, yi, yj, dsy_buff);
+	A3dc dzmap = calc_d_coef(this->l_ish[ish], o.l_ish[jsh]+1, 0,
+				 zetaP, wPz, zi, zj, dsz_buff);
+
+	// -- compute primitive matrix --
+	for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++)
+	  for(int jprim = 0; jprim < o.size_prim_ish(jsh); jprim++) {
+	    dcomplex dx00 = dxmap.get(this->nx_ish_iprim[ish][iprim],
+				      o.nx_ish_iprim[jsh][jprim], 0);
+	    dcomplex dy00 = dymap.get(this->ny_ish_iprim[ish][iprim],
+				      o.ny_ish_iprim[jsh][jprim], 0);
+	    dcomplex dz00 = dzmap.get(this->nz_ish_iprim[ish][iprim],
+				      o.nz_ish_iprim[jsh][jprim], 0);	    
+	    dcomplex dz01 = dzmap.get(this->nz_ish_iprim[ish][iprim],
+				      o.nz_ish_iprim[jsh][jprim] + 1, 0);
+	    z_prim[iprim * o.size_prim_ish(jsh) + jprim] =
+	      ce * (dx00*dy00*dz01 + zj*dx00*dy00*dz00);
+	  }
+	
+	// -- transform --
+	for(int ibasis = 0; ibasis < this->size_basis_ish(ish); ibasis++)
+	  for(int jbasis = 0; jbasis < o.size_basis_ish(jsh); jbasis++) {
+	    dcomplex cumsum(0.0);
+	    for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++)
+	      for(int jprim = 0; jprim < o.size_prim_ish(jsh); jprim++) {
+		cumsum += (this->coef_ish_icont_iprim[ish][ibasis][iprim] * 
+			   o.coef_ish_icont_iprim[jsh][jbasis][jprim] * 
+			   z_prim[iprim * o.size_prim_ish(jsh) + jprim]);
+	      }
+	    int i = this->offset_ish[ish] + ibasis;
+	    int j = o.offset_ish[jsh] + jbasis;
+	    int idx = i+j*this->size_basis();	
+	    Z[idx] = cumsum;
+	  }
+      }
+    MatrixSet matrix_set(this->size_basis(), o.size_basis());
+    matrix_set.set("z", Z);
+    return matrix_set;
+  }
+
   void GTOs::Show() const {
     std::cout << "Shell" << std::endl;
     for(int ish = 0; ish < this->size_sh(); ish++)
@@ -895,6 +1101,65 @@ namespace l2func {
       for(int ibasis = 0; ibasis < this->size_basis_ish(ish); ibasis++)
 	for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++)
 	  std::cout << ish << ibasis << iprim << coef_ish_icont_iprim[ish][ibasis][iprim] << std::endl;
+  }
+  void GTOs::AtR_Ylm(int L, int M, dcomplex* rs, int num_r, dcomplex* cs,
+		     dcomplex* res) {
+
+    int lmax(0);
+    for(int ish = 0; ish < this->size_sh(); ish++)
+      lmax = (lmax < this->l_ish[ish]) ? this->l_ish[ish] : lmax;
+    dcomplex* ylm = new dcomplex[num_lm_pair(L)];
+    dcomplex* il  = new dcomplex[L+1];
+    double eps(0.0000001);
+
+    for(int i = 0; i < num_r; i++)
+      res[i] = 0.0;
+
+    for(int ish = 0; ish < this->size_sh(); ish++) {
+      dcomplex x = x_ish[ish];
+      dcomplex y = y_ish[ish];
+      dcomplex z = z_ish[ish];
+      dcomplex a2 = dist2(x, y, z);
+      dcomplex xxyy = dist2(x, y, 0.0);
+      dcomplex a = sqrt(a2);
+      dcomplex theta = acos(z / a);
+      dcomplex phi   = acos(x / sqrt(xxyy));
+      dcomplex zeta = zeta_ish[ish];
+
+      if(abs(a2) < eps) {
+	// ---- on center ----
+	for(int iprim = 0; iprim < size_prim_ish(ish); iprim++) {
+	  int ibasis = offset_ish[ish] + iprim;
+	  dcomplex coef = coef_ylm_ish[ish] * cs[ibasis];
+	  if(l_ish[ish] == L && m_ish_iprim[ish][iprim] == M) {
+	    for(int i = 0; i < num_r; i++) {
+	      dcomplex r(rs[i]);
+	      res[i] += coef * pow(r, L+1) * exp(-zeta * r * r);
+	    }
+	  }
+	}
+      } else {
+	// ---- no center ----
+	if(l_ish[ish] != 0) {
+	  std::string msg; SUB_LOCATION(msg);
+	  msg += "non center non (l,m)=(0,0) is not implemented.";
+	  throw std::runtime_error(msg);
+	} else {
+	  // --- (l,m) == (0,0)
+	  RealSphericalHarmonics(theta, phi, L, ylm);
+	  for(int iprim = 0; iprim < size_prim_ish(ish); iprim++) {
+	    int ibasis = offset_ish[ish] + iprim;
+	    dcomplex coef = coef_ylm_ish[ish] * cs[ibasis];
+	    for(int i = 0; i < num_r; i++) {
+	      dcomplex r(rs[i]);
+	      ModSphericalBessel(2.0*zeta*a*r, L, il);
+	      res[i] += coef * (4.0*M_PI * exp(-zeta*(r*r+a2)) * il[L] *
+			 pow(-1.0, M) * ylm[lm_index(L, -M)]);
+	    }
+	  }
+	}
+      }
+    }
   }
   /*
   MatrixSet CalcMat(const CartGTOs& a, const MolePot& v, const CartGTOs& b) {

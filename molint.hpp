@@ -55,20 +55,30 @@ namespace l2func {
 				  dcomplex wCx, dcomplex wCy, dcomplex wCz);
 
   class MatrixSet {
-  private:
-    int nbasis_;
+  public:
+    int nbasis_i_;
+    int nbasis_j_;
     std::map<std::string, dcomplex*> mat_map_;
   public:
-    MatrixSet(int nb);
-    int size_basis() const;
+    MatrixSet(int nbi, int nbj);
+    ~MatrixSet();
+    int size_basis_i() const;
+    int size_basis_j() const;
     void set(std::string label, dcomplex* ptr);    
     dcomplex* get(std::string label);
+    std::map<std::string, dcomplex*>& get_map() { return mat_map_; }
     //np::ndarray get_py(std::string label);
   };  
   class GTOs {
   private:
-    typedef boost::array<dcomplex, 3> dc3;
-    typedef boost::array<int, 3>      i3;
+    //    typedef boost::array<dcomplex, 3> dc3;
+    //    typedef boost::array<int, 3>      i3;
+    void Normalize();
+    void Add(dcomplex _zeta,
+	     dcomplex x, dcomplex y, dcomplex z,
+	     vector<int> _nx, vector<int> _ny, vector<int> _nz, 
+	     vector<vector<dcomplex> > _coef);
+
   public:
     // ish   : index of shell
     // iprim : index of primitive GTO in ish shell.
@@ -81,8 +91,11 @@ namespace l2func {
     vector<vector<int> > nx_ish_iprim;
     vector<vector<int> > ny_ish_iprim;
     vector<vector<int> > nz_ish_iprim;
+    vector<int> l_ish;
+    vector<vector<int> > m_ish_iprim;
     
     vector<int> offset_ish; // offset_ish[ish] + ibasis gives global index    
+    vector<dcomplex>                   coef_ylm_ish;
     vector<vector<vector<dcomplex> > > coef_ish_icont_iprim;
 
     vector<dcomplex> x_iat;
@@ -118,21 +131,22 @@ namespace l2func {
     int size_atom() const {
       return x_iat.size();
     }
-    void Add(dcomplex _zeta,
-	     dcomplex x, dcomplex y, dcomplex z,
-	     vector<int> _nx, vector<int> _ny, vector<int> _nz, 
-	     vector<vector<dcomplex> > _coef);
-    void AddSphericalGTO(int L, dcomplex x, dcomplex y, dcomplex z, dcomplex _zeta);
+
+    void AddSphericalGTOs(int L, dcomplex x, dcomplex y, dcomplex z, dcomplex _zeta);
+    void AddOneSphericalGTO(int L, int M,
+			    dcomplex x, dcomplex y, dcomplex z, dcomplex _zeta);
     void AddAtom(dcomplex q, dcomplex x, dcomplex y, dcomplex z);
-    void Normalize();
-    dcomplex overlap(int ish, int iprim, int jsh, int jprim) const;
-    dcomplex kinetic(int ish, int iprim, int jsh, int jprim) const;
-    dcomplex* SMat() const;
-    dcomplex* SMat2() const;
-    dcomplex* TMat() const;
+    //void Normalize();
+    //    dcomplex overlap(int ish, int iprim, int jsh, int jprim) const;
+    //    dcomplex kinetic(int ish, int iprim, int jsh, int jprim) const;
+    //    dcomplex* SMat() const;
+    //    dcomplex* SMat2() const;
+    //    dcomplex* TMat() const;
     MatrixSet Calc();
     void CalcMat(dcomplex** s, dcomplex** t, dcomplex** dz, dcomplex** v);
+    MatrixSet CalcZMatOther(const GTOs&);
     void Show() const;
+    void AtR_Ylm(int l, int m, dcomplex* rs, int num_r, dcomplex* cs, dcomplex* res);
     // void VMat(dcomplex** v);
   };
   class MolePot {

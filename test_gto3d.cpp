@@ -4,13 +4,16 @@
 
 #include <gtest/gtest.h>
 #include <Eigen/Core>
+
+#include "exp_func.hpp"
+#include "cip_exp.hpp"
+
 #include "utils.hpp"
 #include "cints.hpp"
 #include "angmoment.hpp"
 #include "gto3d.hpp"
 #include "gto3dset.hpp"
 #include "molint.hpp"
-
 #include "eigen_plus.hpp"
 
 using namespace std;
@@ -277,9 +280,9 @@ TEST(MOLINT, nuclear_attraction) {
 TEST(GTOs, offset) {
 
   GTOs gtos;
-  gtos.AddSphericalGTO(1, 0.0, 0.0, 0.0, 1.2);
-  gtos.AddSphericalGTO(2, 0.0, 0.0, 0.0, 1.2);
-  gtos.AddSphericalGTO(0, 0.0, 0.0, 0.0, 1.2);
+  gtos.AddSphericalGTOs(1, 0.0, 0.0, 0.0, 1.2);
+  gtos.AddSphericalGTOs(2, 0.0, 0.0, 0.0, 1.2);
+  gtos.AddSphericalGTOs(0, 0.0, 0.0, 0.0, 1.2);
   EXPECT_EQ(0, gtos.offset_ish[0]);
   EXPECT_EQ(3, gtos.offset_ish[1]);
   EXPECT_EQ(8, gtos.offset_ish[2]);
@@ -317,7 +320,7 @@ TEST(GTOs, size) {
       dcomplex y(0.0);
       dcomplex z(0.0);
 
-      gtos.AddSphericalGTO(L, x, y, z, zeta);
+      gtos.AddSphericalGTOs(L, x, y, z, zeta);
   }
 
   EXPECT_EQ(6, gtos.size_prim());
@@ -328,7 +331,6 @@ TEST(GTOs, CalcMat) {
   SphericalGTOSet gto_ref;
   GTOs gtos;
 
-  std::cout << "A" << std::endl;
   for(int L = 0; L < 3; L++)
     for(int n = 0; n < 1; n++ ) {
       
@@ -337,33 +339,22 @@ TEST(GTOs, CalcMat) {
       dcomplex y(-0.1+0.1*(n+1));
       dcomplex z(0.3+0.2*(n+1));
 
-      gtos.AddSphericalGTO(L, x, y, z, zeta);
+      gtos.AddSphericalGTOs(L, x, y, z, zeta);
       gto_ref.AddBasis(    L, x, y, z, zeta);
       
   }
-  
-  std::cout << "B" << std::endl;
-  gtos.AddAtom(1.0, 0.0, 0.0, 0.0);
-  std::cout << "BB" << std::endl;
 
-  std::cout << "C" << std::endl;
+  gtos.AddAtom(1.0, 0.0, 0.0, 0.0);
+
   // below code contain serious error.
   dcomplex* smat_ref  = gto_ref.SMat();
-  std::cout << 1 << std::endl;
   dcomplex* tmat_ref  = gto_ref.TMat();
-  std::cout << 2 << std::endl;
   dcomplex* zmat_ref  = gto_ref.XyzMat(0, 0, 1);
-  std::cout << 3 << std::endl;
   dcomplex* vmat_ref = gto_ref.VMat(1.0, 0.0, 0.0, 0.0);
  
-  std::cout << "D" << std::endl;
   int num = gtos.size_basis();  
-  std::cout << "D" << num << std::endl;
-  gtos.Normalize();
-  std::cout << "D" << num << std::endl;
   MatrixSet res = gtos.Calc();
 
-  std::cout << "E" << std::endl;
   double eps(pow(10.0, -10.0));
 
   for(int i = 0; i < num; i++)
@@ -387,11 +378,48 @@ TEST(GTOs, CalcMat) {
 
     }
 
-
   delete[] smat_ref;
   delete[] tmat_ref;
   delete[] vmat_ref;
   delete[] zmat_ref;
+
+}
+TEST(GTOs, AddGTO) {
+
+  GTOs gtos1;
+  GTOs gtos2;
+  for(int L = 0; L < 3; L++)
+    for(int n = 0; n < 1; n++ ) {
+      
+      dcomplex zeta(0.1+n*0.1, 0.0);
+      dcomplex x(0.4*(n+1));
+      dcomplex y(-0.1+0.1*(n+1));
+      dcomplex z(0.3+0.2*(n+1));
+
+      gtos1.AddSphericalGTOs(L, x, y, z, zeta);
+      for(int M = -L; M <= L; M++) {
+	gtos2.AddOneSphericalGTO(L, M, x, y, z, zeta);
+      }
+  }
+
+  gtos1.AddAtom(1.0, dcomplex(1.1, 0.1), 0.0, dcomplex(0.2, -0.2));
+  gtos2.AddAtom(1.0, dcomplex(1.1, 0.1), 0.0, dcomplex(0.2, -0.2));
+
+  MatrixSet res1 = gtos1.Calc();
+  MatrixSet res2 = gtos2.Calc();
+ 
+  int num = gtos1.size_basis();  
+  int num2 = gtos2.size_basis();  
+  EXPECT_EQ(num, num2);
+
+  for(int i = 0; i < num; i++)
+    for(int j = 0; j < num; j++) {
+      int idx = i * num + j;
+      EXPECT_C_EQ(res1.get("s")[idx], res2.get("s")[idx]);
+      EXPECT_C_EQ(res1.get("v")[idx], res2.get("v")[idx]);
+      EXPECT_C_EQ(res1.get("t")[idx], res2.get("t")[idx]);
+      EXPECT_C_EQ(res1.get("z")[idx], res2.get("z")[idx]);
+    }
 
 }
 TEST(GTOs, H_atom) {
@@ -399,10 +427,9 @@ TEST(GTOs, H_atom) {
   GTOs gtos;
   for(int n = -5; n < 5; n++ ) {
     dcomplex zeta(pow(2.0, n), 0.0);
-    gtos.AddSphericalGTO(0, 0.0, 0.0, 0.0, zeta);
+    gtos.AddSphericalGTOs(0, 0.0, 0.0, 0.0, zeta);
   }
   gtos.AddAtom(1.0, 0.0, 0.0, 0.0);
-  gtos.Normalize();
   MatrixSet res = gtos.Calc();
   int num = gtos.size_basis();
   
@@ -414,8 +441,6 @@ TEST(GTOs, H_atom) {
   for(int i = 0; i < num; i++) {
     for(int j = 0; j < num; j++) {
       int idx(i*num+j);
-      std::cout << i << j << ": " <<
-      	t_ptr[idx] << v_ptr[idx] << s_ptr[idx] << std::endl;
       H(i, j) = t_ptr[idx] + v_ptr[idx];
       S(i, j) = s_ptr[idx];
     }
@@ -423,7 +448,6 @@ TEST(GTOs, H_atom) {
   Eigen::MatrixXcd CS(5, 5);
   Eigen::VectorXcd eig(5, 1);
   generalizedComplexEigenSolve(H, S, &CS, &eig);
-  std::cout << eig<< std::endl;
 }
 TEST(GTOs, mat) {
 
@@ -441,6 +465,105 @@ TEST(GTOs, mat) {
   //  std::cout << CS << std::endl;
   std::cout << res<< std::endl;
 
+}
+TEST(GTOs, at_r_ylm) {
+
+  // -- common --
+  dcomplex zeta1(0.1, 0.01);
+  dcomplex zeta2(0.1, 0.02);
+
+  // -- GTO --
+  CGTO g1(1.0, 1, zeta1); dcomplex cnorm1 = CIP(g1, g1);
+  g1 = CGTO(1.0/sqrt(cnorm1), 1, zeta1);
+  CGTO g2(1.0, 1, zeta2); dcomplex cnorm2 = CIP(g2, g2);
+  g2 = CGTO(1.0/sqrt(cnorm2), 1, zeta2);
+
+  // -- GTO set --
+  GTOs gtos;  
+  gtos.AddSphericalGTOs(0, 0.0, 0.0, 0.0, zeta1);
+  gtos.AddSphericalGTOs(0, 0.0, 0.0, 0.0, zeta2);
+
+  dcomplex* cs = new dcomplex[2];
+  cs[0] = 1.1; cs[1] = 1.3;
+  int r_num = 2;
+  dcomplex* rs = new dcomplex[r_num];
+  for(int i = 0; i < r_num; i++)
+    rs[i] = 1.1 + i * 0.1;
+
+  dcomplex* vs = new dcomplex[r_num];
+  gtos.AtR_Ylm(0, 0, rs, r_num, cs, vs);
+
+  EXPECT_C_EQ(g1.c(), gtos.coef_ylm_ish[0]);
+
+  for(int i = 0; i < r_num; i++) {
+    std::cout << std::setprecision(15) << rs[i] << ", " << vs[i] << std::endl;
+    EXPECT_C_EQ(g1.at(rs[i]) * cs[0] + g2.at(rs[i]) * cs[1],
+		vs[i]);
+  }
+
+  delete[] rs;
+  delete[] vs;
+  delete[] cs;
+  
+}
+TEST(GTOs, location) {
+
+  GTOs gtos1;  
+  GTOs gtos2;  
+  dcomplex x(1.1, 0.1);
+  dcomplex y(0.2, -0.03);
+  dcomplex z(-0.3);
+  
+  dcomplex zeta(1.1, 0.2);
+  for(int L = 0; L < 3; L++) {
+    gtos1.AddSphericalGTOs(L, 0.0, 0.0, 0.0, zeta);
+    gtos2.AddSphericalGTOs(L, x, y, z, zeta);
+    for(int M = -L; M <= L; M++) {
+      gtos1.AddOneSphericalGTO(L, M, 0.0, 0.0, 0.0, zeta);
+      gtos2.AddOneSphericalGTO(L, M, x, y, z, zeta);
+    }
+  }
+  gtos1.AddAtom(1.1, 0.0, 0.0, 0.0);
+  gtos2.AddAtom(1.1, x, y, z);
+
+  MatrixSet s1 = gtos1.Calc();
+  MatrixSet s2 = gtos2.Calc();
+
+  int num = gtos1.size_basis();
+
+  double eps(pow(10.0, -10.0));
+  for(int i = 0; i < num; i++)
+    for(int j = 0; j < num; j++) {
+      int idx = i*num+j;
+      EXPECT_C_NEAR(s1.get("s")[idx], s2.get("s")[idx], eps);
+      EXPECT_C_NEAR(s1.get("v")[idx], s2.get("v")[idx], eps);
+      EXPECT_C_NEAR(s1.get("t")[idx], s2.get("t")[idx], eps);
+    }
+}
+TEST(GTOs, CalcZMatOther) {
+
+  GTOs gtos1;
+  GTOs gtos2;
+
+  dcomplex x(1.0);
+  dcomplex y(0.3, 0.1);
+  dcomplex z(2.0);
+  dcomplex zeta(1.0, 0.1);
+  gtos1.AddSphericalGTOs(0, x, y, z, zeta);
+  gtos1.AddSphericalGTOs(2, x, y, z, zeta);
+  
+  gtos2.AddSphericalGTOs(2, x, y, z, zeta);
+
+  MatrixSet m1 = gtos1.Calc();
+  MatrixSet m2 = gtos1.CalcZMatOther(gtos2);
+
+  double eps(pow(10.0, -10.0));
+
+  for(int i = 0; i < 5; i++)
+    for(int j = 0; j < 5; j++)
+      EXPECT_C_NEAR(m1.get("z")[1+i + (j+1)*6],
+		    m2.get("z")[1+i +     j*6],
+		    eps) << i << j;
 }
 
 TEST(CINTS, First) {
@@ -653,7 +776,8 @@ TEST(Angmoment, mod_spherical_bessel) {
   
   for(int i = 0; i < 3; i++) {
     C x(xs[i]);
-    C* vs = ModSphericalBessel(x, 10);
+    C* vs = new C[11];
+    ModSphericalBessel(x, 10, vs);
   
     EXPECT_C_EQ(sinh(x)/x,                 vs[0]);
     EXPECT_C_EQ((x*cosh(x)-sinh(x))/(x*x), vs[1]);
@@ -667,7 +791,8 @@ TEST(Angmoment, mod_spherical_bessel) {
   xs[1] = C(0.00005, 0.002);
   xs[2] = C(0.0001, 0.002);
   for(int i = 0; i < 3; i++) {
-    C* vs = ModSphericalBessel(xs[i], 10);
+    C* vs = new C[11];
+    ModSphericalBessel(xs[i], 10, vs);
     for(int n = 2; n <= 8; n++) {
       EXPECT_C_EQ(vs[n-1]-vs[n+1], (2*n+1.0)*vs[n]/xs[i]);    
     }
@@ -675,7 +800,8 @@ TEST(Angmoment, mod_spherical_bessel) {
   }
     
   C x(0.0, 0.0);
-  C* vs = ModSphericalBessel(x, 10);
+  C* vs = new C[11];
+  ModSphericalBessel(x, 10, vs);
   EXPECT_C_EQ(1.0, vs[0]);
   for(int i = 1; i < 10; i++)
     EXPECT_C_EQ(0.0, vs[i]);
@@ -685,7 +811,9 @@ TEST(Angmoment, mod_spherical_bessel) {
 TEST(Angmoment, associated_legendre) {
 
   C x( 0.6, 0.0);
-  C* vs = AssociatedLegendre(x, 10);  
+  int lmax(10);
+  C* vs = new C[num_lm_pair(lmax)];
+  AssociatedLegendre(x, lmax, vs);  
   EXPECT_C_EQ(1.0, vs[lm(0, +0)]);
 
   EXPECT_C_EQ(-sqrt(1.0-x*x), vs[lm(1, +1)]);
@@ -705,7 +833,9 @@ TEST(Angmoment, real_spherical_harm) {
   C t = C(1.1, 0.2);
   C p = C(1.1, 0.1);
 
-  C* vs = RealSphericalHarmonics(t, p, 10);
+  int max_l(10);
+  C* vs = new C[num_lm_pair(max_l)];
+  RealSphericalHarmonics(t, p, max_l, vs);
   
   C a = 1.0/sqrt(4.0*M_PI);
   EXPECT_C_EQ(a,                         vs[lm(0, 0)]);
@@ -726,19 +856,24 @@ TEST(Angmoment, gto_00_r) {
   double pi(M_PI);  
   int num_r(5);
   C* rs = new C[num_r];
+  C* vs = new C[num_r];
+  
   for(int i = 0; i < num_r; i++) {
     rs[i] = 0.1 + 0.2*i;
   }
   C zeta(1.0, 0.0);
   int L(0);
   int M(0);
-  C* vs = gto_00_r(0.0, 0.0, 0.0, L, M, rs, num_r, zeta);
+  C* work = new C[num_lm_pair(L) + L + 1];
+  gto_00_r(0.0, 0.0, 0.0, L, M, zeta, rs, num_r, work, vs);
   for(int i = 0; i < num_r; i++) {
     C r(rs[i]);
     C calc(sqrt(4.0*pi)*exp(-zeta*r*r));    
     EXPECT_C_EQ(vs[i], calc) << i;    
   }
   delete[] vs;
+  delete[] rs;
+  delete[] work;
 }
 
 TEST(SphericalGTO, OrthNormality) {
