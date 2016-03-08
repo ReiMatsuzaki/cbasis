@@ -445,15 +445,7 @@ namespace l2func {
   dcomplex* MatrixSet::get(std::string label) {
     return mat_map_[label];
   }
-/*
-  np::ndarray MatrixSet::get_py(std::string label) {
-    return   return np::from_data(xs,
-				  np::dtype::get_builtin<dcomplex>(),
-				  bp::make_tuple(this->size_basis() * this->size_basis()),
-				  bp::make_tuple(sizeof(dcomplex)),
-				  bp::object());
-  }
-  */  
+
   GTOs::GTOs() {
     offset_ish.push_back(0);
   }
@@ -477,7 +469,7 @@ namespace l2func {
     nx_ish_iprim.push_back(_nx);
     ny_ish_iprim.push_back(_ny);
     nz_ish_iprim.push_back(_nz);
-    coef_ish_icont_iprim.push_back(_coef);
+    coef_ish_ibasis_iprim.push_back(_coef);
     
   }
   void GTOs::AddSphericalGTOs(int L, dcomplex x, dcomplex y, dcomplex z,
@@ -492,7 +484,7 @@ namespace l2func {
       this->Add(_zeta, x, y, z, n0, n0, n0, c);     
     
       vector<int> ms(1); ms[0] = 0;
-      m_ish_iprim.push_back(ms);
+      m_ish_ibasis.push_back(ms);
       
     }
     else if(L == 1) {
@@ -508,7 +500,7 @@ namespace l2func {
       cs[2][0] = 1.0; cs[2][1] = 0.0; cs[2][2] = 0.0; ms[2] = +1; // M = 1
 
       this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_iprim.push_back(ms);      
+      m_ish_ibasis.push_back(ms);      
 
     }
     else if(L == 2) {
@@ -548,7 +540,7 @@ namespace l2func {
       cs[4][3] = 0.0; cs[4][4] = 0.0; cs[4][5] = 0.0; 
 
       this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_iprim.push_back(ms);
+      m_ish_ibasis.push_back(ms);
 
     } else {
       std::string msg;
@@ -575,7 +567,7 @@ namespace l2func {
       this->Add(_zeta, x, y, z, n0, n0, n0, c);     
     
       vector<int> ms(1); ms[0] = 0;
-      m_ish_iprim.push_back(ms);
+      m_ish_ibasis.push_back(ms);
       
     }
     else if(L == 1 && M == -1) {
@@ -583,7 +575,7 @@ namespace l2func {
       vector<vector<dcomplex> > cs(1, vector<dcomplex>(1));
       nx[0] = 0.0; ny[0] = 1.0; nz[0] = 0; ms[0] = -1; cs[0][0] = 1.0;
       this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_iprim.push_back(ms);      
+      m_ish_ibasis.push_back(ms);      
 
     }
     else if(L == 1 && M == 0) {
@@ -591,7 +583,7 @@ namespace l2func {
       vector<vector<dcomplex> > cs(1, vector<dcomplex>(1));
       nx[0] = 0; ny[0] = 0; nz[0] = 1; ms[0] = 0; cs[0][0] = 1.0;
       this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_iprim.push_back(ms);      
+      m_ish_ibasis.push_back(ms);      
 
     }
     else if(L == 1 && M == 1) {
@@ -599,7 +591,7 @@ namespace l2func {
       vector<vector<dcomplex> > cs(1, vector<dcomplex>(1));
       nx[0] = 1; ny[0] = 0; nz[0] = 0; ms[0] = +1; cs[0][0] = 1.0;
       this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_iprim.push_back(ms);      
+      m_ish_ibasis.push_back(ms);      
 
     }
     else if(L == 2) {
@@ -634,7 +626,7 @@ namespace l2func {
 	cs[0][3] = 0.0; cs[0][4] = 0.0; cs[0][5] = 0.0; 
       }
       this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_iprim.push_back(ms);
+      m_ish_ibasis.push_back(ms);
 
     } else {
       std::string msg;
@@ -672,14 +664,14 @@ namespace l2func {
 				     nz_ish_iprim[ish][jprim],
 				     x_ish[ish], y_ish[ish], z_ish[ish],
 				     zeta_ish[ish]);
-	    s *= coef_ish_icont_iprim[ish][ibasis][iprim];
-	    s *= coef_ish_icont_iprim[ish][ibasis][jprim];
+	    s *= coef_ish_ibasis_iprim[ish][ibasis][iprim];
+	    s *= coef_ish_ibasis_iprim[ish][ibasis][jprim];
 	    cumsum += s;
 	  }
 	}
 	dcomplex scale = 1.0/sqrt(cumsum);	
 	for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++) 
-	  coef_ish_icont_iprim[ish][ibasis][iprim] *= scale;	
+	  coef_ish_ibasis_iprim[ish][ibasis][iprim] *= scale;	
       }
     }    
   }
@@ -982,8 +974,8 @@ namespace l2func {
 	      
 	      for(int jprim = 0; jprim < npj; jprim++) {
 		int idx_prim0(iprim * npj + jprim);
-		dcomplex cc(coef_ish_icont_iprim[ish][ibasis][iprim]*
-			    coef_ish_icont_iprim[jsh][jbasis][jprim]);
+		dcomplex cc(coef_ish_ibasis_iprim[ish][ibasis][iprim]*
+			    coef_ish_ibasis_iprim[jsh][jbasis][jprim]);
 		s += cc*smat_prim[idx_prim0];
 		t += cc*tmat_prim[idx_prim0];
 		dz += cc*zmat_prim[idx_prim0];
@@ -1067,8 +1059,8 @@ namespace l2func {
 	    dcomplex cumsum(0.0);
 	    for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++)
 	      for(int jprim = 0; jprim < o.size_prim_ish(jsh); jprim++) {
-		cumsum += (this->coef_ish_icont_iprim[ish][ibasis][iprim] * 
-			   o.coef_ish_icont_iprim[jsh][jbasis][jprim] * 
+		cumsum += (this->coef_ish_ibasis_iprim[ish][ibasis][iprim] * 
+			   o.coef_ish_ibasis_iprim[jsh][jbasis][jprim] * 
 			   z_prim[iprim * o.size_prim_ish(jsh) + jprim]);
 	      }
 	    int i = this->offset_ish[ish] + ibasis;
@@ -1109,10 +1101,10 @@ namespace l2func {
 
       if(abs(a2) < eps) {
 	// ---- on center ----
-	for(int iprim = 0; iprim < size_prim_ish(ish); iprim++) {
-	  int ibasis = offset_ish[ish] + iprim;
-	  dcomplex coef = coef_ylm_ish[ish] * cs[ibasis];
-	  if(l_ish[ish] == L && m_ish_iprim[ish][iprim] == M) {
+	for(int ibasis = 0; ibasis < size_prim_ish(ish); ibasis++) {
+	  int idx = offset_ish[ish] + ibasis;
+	  dcomplex coef = coef_ylm_ish[ish] * cs[idx];
+	  if(l_ish[ish] == L && m_ish_ibasis[ish][ibasis] == M) {
 	    for(int i = 0; i < num_r; i++) {
 	      dcomplex r(rs[i]);
 	      res[i] += coef * pow(r, L+1) * exp(-zeta * r * r);
@@ -1128,9 +1120,9 @@ namespace l2func {
 	} else {
 	  // --- (l,m) == (0,0)
 	  RealSphericalHarmonics(theta, phi, L, ylm);
-	  for(int iprim = 0; iprim < size_prim_ish(ish); iprim++) {
-	    int ibasis = offset_ish[ish] + iprim;
-	    dcomplex coef = coef_ylm_ish[ish] * cs[ibasis];
+	  for(int ibasis = 0; ibasis < size_basis_ish(ish); ibasis++) {
+	    int idx = offset_ish[ish] + ibasis;
+	    dcomplex coef = coef_ylm_ish[ish] * cs[idx];
 	    for(int i = 0; i < num_r; i++) {
 	      dcomplex r(rs[i]);
 	      ModSphericalBessel(2.0*zeta*a*r, L, il);
@@ -1162,23 +1154,7 @@ namespace l2func {
       for(int ibasis = 0; ibasis < this->size_basis_ish(ish); ibasis++) {
 	cout << ish << " " << zeta_ish[ish] << " " << x_ish[ish] << " ";
 	cout << y_ish[ish] << " " << z_ish[ish] << " " << l_ish[ish] << " ";
-	cout << m_ish_iprim[ish][ibasis] << endl;
-	/*
-	if(ibasis == 0) {
-	  cout << setw(3) << ish;
-	  show_complex(zeta_ish[ish], 10);
-	  cout << " (";
-	  show_complex(x_ish[ish], 5);
-	  cout << ", ";
-	  show_complex(y_ish[ish], 5);
-	  cout << ", ";
-	  show_complex(z_ish[ish], 5);
-	} else {
-	  cout << "              ";
-	}
-	cout << "(" << l_ish[ish] << ", " << m_ish_iprim[ish][ibasis] << ") ";
-	cout << endl;
-	*/
+	cout << m_ish_ibasis[ish][ibasis] << endl;
       }
     }
   }

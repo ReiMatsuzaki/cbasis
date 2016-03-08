@@ -90,11 +90,11 @@ namespace l2func {
     vector<vector<int> > ny_ish_iprim;
     vector<vector<int> > nz_ish_iprim;
     vector<int> l_ish;
-    vector<vector<int> > m_ish_iprim;
+    vector<vector<int> > m_ish_ibasis;
     
     vector<int> offset_ish; // offset_ish[ish] + ibasis gives global index    
     vector<dcomplex>                   coef_ylm_ish;
-    vector<vector<vector<dcomplex> > > coef_ish_icont_iprim;
+    vector<vector<vector<dcomplex> > > coef_ish_ibasis_iprim;
 
     vector<dcomplex> x_iat;
     vector<dcomplex> y_iat;
@@ -114,7 +114,7 @@ namespace l2func {
       return zeta_ish.size();    
     }
     int size_basis_ish(int ish) const {
-      return coef_ish_icont_iprim[ish].size();    
+      return coef_ish_ibasis_iprim[ish].size();    
     }
     int size_prim_ish(int ish) const {
       return nx_ish_iprim[ish].size();
