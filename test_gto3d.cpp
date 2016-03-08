@@ -411,14 +411,14 @@ TEST(GTOs, AddGTO) {
   int num = gtos1.size_basis();  
   int num2 = gtos2.size_basis();  
   EXPECT_EQ(num, num2);
-
+  
   for(int i = 0; i < num; i++)
     for(int j = 0; j < num; j++) {
       int idx = i * num + j;
-      EXPECT_C_EQ(res1.get("s")[idx], res2.get("s")[idx]);
-      EXPECT_C_EQ(res1.get("v")[idx], res2.get("v")[idx]);
-      EXPECT_C_EQ(res1.get("t")[idx], res2.get("t")[idx]);
-      EXPECT_C_EQ(res1.get("z")[idx], res2.get("z")[idx]);
+      EXPECT_C_EQ(res1.get("s")[idx], res2.get("s")[idx]) << i << j;
+      EXPECT_C_EQ(res1.get("v")[idx], res2.get("v")[idx]) << i << j;
+      EXPECT_C_EQ(res1.get("t")[idx], res2.get("t")[idx]) << i << j;
+      EXPECT_C_EQ(res1.get("z")[idx], res2.get("z")[idx]) << i << j;
     }
 
 }

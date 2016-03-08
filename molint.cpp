@@ -452,7 +452,7 @@ namespace l2func {
   void GTOs::Add(dcomplex _zeta,
 		 dcomplex x, dcomplex y, dcomplex z,
 		 vector<int> _nx, vector<int> _ny, vector<int> _nz, 
-		 vector<vector<dcomplex> > _coef) {
+		 vector<vector<dcomplex> > _coef, int L, vector<int> ms) {
     // new shell index
     int ish = this->size_sh();
 
@@ -470,22 +470,23 @@ namespace l2func {
     ny_ish_iprim.push_back(_ny);
     nz_ish_iprim.push_back(_nz);
     coef_ish_ibasis_iprim.push_back(_coef);
+
+    l_ish.push_back(L);
+    m_ish_ibasis.push_back(ms);
+
+    dcomplex c2 = gto_int(_zeta*2.0, 2*L+2);
+    coef_ylm_ish.push_back(1.0/sqrt(c2));
     
   }
   void GTOs::AddSphericalGTOs(int L, dcomplex x, dcomplex y, dcomplex z,
 			      dcomplex _zeta) {
-
-    l_ish.push_back(L);
     
     if(L == 0) {
       vector<int> n0; n0.push_back(0);
       vector<dcomplex> c1; c1.push_back(1.0);      
       vector<vector<dcomplex> > c; c.push_back(c1);
-      this->Add(_zeta, x, y, z, n0, n0, n0, c);     
-    
       vector<int> ms(1); ms[0] = 0;
-      m_ish_ibasis.push_back(ms);
-      
+      this->Add(_zeta, x, y, z, n0, n0, n0, c, 0, ms);     
     }
     else if(L == 1) {
       vector<int> nx(3), ny(3), nz(3);
@@ -499,9 +500,7 @@ namespace l2func {
       cs[1][0] = 0.0; cs[1][1] = 0.0; cs[1][2] = 1.0; ms[1] = +0; // M = 0
       cs[2][0] = 1.0; cs[2][1] = 0.0; cs[2][2] = 0.0; ms[2] = +1; // M = 1
 
-      this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_ibasis.push_back(ms);      
-
+      this->Add(_zeta, x, y, z, nx, ny, nz, cs, L, ms);     
     }
     else if(L == 2) {
       vector<int> nx(6), ny(6), nz(6);
@@ -539,8 +538,7 @@ namespace l2func {
       cs[4][0] = 1.0; cs[4][1] =-1.0; cs[4][2] = 0.0;
       cs[4][3] = 0.0; cs[4][4] = 0.0; cs[4][5] = 0.0; 
 
-      this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_ibasis.push_back(ms);
+      this->Add(_zeta, x, y, z, nx, ny, nz, cs, L, ms);     
 
     } else {
       std::string msg;
@@ -548,9 +546,6 @@ namespace l2func {
       msg += "Not implemented yet for this L";
       throw std::runtime_error(msg);      
     }
-
-    dcomplex c2 = gto_int(_zeta*2.0, 2*L+2);
-    coef_ylm_ish.push_back(1.0/sqrt(c2));
     
     this->Normalize();
 
@@ -558,75 +553,46 @@ namespace l2func {
   void GTOs::AddOneSphericalGTO(int L, int M, dcomplex x, dcomplex y, dcomplex z,
 				dcomplex _zeta) {
     
-    l_ish.push_back(L);
     
+    vector<int> nx(1), ny(1), nz(1), ms(1);
+    vector<vector<dcomplex> > cs(1, vector<dcomplex>(1));
+    ms[0] = M;
     if(L == 0 && M == 0) {
-      vector<int> n0; n0.push_back(0);
-      vector<dcomplex> c1; c1.push_back(1.0);      
-      vector<vector<dcomplex> > c; c.push_back(c1);
-      this->Add(_zeta, x, y, z, n0, n0, n0, c);     
-    
-      vector<int> ms(1); ms[0] = 0;
-      m_ish_ibasis.push_back(ms);
-      
+      nx[0] = 0; ny[0] = 0; nz[0] = 0; cs[0][0] = 1.0; 
     }
     else if(L == 1 && M == -1) {
-      vector<int> nx(1), ny(1), nz(1), ms(1);
-      vector<vector<dcomplex> > cs(1, vector<dcomplex>(1));
-      nx[0] = 0.0; ny[0] = 1.0; nz[0] = 0; ms[0] = -1; cs[0][0] = 1.0;
-      this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_ibasis.push_back(ms);      
-
+      nx[0] = 0; ny[0] = 1; nz[0] = 0; cs[0][0] = 1.0;
     }
     else if(L == 1 && M == 0) {
-      vector<int> nx(1), ny(1), nz(1), ms(1);
-      vector<vector<dcomplex> > cs(1, vector<dcomplex>(1));
-      nx[0] = 0; ny[0] = 0; nz[0] = 1; ms[0] = 0; cs[0][0] = 1.0;
-      this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_ibasis.push_back(ms);      
-
+      nx[0] = 0; ny[0] = 0; nz[0] = 1; cs[0][0] = 1.0;
     }
     else if(L == 1 && M == 1) {
-      vector<int> nx(1), ny(1), nz(1), ms(1);
-      vector<vector<dcomplex> > cs(1, vector<dcomplex>(1));
-      nx[0] = 1; ny[0] = 0; nz[0] = 0; ms[0] = +1; cs[0][0] = 1.0;
-      this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_ibasis.push_back(ms);      
-
+      nx[0] = 1; ny[0] = 0; nz[0] = 0; cs[0][0] = 1.0;
     }
     else if(L == 2) {
-      vector<int> nx(6), ny(6), nz(6);
-      nx[0] = 2; ny[0] = 0; nz[0] = 0; 
-      nx[1] = 0; ny[1] = 2; nz[1] = 0; 
-      nx[2] = 0; ny[2] = 0; nz[2] = 2; 
-      nx[3] = 1; ny[3] = 1; nz[3] = 0; 
-      nx[4] = 1; ny[4] = 0; nz[4] = 1;
-      nx[5] = 0; ny[5] = 1; nz[5] = 1;
-      vector<int> ms(1);
-      ms[0] = M;
-      vector<vector<dcomplex> > cs(1, vector<dcomplex>(6));
       if(M == -2) {
-	cs[0][0] = 0.0; cs[0][1] = 0.0; cs[0][2] = 0.0;
-	cs[0][3] = 1.0; cs[0][4] = 0.0; cs[0][5] = 0.0; 
+	nx[0] = 1; ny[0] = 1; nz[0] = 0; cs[0][0]= 1.0; 
       }
       else if(M == -1) {
-	cs[0][0] = 0.0; cs[0][1] = 0.0; cs[0][2] = 0.0;
-	cs[0][3] = 0.0; cs[0][4] = 0.0; cs[0][5] = 1.0; 
+	nx[0] = 0; ny[0] = 1; nz[0] = 1; cs[0][0] = 1.0;
       }
       else if(M == 0) {
-	cs[0][0] = -1.0; cs[0][1] = -1.0; cs[0][2] = 2.0;
-	cs[0][3] = +0.0; cs[0][4] = +0.0; cs[0][5] = 0.0; 
+	nx.push_back(2); ny.push_back(0); nz.push_back(0);
+	nx.push_back(0); ny.push_back(2); nz.push_back(0);
+	nx.push_back(0); ny.push_back(0); nz.push_back(2);
+	cs[0].push_back(-1.0);
+	cs[0].push_back(-1.0);
+	cs[0].push_back(2.0);
       }
       else if(M == +1) {
-	cs[0][0] = 0.0; cs[0][1] = 0.0; cs[0][2] = 0.0;
-	cs[0][3] = 0.0; cs[0][4] = 1.0; cs[0][5] = 0.0; 
+	nx[0] = 1; ny[0] = 0; nz[0] = 1; cs[0][0] = 1.0;
       }
       else if(M == +2) {
-	cs[0][0] = 1.0; cs[0][1] =-1.0; cs[0][2] = 0.0;
-	cs[0][3] = 0.0; cs[0][4] = 0.0; cs[0][5] = 0.0; 
+	nx.push_back(2); ny.push_back(0); nz.push_back(0);
+	nx.push_back(0); ny.push_back(2); nz.push_back(0);
+	cs[0].push_back(+1.0);
+	cs[0].push_back(-1.0);
       }
-      this->Add(_zeta, x, y, z, nx, ny, nz, cs);     
-      m_ish_ibasis.push_back(ms);
 
     } else {
       std::string msg;
@@ -635,9 +601,7 @@ namespace l2func {
       throw std::runtime_error(msg);      
     }
 
-    dcomplex c2 = gto_int(_zeta*2.0, 2*L+2);
-    coef_ylm_ish.push_back(1.0/sqrt(c2));
-    
+    this->Add(_zeta, x, y, z, nx, ny, nz, cs, L, ms);     
     this->Normalize();
 
   }
@@ -1154,7 +1118,10 @@ namespace l2func {
       for(int ibasis = 0; ibasis < this->size_basis_ish(ish); ibasis++) {
 	cout << ish << " " << zeta_ish[ish] << " " << x_ish[ish] << " ";
 	cout << y_ish[ish] << " " << z_ish[ish] << " " << l_ish[ish] << " ";
-	cout << m_ish_ibasis[ish][ibasis] << endl;
+	cout << m_ish_ibasis[ish][ibasis];
+	for(int iprim = 0; iprim < this->size_prim_ish(ish); iprim++)
+	  cout << coef_ish_ibasis_iprim[ish][ibasis][iprim];
+	cout << endl;
       }
     }
   }

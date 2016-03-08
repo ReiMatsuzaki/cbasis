@@ -75,7 +75,7 @@ namespace l2func {
     void Add(dcomplex _zeta,
 	     dcomplex x, dcomplex y, dcomplex z,
 	     vector<int> _nx, vector<int> _ny, vector<int> _nz, 
-	     vector<vector<dcomplex> > _coef);
+	     vector<vector<dcomplex> > _coef, int L, vector<int> M);
 
   public:
     // ish   : index of shell
