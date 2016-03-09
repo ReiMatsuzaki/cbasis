@@ -72,8 +72,7 @@ void molint() {
   GTOs gtos;
   for(int L = 0; L <= 2; L++)
     for(int n = -5; n < 5; n++)
-      gtos.AddSphericalGTO(L, 0.1, 0.2, 0.3, pow(2.0, n));
-  gtos.Normalize();
+      gtos.AddSphericalGTOs(L, 0.1, 0.2, 0.3, pow(2.0, n));
   gtos.AddAtom(1.0, 0.0, 0.0, 0.0);
   dcomplex* smat;
   dcomplex* tmat;
@@ -100,7 +99,7 @@ void molint2() {
     gtos.AddAtom(1.0, x, 0.0, 0.0);
     for(int L = 0; L <= 2; L++)
       for(int n = -3; n < 3; n++)
-	gtos.AddSphericalGTO(L, x, 0.2, 0.3, pow(2.0, n));
+	gtos.AddSphericalGTOs(L, x, 0.2, 0.3, pow(2.0, n));
   }
 
   dcomplex* smat;

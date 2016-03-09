@@ -27,11 +27,6 @@ using namespace erfc_mori;
 
 typedef std::complex<double> CD;
 
-TEST(math, set3) {
-  int* xs = new int[3];
-  set3(xs);
-  EXPECT_EQ(3, xs[0]);
-}
 TEST(math, array3) {
   array3<double> xs(1.1, 1.2, 1.3);
   EXPECT_DOUBLE_EQ(1.2, xs[1]);
@@ -41,7 +36,9 @@ TEST(math, array3) {
 }
 TEST(math, MultArray3) {
 
-  MultArray3<int> xs(-2, 3,
+  int* buf = new int[100];
+  MultArray3<int> xs(buf,
+		     -2, 3,
 		     -1, 4,
 		     0, 5);
   for(int i = -2; i <= 3; i++)
@@ -55,6 +52,8 @@ TEST(math, MultArray3) {
       for(int k = 0; k <= 5; k++) {
 	EXPECT_EQ(100*i+10*j+k, xs.get_safe(i, j, k));
       }
+
+  delete[] buf;
 
 }
 TEST(math, Factorial) {

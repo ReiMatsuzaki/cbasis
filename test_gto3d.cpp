@@ -15,6 +15,7 @@
 #include "gto3dset.hpp"
 #include "molint.hpp"
 #include "eigen_plus.hpp"
+#include "spec_func.hpp"
 
 using namespace std;
 using namespace l2func;

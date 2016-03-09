@@ -9,22 +9,7 @@
 namespace l2func {
 
   using std::vector;
-
-  void IncompleteGamma(int max_m, dcomplex z, dcomplex* res);
-
-  dcomplex coef_d(dcomplex zetap,
-		  dcomplex wPk, dcomplex wAk, dcomplex wBk,
-		  int nAk, int nBk, int Nk);
-
-  MultArray3<dcomplex> calc_d_coef(int max_ni, int max_nj, int max_n,
-				   dcomplex zetaP, dcomplex wPx,
-				   dcomplex xi, dcomplex xj, dcomplex* buf);
-
-  void calc_d_coef(int max_ni, int max_nj, int max_n,
-		   dcomplex zetaP, dcomplex wPx,
-		   dcomplex xi, dcomplex xj,
-		   dcomplex* buffer, dcomplex* res);
-  
+ 
   dcomplex gto_overlap(int nAx, int nAy, int nAz, 
 		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
 		       dcomplex zetaA,

@@ -18,12 +18,13 @@ math_utils.o: math_utils.cpp math_utils.hpp
 cut_exp.o: cut_exp.hpp exp_func.hpp linspace.hpp
 exp_func.o: exp_func.cpp exp_func.hpp linspace.hpp
 cip_exp.o: cip_exp.cpp
-angmoment.o: angmoment.cpp math_utils.hpp  angmoment.hpp 
-molint.o: molint.cpp molint.hpp math_utils.hpp macros.hpp
-
 gto3dset.o: gto3dset.cpp gto3dset.hpp
 
 r1gtoint.o: r1gtoint.cpp r1gtoint.hpp math_utils.hpp
+
+angmoment.o: angmoment.cpp math_utils.hpp  angmoment.hpp 
+molint.o: molint.cpp molint.hpp math_utils.hpp macros.hpp
+spec_func.o: spec_func.cpp spec_func.hpp math_utils.hpp 
 
 test.o: test.cpp
 test: test.o l2.a
@@ -37,7 +38,7 @@ check_r1gtoint: test_r1gtoint
 	./$<
 
 test_symmolint.o: test_symmolint.cpp symmolint.hpp math_utils.hpp
-test_symmolint: test_symmolint.o symmolint.o
+test_symmolint: test_symmolint.o symmolint.o spec_func.o
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_symmolint
 check_symmolint: test_symmolint
@@ -46,14 +47,14 @@ check_symmolint: test_symmolint
 
 test_gto3d.o: test_gto3d.cpp gto3d.hpp 
 #test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o molint.o cip_exp.o exp_func.o eigen_plus.o
-test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o molint.o eigen_plus.o ${OBJS} 
+test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o molint.o spec_func.o eigen_plus.o ${OBJS} 
 	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
 .PHONY: check_gto3d
 check_gto3d: test_gto3d
 	./test_gto3d
 
 test_gto3d_time.o: test_gto3d_time.cpp
-test_gto3d_time: test_gto3d_time.o  cints.o angmoment.o gto3dset.o math_utils.o molint.o timer.o
+test_gto3d_time:  test_gto3d_time.o cints.o angmoment.o gto3dset.o molint.o spec_func.o eigen_plus.o ${OBJS} timer.o
 	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} $^ -lgsl
 .PHONY: check_gto3d_time
 check_gto3d_time: test_gto3d_time
