@@ -36,6 +36,13 @@ test_r1gtoint: test_r1gtoint.o r1gtoint.o cip_exp.o math_utils.o erfc.o
 check_r1gtoint: test_r1gtoint
 	./$<
 
+test_symmolint.o: test_symmolint.cpp symmolint.hpp math_utils.hpp
+test_symmolint: test_symmolint.o symmolint.o
+	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
+.PHONY: check_symmolint
+check_symmolint: test_symmolint
+	./$<
+
 
 test_gto3d.o: test_gto3d.cpp gto3d.hpp 
 #test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o molint.o cip_exp.o exp_func.o eigen_plus.o
