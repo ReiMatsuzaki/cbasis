@@ -38,7 +38,7 @@ check_r1gtoint: test_r1gtoint
 	./$<
 
 test_symmolint.o: test_symmolint.cpp symmolint.hpp math_utils.hpp
-test_symmolint: test_symmolint.o symmolint.o spec_func.o
+test_symmolint: test_symmolint.o symmolint.o spec_func.o angmoment.o molint.o math_utils.o
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_symmolint
 check_symmolint: test_symmolint

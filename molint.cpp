@@ -8,7 +8,7 @@
 namespace l2func {
 
   using namespace std;
-  typedef MultArray3<dcomplex> A3dc;
+  typedef MultArray<dcomplex, 3> A3dc;
 
   // ==== Utility ====
   dcomplex dist2(dcomplex dx, dcomplex dy, dcomplex dz) {
@@ -503,7 +503,8 @@ namespace l2func {
 	      for(int ny = 0; ny <= nyi + nyj; ny++)
 		for(int nz = 0; nz <= nzi + nzj; nz++)
 		  for(int iat = 0; iat < this->size_atom(); iat++) {
-		    v_ele += (dxmap.get(nxi, nxj, nx) *
+		    v_ele += (q_iat[iat] *
+			      dxmap.get(nxi, nxj, nx) *
 			      dymap.get(nyi, nyj, ny) *
 			      dzmap.get(nzi, nzj, nz) *
 			      coef_R(zetaP, wPx, wPy, wPz,

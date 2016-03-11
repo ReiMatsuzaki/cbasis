@@ -176,14 +176,15 @@ namespace l2func {
     
   }
 
-  MultArray3<dcomplex> calc_d_coef(int max_ni, int max_nj, int max_n,
-		   dcomplex zetaP, dcomplex wPx, dcomplex xi, dcomplex xj,
-		   dcomplex* buffer) {
+  MultArray<dcomplex, 3> calc_d_coef(int max_ni, int max_nj, int max_n,
+				     dcomplex zetaP, dcomplex wPx,
+				     dcomplex xi, dcomplex xj,
+				     dcomplex* buffer) {
 
-    MultArray3<dcomplex> data(buffer,
-			      0, max_ni,
-			      0, max_nj,
-			      -max_ni-max_nj, max_ni+max_nj+max_n);
+    MultArray<dcomplex, 3> data(buffer,
+				0, max_ni,
+				0, max_nj,
+				-max_ni-max_nj, max_ni+max_nj+max_n);
 
     data.set(0, 0, 0, 1.0);
     for(int n = -max_ni -max_nj; n < 0; n++) 

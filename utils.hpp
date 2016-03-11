@@ -10,10 +10,15 @@
 					   std::complex<double> a,
 					   std::complex<double> b) {
 
+  /*
   typedef ::testing::internal::FloatingPoint<float> FP;
   const FP a_r(a.real()), a_i(a.imag()), b_r(b.real()), b_i(b.imag());
 
   if(a_r.AlmostEquals(b_r) && a_i.AlmostEquals(b_i)) 
+  return ::testing::AssertionSuccess();
+  */
+  double eps(pow(10.0, -10));
+  if(abs(a-b) < eps)
     return ::testing::AssertionSuccess();
 
   return ::testing::AssertionFailure()

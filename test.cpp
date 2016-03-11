@@ -34,13 +34,47 @@ TEST(math, array3) {
   array3<CD> ys(xs);
   EXPECT_DOUBLE_EQ(1.2, real(ys[1]));
 }
+TEST(math, MultArray4) {
+
+  int* buf = new int[1000];
+  MultArray<int, 4> xs(buf,
+		       -2, 3,
+		       -1, 4,
+		       0, 5,
+		       2, 4);
+  for(int i = -2; i <= 3; i++)
+    for(int j = -1; j <= 4; j++)
+      for(int k = 0; k <= 5; k++)
+	for(int l = 2; l <= 4; l++)  {
+	  try{ 
+	    xs.set_safe(i, j, k, l, 1000*i+100*j+10*k+l);
+	  } catch(const exception& e) {
+	    EXPECT_TRUE(false) << e.what();
+	  }
+	}
+
+
+  for(int i = -2; i <= 3; i++)
+    for(int j = -1; j <= 4; j++)
+      for(int k = 0; k <= 5; k++)
+	for(int l = 2; l <= 4; l++) {
+	  try{ 
+	    EXPECT_EQ(1000*i+100*j+10*k+l, xs.get_safe(i, j, k, l));
+	  } catch(const exception& e) {
+	    EXPECT_TRUE(false) << e.what();
+	  }
+	}
+
+  delete[] buf;
+
+}
 TEST(math, MultArray3) {
 
   int* buf = new int[100];
-  MultArray3<int> xs(buf,
-		     -2, 3,
-		     -1, 4,
-		     0, 5);
+  MultArray<int, 3> xs(buf,
+		       -2, 3,
+		       -1, 4,
+		       0, 5);
   for(int i = -2; i <= 3; i++)
     for(int j = -1; j <= 4; j++)
       for(int k = 0; k <= 5; k++) {
@@ -55,6 +89,24 @@ TEST(math, MultArray3) {
 
   delete[] buf;
 
+}
+TEST(math, MultArray2) {
+
+  int* buf = new int[100];
+  MultArray<int, 2> xs(buf,
+		       -2, 3,
+		       -1, 4);
+
+  for(int i = -2; i <= 3; i++)
+    for(int j = -1; j <= 4; j++)
+	xs.set_safe(i, j, 10*i+j);
+
+
+  for(int i = -2; i <= 3; i++)
+    for(int j = -1; j <= 4; j++)
+      EXPECT_EQ(10*i+j, xs.get_safe(i, j));
+
+  delete[] buf;
 }
 TEST(math, Factorial) {
 

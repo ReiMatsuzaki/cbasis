@@ -16,7 +16,7 @@ namespace l2func {
 		  dcomplex wPk, dcomplex wAk, dcomplex wBk,
 		  int nAk, int nBk, int Nk);
 
-  MultArray3<dcomplex> calc_d_coef(int max_ni, int max_nj, int max_n,
+  MultArray<dcomplex, 3> calc_d_coef(int max_ni, int max_nj, int max_n,
 				   dcomplex zetaP, dcomplex wPx,
 				   dcomplex xi, dcomplex xj, dcomplex* buf);
 

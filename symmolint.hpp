@@ -4,6 +4,7 @@
 #include "math_utils.hpp"
 #include <Eigen/Core>
 #include <string>
+#include <map>
 
 namespace l2func {
 
@@ -14,80 +15,98 @@ namespace l2func {
   };
   */
 
-  typedef int Symmetry;
+  // ==== Type def ====
+  typedef int Irrep;
+  typedef std::map<std::pair<Irrep, Irrep>, Eigen::MatrixXcd> BMat;
+  typedef std::map<std::string, BMat> BMatMap;
 
-  struct Contraction {
-    int sym;
+  // ==== Irrep Group ====
+  // ---- Class ----
+  class SymmetryGroup {
+  private:
+    int order_;
+  public:
+    SymmetryGroup(int order);
+    int order()  const { return order_; }
+    void CheckIrrep(Irrep a) const;
+    // Irrep GetIrrep(int n) const;
+    bool IncludeScalar_2(Irrep a, Irrep b) const;
+    // bool IncludeScalar_3(const Irrep& a, const Irrep& b, const Irrep& c) const;
+    bool IncludeZ_2(Irrep a, Irrep b) const;
+  };
+  // SymmetryGroup SymmetryGroup_C2();
+  SymmetryGroup SymmetryGroup_Cs();
+  SymmetryGroup SymmetryGroup_C1();
+  // SymmetryGroup SymmetryGroup_C2h();
+   
+  // ==== AO Reduction Sets ====
+  struct ReductionSets {
+    Irrep sym;
     Eigen::MatrixXcd coef_iat_ipn;
-    Contraction(int _sym, Eigen::MatrixXcd _coef): sym(_sym), coef_iat_ipn(_coef){}
+
+    // ---- for calculation  ----
+    Eigen::VectorXcd coef_iz;
+    int offset;
+
+    ReductionSets(int _sym, Eigen::MatrixXcd _coef):
+      sym(_sym), coef_iat_ipn(_coef), offset(0) {}
+    void set_zs_size(int num_zs) {
+      coef_iz = Eigen::VectorXcd::Zero(num_zs);
+    }
   };
 
+  // ==== Sub sets of SymGTOs ====
   struct SubSymGTOs {
+    // ---- data ----
     Eigen::MatrixXcd xyz_iat;
     Eigen::MatrixXi  ns_ipn;
-    std::vector<Contraction> contraction_icont;
+    std::vector<ReductionSets> rds;
     Eigen::VectorXcd zeta_iz;
-    Eigen::MatrixXcd coef_iz_icont;
+
+    // ---- for calculation  ----
+    int maxn;
 
     int size_at() const { return xyz_iat.cols();}
     int size_pn() const { return ns_ipn.cols(); }
-    int size_cont() const { return contraction_icont.size(); }
+    int size_cont() const { return rds.size(); }
     int size_zeta() const { return zeta_iz.rows(); }
-    //    int size_prim() const { return size_pn() * size_zeta() * size_at(); }
     SubSymGTOs(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
-	       std::vector<Contraction> cs, Eigen::VectorXcd zs) :
-      xyz_iat(xyz), ns_ipn(ns), contraction_icont(cs), zeta_iz(zs) {
-
-      coef_iz_icont = Eigen::MatrixXcd::Zero(this->size_zeta(), this->size_cont());
-
-    }
+	       std::vector<ReductionSets> cs, Eigen::VectorXcd zs);
   };
 
+  // ---- Helper ----
+  SubSymGTOs Sub_s(Irrep sym, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
+  SubSymGTOs Sub_pz(Irrep sym, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
+
+  // ==== SymGTOs ====
   class SymGTOs {
   public:
-    std::vector<Symmetry> symmetries;
-    std::vector<SubSymGTOs> sub_sym_gtos;
+    SymmetryGroup sym_group;
+    std::vector<SubSymGTOs> subs;
+    Eigen::MatrixXcd xyzq_iat;
+    bool setupq;
   public:
-    void AddSymmetry(Symmetry sym);
-    void AddSub(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
-	       std::vector<Contraction> cs, Eigen::VectorXcd zs) {
-      sub_sym_gtos.push_back(SubSymGTOs(xyz, ns, cs, zs));
-    }
-    void loop();
-  };
+    // ---- Constructors ----
+    SymGTOs(SymmetryGroup _sym_group);
 
-  /*
-  struct Shell {
-    dcomplex zeta;
-    Eigen::MatrixXcd xyz_iat;
-    Eigen::MatrixXi ns_iprim;
-    std::vector<Contraction> contractions;
-    int offset;
+    // ---- Accessors ----
+    int size_atom() const;
+    int size_basis_isym(Irrep isym) const;
 
-    int size_at_prim() const { return xyz_iat.size() * ns_iprim.size(); }
-    int size_at() const { return xyz_iat.size(); }
-    int size_prim() const { return ns_iprim.size(); }
-    int size_contractions() const { return contractions.size();}
-    Shell(dcomplex _zeta, Eigen::MatrixXcd _xyz, Eigen::MatrixXi _ns) :
-      zeta(_zeta), xyz_iat(_xyz), ns_iprim(_ns) {}
-    void AddContraction(const Contraction& cont) {
-      contractions.push_back(cont);
-    }
-  };
+    // ---- Add information ----
+    void SetAtoms(Eigen::MatrixXcd _xyzq_iat);
+    void AddSub(SubSymGTOs);
 
-  class SymGTOs {
+    void SetUp();
   private:
-    std::vector<Symmetry> symmetries_;
-    std::vector<Shell> shells_;
+    void SetOffset();
+    void Normalize();
   public:
-    const std::vector<Symmetry> symmetries() const { return symmetries_; }
-    const std::vector<Shell> shells() const { return shells_; }
-    void AddSymmetry(Symmetry sym);
-    void AddShell(const Shell& shell);
+    // ---- Calculation ----
     void loop();
+    BMatMap STVMat();
+    
   };
-  */
-
 }
 
 #endif

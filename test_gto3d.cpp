@@ -189,7 +189,8 @@ TEST(MOLINT, nuclear_attraction) {
 					 0.0, 0.0, 0.0,
 					 zetaB,
 					 0.0, 0.0, 0.0);  
-  EXPECT_C_EQ(old, calc);
+  double eps(pow(10.0, -8));
+  EXPECT_C_NEAR(old, calc, eps*10.0);
 
   old = nuclear_attraction(0.0,  0.0,  0.0,
 			   1.0,
@@ -206,7 +207,7 @@ TEST(MOLINT, nuclear_attraction) {
 				0.0, 0.0, 0.0,
 				zetaB,
 				0.0, 0.0, 0.0);
-  EXPECT_C_EQ(old, calc);  
+  EXPECT_C_NEAR(old, calc, eps);  
 
   old = nuclear_attraction(0.3,  0.0,  0.0,
 			   1.0,
@@ -223,7 +224,7 @@ TEST(MOLINT, nuclear_attraction) {
 				0.0, 0.0, 0.0,
 				zetaB,
 				0.0, 0.0, 0.0);
-  EXPECT_C_EQ(old, calc);  
+  EXPECT_C_NEAR(old, calc, eps);  
 
   old = nuclear_attraction(0.3,  0.0,  0.0,
 			   1.0,
@@ -240,7 +241,7 @@ TEST(MOLINT, nuclear_attraction) {
 				0.0, 0.0, 0.0,
 				zetaB,
 				0.0, 0.0, 0.0);
-  EXPECT_C_EQ(old, calc);  
+  EXPECT_C_NEAR(old, calc, eps);  
 
   old = nuclear_attraction(0.3,  0.0,  0.0,
 			   1.0,
@@ -257,7 +258,7 @@ TEST(MOLINT, nuclear_attraction) {
 				0.0, dcomplex(0.1, 0.01), 0.0,
 				zetaB,
 				0.3, 0.0, 0.0);
-  EXPECT_C_EQ(old, calc);  
+  EXPECT_C_NEAR(old, calc, eps);  
 
   old = nuclear_attraction(0.0,  0.0,  0.0,
 			   1.0,
@@ -274,7 +275,7 @@ TEST(MOLINT, nuclear_attraction) {
 				0.0, 0.0, 0.0,
 				zetaB,
 				0.0, 0.0, 0.0);
-  EXPECT_C_EQ(old, calc);  
+  EXPECT_C_NEAR(old, calc, eps);  
 
 }
 
@@ -296,7 +297,7 @@ TEST(GTOs, d_coef) {
   dcomplex xi(0.111);
   dcomplex xj(0.125);
   dcomplex* buf = new dcomplex[1000];
-  MultArray3<dcomplex> ary = calc_d_coef(2, 3, 4, zetaP, wPk, xi, xj, buf);
+  MultArray<dcomplex, 3> ary = calc_d_coef(2, 3, 4, zetaP, wPk, xi, xj, buf);
 
   int idx(0);
   for(int ni = 0; ni <= 2; ni++)
@@ -307,7 +308,7 @@ TEST(GTOs, d_coef) {
 	EXPECT_C_EQ(ref0, calc)<< ni << nj << n;	  
 	idx++;
       }
-  delete buf;
+  delete[] buf;
 }
 TEST(GTOs, size) {
 
@@ -773,29 +774,30 @@ TEST(Angmoment, mod_spherical_bessel) {
   C xs[3];
   xs[0] = C(1.1, 0.3);
   xs[1] = C(0.1, 0.002);
-  xs[2] = C(100.0, 20.0);
+  xs[2] = C(10.0, 2.0);
   
   for(int i = 0; i < 3; i++) {
     C x(xs[i]);
     C* vs = new C[11];
     ModSphericalBessel(x, 10, vs);
   
-    EXPECT_C_EQ(sinh(x)/x,                 vs[0]);
-    EXPECT_C_EQ((x*cosh(x)-sinh(x))/(x*x), vs[1]);
-    EXPECT_C_EQ(((x*x+3.0)*sinh(x)-3.0*x*cosh(x))/(x*x*x), vs[2]);
-    EXPECT_C_EQ(((x*x*x+15.0*x)*cosh(x)-(6.0*x*x+15.0)*sinh(x))/pow(x, 4.0), vs[3]);
+    EXPECT_C_EQ(sinh(x)/x,                 vs[0]) << x;
+    EXPECT_C_EQ((x*cosh(x)-sinh(x))/(x*x), vs[1]) << x;
+    EXPECT_C_EQ(((x*x+3.0)*sinh(x)-3.0*x*cosh(x))/(x*x*x), vs[2]) << x;
+    EXPECT_C_EQ(((x*x*x+15.0*x)*cosh(x)-(6.0*x*x+15.0)*sinh(x))/pow(x, 4.0), vs[3])
+      << x;
     
     delete[] vs;
   }
 
-  xs[0] = C(0.000001, 0.000002);
+  xs[0] = C(0.01, 0.000002);
   xs[1] = C(0.00005, 0.002);
   xs[2] = C(0.0001, 0.002);
   for(int i = 0; i < 3; i++) {
     C* vs = new C[11];
     ModSphericalBessel(xs[i], 10, vs);
     for(int n = 2; n <= 8; n++) {
-      EXPECT_C_EQ(vs[n-1]-vs[n+1], (2*n+1.0)*vs[n]/xs[i]);    
+      EXPECT_C_EQ(1.0, (vs[n-1]-vs[n+1])*xs[i]/ ((2*n+1.0)*vs[n])) << xs[i];    
     }
     delete[] vs;
   }

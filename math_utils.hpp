@@ -8,15 +8,19 @@
 
 namespace l2func {
 
+  template<class F, int N>
+  class MultArray {};
+
   template<class F>
-  class MultArray2 {
+  class MultArray<F, 2> {
   private:
+    static const int N = 2;
     F* data_;
     int num_;
-    int n0_[2];
-    int n1_[2];
+    int n0_[N];
+    int n1_[N];
   public:
-    MultArray2(F* data, int nx0, int nx1, int ny0, int ny1) {
+    MultArray(F* data, int nx0, int nx1, int ny0, int ny1) {
       n0_[0] = nx0; n0_[1] = ny0;
       n1_[0] = nx1; n1_[1] = ny1;
       num_ = (nx1-nx0+1)*(ny1-ny0+1);
@@ -58,14 +62,15 @@ namespace l2func {
   };
 
   template<class F>
-  class MultArray3 {
+  class MultArray<F, 3> {
   private:
+    static const int N = 3;
     F* data_;
     int num_;
-    int n0_[3];
-    int n1_[3];
+    int n0_[N];
+    int n1_[N];
   public:
-    MultArray3(F* data, int nx0, int nx1, int ny0, int ny1, int nz0, int nz1) {
+    MultArray(F* data, int nx0, int nx1, int ny0, int ny1, int nz0, int nz1) {
       n0_[0] = nx0; n0_[1] = ny0; n0_[2] = nz0;
       n1_[0] = nx1; n1_[1] = ny1; n1_[2] = nz1;
       num_ = (nx1-nx0+1)*(ny1-ny0+1)*(nz1-nz0+1);
@@ -108,20 +113,21 @@ namespace l2func {
   };
 
   template<class F>
-  class MultArray4 {
+  class MultArray<F, 4> {
   private:
+    static const int N = 4;
     F* data_;
     int num_;
-    int n0_[4];
-    int n1_[4];
+    int n0_[N];
+    int n1_[N];
   public:
-    MultArray4(F* data,
-	       int nx0, int nx1, int ny0, int ny1,
-	       int nz0, int nz1, int nw0, int nw1) {
+    MultArray(F* data,
+	      int nx0, int nx1, int ny0, int ny1,
+	      int nz0, int nz1, int nw0, int nw1) {
       n0_[0] = nx0; n0_[1] = ny0; n0_[2] = nz0;  n0_[3] = nw0; 
       n1_[0] = nx1; n1_[1] = ny1; n1_[2] = nz1;	 n1_[3] = nw1; 
       num_ = 1;
-      for(int i = 0; i < 4; i++)
+      for(int i = 0; i < N; i++)
 	num_ *= n1_[i] - n0_[i] + 1;
       data_ = data;
     }
