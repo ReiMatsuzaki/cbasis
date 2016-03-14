@@ -1,6 +1,7 @@
 #ifndef SPEC_FUNC_H
 #define SPEC_FUNC_H
 
+#include <Eigen/Core>
 #include "math_utils.hpp"
 
 namespace l2func {
@@ -29,6 +30,35 @@ namespace l2func {
 		  dcomplex wPx, dcomplex wPy, dcomplex wPz,
 		  dcomplex cx,  dcomplex cy,  dcomplex cz,
 		  int mx, int my, int mz, int j, dcomplex* Fjs);
+
+  // ==== molecular integral ====
+  dcomplex GTOOverlap(int nAx, int nAy, int nAz, 
+		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
+		       dcomplex zetaA,
+		       int nBx, int nBy, int nBz, 
+		       dcomplex wBx, dcomplex wBy, dcomplex wBz,
+		       dcomplex zetaB);
+  dcomplex GTONormConst(int nAx, int nAy, int nAz, dcomplex zetaA);
+  dcomplex GTODipZ(int nAx, int nAy, int nAz, 
+		   dcomplex wAx, dcomplex wAy, dcomplex wAz,
+		   dcomplex zetaA,
+		   int nBx, int nBy, int nBz, 
+		   dcomplex wBx, dcomplex wBy, dcomplex wBz,
+		   dcomplex zetaB);
+  dcomplex GTOKinetic(int nAx, int nAy, int nAz, 
+		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
+		       dcomplex zetaA,
+		       int nBx, int nBy, int nBz, 
+		       dcomplex wBx, dcomplex wBy, dcomplex wBz,
+		       dcomplex zetaB);
+  dcomplex GTONuclearAttraction(int nAx, int nAy, int nAz, 
+				dcomplex wAx, dcomplex wAy, dcomplex wAz,
+				dcomplex zetaA,
+				int nBx, int nBy, int nBz, 
+				dcomplex wBx, dcomplex wBy, dcomplex wBz,
+				dcomplex zetaB,
+				dcomplex wCx, dcomplex wCy, dcomplex wCz);
+
 }
 
 #endif

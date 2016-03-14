@@ -684,7 +684,7 @@ namespace l2func {
 	  // --- (l,m) == (0,0)
 	  RealSphericalHarmonics(theta, phi, L, ylm);
 	  for(int ibasis = 0; ibasis < size_basis_ish(ish); ibasis++) {
-	    int idx = offset_ish[ish] + ibasis;
+	    int idx = offset_ish[ish] + ibasis;	    
 	    dcomplex coef = coef_ylm_ish[ish] * cs[idx];
 	    for(int i = 0; i < num_r; i++) {
 	      dcomplex r(rs[i]);

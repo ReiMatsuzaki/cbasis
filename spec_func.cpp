@@ -2,6 +2,8 @@
 
 namespace l2func {
 
+  typedef MultArray<dcomplex, 3> A3dc;
+
   void IncompleteGamma_F1(int max_m, dcomplex z, dcomplex* res_list) {
 
     double x = real(z);
@@ -92,12 +94,10 @@ namespace l2func {
 	res[m] = conj(res[m]);
     }
 
-    //    double pi(M_PI);
-    //    double z2 = x*x+y*y;
+    static const int NR(47);
+    dcomplex Bn[NR+1];
+    dcomplex An[NR+1];
 
-    int NR(47);
-
-    dcomplex* Bn = new dcomplex[NR+1];
     Bn[0] = 1.0;
     Bn[1] = 1.0 + 0.5*z;
     for(int n = 2; n <= NR; n++) 
@@ -105,7 +105,6 @@ namespace l2func {
 
     for(int m = 0; m <= max_m; m++) {
 
-      dcomplex* An = new dcomplex[NR+1];
       An[0] = 1.0;
       double t1 = (2.0*m+1) / (2.0*m+3);
       double t2 = (2.0*m+1) / ((2*m+3)*(2*m+5));
@@ -124,7 +123,7 @@ namespace l2func {
       }
       res[m] = 1.0 / (2*m+1) * An[NR]/Bn[NR];
     }
-
+    
   }
 
   void IncompleteGamma(int max_m, dcomplex z, dcomplex* res_list) {
@@ -228,7 +227,7 @@ namespace l2func {
       dcomplex Fj = Fjs[j];
       return pow(-2.0*zetaP, j) * Fj;
     }
-
+    
     if(mx > 0) {
       dcomplex res(0.0);
       if(mx > 1) 
@@ -256,5 +255,157 @@ namespace l2func {
     throw std::runtime_error(msg);    
     return 0.0;    
   }  
+
+  dcomplex GTOOverlap(int nAx, int nAy, int nAz, 
+		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
+		       dcomplex zetaA,
+		       int nBx, int nBy, int nBz, 
+		       dcomplex wBx, dcomplex wBy, dcomplex wBz,
+		       dcomplex zetaB) {
+
+    dcomplex* dsx_buff = new dcomplex[100];
+    dcomplex* dsy_buff = new dcomplex[100];
+    dcomplex* dsz_buff = new dcomplex[100];
+    dcomplex zetaP = zetaA + zetaB;
+    dcomplex wPx = (zetaA*wAx+zetaB*wBx)/zetaP;
+    dcomplex wPy = (zetaA*wAy+zetaB*wBy)/zetaP;
+    dcomplex wPz = (zetaA*wAz+zetaB*wBz)/zetaP;
+    A3dc dxmap = calc_d_coef(nAx,nBx,0,zetaP,wPx,wAx,wBx,dsx_buff);
+    A3dc dymap = calc_d_coef(nAy,nBy,0,zetaP,wPy,wAy,wBy,dsy_buff);
+    A3dc dzmap = calc_d_coef(nAz,nBz,0,zetaP,wPz,wAz,wBz,dsz_buff);
+    dcomplex d2 = pow(wAx-wBx,2) + pow(wAy-wBy,2) + pow(wAz-wBz,2);	
+    dcomplex eAB = exp(-zetaA*zetaB/zetaP*d2);
+    dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
+
+    dcomplex res = (ce *
+		    dxmap.get(nAx, nBx, 0) * 
+		    dymap.get(nAy, nBy, 0) * 
+		    dzmap.get(nAz, nBz, 0));
+    delete[] dsx_buff;
+    delete[] dsy_buff;
+    delete[] dsz_buff;
+    return res;
+
+  }
+  dcomplex GTONormConst(int nAx, int nAy, int nAz, dcomplex zetaA) {
+
+    dcomplex norm2 = GTOOverlap(0.0, 0.0, 0.0,
+				nAx, nAy, nAz,zetaA,
+				0.0, 0.0, 0.0,
+				nAx, nAy, nAz,zetaA);
+    return 1.0 / sqrt(norm2);
+    
+  }
+  dcomplex GTODipZ(int nAx, int nAy, int nAz, 
+		   dcomplex wAx, dcomplex wAy, dcomplex wAz,
+		   dcomplex zetaA,
+		   int nBx, int nBy, int nBz, 
+		   dcomplex wBx, dcomplex wBy, dcomplex wBz,
+		   dcomplex zetaB) {
+
+    return (GTOOverlap(nAx, nAy, nAz,   wAx, wAy, wAz, zetaA,
+		       nBx, nBy, nBz+1, wBx, wBy, wBz, zetaB) +
+	    wBz * 
+	    GTOOverlap(nAx, nAy, nAz, wAx, wAy, wAz, zetaA,
+		       nBx, nBy, nBz, wBx, wBy, wBz, zetaB));
+	    
+
+  }
+  dcomplex GTOKinetic(int nAx, int nAy, int nAz, 
+		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
+		       dcomplex zetaA,
+		       int nBx, int nBy, int nBz, 
+		       dcomplex wBx, dcomplex wBy, dcomplex wBz,
+		       dcomplex zetaB) {
+
+    dcomplex* dsx_buff = new dcomplex[100];
+    dcomplex* dsy_buff = new dcomplex[100];
+    dcomplex* dsz_buff = new dcomplex[100];
+    dcomplex zetaP = zetaA + zetaB;
+    dcomplex wPx = (zetaA*wAx+zetaB*wBx)/zetaP;
+    dcomplex wPy = (zetaA*wAy+zetaB*wBy)/zetaP;
+    dcomplex wPz = (zetaA*wAz+zetaB*wBz)/zetaP;
+    A3dc dxmap = calc_d_coef(nAx,nBx+2,0,zetaP,wPx,wAx,wBx,dsx_buff);
+    A3dc dymap = calc_d_coef(nAy,nBy+2,0,zetaP,wPy,wAy,wBy,dsy_buff);
+    A3dc dzmap = calc_d_coef(nAz,nBz+2,0,zetaP,wPz,wAz,wBz,dsz_buff);
+    dcomplex d2 = pow(wAx-wBx,2) + pow(wAy-wBy,2) + pow(wAz-wBz,2);	
+    dcomplex eAB = exp(-zetaA*zetaB/zetaP*d2);
+    dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
+
+    dcomplex dx00 = dxmap.get(nAx, nBx,   0);
+    dcomplex dx02 = dxmap.get(nAx, nBx+2, 0);
+    dcomplex dy00 = dymap.get(nAy, nBy,   0);
+    dcomplex dy02 = dymap.get(nAy, nBy+2, 0);
+    dcomplex dz00 = dzmap.get(nAz, nBz,   0);
+    dcomplex dz02 = dzmap.get(nAz, nBz+2, 0);
+
+    dcomplex res = 4.0 * zetaB * zetaB *
+      (dx02*dy00*dz00 + dx00*dy02*dz00 + dx00*dy00*dz02);
+    res += -2.0*(2*nBx+2*nBy+2*nBz+3)*zetaB*dx00*dy00*dz00;
+    
+    if(nBx > 1)
+      res += 1.0*nBx*(nBx-1) * dxmap.get(nAx, nBx-2, 0) * dy00 * dz00;
+    if(nBy > 1)
+      res += 1.0*nBy*(nBy-1) * dymap.get(nAy, nBy-2, 0) * dx00 * dz00;
+    if(nBz > 1)
+      res += 1.0*nBz*(nBz-1) * dzmap.get(nAz, nBz-2, 0) * dx00 * dy00;
+
+    res *= -0.5 * ce;
+
+    delete[] dsx_buff;
+    delete[] dsy_buff;
+    delete[] dsz_buff;
+
+    return res;    
+  }
+  dcomplex GTONuclearAttraction(int nAx, int nAy, int nAz, 
+				dcomplex wAx, dcomplex wAy, dcomplex wAz,
+				dcomplex zetaA,
+				int nBx, int nBy, int nBz, 
+				dcomplex wBx, dcomplex wBy, dcomplex wBz,
+				dcomplex zetaB,
+				dcomplex wCx, dcomplex wCy, dcomplex wCz) {
+
+    dcomplex* Fjs = new dcomplex[100];
+    dcomplex* dsx_buff = new dcomplex[100];
+    dcomplex* dsy_buff = new dcomplex[100];
+    dcomplex* dsz_buff = new dcomplex[100];
+
+    dcomplex zetaP = zetaA + zetaB;
+    dcomplex wPx = (zetaA*wAx+zetaB*wBx)/zetaP;
+    dcomplex wPy = (zetaA*wAy+zetaB*wBy)/zetaP;
+    dcomplex wPz = (zetaA*wAz+zetaB*wBz)/zetaP;
+
+    dcomplex dx = wPx-wCx;
+    dcomplex dy = wPy-wCy;
+    dcomplex dz = wPz-wCz;
+    dcomplex d2p = dx*dx + dy*dy + dz*dz;
+
+    A3dc dxmap = calc_d_coef(nAx,nBx,nAx+nBx,zetaP,wPx,wAx,wBx,dsx_buff);
+    A3dc dymap = calc_d_coef(nAy,nBy,nAy+nBy,zetaP,wPy,wAy,wBy,dsy_buff);
+    A3dc dzmap = calc_d_coef(nAz,nBz,nAz+nBz,zetaP,wPz,wAz,wBz,dsz_buff);
+    IncompleteGamma(nAx+nBx+nAy+nBy+nAz+nBz, zetaP * d2p, Fjs);
+
+    dcomplex d2 = pow(wAx-wBx,2) + pow(wAy-wBy,2) + pow(wAz-wBz,2);	
+    dcomplex eAB = exp(-zetaA*zetaB/zetaP*d2);
+
+    dcomplex res(0);
+    for(int nx = 0; nx <= nAx + nBx; nx++)
+      for(int ny = 0; ny <= nAy + nBy; ny++)
+	for(int nz = 0; nz <= nAz + nBz; nz++)
+	  res += (dxmap.get_safe(nAx, nBx, nx) *
+		  dymap.get_safe(nAy, nBy, ny) *
+		  dzmap.get_safe(nAz, nBz, nz) *
+		  coef_R(zetaP, wPx, wPy, wPz,
+			 wCx, wCy, wCz,
+			 nx, ny, nz, 0, Fjs));
+
+    res *= -2.0 * M_PI/zetaP * eAB;
+    delete[] dsx_buff;
+    delete[] dsy_buff;
+    delete[] dsz_buff;
+    delete[] Fjs;
+    return res;    
+  }
 
 }

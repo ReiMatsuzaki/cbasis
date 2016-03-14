@@ -8,17 +8,15 @@
 
 namespace l2func {
 
-  /*
-  struct Symmetry {
-    std::string name;    
-    Symmetry(std::string);
-  };
-  */
+  // ==== Each integrate ====
 
   // ==== Type def ====
   typedef int Irrep;
   typedef std::map<std::pair<Irrep, Irrep>, Eigen::MatrixXcd> BMat;
   typedef std::map<std::string, BMat> BMatMap;
+
+  void swap(BMat& a, BMat& b);
+  void swap(BMatMap& a, BMatMap& b);
 
   // ==== Irrep Group ====
   // ---- Class ----
@@ -34,10 +32,8 @@ namespace l2func {
     // bool IncludeScalar_3(const Irrep& a, const Irrep& b, const Irrep& c) const;
     bool IncludeZ_2(Irrep a, Irrep b) const;
   };
-  // SymmetryGroup SymmetryGroup_C2();
   SymmetryGroup SymmetryGroup_Cs();
   SymmetryGroup SymmetryGroup_C1();
-  // SymmetryGroup SymmetryGroup_C2h();
    
   // ==== AO Reduction Sets ====
   struct ReductionSets {
@@ -104,8 +100,16 @@ namespace l2func {
   public:
     // ---- Calculation ----
     void loop();
-    BMatMap STVMat();
-    
+    void CalcMat(BMatMap* res);
+    void STVMat(BMatMap* res);
+    void ZMat(BMatMap* res);
+
+    void AtR_Ylm_add_center(int L, int M, const Eigen::VectorXcd& rs,
+			    const Eigen::MatrixXcd& cs_irrep_ibasis,  
+			    Eigen::VectorXcd* vs,
+			    std::vector<SubSymGTOs>::const_iterator it);
+    void AtR_Ylm(int L, int M, const Eigen::VectorXcd& rs,
+		 const Eigen::MatrixXcd& cs_irrep_ibasis, Eigen::VectorXcd* vs );
   };
 }
 

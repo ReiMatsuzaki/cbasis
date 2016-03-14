@@ -1,6 +1,7 @@
 include local.mk
 #CXXFLAGS=${INC_PATH} -Wall -O3  
-CXXFLAGS=${INC_PATH} -Wall
+#CXXFLAGS=${INC_PATH} -Wall
+CXXFLAGS=${INC_PATH} -Wall -g
 #CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
 
 MATH_OBJS=erfc.o math_utils.o
@@ -42,7 +43,8 @@ test_symmolint: test_symmolint.o symmolint.o spec_func.o angmoment.o molint.o ma
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_symmolint
 check_symmolint: test_symmolint
-	./$<
+	valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no ./$<
+
 
 
 test_gto3d.o: test_gto3d.cpp gto3d.hpp 
