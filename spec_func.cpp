@@ -289,10 +289,8 @@ namespace l2func {
   }
   dcomplex GTONormConst(int nAx, int nAy, int nAz, dcomplex zetaA) {
 
-    dcomplex norm2 = GTOOverlap(0.0, 0.0, 0.0,
-				nAx, nAy, nAz,zetaA,
-				0.0, 0.0, 0.0,
-				nAx, nAy, nAz,zetaA);
+    dcomplex norm2 = GTOOverlap(nAx, nAy, nAz, 0.0, 0.0, 0.0, zetaA,
+				nAx, nAy, nAz, 0.0, 0.0, 0.0, zetaA);
     return 1.0 / sqrt(norm2);
     
   }

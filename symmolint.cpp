@@ -15,20 +15,6 @@ namespace l2func {
   typedef MultArray<dcomplex, 3> A3dc;
   typedef MultArray<dcomplex, 4> A4dc;
 
-  dcomplex MonoKinetic(int nAx, int nAy, int nAz, 
-		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
-		       dcomplex zetaA,
-		       int nBx, int nBy, int nBz, 
-		       dcomplex wBx, dcomplex wBy, dcomplex wBz,
-		       dcomplex zetaB);
-  dcomplex MonoNuclearAttraction(int nAx, int nAy, int nAz, 
-				 dcomplex wAx, dcomplex wAy, dcomplex wAz,
-				 dcomplex zetaA,
-				 int nBx, int nBy, int nBz, 
-				 dcomplex wBx, dcomplex wBy, dcomplex wBz,
-				 dcomplex zetaB,
-				 dcomplex wCx, dcomplex wCy, dcomplex wCz);
-
   // ==== Data structure ====
   void swap(BMat& a, BMat& b)  {
     // assume b is empty
@@ -69,6 +55,128 @@ namespace l2func {
 	  }
     return res;
   }
+
+  // ==== SymmetryGroup ====
+  SymmetryGroup::SymmetryGroup(int order, string name) {
+    if(order != 2 && order != 1) {
+      string msg; SUB_LOCATION(msg);
+      msg += "Now, only order == 1 and 2 is supported.";
+      throw runtime_error(msg);	
+    }
+    order_ = order;
+    name_ = name;
+  }
+  void SymmetryGroup::CheckIrrep(Irrep a) const {
+    if(a < 0 || this->order() <= a) {
+      std::string msg; SUB_LOCATION(msg);
+      throw runtime_error(msg);
+    }
+  }
+  bool SymmetryGroup::IncludeScalar_2(Irrep a, Irrep b) const {
+    
+    this->CheckIrrep(a);
+    this->CheckIrrep(b);
+
+    if(a == b)
+      return true;
+    else
+      return false;
+  }
+  bool SymmetryGroup::IncludeZ_2(Irrep a,Irrep b) const {
+
+    this->CheckIrrep(a);
+    this->CheckIrrep(b);
+
+    if(this->order() == 1)
+      return true;
+
+    if(a != b)
+      return true;
+    else
+      return false;
+  }
+  string SymmetryGroup::str() const {
+    ostringstream oss; 
+    oss << "==== SymmetryGroup ====" << endl;
+    oss << "name : " << name_ << endl;
+    oss << "order: " << order_ << endl;
+    return oss.str();
+  }
+  void SymmetryGroup::Display() const {
+    cout << this->str(); 
+  }
+  
+  SymmetryGroup SymmetryGroup_Cs() {
+    SymmetryGroup cs(2, "Cs");
+    return cs;
+  }
+  Irrep Cs_Ap() { return 0; } 
+  Irrep Cs_App() { return 1;}
+  SymmetryGroup SymmetryGroup_C1() {
+    SymmetryGroup c1(1, "C1");
+    return c1;
+  }
+
+  // ==== BlockMatrixSets ====
+  BMatSets::BMatSets(SymmetryGroup _sym): sym_(_sym) {}
+  void BMatSets::SetMatrix(string name, Irrep i, Irrep j, MatrixXcd& mat) {
+
+    try {
+      sym_.CheckIrrep(i);
+      sym_.CheckIrrep(j);
+    } catch(const runtime_error& e) {
+      string msg; SUB_LOCATION(msg);
+      msg += "Error for Irrep i or j.";
+      msg += e.what(); 
+      throw runtime_error(msg);
+    }
+
+    MatrixXcd tmp;
+    mat_map_[name][make_pair(i, j)] = tmp;
+    mat_map_[name][make_pair(i, j)].swap(mat);
+  }
+  const MatrixXcd& BMatSets::GetMatrix(string name, Irrep i, Irrep j) {
+
+    try {
+      sym_.CheckIrrep(i);
+      sym_.CheckIrrep(j);
+    } catch(const runtime_error& e) {
+      string msg; SUB_LOCATION(msg);
+      msg += " : Invalid Irrep i, j\n";
+      msg += e.what(); 
+      throw runtime_error(msg);
+    }
+
+    if(mat_map_.find(name) == mat_map_.end()) {
+      string msg; SUB_LOCATION(msg);
+      msg += " : key not found.\n" ;
+      msg += "name : " + name;
+      throw runtime_error(msg);
+    }
+
+    if(mat_map_[name].find(make_pair(i, j)) == mat_map_[name].end()) {
+      string msg; SUB_LOCATION(msg);
+      msg += " : matrix (i,j) is not found.\n";
+      throw runtime_error(msg);
+    }
+
+    return mat_map_[name][make_pair(i, j)];
+  }  
+  
+  // ==== Reduction Sets ====
+  string ReductionSets::str() const {
+    ostringstream oss;
+    oss << "==== RedcutionSets ====" << endl;
+    oss << "irrep : " << sym << endl;
+    oss << "coef_iat_ipn: " << endl << coef_iat_ipn << endl;
+    oss << "coef_iz: " << endl <<  coef_iz << endl;
+    oss << "offset:  " << offset << endl;
+    return oss.str();
+  }
+  void ReductionSets::Display() const {
+    cout << this->str() ;
+  }
+
   
   // ==== Sub ====
   SubSymGTOs::SubSymGTOs(MatrixXcd xyz, MatrixXi ns,
@@ -112,7 +220,19 @@ namespace l2func {
     }
 
   }
-
+  string SubSymGTOs::str() const {
+    ostringstream oss;
+    oss << "==== SubSymGTOs ====" << endl;
+    oss << "xyz : " << endl <<  xyz_iat << endl;
+    oss << "ns  : " << endl <<  ns_ipn << endl;
+    oss << "zeta: " << endl <<  zeta_iz << endl;
+    for(cRdsIt it = rds.begin(); it != rds.end(); ++it)
+      oss << it->str();
+    return oss.str();
+  }
+  void SubSymGTOs::Display() const {
+    cout << this->str();
+  }
   SubSymGTOs Sub_s(Irrep sym, Vector3cd xyz, VectorXcd zs) {
 
     MatrixXcd xyz_in(3, 1);  xyz_in << xyz[0] , xyz[1] , xyz[2];
@@ -135,55 +255,34 @@ namespace l2func {
     SubSymGTOs sub(xyz_in, ns, rds_list, zs);
     return sub;    
   }
+  SubSymGTOs Sub_TwoSGTO(SymmetryGroup sym, Irrep irrep,
+			 Vector3cd xyz, VectorXcd zs) {
 
-  // ==== SymmetryGroup ====
-  SymmetryGroup::SymmetryGroup(int order) {
-    if(order != 2 && order != 1) {
+    sym.CheckIrrep(irrep);
+
+    MatrixXi ns_in   = MatrixXi::Zero(3, 1);
+    if(sym.name() == "Cs") {
+      MatrixXcd xyz_in(3, 2) ;
+      xyz_in << xyz(0), xyz(0), xyz(1), xyz(1), xyz(2), -xyz(2);
+      MatrixXcd cs(2, 1);
+      if(irrep == Cs_Ap()) {
+	cs << 1.0, 1.0;
+      } else if (irrep == Cs_App()){
+	cs << 1.0, -1.0;
+      }
+      vector<ReductionSets> rds;
+      rds.push_back(ReductionSets(irrep, cs));
+      SubSymGTOs sub(xyz_in, ns_in, rds, zs);
+      return sub;
+
+    } else {
       string msg; SUB_LOCATION(msg);
-      msg += "Now, only order == 1 and 2 is supported.";
-      throw runtime_error(msg);	
-    }
-    order_ = order;
-  }
-  void SymmetryGroup::CheckIrrep(Irrep a) const {
-    if(a < 0 || this->order() <= a) {
-      std::string msg; SUB_LOCATION(msg);
+      msg += "only Cs symmetry is implemented now";
       throw runtime_error(msg);
     }
   }
-  bool SymmetryGroup::IncludeScalar_2(Irrep a, Irrep b) const {
-    
-    this->CheckIrrep(a);
-    this->CheckIrrep(b);
-
-    if(a == b)
-      return true;
-    else
-      return false;
-  }
-  bool SymmetryGroup::IncludeZ_2(Irrep a,Irrep b) const {
-
-    this->CheckIrrep(a);
-    this->CheckIrrep(b);
-
-    if(this->order() == 1)
-      return true;
-
-    if(a != b)
-      return true;
-    else
-      return false;
-  }
   
-  SymmetryGroup SymmetryGroup_Cs() {
-    SymmetryGroup cs(2);
-    return cs;
-  }
-  SymmetryGroup SymmetryGroup_C1() {
-    SymmetryGroup c1(1);
-    return c1;
-  }
-
+ 
   // ==== SymGTOs ====
   // ---- Constructors ----
   SymGTOs::SymGTOs(SymmetryGroup _sym_group):
@@ -205,6 +304,17 @@ namespace l2func {
     }
     return cumsum;
 
+  }
+  string SymGTOs::str() const {
+    ostringstream oss;
+    oss << "==== SymGTOs ====" << endl;
+    oss << "Set Up?" << (setupq ? "Yes" : "No") << endl;
+    oss << sym_group.str();
+    for(cSubIt it = subs.begin(); it != subs.end(); ++it) 
+      oss << it->str();
+    oss << "xyzq:" << endl;
+    oss << xyzq_iat << endl;
+    return oss.str();
   }
 
   // ---- Add ----
@@ -833,7 +943,7 @@ namespace l2func {
     delete[] bufz; delete[] dsx_buff; delete[] dsy_buff; delete[] dsz_buff;
     *res = mat_map;
   }
-
+  
 
   /*
   void SymGTOs::AtR_Ylm_add_center(int L, int M, const VectorXcd& rs,
@@ -847,8 +957,8 @@ namespace l2func {
 
   //  void AtR_Ylm_cent_00(dcomplex r, dcomplex zeta, )
 
-  void SymGTOs::AtR_Ylm(int L, int M, const VectorXcd& rs,
-			const MatrixXcd& cs_irrep_ibasis, VectorXcd* res ) {
+  void SymGTOs::AtR_Ylm(int L, int M, int irrep, const VectorXcd& cs_ibasis,
+			const VectorXcd& rs, VectorXcd* res ) {
     if(not setupq) {
       string msg; SUB_LOCATION(msg); 
       msg += ": call SetUp before calculation";
@@ -865,6 +975,9 @@ namespace l2func {
 
     for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
       for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
+	if(irds->sym != irrep) 
+	  continue;
+
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
 	  for(int iat = 0; iat < isub->size_at(); iat++) {
 	    for(int ipn = 0; ipn < isub->size_pn(); ipn++) {
@@ -883,7 +996,7 @@ namespace l2func {
 		
 	      
 		int ibasis = irds->offset + iz;
-		dcomplex c = (cs_irrep_ibasis(irds->sym, ibasis) *
+		dcomplex c = (cs_ibasis(ibasis) *
 			      irds->coef_iat_ipn(iat, ipn) *
 			      irds->coef_iz(iz));
 
