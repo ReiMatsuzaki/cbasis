@@ -24,37 +24,6 @@ int lm(int l, int m) {
   return lm_index(l, m);
 }
 
-TEST(Eigen, GenEig) {
-
-  int num = 5;
-  Eigen::MatrixXcd H(num, num);
-  Eigen::MatrixXcd S(num, num);
-  for(int i = 0; i < num; i++) {
-    for(int j = 0; j < num; j++) {
-      H(i, j) = (i+j+0.1) * 1.0;
-      S(i, j) = (i*j+0.1) * 1.0;
-    }
-  }
-  SymGenComplexEigenSolver solver(H, S);
-  std::cout << solver.eigenvalues() << std::endl;
-
-}
-TEST(Eigen, GenEig2) {
-
-  int n(5);
-  Eigen::MatrixXcd H(n, n);
-  Eigen::MatrixXcd S(n, n);
-  for(int i = 0; i < n; i++) {
-    for(int j = 0; j < n; j++) {
-      H(i, j) = (i+j+0.1) * 1.0;
-      S(i, j) = (i*j+0.1) * 1.0;
-    }
-  }
-  SymGenComplexEigenSolver solver(H, S);
-  Eigen::VectorXcd eig = solver.eigenvalues();
-  std::cout << eig << std::endl;
-}
-
 TEST(MOLINT, overlap) {
 
   dcomplex old = overlap(C(1.2,0.2), 2, 1, 0,

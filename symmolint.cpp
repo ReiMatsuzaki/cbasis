@@ -118,6 +118,7 @@ namespace l2func {
   }
 
   // ==== BlockMatrixSets ====
+  BMatSets::BMatSets(): sym_(SymmetryGroup_C1()) {}
   BMatSets::BMatSets(SymmetryGroup _sym): sym_(_sym) {}
   void BMatSets::SetMatrix(string name, Irrep i, Irrep j, MatrixXcd& mat) {
 
@@ -161,7 +162,13 @@ namespace l2func {
     }
 
     return mat_map_[name][make_pair(i, j)];
-  }  
+  }
+  void BMatSets::SelfAdd(string name, Irrep i, Irrep j, int a, int b, dcomplex v) {
+    mat_map_[name][make_pair(i, j)](a, b) += v;
+  }
+  dcomplex BMatSets::At(string name, Irrep i, Irrep j, int a, int b) {
+    return mat_map_[name][make_pair(i, j)](a, b);
+  }
   
   // ==== Reduction Sets ====
   string ReductionSets::str() const {
@@ -179,9 +186,74 @@ namespace l2func {
 
   
   // ==== Sub ====
+  SubSymGTOs::SubSymGTOs() {
+    xyz_iat = MatrixXcd::Zero(3, 0);
+    ns_ipn = MatrixXi::Zero(3, 0);
+    zeta_iz = VectorXcd::Zero(0);
+    setupq = false;
+  }
+  void SubSymGTOs::SetUp() {
+    maxn = 0;
+    for(int ipn = 0; ipn < ns_ipn.cols(); ipn++) {
+      if(maxn < ns_ipn(0, ipn) + ns_ipn(1, ipn) + ns_ipn(2, ipn))
+	maxn = ns_ipn(0, ipn) + ns_ipn(1, ipn) + ns_ipn(2, ipn);
+    }
+
+    for(RdsIt it = rds.begin(); it != rds.end(); ++it) {
+      it->set_zs_size(zeta_iz.size());
+    }
+
+    setupq = true;
+  }
+  void SubSymGTOs::AddXyz(Vector3cd xyz) {
+
+    setupq = false;
+    int num_atom = xyz_iat.cols();
+    MatrixXcd res(3, num_atom + 1);
+
+    for(int i = 0; i < num_atom; i++) {
+      for(int j = 0; j < 3; j++)
+	res(j, i) = xyz_iat(j, i);
+    }
+
+    res(0, num_atom) = xyz(0);
+    res(1, num_atom) = xyz(1);
+    res(2, num_atom) = xyz(2);
+
+    xyz_iat.swap(res);    
+  }
+  void SubSymGTOs::AddNs(Vector3i ns) {
+
+    setupq = false;
+
+    int num = ns_ipn.cols();
+    MatrixXi res(3, num+ 1);
+
+    for(int i = 0; i < num; i++) {
+      for(int j = 0; j < 3; j++)
+	res(j, i) = ns_ipn(j, i);
+    }
+
+    res(0, num) =ns(0);
+    res(1, num) =ns(1);
+    res(2, num) =ns(2);
+
+    ns_ipn.swap(res);    
+  }
+  void SubSymGTOs::SetZeta(const VectorXcd& zs) {
+    setupq = false;
+    zeta_iz = zs;
+  }
+  void SubSymGTOs::AddRds(const ReductionSets& _rds) {
+    setupq = false;
+    rds.push_back(_rds);
+  }
+  
   SubSymGTOs::SubSymGTOs(MatrixXcd xyz, MatrixXi ns,
 			 vector<ReductionSets> ao, VectorXcd zs) :
     xyz_iat(xyz), ns_ipn(ns), rds(ao), zeta_iz(zs) {
+
+    setupq = false;
 
     if(xyz.rows() != 3) {
       string msg; SUB_LOCATION(msg);
@@ -209,15 +281,7 @@ namespace l2func {
       }
     }
 
-    maxn = 0;
-    for(int ipn = 0; ipn < ns_ipn.cols(); ipn++) {
-      if(maxn < ns_ipn(0, ipn) + ns_ipn(1, ipn) + ns_ipn(2, ipn))
-	maxn = ns_ipn(0, ipn) + ns_ipn(1, ipn) + ns_ipn(2, ipn);
-    }
-
-    for(RdsIt it = rds.begin(); it != rds.end(); ++it) {
-      it->set_zs_size(zs.size());
-    }
+    this->SetUp();
 
   }
   string SubSymGTOs::str() const {
@@ -286,7 +350,10 @@ namespace l2func {
   // ==== SymGTOs ====
   // ---- Constructors ----
   SymGTOs::SymGTOs(SymmetryGroup _sym_group):
-    sym_group(_sym_group), setupq(false) {}
+    sym_group(_sym_group), setupq(false)  {
+    xyzq_iat = MatrixXcd::Zero(4, 0);
+  }
+
 
   // ---- Accessors ----
   int SymGTOs::size_atom() const {return xyzq_iat.cols(); }
@@ -329,8 +396,29 @@ namespace l2func {
     xyzq_iat = _xyzq_iat;
 
   }
+  void SymGTOs::AddAtom(Eigen::Vector3cd _xyz, dcomplex q) {
+
+    int num_atom = xyzq_iat.cols();
+    MatrixXcd res(4, num_atom + 1);
+
+    for(int i = 0; i < num_atom; i++) {
+      for(int j = 0; j < 4; j++)
+	res(j, i) = xyzq_iat(j, i);
+    }
+
+    res(0, num_atom) = _xyz(0);
+    res(1, num_atom) = _xyz(1);
+    res(2, num_atom) = _xyz(2);
+    res(3, num_atom) = q;
+
+    xyzq_iat.swap(res);
+
+  }
   void SymGTOs::AddSub(SubSymGTOs sub) {
 
+    if(sub.setupq == false)
+      sub.SetUp();
+      
     for(RdsIt irds = sub.rds.begin();
 	irds != sub.rds.end(); ++irds) {
       irds->offset = 0;
@@ -434,6 +522,7 @@ namespace l2func {
   }
   
   // ---- Calculation ----
+  // -- to be removed
   void SymGTOs::loop() {
 
     for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
@@ -463,13 +552,10 @@ namespace l2func {
 	  }}
       }}
     }
-  void SymGTOs::CalcMat(BMatMap* res) {
+  void SymGTOs::CalcMat(BMatSets* res) {
 
-    if(not setupq) {
-      string msg; SUB_LOCATION(msg); 
-      msg += "call SetUp before calculation";
-      throw std::runtime_error(msg);
-    }
+    if(not setupq)
+      this->SetUp();
 
     int max_n(0);
     for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
@@ -479,17 +565,19 @@ namespace l2func {
 	    max_n = isub->ns_ipn(i, ipn);
     }
 
-    BMatMap mat_map;
-    mat_map["s"] = BMat(); mat_map["t"] = BMat(); mat_map["v"] = BMat();
-    mat_map["z"] = BMat();
+    BMatSets mat_map(sym_group);
     for(Irrep isym = 0; isym < sym_group.order(); isym++) {
       for(Irrep jsym = 0; jsym < sym_group.order(); jsym++) {
 	int numi = this->size_basis_isym(isym);
 	int numj = this->size_basis_isym(jsym);
-	mat_map["s"][make_pair(isym, jsym)] = MatrixXcd::Zero(numi, numj);
-	mat_map["t"][make_pair(isym, jsym)] = MatrixXcd::Zero(numi, numj);
-	mat_map["v"][make_pair(isym, jsym)] = MatrixXcd::Zero(numi, numj);
-	mat_map["z"][make_pair(isym, jsym)] = MatrixXcd::Zero(numi, numj);
+	MatrixXcd s = MatrixXcd::Zero(numi, numj); 
+	mat_map.SetMatrix("s", isym, jsym, s);
+	MatrixXcd t = MatrixXcd::Zero(numi, numj); 
+	mat_map.SetMatrix("t", isym, jsym, t);
+	MatrixXcd v = MatrixXcd::Zero(numi, numj); 
+	mat_map.SetMatrix("v", isym, jsym, v);
+	MatrixXcd z = MatrixXcd::Zero(numi, numj); 
+	mat_map.SetMatrix("z", isym, jsym, z);
       }
     }
     
@@ -624,10 +712,11 @@ namespace l2func {
 		      }}}}
 		int i(irds->offset + iz); int j(jrds->offset + jz);
 		int isym(irds->sym); int jsym(jrds->sym);
-		mat_map["s"][make_pair(isym, jsym)](i, j) = cumsum_s;
-		mat_map["t"][make_pair(isym, jsym)](i, j) = cumsum_t;
-		mat_map["v"][make_pair(isym, jsym)](i, j) = cumsum_v;
-		mat_map["z"][make_pair(isym, jsym)](i, j) = cumsum_z;
+		
+		mat_map.SelfAdd("s", isym, jsym, i, j, cumsum_s);
+		mat_map.SelfAdd("t", isym, jsym, i, j, cumsum_t);
+		mat_map.SelfAdd("v", isym, jsym, i, j, cumsum_v);
+		mat_map.SelfAdd("z", isym, jsym, i, j, cumsum_z);
 	      }
 	    }
 	  }
@@ -646,13 +735,12 @@ namespace l2func {
     delete[] Fjs_iat;
     *res = mat_map;
   }
+
+  // -- to be rmeoved
   void SymGTOs::STVMat(BMatMap* res) {
 
-    if(not setupq) {
-      string msg; SUB_LOCATION(msg); 
-      msg += "call SetUp before calculation";
-      throw std::runtime_error(msg);
-    }
+    if(not setupq) 
+      this->SetUp();
 
     int max_n(0);
     for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
@@ -826,6 +914,7 @@ namespace l2func {
     delete[] Fjs_iat;
     *res = mat_map;
   }
+  // -- to be removed
   void SymGTOs::ZMat(BMatMap* res) {
 
     if(not setupq) {
@@ -943,26 +1032,26 @@ namespace l2func {
     delete[] bufz; delete[] dsx_buff; delete[] dsy_buff; delete[] dsz_buff;
     *res = mat_map;
   }
-  
-
-  /*
-  void SymGTOs::AtR_Ylm_add_center(int L, int M, const VectorXcd& rs,
-				   const MatrixXcd& cs_irrep_ibasis,  
-				   VectorXcd* vs,
-				   vector<SubSymGTOs>::const_iterator isub) {
-    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
-    }
-  }
-  */
-
-  //  void AtR_Ylm_cent_00(dcomplex r, dcomplex zeta, )
-
   void SymGTOs::AtR_Ylm(int L, int M, int irrep, const VectorXcd& cs_ibasis,
 			const VectorXcd& rs, VectorXcd* res ) {
     if(not setupq) {
       string msg; SUB_LOCATION(msg); 
       msg += ": call SetUp before calculation";
       throw std::runtime_error(msg);
+    }
+
+    try{
+      sym_group.CheckIrrep(irrep);
+    } catch(const runtime_error& e) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": Invalid irreq.\n";
+      msg += e.what(); throw runtime_error(msg);
+    }
+
+    if(cs_ibasis.size() != this->size_basis_isym(irrep)) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": size of cs must be equal to basis size";
+      throw runtime_error(msg);
     }
 
     VectorXcd vs = VectorXcd::Zero(rs.size()); // copy
@@ -1059,5 +1148,6 @@ namespace l2func {
     cout << "swap" << endl;
     res->swap(vs);
   }
+  
 }
 

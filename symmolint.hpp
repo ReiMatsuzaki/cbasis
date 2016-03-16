@@ -47,9 +47,12 @@ namespace l2func {
     SymmetryGroup sym_;
     BMatMap mat_map_;
   public:
+    BMatSets();
     BMatSets(SymmetryGroup _sym);
     void SetMatrix(std::string name, Irrep i, Irrep j, Eigen::MatrixXcd& a);
     const Eigen::MatrixXcd& GetMatrix(std::string name, Irrep i, Irrep j);
+    void SelfAdd(std::string name, Irrep i, Irrep j, int a, int b, dcomplex v);
+    dcomplex At(std::string name, Irrep i, Irrep j, int a, int b);
   };
   
   // ==== AO Reduction Sets ====
@@ -61,7 +64,7 @@ namespace l2func {
     Eigen::VectorXcd coef_iz;
     int offset;
 
-    //    ReductionSets() {}
+    // ReductionSets() {}
     ReductionSets(int _sym, Eigen::MatrixXcd _coef):
       sym(_sym), coef_iat_ipn(_coef), offset(0) {}
     std::string str() const;
@@ -82,8 +85,21 @@ namespace l2func {
     Eigen::VectorXcd zeta_iz;
 
     // ---- for calculation  ----
+    bool setupq;
     int maxn;
 
+    // ---- new ----
+    SubSymGTOs();
+    void SetUp();
+    std::string str() const;
+    void AddXyz(Eigen::Vector3cd xyz);
+    void AddNs(Eigen::Vector3i ns);
+    void SetZeta(const Eigen::VectorXcd& zs);
+    void AddRds(const ReductionSets& rds);
+    
+    // ---- old ----
+    SubSymGTOs(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
+	       std::vector<ReductionSets> cs, Eigen::VectorXcd zs);
     int size_at() const { return xyz_iat.cols();}
     int size_pn() const { return ns_ipn.cols(); }
     int size_cont() const { return rds.size(); }
@@ -91,10 +107,7 @@ namespace l2func {
     Eigen::MatrixXcd get_xyz_iat() { return xyz_iat; }
     Eigen::MatrixXi  get_ns_ipn() const { return  ns_ipn; }
     ReductionSets  get_rds(int i) const { return  rds[i]; }
-    Eigen::VectorXcd get_zeta_iz() const { return  zeta_iz; }
-    SubSymGTOs(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
-	       std::vector<ReductionSets> cs, Eigen::VectorXcd zs);
-    std::string str() const;
+    Eigen::VectorXcd get_zeta_iz() const { return  zeta_iz; }    
     void Display() const;
   };
 
@@ -122,6 +135,7 @@ namespace l2func {
 
     // ---- Add information ----
     void SetAtoms(Eigen::MatrixXcd _xyzq_iat);
+    void AddAtom(Eigen::Vector3cd _xyz, dcomplex q);
     void AddSub(SubSymGTOs);
     void SetUp();
   private:
@@ -129,18 +143,17 @@ namespace l2func {
     void Normalize();
   public:
     // ---- Calculation ----
+    // -- to be removed
     void loop();
-    void CalcMat(BMatMap* res);
+    void CalcMat(BMatSets* res);
+    // -- to be removed
     void STVMat(BMatMap* res);
+    // -- to be removed
     void ZMat(BMatMap* res);
-
-    void AtR_Ylm_add_center(int L, int M, const Eigen::VectorXcd& rs,
-			    const Eigen::MatrixXcd& cs_irrep_ibasis,  
-			    Eigen::VectorXcd* vs,
-			    std::vector<SubSymGTOs>::const_iterator it);
     void AtR_Ylm(int L, int M,  int irrep,
 		 const Eigen::VectorXcd& cs_ibasis,
 		 const Eigen::VectorXcd& rs, Eigen::VectorXcd* vs );
+
   };
 }
 

@@ -1,8 +1,11 @@
-#include "eigen_plus.hpp"
 #include <Eigen/Eigenvalues>
 #include <Eigen/Core>
+#include "eigen_plus.hpp"
+#include "macros.hpp"
 using namespace std;
+using namespace Eigen;
 
+typedef complex<double> dcomplex;
 
 std::complex<double> cnorm(const CV& v) {
   Eigen::ArrayXcd a = v.array();
@@ -44,6 +47,26 @@ void matrix_inv_sqrt(const CM& s, CM* s_inv_sqrt) {
   c_tr.transposeInPlace();
   *s_inv_sqrt = c * lambda_mat * c_tr;
 }
+void SortEigs(VectorXcd& eigs, MatrixXcd& eigvecs) {
+  
+  int n = eigs.size();
+  if(n != eigvecs.cols() || n != eigvecs.rows()) {
+    string msg; SUB_LOCATION(msg);
+    msg += ": size mismatch";
+    throw runtime_error(msg);
+  }
+
+  for(int i = 1; i < n; i++) {
+    for(int j = i-1; j > -1; j--) {
+      if(eigs[j].real() > eigs[j+1].real()) {
+	dcomplex tmp = eigs[j];
+	eigs[j] = eigs[j+1];
+	eigs[j+1] = tmp;
+      }
+    }
+  }
+    
+}
 void generalizedComplexEigenSolve(const CM& f, const CM& s, CM* c, CV* eig){
 
   // s2inv means S^(-1/2)
@@ -58,6 +81,8 @@ void generalizedComplexEigenSolve(const CM& f, const CM& s, CM* c, CV* eig){
   es.compute(fp, true);
   *c = s2inv *  es.eigenvectors();
   *eig = es.eigenvalues();
+
+  SortEigs(*eig, *c);
     
 }
 

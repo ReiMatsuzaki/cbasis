@@ -166,27 +166,49 @@ SubSymGTOs Sub_TwoSGTO_py(SymmetryGroup sym, Irrep irrep,
 
   return Sub_TwoSGTO(sym, irrep, xyz_in, zs_in);
 }
-// -- to be removed
-np::dict SymGTOs_CalcMat(SymGTOs* gtos) {
 
-  BMatMap* res0;
-  gtos->CalcMat(res0);
-
-  bp::dict res1;
-  for(BMatMap::iterator it = res1.begin(); it != res1.end(); ++it) {
-    
-    string name = it->first;
-  }
-  return res1;
-
+BMatSets* SymGTOs_CalcMat(SymGTOs* gtos) {
+  BMatSets* res = new BMatSets(gtos->sym_group);
+  gtos->CalcMat(res);
+  return res;
 }
+VectorXcd* SymGTOs_AtR_Ylm(SymGTOs* gtos,
+			   int L, int M,  int irrep,
+			   const VectorXcd& cs_ibasis,
+			   const VectorXcd& rs) {
+
+  VectorXcd* res = new VectorXcd();
+  gtos->AtR_Ylm(L, M, irrep, cs_ibasis, rs, res);
+  return res;
+  
+}
+tuple generalizedComplexEigenSolve_py(const CM& F, const CM& S) {
+
+  MatrixXcd C;
+  VectorXcd eig;
+  generalizedComplexEigenSolve(F, S, &C, &eig);
+  return make_tuple(eig, C);
+
+  /*
+  int n(F.cols());
+  if((F.rows() != n) ||
+     (S.cols() != n) ||
+     (S.rows() != n)) {
+    string msg; SUB_LOCATION(msg); 
+    msg += ": matrix F and S must be same size square matrix. ";
+    throw runtime_error(msg);
+  }
+  */
+}
+
 
 BOOST_PYTHON_MODULE(symmolint_bind) {
 
   Py_Initialize();
   np::initialize();
   
-  def("print_as_eigen", PrintAsEigen);
+  //def("print_as_eigen", PrintAsEigen);
+  def("ceig", generalizedComplexEigenSolve_py);
 
   class_<SymmetryGroup>("SymmetryGroup", init<int, string>())
     .add_property("order", &SymmetryGroup::order)
@@ -197,6 +219,10 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
   def("Cs", SymmetryGroup_Cs);
   def("Cs_Ap", Cs_Ap);
   def("Cs_App", Cs_App);
+
+  class_<BMatSets>("BMatSets", init<SymmetryGroup>())
+    .def("get_matrix", &BMatSets::GetMatrix, return_internal_reference<>())
+    .def("set_matrix", &BMatSets::SetMatrix);
 
   class_<ReductionSets>("ReductionSets", init<int, MatrixXcd>())
     .add_property("irrep",        &ReductionSets::irrep)
@@ -218,10 +244,14 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
 
   class_<SymGTOs>("SymGTOs", init<SymmetryGroup>())
     .def("add_sub", &SymGTOs::AddSub)
-    .def("add_atoms", &SymGTOs::AddAtoms)
+    .def("add_atom", &SymGTOs::AddAtom)
     .def("setup", &SymGTOs::SetUp)
+    .def("calc_mat", SymGTOs_CalcMat,
+	 return_value_policy<manage_new_object>())
+    .def("at_r_ylm", SymGTOs_AtR_Ylm,
+	 return_value_policy<manage_new_object>())
     .def("__str__", &SymGTOs::str)
-    .def("__repr__", &SymGTOs::str)
+    .def("__repr__", &SymGTOs::str);
   
 }
 
