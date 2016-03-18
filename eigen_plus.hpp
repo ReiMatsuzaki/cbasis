@@ -1,14 +1,13 @@
 #ifndef EIGNN_PLUS_H
 #define EIGNN_PLUS_H
 
-
-#include <complex>
 #include <Eigen/Core>
 
 namespace {
   typedef Eigen::MatrixXcd CM;
   typedef Eigen::VectorXcd CV;
 }
+
 
 
 std::complex<double> cnorm(const CV& v);

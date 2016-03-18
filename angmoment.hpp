@@ -2,7 +2,7 @@
 #define ANGMOMENT_HPP
 
 #include <exception>
-#include "math_utils.hpp"
+#include "typedef.hpp"
 
 namespace l2func {
 

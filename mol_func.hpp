@@ -1,8 +1,9 @@
-#ifndef SPEC_FUNC_H
-#define SPEC_FUNC_H
+#ifndef MOL_FUNC_H
+#define MOL_FUNC_H
 
 #include <Eigen/Core>
-#include "math_utils.hpp"
+#include "typedef.hpp"
+#include "mult_array.hpp"
 
 namespace l2func {
 

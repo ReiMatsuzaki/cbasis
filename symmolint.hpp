@@ -8,8 +8,6 @@
 
 namespace l2func {
 
-  // ==== Each integrate ====
-
   // ==== Type def ====
   typedef int Irrep;
   typedef std::map<std::pair<Irrep, Irrep>, Eigen::MatrixXcd> BMat;

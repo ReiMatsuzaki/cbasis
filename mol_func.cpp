@@ -1,4 +1,4 @@
-#include "spec_func.hpp"
+#include "mol_func.hpp"
 
 namespace l2func {
 

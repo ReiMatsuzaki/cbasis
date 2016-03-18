@@ -1,11 +1,13 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/Core>
-#include "eigen_plus.hpp"
+
+#include "typedef.hpp"
 #include "macros.hpp"
+
+#include "eigen_plus.hpp"
+
 using namespace std;
 using namespace Eigen;
-
-typedef complex<double> dcomplex;
 
 std::complex<double> cnorm(const CV& v) {
   Eigen::ArrayXcd a = v.array();

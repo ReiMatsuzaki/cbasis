@@ -1,5 +1,5 @@
-#ifndef MACROS_TEMPLATE_H
-#define MACROS_TEMPLATE_H
+#ifndef GTEST_PLUS_H
+#define GTEST_PLUS_H
 
 #include <complex>
 #include <gtest/gtest.h>

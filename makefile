@@ -14,22 +14,24 @@ OBJS=${CIP_OBJS} ${FUNC_OBJS} ${MATH_OBJS}
 l2.a: ${OBJS}
 	ar r $@ ${OBJS}
 
+# -- mathematics
+fact.o: fact.cpp fact.hpp
 erfc.o:  erfc.cpp  erfc.hpp 
-math_utils.o: math_utils.cpp math_utils.hpp
+lgamma.o: lgamma.cpp lgamma.hpp typedef.hpp
+mol_func.o: mol_func.cpp mol_func.hpp typedef.hpp mult_array.hpp
+angmoment.o: angmoment.cpp angmoment.hpp typedef.hpp macros.hpp fact.hpp 
+
+# -- SymGTOs 
 cut_exp.o: cut_exp.hpp exp_func.hpp linspace.hpp
 exp_func.o: exp_func.cpp exp_func.hpp linspace.hpp
 cip_exp.o: cip_exp.cpp
 gto3dset.o: gto3dset.cpp gto3dset.hpp
-
 r1gtoint.o: r1gtoint.cpp r1gtoint.hpp math_utils.hpp
-
-angmoment.o: angmoment.cpp math_utils.hpp  angmoment.hpp 
 molint.o: molint.cpp molint.hpp math_utils.hpp macros.hpp
-spec_func.o: spec_func.cpp spec_func.hpp math_utils.hpp
+eigen_plus.o: eigen_plus.cpp eigen_plus.hpp typedef.hpp macros.hpp
 
-
-test_math.o: test_math.cpp math_utils.hpp erfc.hpp lgamma.hpp spec_func.hpp angmoment.hpp
-test_math: test_math.o math_utils.o erfc.o spec_func.o angmoment.o
+test_math.o: test_math.cpp math_utils.hpp erfc.hpp lgamma.hpp mol_func.hpp angmoment.hpp eigen_plus.hpp
+test_math: test_math.o fact.o erfc.o lgamma.o mol_func.o angmoment.o eigen_plus.o
 	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
 .PHONY: check_math
 check_math: test_math
