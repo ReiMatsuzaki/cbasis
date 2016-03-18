@@ -465,6 +465,8 @@ namespace l2func {
   dcomplex dist2(dcomplex x, dcomplex y, dcomplex z) {
     return x*x + y*y + z*z;
   }
+
+  
   dcomplex calc_tele(SubIt isub, SubIt jsub, dcomplex zetaj, 
 		     int ipn, int jpn,
 		     A3dc& dxmap, A3dc& dymap, A3dc& dzmap) {
@@ -522,7 +524,7 @@ namespace l2func {
   }
 
   void CalcPrim(const SymGTOs gtos, SubIt isub, SubIt jsub, int iz, int jz,
-		A3dc& dxmap, A3dc& dymap, A3dc& dzmap, A2dc& Fjs_iat,
+		A3dc& dxmap, A3dc& dymap, A3dc& dzmap, A4dc& rmap, A2dc& Fjs_iat,
 		PrimBasis& prim) {
     dcomplex zetai, zetaj;
     zetai = isub->zeta_iz[iz]; zetaj = jsub->zeta_iz[jz];
@@ -561,29 +563,21 @@ namespace l2func {
 	    nxi = isub->ns_ipn(0, ipn); nxj = jsub->ns_ipn(0, jpn);
 	    nyi = isub->ns_ipn(1, ipn); nyj = jsub->ns_ipn(1, jpn);
 	    nzi = isub->ns_ipn(2, ipn); nzj = jsub->ns_ipn(2, jpn);
-	    dcomplex dx00, dy00, dz00, dx02, dy02, dz02, dz01;
-	    dx00 = dxmap.get_safe(nxi, nxj ,0);
-	    dy00 = dymap.get_safe(nyi, nyj ,0);
-	    dz00 = dzmap.get_safe(nzi, nzj ,0);
-	    dz01 = dzmap.get_safe(nzi, nzj+1 ,0);
-	    dx02 = dxmap.get_safe(nxi, nxj+2 ,0);
-	    dy02 = dymap.get_safe(nyi, nyj+2 ,0);
-	    dz02 = dzmap.get_safe(nzi, nzj+2 ,0);
-	    dcomplex s_ele = dx00 * dy00 * dz00;
-	    dcomplex z_ele = dx00 * dy00 * (dz01 + zj *dz00);
+
+	    dcomplex s_ele = dxmap(nxi,nxj,0) * dymap(nyi,nyj,0) * dzmap(nzi,nzj,0);
+	    dcomplex z_ele = dxmap(nxi,nxj,0)*dymap(nyi,nyj,0)*
+	      (dzmap(nzi,nzj+1,0)+zj*dzmap(nzi,nzj,0));
 	    dcomplex t_ele = calc_tele(isub, jsub, zetaj, ipn, jpn,
-				       dxmap, dymap, dzmap);
-	    A4dc rmap(100);
+				       dxmap, dymap, dzmap);	    
 	    calc_R_coef(zetaP, wPx, wPy, wPz, gtos.xyzq_iat, Fjs_iat,
 			nxi+nxj, nyi+nyj, nzi+nzj, gtos.size_atom(), rmap);
-
 	    dcomplex v_ele = calc_vele(gtos, isub, jsub, ipn, jpn,
 				       dxmap, dymap, dzmap, rmap);
 
-	    prim.s.set_safe(iat, ipn, jat, jpn, ce * s_ele);
-	    prim.t.set_safe(iat, ipn, jat, jpn, -0.5* ce * t_ele);
-	    prim.v.set_safe(iat, ipn, jat, jpn, -2.0*M_PI/zetaP*eAB * v_ele);
-	    prim.z.set_safe(iat, ipn, jat, jpn, ce*z_ele);
+	    prim.s(iat, ipn, jat, jpn) =  ce * s_ele;
+	    prim.t(iat, ipn, jat, jpn) =  -0.5* ce * t_ele;
+	    prim.v(iat, ipn, jat, jpn) =  -2.0*M_PI/zetaP*eAB * v_ele;
+	    prim.z(iat, ipn, jat, jpn) =  ce*z_ele;
 	  }}}}
 
   }
@@ -677,6 +671,7 @@ namespace l2func {
     }
 
     PrimBasis prim(100);
+    A4dc rmap(100);
     A3dc dxmap(100),  dymap(100),  dzmap(100);
     A2dc Fjs_iat(100);
     
@@ -684,7 +679,8 @@ namespace l2func {
       for(SubIt jsub = subs.begin(); jsub != subs.end(); ++jsub) {
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
 	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
-	    CalcPrim(*this, isub, jsub, iz, jz, dxmap, dymap, dzmap, Fjs_iat, prim);
+	    CalcPrim(*this, isub, jsub, iz, jz, dxmap, dymap, dzmap, rmap,
+		     Fjs_iat, prim);
 	    CalcTrans(isub, jsub, iz, jz, prim, mat_map);
 	  }
 	}
