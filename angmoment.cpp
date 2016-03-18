@@ -5,6 +5,8 @@
 #include <gsl/gsl_sf_coupling.h>
 #include <math.h>
 
+using namespace std;
+
 namespace l2func {
 
   // ==== Exception class ====
@@ -77,9 +79,11 @@ namespace l2func {
       }
     } else {
       res[0] = sinh(x) / x;
-      res[1] = (x*cosh(x)-sinh(x)) / (x*x);
-      for(int n = 1; n < max_n; n++) 
-	res[n+1] = res[n-1] - (2.0*n+1.0)/x*res[n];
+      if(max_n > 0) 
+	res[1] = (x*cosh(x)-sinh(x)) / (x*x);
+      if(max_n > 1)
+	for(int n = 1; n < max_n; n++) 
+	  res[n+1] = res[n-1] - (2.0*n+1.0)/x*res[n];
     }
   }
   void AssociatedLegendre(dcomplex x, int max_l, dcomplex* res) {
@@ -88,21 +92,48 @@ namespace l2func {
       before calling this function, pointer res must allocate:
       // res = new dcomplex[num_lm_pair(max_l)]
      */
-    
-    res[0] = 1.0;
-    for(int L = 0; L < max_l; L++) {
-      dcomplex val = -(2.0*L+1.0) * sqrt(1.0-x*x) * res[lm_index(L, L)];
-      res[lm_index(L+1, L+1)] = val;
-      res[lm_index(L+1, -L-1)] = pow(-1.0, L+1) / DFactorial(2*(L+1)) * val;
-    }
 
-    for(int L = 1; L <= max_l; L++)
-      for(int M = -L; M < L-1; M++) {
-	dcomplex t1 = (L-M)*1.0*x*res[lm_index(L, M)];
-	dcomplex t2 = (L+M)*1.0*res[lm_index(L-1, M)];
-	res[lm_index(L, M+1)] =  (t1 - t2) / sqrt(1.0-x*x);
+    double eps(0.000001);
+    if(abs(x-1.0) < eps|| abs(x+1.0) < eps) {
+      // -- (L-M+1) P(L+1,M) = (2L+1) x P(LM) - (L+M) P(L-1,M)
+
+      res[0] = 1.0;
+
+      for(int L = 0; L < max_l; L++) {
+	for(int M = -L-1; M <= L+1; M++) {
+	  if(M == 0) {
+	    dcomplex c(1.0/double(L+1));
+	    res[lm_index(L+1, 0)] = c * dcomplex(2*L+1) * x * res[lm_index(L,0)];
+	    if(L != 0)
+	      res[lm_index(L+1, 0)] -= c*dcomplex(L+M) * res[lm_index(L-1,0)];
+	  } else {
+	    res[lm_index(L+1, M)] = 0.0;
+	  }
+	}
       }
 
+    } else {
+    
+      res[0] = 1.0;
+      for(int L = 0; L < max_l; L++) {
+	dcomplex val = -(2.0*L+1.0) * sqrt(1.0-x*x) * res[lm_index(L, L)];
+	res[lm_index(L+1, L+1)] = val;
+	res[lm_index(L+1, -L-1)] = pow(-1.0, L+1) / DFactorial(2*(L+1)) * val;
+      }
+
+      for(int L = 1; L <= max_l; L++) {
+	for(int M = -L; M <= L-2; M++) {
+	  dcomplex term(0);
+	  if(L-M != 0) {
+	    term += (L-M)*1.0*x*res[lm_index(L, M)];
+	  }
+	  if(L+M != 0) {
+	    term -= (L+M)*1.0*res[lm_index(L-1, M)];
+	  }
+	  res[lm_index(L, M+1)] =  term / sqrt(1.0-x*x);
+	}
+      }
+    }
   }
   void RealSphericalHarmonics(dcomplex theta, dcomplex phi, int max_l, dcomplex* res) {
 
@@ -112,7 +143,7 @@ namespace l2func {
     // 
     // res must be allocate before this function:
     // // res = new dcomplex[num_lm_pair(max_l)];
-
+    
     AssociatedLegendre(cos(theta), max_l, res);
     for(int l = 0; l <= max_l; l++) {
       
@@ -130,27 +161,6 @@ namespace l2func {
       }
     }
   }
-
-  /*
-  dcomplex* SphericalHarmonics(dcomplex phi, dcomplex theta, int max_l) {
-
-    std::string msg;
-    SUB_LOCATION(msg);
-    msg += "Not tested";
-    throw std::runtime_error(msg);
-
-    dcomplex* ps = AssociatedLegendre(cos(theta), max_l);
-    dcomplex* vs = new dcomplex[num_lm_pair(max_l)];
-    for(int L = 0; L <= max_l; L++)
-      for(int M = -L; M <= L; M++) {
-	vs[lm_index(L, M)] = pow(-1.0, (M+abs(M))/2) *
-	  sqrt((2*L+1)/(4.0*M_PI) * DFactorial(L-abs(M))/DFactorial(L+abs(M))) *
-	       ps[lm_index(L, abs(M))] * exp(dcomplex(0.0, 1.0)*(1.0*M)*phi);
-      }
-    delete ps;
-    return vs;
-  }
-  */
   
   void gto_00_r(dcomplex x, dcomplex y, dcomplex z, int Jpp, int Mpp,dcomplex zeta,
 		dcomplex* rs, int num_r,  dcomplex* work, dcomplex* res) {
@@ -173,7 +183,7 @@ namespace l2func {
     dcomplex phi   = acos(x/sqrt(x*x+y*y));
 
     dcomplex* ylm = &work[0];
-    dcomplex* il =  &work[num_r];
+    dcomplex* il =  &work[num_lm_pair(Jpp)];
 
     RealSphericalHarmonics(theta, phi, Jpp, ylm);
 

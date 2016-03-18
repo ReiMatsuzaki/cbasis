@@ -240,9 +240,14 @@ namespace l2func {
 
     ns_ipn.swap(res);    
   }
-  void SubSymGTOs::SetZeta(const VectorXcd& zs) {
+  void SubSymGTOs::AddZeta(const VectorXcd& zs) {
     setupq = false;
-    zeta_iz = zs;
+    VectorXcd res(zeta_iz.size() + zs.size());
+    for(int i = 0; i < zeta_iz.size(); i++)
+      res(i) = zeta_iz(i);
+    for(int i = 0; i < zs.size(); i++)
+      res(i+zeta_iz.size()) = zs(i);
+    zeta_iz.swap(res);
   }
   void SubSymGTOs::AddRds(const ReductionSets& _rds) {
     setupq = false;
@@ -1032,13 +1037,94 @@ namespace l2func {
     delete[] bufz; delete[] dsx_buff; delete[] dsy_buff; delete[] dsz_buff;
     *res = mat_map;
   }
+  bool IsCenter(SubIt isub, int iat, double eps) {
+    dcomplex x  = isub->xyz_iat(0, iat);
+    dcomplex y  = isub->xyz_iat(1, iat);
+    dcomplex z  = isub->xyz_iat(2, iat);
+    dcomplex a2 = x*x+y*y+z*z;
+    dcomplex a = sqrt(a2);
+    return (abs(a) < eps);
+  }
+  dcomplex AtR_Ylm_cen(SubIt isub, int iz,
+		       int ipn, dcomplex r, int L, int M) {
+
+    int nx = isub->ns_ipn(0, ipn);
+    int ny = isub->ns_ipn(1, ipn);
+    int nz = isub->ns_ipn(2, ipn);
+    int nn = nx + ny + nz;
+    dcomplex zeta = isub->zeta_iz(iz);
+    if(L == 0) {
+      // -- s-GTO --
+      if(nn == 0) {
+	return sqrt(4.0*M_PI)*r*exp(-zeta*r*r);
+      } else {
+	return 0.0;
+      }
+    }
+    if(L == 1) {
+      // -- p-GTO --
+      if(nx == 0 && ny == 0 && nz == 1 && M == 0)
+	return sqrt(4.0*M_PI/3.0)*r*r*exp(-zeta*r*r);	  
+      if(nx == 0 && ny == 1 && nz == 0 && M == 1)
+	throw runtime_error("0101 is not implemented");
+      if(nx == 1 && ny == 0 && nz == 0 && M ==-1)
+	throw runtime_error("0101 is not implemented");	
+      return 0.0;
+    }
+
+    string msg; SUB_LOCATION(msg);
+    msg += "L>1 is not implemented";
+    throw runtime_error(msg);
+    
+  }
+  dcomplex AtR_Ylm_noncen(SubIt isub, int iz, int iat, int ipn,
+			  dcomplex r, int L, int M) {
+
+    dcomplex* il  = new dcomplex[L+1];
+    dcomplex* ylm = new dcomplex[num_lm_pair(L)];
+
+    dcomplex res;
+
+    int nn = (isub->ns_ipn(0, ipn) +
+	      isub->ns_ipn(1, ipn) +
+	      isub->ns_ipn(2, ipn));
+    dcomplex zeta = isub->zeta_iz(iz);
+    dcomplex x  = isub->xyz_iat(0, iat);
+    dcomplex y  = isub->xyz_iat(1, iat);
+    dcomplex z  = isub->xyz_iat(2, iat);
+    dcomplex xxyy = x*x+y*y;
+    dcomplex a2 = xxyy+z*z;
+    dcomplex a = sqrt(a2);
+
+    if(abs(a) < 0.000001) {
+      string msg; SUB_LOCATION(msg);
+      msg += "(x,y,z) is not centered on origin."; 
+      throw runtime_error(msg);
+    }
+
+    dcomplex expz = exp(-zeta*(r*r+a2));
+    dcomplex theta = acos(z / a);
+    dcomplex phi   = (abs(xxyy) < 0.00001) ? 0.0 : acos(x / sqrt(xxyy));
+    ModSphericalBessel(2.0*zeta*a*r, L, il);
+    RealSphericalHarmonics(theta, phi, L, ylm);
+    if(nn == 0) {
+      res = r * (4.0*M_PI) * il[L] * expz * pow(-1.0, M) * ylm[lm_index(L, -M)];
+    } else {
+      string msg; SUB_LOCATION(msg);
+      msg += ": not implemented yet for p or higher orbital";
+      throw runtime_error(msg);
+    }		  
+
+    delete[] il;
+    delete[] ylm;
+    return res;
+    
+  }
+			      
   void SymGTOs::AtR_Ylm(int L, int M, int irrep, const VectorXcd& cs_ibasis,
 			const VectorXcd& rs, VectorXcd* res ) {
-    if(not setupq) {
-      string msg; SUB_LOCATION(msg); 
-      msg += ": call SetUp before calculation";
-      throw std::runtime_error(msg);
-    }
+    if(not setupq) 
+      this->SetUp();
 
     try{
       sym_group.CheckIrrep(irrep);
@@ -1071,70 +1157,15 @@ namespace l2func {
 	  for(int iat = 0; iat < isub->size_at(); iat++) {
 	    for(int ipn = 0; ipn < isub->size_pn(); ipn++) {
 	      for(int ir = 0; ir < rs.size(); ir++) {
-		dcomplex zeta = isub->zeta_iz(iz);
-		dcomplex x  = isub->xyz_iat(0, iat);
-		dcomplex y  = isub->xyz_iat(1, iat);
-		dcomplex z  = isub->xyz_iat(2, iat);
-		int nx = isub->ns_ipn(0, ipn);
-		int ny = isub->ns_ipn(1, ipn);
-		int nz = isub->ns_ipn(2, ipn);
-		int nn = nx + ny + nz;
-		dcomplex xxyy = x*x + y*y;
-		dcomplex a2 = xxyy + z*z;
-		dcomplex a = sqrt(a2);
-		
-	      
+
 		int ibasis = irds->offset + iz;
 		dcomplex c = (cs_ibasis(ibasis) *
 			      irds->coef_iat_ipn(iat, ipn) *
 			      irds->coef_iz(iz));
-
-		dcomplex r(rs[ir]);
-		dcomplex expz(exp(-zeta * r * r));
-		
-		// -- center --
-		if(abs(a) < eps) {
-		
-		  if(nn == 0) {
-		    if(L == 0)
-		      vs[ir] += c*sqrt(4.0*M_PI)*r*exp(-zeta*r*r);
-		  } else if(nn == 1) {
-		    if(L == 1) {
-		      if(nz == 1 && M == 0) 
-			vs[ir] += c*sqrt(4.0*M_PI/3.0)*r*r*exp(-zeta*r*r);	  
-		      else {
-			string msg; SUB_LOCATION(msg); 
-			msg += ": not implemented yet for M!=0";
-			throw runtime_error(msg);
-		      }
-		    }
-		  } else {
-		    string msg; SUB_LOCATION(msg); 
-		    msg += ": not implemented yet for d or higher orbital";
-		    throw runtime_error(msg);
-		  }
+		if(IsCenter(isub, iat, eps)) {
+		  vs[ir] += c * AtR_Ylm_cen(isub, iz, ipn, rs[ir], L, M);
 		} else {
-		  // -- no center --
-		  dcomplex theta = acos(z / a);
-		  dcomplex phi   = acos(x / sqrt(xxyy));
-		  cout << nn << endl;
-		  ModSphericalBessel(2.0*zeta*a*r, L, il);
-		  cout << "A" << endl;
-		  RealSphericalHarmonics(theta, phi, L, ylm);
-		  cout << "B" << endl;
-
-		  if(nn == 0) {
-		    cout << "lm_index(L,-M):" << lm_index(L, -M) << endl;
-		    cout << ylm[lm_index(L, -M)] << endl;
-		    cout << il[L] << endl;
-		    vs(ir) += c * (4.0*M_PI) * il[L] * expz * pow(-1.0, M)
-		      * ylm[lm_index(L, -M)];
-		    cout << "<<<" << endl;
-		  } else {
-		    string msg; SUB_LOCATION(msg);
-		    msg += ": not implemented yet for p or higher orbital";
-		    throw runtime_error(msg);
-		  }
+		  vs[ir] += c * AtR_Ylm_noncen(isub, iz, iat, ipn, rs[ir], L, M);
 		}
 	      }
 	    }
@@ -1142,10 +1173,8 @@ namespace l2func {
 	}
       }
     }
-    cout << "deleting" << endl;
     delete[] ylm;
     delete[] il;
-    cout << "swap" << endl;
     res->swap(vs);
   }
   

@@ -70,7 +70,7 @@ namespace l2func {
     std::string str() const;
     void Display() const;
     Irrep irrep() const { return sym; }
-    const Eigen::MatrixXcd get_coef_iat_ipn() const { return coef_iat_ipn; }
+    const Eigen::MatrixXcd& get_coef_iat_ipn() const { return coef_iat_ipn; }
     void set_zs_size(int num_zs) {
       coef_iz = Eigen::VectorXcd::Zero(num_zs);
     }
@@ -94,7 +94,7 @@ namespace l2func {
     std::string str() const;
     void AddXyz(Eigen::Vector3cd xyz);
     void AddNs(Eigen::Vector3i ns);
-    void SetZeta(const Eigen::VectorXcd& zs);
+    void AddZeta(const Eigen::VectorXcd& zs);
     void AddRds(const ReductionSets& rds);
     
     // ---- old ----
@@ -104,10 +104,10 @@ namespace l2func {
     int size_pn() const { return ns_ipn.cols(); }
     int size_cont() const { return rds.size(); }
     int size_zeta() const { return zeta_iz.rows(); }
-    Eigen::MatrixXcd get_xyz_iat() { return xyz_iat; }
-    Eigen::MatrixXi  get_ns_ipn() const { return  ns_ipn; }
-    ReductionSets  get_rds(int i) const { return  rds[i]; }
-    Eigen::VectorXcd get_zeta_iz() const { return  zeta_iz; }    
+    const Eigen::MatrixXcd& get_xyz_iat() { return xyz_iat; }
+    const Eigen::MatrixXi&  get_ns_ipn() const { return  ns_ipn; }
+    const ReductionSets&  get_rds(int i) const { return  rds[i]; }
+    const Eigen::VectorXcd& get_zeta_iz() const { return  zeta_iz; }    
     void Display() const;
   };
 

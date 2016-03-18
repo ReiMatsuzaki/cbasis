@@ -1,8 +1,8 @@
 include local.mk
 #CXXFLAGS=${INC_PATH} -Wall -O3  
 #CXXFLAGS=${INC_PATH} -Wall
-CXXFLAGS=${INC_PATH} -Wall -g
-#CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
+#CXXFLAGS=${INC_PATH} -Wall -g
+CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
 
 MATH_OBJS=erfc.o math_utils.o
 FUNC_OBJS=cut_exp.o exp_func.o delta.o
@@ -25,11 +25,15 @@ r1gtoint.o: r1gtoint.cpp r1gtoint.hpp math_utils.hpp
 
 angmoment.o: angmoment.cpp math_utils.hpp  angmoment.hpp 
 molint.o: molint.cpp molint.hpp math_utils.hpp macros.hpp
-spec_func.o: spec_func.cpp spec_func.hpp math_utils.hpp 
+spec_func.o: spec_func.cpp spec_func.hpp math_utils.hpp
 
-test.o: test.cpp
-test: test.o l2.a
-	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} test.o l2.a
+
+test_math.o: test_math.cpp math_utils.hpp erfc.hpp lgamma.hpp spec_func.hpp angmoment.hpp
+test_math: test_math.o math_utils.o erfc.o spec_func.o angmoment.o
+	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
+.PHONY: check_math
+check_math: test_math
+	valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no ./$<
 
 test_r1gtoint.o: test_r1gtoint.cpp utils.hpp r1gtoint.hpp cip_exp.hpp
 test_r1gtoint: test_r1gtoint.o r1gtoint.o cip_exp.o math_utils.o erfc.o
@@ -39,13 +43,19 @@ check_r1gtoint: test_r1gtoint
 	./$<
 
 test_symmolint.o: test_symmolint.cpp symmolint.hpp math_utils.hpp
-test_symmolint: test_symmolint.o symmolint.o spec_func.o angmoment.o molint.o math_utils.o eigen_plus.o
+test_symmolint: test_symmolint.o symmolint.o spec_func.o angmoment.o math_utils.o eigen_plus.o
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_symmolint
 check_symmolint: test_symmolint
 	valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no ./$<
 
 
+
+# ==== old ====
+
+test.o: test.cpp
+test: test.o l2.a
+	${CXX} -o $@ ${CXXFLAGS} ${LIBGTEST} test.o l2.a
 
 test_gto3d.o: test_gto3d.cpp gto3d.hpp 
 #test_gto3d: test_gto3d.o cints.o angmoment.o gto3dset.o math_utils.o molint.o cip_exp.o exp_func.o eigen_plus.o

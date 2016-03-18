@@ -59,9 +59,11 @@ void SortEigs(VectorXcd& eigs, MatrixXcd& eigvecs) {
   for(int i = 1; i < n; i++) {
     for(int j = i-1; j > -1; j--) {
       if(eigs[j].real() > eigs[j+1].real()) {
+
 	dcomplex tmp = eigs[j];
 	eigs[j] = eigs[j+1];
 	eigs[j+1] = tmp;
+	eigvecs.col(j).swap(eigvecs.col(j+1));
       }
     }
   }

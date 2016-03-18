@@ -103,6 +103,7 @@ namespace l2func {
       check_index(nx, ny, nz);
       set(nx, ny, nz, v);
     }
+    int size() const { return num_; }
     F get(int nx, int ny, int nz) {
       return data_[idx(nx, ny, nz)];
     }

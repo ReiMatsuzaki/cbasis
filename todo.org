@@ -1,0 +1,92 @@
+* symmolint.cpp
+** perfomance
+   対角行列に対してまじめに計算しているので、楽をしよう
+   
+** python bindで見やすくなるように
+   pythonで使うときにDSLになるようにメソッドを追加しよう
+   データ構造は変えなくていいだろう。
+
+   #+begin_src python
+gtos = SymGTOs(Cs())
+       .sub(Sub()
+            .xyz( 0, 0, +1)
+            .xyz( 0, 0, -1)
+            .nxyz(1, 0, 0)
+            .nxyz(0, 1, 0)
+            .nxyz(0, 0, 1)
+            .zeta([2.0**n for n in range(-5, 5)])
+            .rds( Cs_Ap(), [[1, 0, 0], [-1, 0, 0]])
+            .rds( Cs_Ap(), [[1, 0, 0], [-1, 0, 0]]))
+       .sub(Sub()
+            .xyz(0, 0, 0)
+            .nxyz(0, 0, 0)
+            .zeta([2.0**n for n in range(-5, 5)])
+            .rds( Cs_App(), [[1.0]]))
+       .atom((0,0,0.5), 1)
+       .atom((0,0,-0.5), 1)
+       .setup()
+   #+end_src
+
+   結構簡単に実装できる？
+
+** 行列に追加する操作をまとめる。
+   xyzq_iat
+   xyz_iat
+   などに同じようなソースが続いている。
+
+** struct -> class
+   だんだん単純な構造ではなくなってるから、変数名をしっかりしようとしたけど
+   計算部分を変えるのがめんどくさいから見送る。
+
+** SetUp
+   SubSymGTOsとSymGTOsでSetUpを実装しているが、
+   その呼び出すタイミングを考える。
+   SymGTOs::AddSub
+   で呼ぶのか
+   SymGTOs::SetUp
+   でまとめて呼ぶのか。
+
+** removed old
+   to be removedでマークした部分を消す
+
+** BMatSets
+   swapの実装でコピーを回避
+   コピーコンストラクタの禁止
+   
+** data check
+   SetUpでデータ構造をチェック。
+   大きさ０になっていないか。複数のデータに矛盾はないか。SetUpが呼ばれているか。
+
+** remove raw pointer
+   ポインターを露わに使っている部分を治したい。
+   MultArrayをstd::vectorのように拡張する？
+   CalcMatを整理したい。（できるかな？）
+** 名前：ReductionSets
+   rds
+   ReductionSets
+   Reduction
+   などいろいろ混ざっている。どういう名前がいいかは、最後のPython-bind
+   したときに使いやすいようにする。内部変数も合わせていこう。
+** function describe
+   関数の説明書きを追加したい。
+   minieigenとかを見ればわかるはず。
+   
+** DONE BMatSets
+   []演算子でアクセスしたい。
+   mat["s", Ap, Ap]
+   など。
+
+** correct sign
+   波動関数に含まれる符号の任意性を訂正する仕組みを実装したい。
+   一階微分が正になればよし。
+
+   #+begin_src python
+...
+(eigvals, eigvecs) = ceig(H, S)
+c0 = gtos.correct_sign(eigvecs.col(0))
+...
+   #+end_src 
+** AtR_Ylm for higher moment
+** special function
+   legendre, special harmonicsなどまとめる。
+   angmomentなど、いまは散らばっている。

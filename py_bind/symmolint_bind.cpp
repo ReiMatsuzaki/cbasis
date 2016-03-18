@@ -16,20 +16,8 @@ namespace {
   namespace np = boost::numpy;
 }
 
-// -- to be removed
-void VectorEigen2NumPy(VectorXcd& a, np::ndarray* b) {
-
-  int num = a.size();
-  dcomplex* ptr;
-  Map<VectorXcd>(ptr, num) = a;
-  *b = np::from_data(ptr,
-		     np::dtype::get_builtin<dcomplex>(),
-		     bp::make_tuple(num),
-		     bp::make_tuple(sizeof(dcomplex)),
-		     bp::object());
-}
-// -- to be removed
-void VectorNumPy2Eigen(np::ndarray a, VectorXcd* b) {
+// -- to be removed 
+void VectorNumPy2Eigen(np::ndarray& a, VectorXcd* b) {
 
   if(a.get_nd() != 1) {
     string msg; SUB_LOCATION(msg);
@@ -48,6 +36,20 @@ void VectorNumPy2Eigen(np::ndarray a, VectorXcd* b) {
   dcomplex* ptr = reinterpret_cast<dcomplex*>(a.get_data());
   *b = Map<VectorXcd>(ptr, num);
 
+}
+
+
+// -- to be removed
+void VectorEigen2NumPy(VectorXcd& a, np::ndarray* b) {
+
+  int num = a.size();
+  dcomplex* ptr;
+  Map<VectorXcd>(ptr, num) = a;
+  *b = np::from_data(ptr,
+		     np::dtype::get_builtin<dcomplex>(),
+		     bp::make_tuple(num),
+		     bp::make_tuple(sizeof(dcomplex)),
+		     bp::object());
 }
 // -- to be removed
 void MatrixEigen2NumPy(MatrixXcd& a, np::ndarray* b) {
@@ -175,12 +177,18 @@ BMatSets* SymGTOs_CalcMat(SymGTOs* gtos) {
 VectorXcd* SymGTOs_AtR_Ylm(SymGTOs* gtos,
 			   int L, int M,  int irrep,
 			   const VectorXcd& cs_ibasis,
-			   const VectorXcd& rs) {
-
-  VectorXcd* res = new VectorXcd();
-  gtos->AtR_Ylm(L, M, irrep, cs_ibasis, rs, res);
-  return res;
+			   VectorXcd rs) {
   
+  VectorXcd* ys = new VectorXcd();
+  gtos->AtR_Ylm(L, M, irrep, cs_ibasis, rs, ys);
+  return ys;
+  
+}
+const MatrixXcd& BMatSets_getitem(BMatSets* self, tuple name_i_j) {
+  string name = extract<string>(name_i_j[0]);
+  Irrep i = extract<int>(name_i_j[1]);
+  Irrep j = extract<int>(name_i_j[2]);
+  return self->GetMatrix(name, i, j);  
 }
 tuple generalizedComplexEigenSolve_py(const CM& F, const CM& S) {
 
@@ -201,7 +209,6 @@ tuple generalizedComplexEigenSolve_py(const CM& F, const CM& S) {
   */
 }
 
-
 BOOST_PYTHON_MODULE(symmolint_bind) {
 
   Py_Initialize();
@@ -221,21 +228,30 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
   def("Cs_App", Cs_App);
 
   class_<BMatSets>("BMatSets", init<SymmetryGroup>())
-    .def("get_matrix", &BMatSets::GetMatrix, return_internal_reference<>())
+    .def("get_matrix",  &BMatSets::GetMatrix, return_internal_reference<>())
+    .def("__getitem__", BMatSets_getitem, return_internal_reference<>())
     .def("set_matrix", &BMatSets::SetMatrix);
 
   class_<ReductionSets>("ReductionSets", init<int, MatrixXcd>())
     .add_property("irrep",        &ReductionSets::irrep)
-    .add_property("coef_iat_ipn", &ReductionSets::get_coef_iat_ipn)
+    .def("coef_iat_ipn", &ReductionSets::get_coef_iat_ipn,
+	 return_internal_reference<>())
     .def("__str__", &ReductionSets::str)
     .def("__repr__", &ReductionSets::str);
 
-  class_<SubSymGTOs>("SubSymGTOs", init<MatrixXcd, MatrixXi,
-		     vector<ReductionSets>, VectorXcd>())
-    .add_property("xyz_iat", &SubSymGTOs::get_xyz_iat)
-    .add_property("ns_ipn", &SubSymGTOs::get_ns_ipn)
-    .add_property("rds", &SubSymGTOs::get_rds)
-    .add_property("zeta_iz", &SubSymGTOs::get_zeta_iz)
+  class_<SubSymGTOs>("SubSymGTOs")
+    .def("xyz", &SubSymGTOs::AddXyz, return_self<>())
+    .def("ns",  &SubSymGTOs::AddNs,  return_self<>())
+    .def("rds", &SubSymGTOs::AddRds,  return_self<>())
+    .def("zeta",&SubSymGTOs::AddZeta, return_self<>())
+    .def("get_xyz_iat", &SubSymGTOs::get_xyz_iat,
+	 return_internal_reference<>())
+    .def("get_ns_ipn", &SubSymGTOs::get_ns_ipn,
+	 return_internal_reference<>())
+    .def("get_rds", &SubSymGTOs::get_rds,
+	 return_internal_reference<>())
+    .def("get_zeta_iz", &SubSymGTOs::get_zeta_iz,
+	 return_internal_reference<>())
     .def("__str__", &SubSymGTOs::str)
     .def("__repr__", &SubSymGTOs::str);
   def("sub_s", Sub_s);
@@ -243,10 +259,12 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
   def("sub_two_sgto", Sub_TwoSGTO);
 
   class_<SymGTOs>("SymGTOs", init<SymmetryGroup>())
-    .def("add_sub", &SymGTOs::AddSub)
-    .def("add_atom", &SymGTOs::AddAtom)
+    .def("sub", &SymGTOs::AddSub, return_self<>())
+    .def("atom", &SymGTOs::AddAtom, return_self<>())
     .def("setup", &SymGTOs::SetUp)
     .def("calc_mat", SymGTOs_CalcMat,
+	 return_value_policy<manage_new_object>())
+    .def("at_r_ylm_cpp", SymGTOs_AtR_Ylm,
 	 return_value_policy<manage_new_object>())
     .def("at_r_ylm", SymGTOs_AtR_Ylm,
 	 return_value_policy<manage_new_object>())
