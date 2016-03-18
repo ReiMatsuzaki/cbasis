@@ -175,21 +175,20 @@ namespace l2func {
     
   }
 
-  MultArray<dcomplex, 3> calc_d_coef(int max_ni, int max_nj, int max_n,
-				     dcomplex zetaP, dcomplex wPx,
-				     dcomplex xi, dcomplex xj,
-				     dcomplex* buffer) {
+  void calc_d_coef(int max_ni, int max_nj, int max_n,
+		   dcomplex zetaP, dcomplex wPx,
+		   dcomplex xi, dcomplex xj,
+		   MultArray<dcomplex, 3>& res) {
 
-    MultArray<dcomplex, 3> data(buffer,
-				0, max_ni,
-				0, max_nj,
-				-max_ni-max_nj, max_ni+max_nj+max_n);
+    res.SetRange(0, max_ni,
+		 0, max_nj,
+		 -max_ni-max_nj, max_ni+max_nj+max_n);
 
-    data.set(0, 0, 0, 1.0);
+    res.set(0, 0, 0, 1.0);
     for(int n = -max_ni -max_nj; n < 0; n++) 
-      data.set(0, 0, n, 0.0);
+      res.set(0, 0, n, 0.0);
     for(int n = 1; n <= max_ni+max_nj+max_n; n++) 
-      data.set(0, 0, n, 0.0);
+      res.set(0, 0, n, 0.0);
 
     for(int ni_nj = 1; ni_nj <= max_ni + max_nj; ni_nj++) {
       for(int ni = 0; ni <= std::min(max_ni, ni_nj); ni++) {
@@ -198,22 +197,20 @@ namespace l2func {
 	  for(int n = -(max_ni + max_nj - ni_nj);
 	      n <= max_ni + max_nj + max_n - ni_nj; n++) {
 	    if(ni > 0) {
-	      dcomplex v = (1.0/(2.0*zetaP) * data.get_safe(ni-1, nj, n-1) +
-			    (wPx - xi)      * data.get_safe(ni-1, nj, n) + 
-			    (n + 1.0)      * data.get_safe(ni-1, nj, n+1));
-	      data.set(ni, nj, n, v);
+	      dcomplex v = (1.0/(2.0*zetaP) * res.get_safe(ni-1, nj, n-1) +
+			    (wPx - xi)      * res.get_safe(ni-1, nj, n) + 
+			    (n + 1.0)      * res.get_safe(ni-1, nj, n+1));
+	      res.set(ni, nj, n, v);
 	    } else if(nj > 0) {
-	      dcomplex v = (1.0/(2.0*zetaP) * data.get_safe(ni, nj-1, n-1) +
-			    (wPx - xj)      * data.get_safe(ni, nj-1, n) + 
-			    (n + 1.0)      * data.get_safe(ni, nj-1, n+1));
-	      data.set(ni, nj, n, v);	    
+	      dcomplex v = (1.0/(2.0*zetaP) * res.get_safe(ni, nj-1, n-1) +
+			    (wPx - xj)      * res.get_safe(ni, nj-1, n) + 
+			    (n + 1.0)      * res.get_safe(ni, nj-1, n+1));
+	      res.set(ni, nj, n, v);	    
 	    }
 	  }
 	}
       }
     }
-
-    return data;
   }
 
   dcomplex coef_R(dcomplex zetaP,
@@ -263,16 +260,17 @@ namespace l2func {
 		       dcomplex wBx, dcomplex wBy, dcomplex wBz,
 		       dcomplex zetaB) {
 
-    dcomplex* dsx_buff = new dcomplex[100];
-    dcomplex* dsy_buff = new dcomplex[100];
-    dcomplex* dsz_buff = new dcomplex[100];
     dcomplex zetaP = zetaA + zetaB;
     dcomplex wPx = (zetaA*wAx+zetaB*wBx)/zetaP;
     dcomplex wPy = (zetaA*wAy+zetaB*wBy)/zetaP;
     dcomplex wPz = (zetaA*wAz+zetaB*wBz)/zetaP;
-    A3dc dxmap = calc_d_coef(nAx,nBx,0,zetaP,wPx,wAx,wBx,dsx_buff);
-    A3dc dymap = calc_d_coef(nAy,nBy,0,zetaP,wPy,wAy,wBy,dsy_buff);
-    A3dc dzmap = calc_d_coef(nAz,nBz,0,zetaP,wPz,wAz,wBz,dsz_buff);
+    A3dc dxmap(100);
+    A3dc dymap(100); 
+    A3dc dzmap(100); 
+    calc_d_coef(nAx,nBx,0,zetaP,wPx,wAx,wBx,dxmap);
+    calc_d_coef(nAy,nBy,0,zetaP,wPy,wAy,wBy,dymap);
+    calc_d_coef(nAz,nBz,0,zetaP,wPz,wAz,wBz,dzmap);
+    
     dcomplex d2 = pow(wAx-wBx,2) + pow(wAy-wBy,2) + pow(wAz-wBz,2);	
     dcomplex eAB = exp(-zetaA*zetaB/zetaP*d2);
     dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
@@ -281,9 +279,6 @@ namespace l2func {
 		    dxmap.get(nAx, nBx, 0) * 
 		    dymap.get(nAy, nBy, 0) * 
 		    dzmap.get(nAz, nBz, 0));
-    delete[] dsx_buff;
-    delete[] dsy_buff;
-    delete[] dsz_buff;
     return res;
 
   }
@@ -316,16 +311,13 @@ namespace l2func {
 		       dcomplex wBx, dcomplex wBy, dcomplex wBz,
 		       dcomplex zetaB) {
 
-    dcomplex* dsx_buff = new dcomplex[100];
-    dcomplex* dsy_buff = new dcomplex[100];
-    dcomplex* dsz_buff = new dcomplex[100];
     dcomplex zetaP = zetaA + zetaB;
     dcomplex wPx = (zetaA*wAx+zetaB*wBx)/zetaP;
     dcomplex wPy = (zetaA*wAy+zetaB*wBy)/zetaP;
     dcomplex wPz = (zetaA*wAz+zetaB*wBz)/zetaP;
-    A3dc dxmap = calc_d_coef(nAx,nBx+2,0,zetaP,wPx,wAx,wBx,dsx_buff);
-    A3dc dymap = calc_d_coef(nAy,nBy+2,0,zetaP,wPy,wAy,wBy,dsy_buff);
-    A3dc dzmap = calc_d_coef(nAz,nBz+2,0,zetaP,wPz,wAz,wBz,dsz_buff);
+    A3dc dxmap(100); calc_d_coef(nAx,nBx+2,0,zetaP,wPx,wAx,wBx,dxmap);
+    A3dc dymap(100); calc_d_coef(nAy,nBy+2,0,zetaP,wPy,wAy,wBy,dymap);
+    A3dc dzmap(100); calc_d_coef(nAz,nBz+2,0,zetaP,wPz,wAz,wBz,dzmap);
     dcomplex d2 = pow(wAx-wBx,2) + pow(wAy-wBy,2) + pow(wAz-wBz,2);	
     dcomplex eAB = exp(-zetaA*zetaB/zetaP*d2);
     dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
@@ -349,11 +341,6 @@ namespace l2func {
       res += 1.0*nBz*(nBz-1) * dzmap.get(nAz, nBz-2, 0) * dx00 * dy00;
 
     res *= -0.5 * ce;
-
-    delete[] dsx_buff;
-    delete[] dsy_buff;
-    delete[] dsz_buff;
-
     return res;    
   }
   dcomplex GTONuclearAttraction(int nAx, int nAy, int nAz, 
@@ -365,9 +352,6 @@ namespace l2func {
 				dcomplex wCx, dcomplex wCy, dcomplex wCz) {
 
     dcomplex* Fjs = new dcomplex[100];
-    dcomplex* dsx_buff = new dcomplex[100];
-    dcomplex* dsy_buff = new dcomplex[100];
-    dcomplex* dsz_buff = new dcomplex[100];
 
     dcomplex zetaP = zetaA + zetaB;
     dcomplex wPx = (zetaA*wAx+zetaB*wBx)/zetaP;
@@ -379,9 +363,9 @@ namespace l2func {
     dcomplex dz = wPz-wCz;
     dcomplex d2p = dx*dx + dy*dy + dz*dz;
 
-    A3dc dxmap = calc_d_coef(nAx,nBx,nAx+nBx,zetaP,wPx,wAx,wBx,dsx_buff);
-    A3dc dymap = calc_d_coef(nAy,nBy,nAy+nBy,zetaP,wPy,wAy,wBy,dsy_buff);
-    A3dc dzmap = calc_d_coef(nAz,nBz,nAz+nBz,zetaP,wPz,wAz,wBz,dsz_buff);
+    A3dc dxmap(100); calc_d_coef(nAx,nBx,nAx+nBx,zetaP,wPx,wAx,wBx,dxmap);
+    A3dc dymap(100); calc_d_coef(nAy,nBy,nAy+nBy,zetaP,wPy,wAy,wBy,dymap);
+    A3dc dzmap(100); calc_d_coef(nAz,nBz,nAz+nBz,zetaP,wPz,wAz,wBz,dzmap);
     IncompleteGamma(nAx+nBx+nAy+nBy+nAz+nBz, zetaP * d2p, Fjs);
 
     dcomplex d2 = pow(wAx-wBx,2) + pow(wAy-wBy,2) + pow(wAz-wBz,2);	
@@ -399,9 +383,6 @@ namespace l2func {
 			 nx, ny, nz, 0, Fjs));
 
     res *= -2.0 * M_PI/zetaP * eAB;
-    delete[] dsx_buff;
-    delete[] dsy_buff;
-    delete[] dsz_buff;
     delete[] Fjs;
     return res;    
   }

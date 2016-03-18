@@ -13,16 +13,17 @@ namespace l2func {
   typedef vector<ReductionSets>::iterator RdsIt;
   typedef vector<SubSymGTOs>::const_iterator cSubIt;
   typedef vector<ReductionSets>::const_iterator cRdsIt;
+  typedef MultArray<dcomplex, 2> A2dc;
   typedef MultArray<dcomplex, 3> A3dc;
   typedef MultArray<dcomplex, 4> A4dc;
 
   // ==== Data structure ====
-  MultArray<dcomplex, 4> calc_R_coef(dcomplex zetaP,
-				     dcomplex wPx, dcomplex wPy, dcomplex wPz,
-				     Eigen::MatrixXcd xyzq_kat, dcomplex** Fjs_kat,
-				     int mx, int my, int mz, int mat, dcomplex* buf) {
-
-    MultArray<dcomplex, 4> res(buf, 0, mx, 0, my, 0, mz, 0, mat);
+  void calc_R_coef(dcomplex zetaP,
+		   dcomplex wPx, dcomplex wPy, dcomplex wPz,
+		   Eigen::MatrixXcd xyzq_kat, dcomplex** Fjs_kat,
+		   int mx, int my, int mz, int mat, A4dc& res) {
+    
+    res.SetRange(0, mx, 0, my, 0, mz, 0, mat);
     for(int nx = 0; nx <= mx; nx++)
       for(int ny = 0; ny <= my; ny++)
 	for(int nz = 0; nz <= mz; nz++)
@@ -32,9 +33,9 @@ namespace l2func {
 				xyzq_kat(1, kat),
 				xyzq_kat(2, kat),
 				nx, ny, nz, 0, Fjs_kat[kat]);
-	    res.set(nx, ny, nz, kat, v);
+	    res(nx, ny, nz, kat) = v;
 	  }
-    return res;
+
   }
 
   // ==== SymmetryGroup ====
@@ -382,10 +383,8 @@ namespace l2func {
 
   }
   void SymGTOs::Normalize() {
-    
-    dcomplex* dsx_buff = new dcomplex[100];
-    dcomplex* dsy_buff = new dcomplex[100];
-    dcomplex* dsz_buff = new dcomplex[100];
+
+    A3dc dxmap(100), dymap(100), dzmap(100);
 
     // >>> Irrep Adapted GTOs >>>
     for(SubIt isub = subs.begin(), end = subs.end(); isub != end; ++isub) {
@@ -411,9 +410,9 @@ namespace l2func {
 		dcomplex eAB = exp(-zetai*zetai/zetaP*d2);
 		dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
 		int mi = isub->maxn;
-		A3dc dxmap = calc_d_coef(mi,mi,0, zetaP,wPx,xi,xj,dsx_buff);
-		A3dc dymap = calc_d_coef(mi,mi,0, zetaP,wPy,yi,yj,dsy_buff);
-		A3dc dzmap = calc_d_coef(mi,mi,0, zetaP,wPz,zi,zj,dsz_buff);
+		calc_d_coef(mi,mi,0, zetaP,wPx,xi,xj,dxmap);
+		calc_d_coef(mi,mi,0, zetaP,wPy,yi,yj,dymap);
+		calc_d_coef(mi,mi,0, zetaP,wPz,zi,zj,dzmap);
 		
 		for(int ipn = 0; ipn < nipn; ipn++) {
 		  for(int jpn = 0; jpn < nipn; jpn++) {		    
@@ -447,9 +446,6 @@ namespace l2func {
     }
     // <<< Irrep Adapted GTOs <<<
 
-    delete[] dsx_buff;
-    delete[] dsy_buff;
-    delete[] dsz_buff;
   }
   
   // ---- Calculation ----
@@ -512,18 +508,9 @@ namespace l2func {
       }
     }
     
-    dcomplex* bufs = new dcomplex[100];    
-    dcomplex* buft = new dcomplex[100];
-    dcomplex* bufv = new dcomplex[100];
-    dcomplex* bufz = new dcomplex[100];
-    dcomplex* dsx_buff = new dcomplex[100];
-    dcomplex* dsy_buff = new dcomplex[100];
-    dcomplex* dsz_buff = new dcomplex[100];
-    dcomplex** Fjs_iat;    
-
-    Fjs_iat = new dcomplex*[this->size_atom()];
-    for(int iat = 0; iat < this->size_atom(); iat++)
-      Fjs_iat[iat] = new dcomplex[2*max_n+1];
+    A4dc s_prim(100), t_prim(100), v_prim(100), z_prim(100);
+    A3dc dxmap(100),  dymap(100),  dzmap(100);
+    A2dc Fjs_iat(100);
     
     for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
       for(SubIt jsub = subs.begin(); jsub != subs.end(); ++jsub) {
@@ -538,10 +525,11 @@ namespace l2func {
 	    int nipn(isub->size_pn()); int njpn(jsub->size_pn());
 
 	    // -- primitive basis --
-	    MultArray<dcomplex, 4> s_prim(bufs, 0, niat, 0, nipn, 0, njat, 0, njpn);   
-	    MultArray<dcomplex, 4> t_prim(buft, 0, niat, 0, nipn, 0, njat, 0, njpn);
-	    MultArray<dcomplex, 4> v_prim(bufv, 0, niat, 0, nipn, 0, njat, 0, njpn);
-	    MultArray<dcomplex, 4> z_prim(bufz, 0, niat, 0, nipn, 0, njat, 0, njpn);
+	    s_prim.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+	    t_prim.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+	    v_prim.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+	    z_prim.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+	    Fjs_iat.SetRange(0, this->size_atom(), 0, isub->maxn+jsub->maxn);
 
 	    for(int iat = 0; iat < niat; iat++) {
 	      for(int jat = 0; jat < njat; jat++) { 
@@ -556,15 +544,15 @@ namespace l2func {
 		dcomplex eAB = exp(-zetai*zetaj/zetaP*d2);
 		dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
 		int mi = isub->maxn; int mj = jsub->maxn;
-		A3dc dxmap = calc_d_coef(mi,mj+2,mi+mj,zetaP,wPx,xi,xj,dsx_buff);
-		A3dc dymap = calc_d_coef(mi,mj+2,mi+mj,zetaP,wPy,yi,yj,dsy_buff);
-		A3dc dzmap = calc_d_coef(mi,mj+2,mi+mj,zetaP,wPz,zi,zj,dsz_buff);
+		calc_d_coef(mi,mj+2,mi+mj,zetaP,wPx,xi,xj,dxmap);
+		calc_d_coef(mi,mj+2,mi+mj,zetaP,wPy,yi,yj,dymap);
+		calc_d_coef(mi,mj+2,mi+mj,zetaP,wPz,zi,zj,dzmap);
 		for(int kat = 0; kat < this->size_atom(); kat++) {
 		  dcomplex dx = wPx-xyzq_iat(0, kat);
 		  dcomplex dy = wPy-xyzq_iat(1, kat);
 		  dcomplex dz = wPz-xyzq_iat(2, kat);
 		  dcomplex d2p = dx*dx + dy*dy + dz*dz;
-		  IncompleteGamma(isub->maxn+jsub->maxn, zetaP * d2p, Fjs_iat[kat]);
+		  IncompleteGamma(isub->maxn+jsub->maxn, zetaP * d2p, &Fjs_iat(kat, 0));
 		}
 
 		for(int ipn = 0; ipn < nipn; ipn++) {
@@ -611,7 +599,7 @@ namespace l2func {
 					     xyzq_iat(0, kat),
 					     xyzq_iat(1, kat),
 					     xyzq_iat(2, kat),
-					     nx, ny, nz, 0, Fjs_iat[kat]));
+					     nx, ny, nz, 0, &Fjs_iat(kat, 0)));
 		  
 			}
 		    s_prim.set_safe(iat, ipn, jat, jpn, ce * s_ele);
@@ -654,16 +642,6 @@ namespace l2func {
 	}
       }
     }
-    delete[] bufs;
-    delete[] buft;
-    delete[] bufv;
-    delete[] bufz;
-    delete[] dsx_buff;
-    delete[] dsy_buff;
-    delete[] dsz_buff;
-    for(int iat = 0; iat < this->size_atom(); iat++)
-      delete[] Fjs_iat[iat];
-    delete[] Fjs_iat;
     *res = mat_map;
   }
   bool IsCenter(SubIt isub, int iat, double eps) {
