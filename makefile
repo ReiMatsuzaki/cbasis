@@ -29,9 +29,12 @@ gto3dset.o: gto3dset.cpp gto3dset.hpp
 r1gtoint.o: r1gtoint.cpp r1gtoint.hpp math_utils.hpp
 molint.o: molint.cpp molint.hpp math_utils.hpp macros.hpp
 eigen_plus.o: eigen_plus.cpp eigen_plus.hpp typedef.hpp macros.hpp
+bmatset.o: bmatset.cpp bmatset.hpp
 
-test_math.o: test_math.cpp math_utils.hpp erfc.hpp lgamma.hpp mol_func.hpp angmoment.hpp eigen_plus.hpp
-test_math: test_math.o fact.o erfc.o lgamma.o mol_func.o angmoment.o eigen_plus.o
+symmolint.o: symmolint.cpp symmolint.hpp bmatset.hpp angmoment.hpp mol_func.hpp
+
+test_math.o: test_math.cpp math_utils.hpp erfc.hpp lgamma.hpp mol_func.hpp angmoment.hpp eigen_plus.hpp bmatset.hpp
+test_math: test_math.o fact.o erfc.o lgamma.o mol_func.o angmoment.o eigen_plus.o bmatset.o
 	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
 .PHONY: check_math
 check_math: test_math
@@ -44,8 +47,8 @@ test_r1gtoint: test_r1gtoint.o r1gtoint.o cip_exp.o math_utils.o erfc.o
 check_r1gtoint: test_r1gtoint
 	./$<
 
-test_symmolint.o: test_symmolint.cpp symmolint.hpp math_utils.hpp
-test_symmolint: test_symmolint.o symmolint.o spec_func.o angmoment.o math_utils.o eigen_plus.o
+test_symmolint.o: test_symmolint.cpp symmolint.hpp
+test_symmolint: test_symmolint.o symmolint.o bmatset.o angmoment.o eigen_plus.o fact.o mol_func.o
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_symmolint
 check_symmolint: test_symmolint

@@ -1,8 +1,9 @@
 #include <iostream>
 #include <numeric>
 #include "angmoment.hpp"
+#include "mol_func.hpp"
+
 #include "symmolint.hpp"
-#include "spec_func.hpp"
 
 namespace l2func {
 
@@ -16,26 +17,6 @@ namespace l2func {
   typedef MultArray<dcomplex, 4> A4dc;
 
   // ==== Data structure ====
-  void swap(BMat& a, BMat& b)  {
-    // assume b is empty
-
-    for(BMat::iterator it_a = a.begin(); it_a != a.end(); ++it_a) {
-      b[it_a->first] = Eigen::MatrixXcd();
-      b[it_a->first].swap(it_a->second);
-    }
-
-  }
-  void swap(BMatMap& a, BMatMap& b) {
-    // assume b is empty
-
-    for(BMatMap::iterator it_a = a.begin(); it_a != a.end(); ++it_a) {
-
-      b[it_a->first] = BMat();
-      swap(it_a->second, b[it_a->first]);
-
-    }
-
-  }
   MultArray<dcomplex, 4> calc_R_coef(dcomplex zetaP,
 				     dcomplex wPx, dcomplex wPy, dcomplex wPz,
 				     Eigen::MatrixXcd xyzq_kat, dcomplex** Fjs_kat,
@@ -115,59 +96,6 @@ namespace l2func {
   SymmetryGroup SymmetryGroup_C1() {
     SymmetryGroup c1(1, "C1");
     return c1;
-  }
-
-  // ==== BlockMatrixSets ====
-  BMatSets::BMatSets(): sym_(SymmetryGroup_C1()) {}
-  BMatSets::BMatSets(SymmetryGroup _sym): sym_(_sym) {}
-  void BMatSets::SetMatrix(string name, Irrep i, Irrep j, MatrixXcd& mat) {
-
-    try {
-      sym_.CheckIrrep(i);
-      sym_.CheckIrrep(j);
-    } catch(const runtime_error& e) {
-      string msg; SUB_LOCATION(msg);
-      msg += "Error for Irrep i or j.";
-      msg += e.what(); 
-      throw runtime_error(msg);
-    }
-
-    MatrixXcd tmp;
-    mat_map_[name][make_pair(i, j)] = tmp;
-    mat_map_[name][make_pair(i, j)].swap(mat);
-  }
-  const MatrixXcd& BMatSets::GetMatrix(string name, Irrep i, Irrep j) {
-
-    try {
-      sym_.CheckIrrep(i);
-      sym_.CheckIrrep(j);
-    } catch(const runtime_error& e) {
-      string msg; SUB_LOCATION(msg);
-      msg += " : Invalid Irrep i, j\n";
-      msg += e.what(); 
-      throw runtime_error(msg);
-    }
-
-    if(mat_map_.find(name) == mat_map_.end()) {
-      string msg; SUB_LOCATION(msg);
-      msg += " : key not found.\n" ;
-      msg += "name : " + name;
-      throw runtime_error(msg);
-    }
-
-    if(mat_map_[name].find(make_pair(i, j)) == mat_map_[name].end()) {
-      string msg; SUB_LOCATION(msg);
-      msg += " : matrix (i,j) is not found.\n";
-      throw runtime_error(msg);
-    }
-
-    return mat_map_[name][make_pair(i, j)];
-  }
-  void BMatSets::SelfAdd(string name, Irrep i, Irrep j, int a, int b, dcomplex v) {
-    mat_map_[name][make_pair(i, j)](a, b) += v;
-  }
-  dcomplex BMatSets::At(string name, Irrep i, Irrep j, int a, int b) {
-    return mat_map_[name][make_pair(i, j)](a, b);
   }
   
   // ==== Reduction Sets ====
@@ -557,7 +485,7 @@ namespace l2func {
 	  }}
       }}
     }
-  void SymGTOs::CalcMat(BMatSets* res) {
+  void SymGTOs::CalcMat(BMatSet* res) {
 
     if(not setupq)
       this->SetUp();
@@ -570,7 +498,7 @@ namespace l2func {
 	    max_n = isub->ns_ipn(i, ipn);
     }
 
-    BMatSets mat_map(sym_group);
+    BMatSet mat_map(sym_group.order());
     for(Irrep isym = 0; isym < sym_group.order(); isym++) {
       for(Irrep jsym = 0; jsym < sym_group.order(); jsym++) {
 	int numi = this->size_basis_isym(isym);

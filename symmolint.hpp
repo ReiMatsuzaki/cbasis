@@ -1,21 +1,17 @@
 #ifndef SYMMOLINT_H
 #define SYMMOLINT_H
 
-#include "math_utils.hpp"
-#include <Eigen/Core>
 #include <string>
-#include <map>
+#include <vector>
+#include <Eigen/Core>
+#include "typedef.hpp"
+#include "bmatset.hpp"
 
 namespace l2func {
 
   // ==== Type def ====
   typedef int Irrep;
-  typedef std::map<std::pair<Irrep, Irrep>, Eigen::MatrixXcd> BMat;
-  typedef std::map<std::string, BMat> BMatMap;
-
-  void swap(BMat& a, BMat& b);
-  void swap(BMatMap& a, BMatMap& b);
-
+  
   // ==== Symmetry Group ====
   // ---- Class ----
   class SymmetryGroup {
@@ -39,20 +35,6 @@ namespace l2func {
   Irrep Cs_App();
   SymmetryGroup SymmetryGroup_C1();
 
-  // ==== BlockMatrixSets ==== 
-  class BMatSets {
-  private:
-    SymmetryGroup sym_;
-    BMatMap mat_map_;
-  public:
-    BMatSets();
-    BMatSets(SymmetryGroup _sym);
-    void SetMatrix(std::string name, Irrep i, Irrep j, Eigen::MatrixXcd& a);
-    const Eigen::MatrixXcd& GetMatrix(std::string name, Irrep i, Irrep j);
-    void SelfAdd(std::string name, Irrep i, Irrep j, int a, int b, dcomplex v);
-    dcomplex At(std::string name, Irrep i, Irrep j, int a, int b);
-  };
-  
   // ==== AO Reduction Sets ====
   struct ReductionSets {
     Irrep sym;
@@ -143,7 +125,7 @@ namespace l2func {
     // ---- Calculation ----
     // -- to be removed
     void loop();
-    void CalcMat(BMatSets* res);
+    void CalcMat(BMatSet* res);
     // -- to be removed
     void STVMat(BMatMap* res);
     // -- to be removed

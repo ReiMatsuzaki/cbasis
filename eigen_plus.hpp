@@ -8,8 +8,6 @@ namespace {
   typedef Eigen::VectorXcd CV;
 }
 
-
-
 std::complex<double> cnorm(const CV& v);
 void complex_normalize(CV& v);
 void col_cnormalize(CM& c);
