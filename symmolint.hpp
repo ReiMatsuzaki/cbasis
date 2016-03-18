@@ -139,6 +139,10 @@ namespace l2func {
     int size_atom() const;
     int size_basis_isym(Irrep isym) const;
     std::string str() const;    
+    inline dcomplex x_at(int i) const { return xyzq_iat(0, i); }
+    inline dcomplex y_at(int i) const { return xyzq_iat(1, i); }
+    inline dcomplex z_at(int i) const { return xyzq_iat(2, i); }
+    inline dcomplex q_at(int i) const { return xyzq_iat(3, i); }
 
     // ---- Add information ----
     void SetAtoms(Eigen::MatrixXcd _xyzq_iat);

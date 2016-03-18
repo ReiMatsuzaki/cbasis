@@ -17,10 +17,11 @@ namespace l2func {
   typedef MultArray<dcomplex, 3> A3dc;
   typedef MultArray<dcomplex, 4> A4dc;
 
-  // ==== Data structure ====
+  // ==== coef R ====
+  // -- more efficient code can be used!
   void calc_R_coef(dcomplex zetaP,
 		   dcomplex wPx, dcomplex wPy, dcomplex wPz,
-		   Eigen::MatrixXcd xyzq_kat, dcomplex** Fjs_kat,
+		   Eigen::MatrixXcd xyzq_kat, A2dc& Fjs_kat,
 		   int mx, int my, int mz, int mat, A4dc& res) {
     
     res.SetRange(0, mx, 0, my, 0, mz, 0, mat);
@@ -32,7 +33,7 @@ namespace l2func {
 				xyzq_kat(0, kat),
 				xyzq_kat(1, kat),
 				xyzq_kat(2, kat),
-				nx, ny, nz, 0, Fjs_kat[kat]);
+				nx, ny, nz, 0, &Fjs_kat(kat, 0));
 	    res(nx, ny, nz, kat) = v;
 	  }
 
@@ -449,7 +450,174 @@ namespace l2func {
   }
   
   // ---- Calculation ----
-  // -- to be removed
+  struct PrimBasis {
+    A4dc s, t, v, z;
+    PrimBasis(int num):
+      s(num), t(num), v(num), z(num) {}
+    void SetRange(int niat, int nipn, int njat, int njpn) {
+      s.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+      t.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+      v.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+      z.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+    }
+  };
+
+  dcomplex dist2(dcomplex x, dcomplex y, dcomplex z) {
+    return x*x + y*y + z*z;
+  }
+  dcomplex calc_tele(SubIt isub, SubIt jsub, dcomplex zetaj, 
+		     int ipn, int jpn,
+		     A3dc& dxmap, A3dc& dymap, A3dc& dzmap) {
+    int nxi, nxj, nyi, nyj, nzi, nzj;
+    nxi = isub->nx(ipn); nxj = jsub->nx(jpn);
+    nyi = isub->ny(ipn); nyj = jsub->ny(jpn);
+    nzi = isub->nz(ipn); nzj = jsub->nz(jpn);
+    dcomplex dx00, dy00, dz00, dx02, dy02, dz02, dz01;
+    dx00 = dxmap.get_safe(nxi, nxj ,0);
+    dy00 = dymap.get_safe(nyi, nyj ,0);
+    dz00 = dzmap.get_safe(nzi, nzj ,0);
+    dz01 = dzmap.get_safe(nzi, nzj+1 ,0);
+    dx02 = dxmap.get_safe(nxi, nxj+2 ,0);
+    dy02 = dymap.get_safe(nyi, nyj+2 ,0);
+    dz02 = dzmap.get_safe(nzi, nzj+2 ,0);
+
+    dcomplex t_ele(0.0);		    
+    t_ele += -2.0*(2*nxj+2*nyj+2*nzj+3)*zetaj*dx00*dy00*dz00;
+    t_ele += 4.0*zetaj*zetaj*(dx02*dy00*dz00+dx00*dy02*dz00+dx00*dy00*dz02);
+    if(nxj > 1) {
+      dcomplex dx = dxmap.get(nxi, nxj-2, 0);
+      t_ele += 1.0*nxj*(nxj-1) * dx * dy00 * dz00;
+    }
+    if(nyj > 1) {
+      dcomplex dy = dymap.get(nyi, nyj-2, 0);
+      t_ele += 1.0*nyj*(nyj-1) * dx00 * dy * dz00;
+    }
+    if(nzj > 1) {
+      dcomplex dz = dzmap.get(nzi, nzj-2, 0);
+      t_ele += 1.0*nzj*(nzj-1) * dx00 * dy00 * dz;
+    }
+    return t_ele;
+
+  }
+  dcomplex calc_vele(const SymGTOs& gtos, SubIt isub, SubIt jsub, int ipn, int jpn,
+		     A3dc& dxmap, A3dc& dymap, A3dc& dzmap, A4dc& rmap) {
+
+    int nxi, nxj, nyi, nyj, nzi, nzj;
+    nxi = isub->nx(ipn); nxj = jsub->nx(jpn);
+    nyi = isub->ny(ipn); nyj = jsub->ny(jpn);
+    nzi = isub->nz(ipn); nzj = jsub->nz(jpn);
+
+    dcomplex v_ele(0.0);
+    for(int nx = 0; nx <= nxi + nxj; nx++)
+      for(int ny = 0; ny <= nyi + nyj; ny++)
+	for(int nz = 0; nz <= nzi + nzj; nz++)
+	  for(int kat = 0; kat < gtos.size_atom(); kat++) {
+	    v_ele += (gtos.q_at(kat) *
+		      dxmap(nxi, nxj, nx) *
+		      dymap(nyi, nyj, ny) *
+		      dzmap(nzi, nzj, nz) *
+		      rmap(nx, ny, nz, kat));
+		  }
+    return v_ele;
+  }
+
+  void CalcPrim(const SymGTOs gtos, SubIt isub, SubIt jsub, int iz, int jz,
+		A3dc& dxmap, A3dc& dymap, A3dc& dzmap, A2dc& Fjs_iat,
+		PrimBasis& prim) {
+    dcomplex zetai, zetaj;
+    zetai = isub->zeta_iz[iz]; zetaj = jsub->zeta_iz[jz];
+    dcomplex zetaP = zetai + zetaj;
+    int niat(isub->size_at()); int njat(jsub->size_at());
+    int nipn(isub->size_pn()); int njpn(jsub->size_pn());
+
+    prim.SetRange(niat, nipn, njat, njpn);
+    Fjs_iat.SetRange(0, gtos.size_atom(), 0, isub->maxn+jsub->maxn);
+
+    for(int iat = 0; iat < niat; iat++) {
+      for(int jat = 0; jat < njat; jat++) { 
+	dcomplex xi, xj, yi, yj, zi, zj, wPx, wPy, wPz;
+	xi = isub->x(iat); yi = isub->y(iat); zi = isub->z(iat);
+	xj = jsub->x(jat); yj = jsub->y(jat); zj = jsub->z(jat);
+	
+	wPx = (zetai*xi+zetaj*xj)/zetaP;
+	wPy = (zetai*yi+zetaj*yj)/zetaP;
+	wPz = (zetai*zi+zetaj*zj)/zetaP;
+	dcomplex d2 = dist2(xi-xj, yi-yj, zi-zj);
+	dcomplex eAB = exp(-zetai*zetaj/zetaP*d2);
+	dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
+	int mi = isub->maxn; int mj = jsub->maxn;
+	calc_d_coef(mi,mj+2,mi+mj,zetaP,wPx,xi,xj,dxmap);
+	calc_d_coef(mi,mj+2,mi+mj,zetaP,wPy,yi,yj,dymap);
+	calc_d_coef(mi,mj+2,mi+mj,zetaP,wPz,zi,zj,dzmap);
+	for(int kat = 0; kat < gtos.size_atom(); kat++) {
+	  dcomplex d2p = dist2(wPx-gtos.x_at(kat), wPy-gtos.y_at(kat),
+			       wPz-gtos.z_at(kat));
+	  IncompleteGamma(isub->maxn+jsub->maxn, zetaP * d2p, &Fjs_iat(kat, 0));
+	}
+	
+	for(int ipn = 0; ipn < nipn; ipn++) {
+	  for(int jpn = 0; jpn < njpn; jpn++) {
+	    int nxi, nxj, nyi, nyj, nzi, nzj;
+	    nxi = isub->ns_ipn(0, ipn); nxj = jsub->ns_ipn(0, jpn);
+	    nyi = isub->ns_ipn(1, ipn); nyj = jsub->ns_ipn(1, jpn);
+	    nzi = isub->ns_ipn(2, ipn); nzj = jsub->ns_ipn(2, jpn);
+	    dcomplex dx00, dy00, dz00, dx02, dy02, dz02, dz01;
+	    dx00 = dxmap.get_safe(nxi, nxj ,0);
+	    dy00 = dymap.get_safe(nyi, nyj ,0);
+	    dz00 = dzmap.get_safe(nzi, nzj ,0);
+	    dz01 = dzmap.get_safe(nzi, nzj+1 ,0);
+	    dx02 = dxmap.get_safe(nxi, nxj+2 ,0);
+	    dy02 = dymap.get_safe(nyi, nyj+2 ,0);
+	    dz02 = dzmap.get_safe(nzi, nzj+2 ,0);
+	    dcomplex s_ele = dx00 * dy00 * dz00;
+	    dcomplex z_ele = dx00 * dy00 * (dz01 + zj *dz00);
+	    dcomplex t_ele = calc_tele(isub, jsub, zetaj, ipn, jpn,
+				       dxmap, dymap, dzmap);
+	    A4dc rmap(100);
+	    calc_R_coef(zetaP, wPx, wPy, wPz, gtos.xyzq_iat, Fjs_iat,
+			nxi+nxj, nyi+nyj, nzi+nzj, gtos.size_atom(), rmap);
+
+	    dcomplex v_ele = calc_vele(gtos, isub, jsub, ipn, jpn,
+				       dxmap, dymap, dzmap, rmap);
+
+	    prim.s.set_safe(iat, ipn, jat, jpn, ce * s_ele);
+	    prim.t.set_safe(iat, ipn, jat, jpn, -0.5* ce * t_ele);
+	    prim.v.set_safe(iat, ipn, jat, jpn, -2.0*M_PI/zetaP*eAB * v_ele);
+	    prim.z.set_safe(iat, ipn, jat, jpn, ce*z_ele);
+	  }}}}
+
+  }
+  void CalcTrans(SubIt isub, SubIt jsub, int iz, int jz,
+		 PrimBasis& prim, BMatSet& mat_map) {
+    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
+      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
+	dcomplex cumsum_s(0.0), cumsum_t(0.0), cumsum_v(0.0);
+	dcomplex cumsum_z(0.0);
+	for(int iat = 0; iat < isub->size_at(); iat++) {
+	  for(int ipn = 0; ipn < isub->size_pn(); ipn++) {
+	    for(int jat = 0; jat < jsub->size_at(); jat++) { 
+	      for(int jpn = 0; jpn < jsub->size_pn(); jpn++) {
+		dcomplex cc = 
+		  irds->coef_iat_ipn(iat, ipn) *
+		  jrds->coef_iat_ipn(jat, jpn) * 
+		  irds->coef_iz(iz) * 
+		  jrds->coef_iz(jz);
+		cumsum_s += cc*prim.s.get_safe(iat, ipn, jat, jpn);
+		cumsum_t += cc*prim.t.get_safe(iat, ipn, jat, jpn);
+		cumsum_v += cc*prim.v.get_safe(iat, ipn, jat, jpn);
+		cumsum_z += cc*prim.z.get_safe(iat, jpn, jat, jpn);
+	      }}}}
+	int i(irds->offset + iz); int j(jrds->offset + jz);
+	int isym(irds->irrep); int jsym(jrds->irrep);
+		
+	mat_map.SelfAdd("s", isym, jsym, i, j, cumsum_s);
+	mat_map.SelfAdd("t", isym, jsym, i, j, cumsum_t);
+	mat_map.SelfAdd("v", isym, jsym, i, j, cumsum_v);
+	mat_map.SelfAdd("z", isym, jsym, i, j, cumsum_z);
+      }
+    }
+  }
+
   void SymGTOs::loop() {
 
     for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
@@ -497,7 +665,7 @@ namespace l2func {
       for(Irrep jsym = 0; jsym < sym_group.order(); jsym++) {
 	int numi = this->size_basis_isym(isym);
 	int numj = this->size_basis_isym(jsym);
-	MatrixXcd s = MatrixXcd::Zero(numi, numj); 
+	MatrixXcd s = MatrixXcd::Zero(numi, numj);
 	mat_map.SetMatrix("s", isym, jsym, s);
 	MatrixXcd t = MatrixXcd::Zero(numi, numj); 
 	mat_map.SetMatrix("t", isym, jsym, t);
@@ -507,137 +675,17 @@ namespace l2func {
 	mat_map.SetMatrix("z", isym, jsym, z);
       }
     }
-    
-    A4dc s_prim(100), t_prim(100), v_prim(100), z_prim(100);
+
+    PrimBasis prim(100);
     A3dc dxmap(100),  dymap(100),  dzmap(100);
     A2dc Fjs_iat(100);
     
     for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
       for(SubIt jsub = subs.begin(); jsub != subs.end(); ++jsub) {
-
-	// -- loop over each zeta --
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
 	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
-	    dcomplex zetai, zetaj;
-	    zetai = isub->zeta_iz[iz]; zetaj = jsub->zeta_iz[jz];
-	    dcomplex zetaP = zetai + zetaj;
-	    int niat(isub->size_at()); int njat(jsub->size_at());
-	    int nipn(isub->size_pn()); int njpn(jsub->size_pn());
-
-	    // -- primitive basis --
-	    s_prim.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
-	    t_prim.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
-	    v_prim.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
-	    z_prim.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
-	    Fjs_iat.SetRange(0, this->size_atom(), 0, isub->maxn+jsub->maxn);
-
-	    for(int iat = 0; iat < niat; iat++) {
-	      for(int jat = 0; jat < njat; jat++) { 
-		dcomplex xi, xj, yi, yj, zi, zj, wPx, wPy, wPz;
-		xi = isub->xyz_iat(0, iat); xj = jsub->xyz_iat(0, jat);
-		yi = isub->xyz_iat(1, iat); yj = jsub->xyz_iat(1, jat);
-		zi = isub->xyz_iat(2, iat); zj = jsub->xyz_iat(2, jat);
-		wPx = (zetai*xi+zetaj*xj)/zetaP;
-		wPy = (zetai*yi+zetaj*yj)/zetaP;
-		wPz = (zetai*zi+zetaj*zj)/zetaP;
-		dcomplex d2 = pow(xi-xj,2) + pow(yi-yj,2) + pow(zi-zj,2);	
-		dcomplex eAB = exp(-zetai*zetaj/zetaP*d2);
-		dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
-		int mi = isub->maxn; int mj = jsub->maxn;
-		calc_d_coef(mi,mj+2,mi+mj,zetaP,wPx,xi,xj,dxmap);
-		calc_d_coef(mi,mj+2,mi+mj,zetaP,wPy,yi,yj,dymap);
-		calc_d_coef(mi,mj+2,mi+mj,zetaP,wPz,zi,zj,dzmap);
-		for(int kat = 0; kat < this->size_atom(); kat++) {
-		  dcomplex dx = wPx-xyzq_iat(0, kat);
-		  dcomplex dy = wPy-xyzq_iat(1, kat);
-		  dcomplex dz = wPz-xyzq_iat(2, kat);
-		  dcomplex d2p = dx*dx + dy*dy + dz*dz;
-		  IncompleteGamma(isub->maxn+jsub->maxn, zetaP * d2p, &Fjs_iat(kat, 0));
-		}
-
-		for(int ipn = 0; ipn < nipn; ipn++) {
-		  for(int jpn = 0; jpn < njpn; jpn++) {
-		    int nxi, nxj, nyi, nyj, nzi, nzj;
-		    nxi = isub->ns_ipn(0, ipn); nxj = jsub->ns_ipn(0, jpn);
-		    nyi = isub->ns_ipn(1, ipn); nyj = jsub->ns_ipn(1, jpn);
-		    nzi = isub->ns_ipn(2, ipn); nzj = jsub->ns_ipn(2, jpn);
-		    dcomplex dx00, dy00, dz00, dx02, dy02, dz02, dz01;
-		    dx00 = dxmap.get_safe(nxi, nxj ,0);
-		    dy00 = dymap.get_safe(nyi, nyj ,0);
-		    dz00 = dzmap.get_safe(nzi, nzj ,0);
-		    dz01 = dzmap.get_safe(nzi, nzj+1 ,0);
-		    dx02 = dxmap.get_safe(nxi, nxj+2 ,0);
-		    dy02 = dymap.get_safe(nyi, nyj+2 ,0);
-		    dz02 = dzmap.get_safe(nzi, nzj+2 ,0);
-		    dcomplex s_ele = dx00 * dy00 * dz00;
-		    dcomplex z_ele = dx00 * dy00 * (dz01 + zj *dz00);
-		    dcomplex t_ele(0.0);		    
-		    t_ele += -2.0*(2*nxj+2*nyj+2*nzj+3)*zetaj*dx00*dy00*dz00;
-		    t_ele += 4.0*zetaj*zetaj*(dx02*dy00*dz00+dx00*dy02*dz00+dx00*dy00*dz02);
-		    if(nxj > 1) {
-		      dcomplex dx = dxmap.get(nxi, nxj-2, 0);
-		      t_ele += 1.0*nxj*(nxj-1) * dx * dy00 * dz00;
-		    }
-		    if(nyj > 1) {
-		      dcomplex dy = dymap.get(nyi, nyj-2, 0);
-		      t_ele += 1.0*nyj*(nyj-1) * dx00 * dy * dz00;
-		    }
-		    if(nzj > 1) {
-		      dcomplex dz = dzmap.get(nzi, nzj-2, 0);
-		      t_ele += 1.0*nzj*(nzj-1) * dx00 * dy00 * dz;
-		    }
-		    dcomplex v_ele(0.0);
-		    for(int nx = 0; nx <= nxi + nxj; nx++)
-		      for(int ny = 0; ny <= nyi + nyj; ny++)
-			for(int nz = 0; nz <= nzi + nzj; nz++)
-			  for(int kat = 0; kat < size_atom(); kat++) {
-			    v_ele += (xyzq_iat(3, kat) *
-				      dxmap.get_safe(nxi, nxj, nx) *
-				      dymap.get_safe(nyi, nyj, ny) *
-				      dzmap.get_safe(nzi, nzj, nz) *
-				      coef_R(zetaP, wPx, wPy, wPz,
-					     xyzq_iat(0, kat),
-					     xyzq_iat(1, kat),
-					     xyzq_iat(2, kat),
-					     nx, ny, nz, 0, &Fjs_iat(kat, 0)));
-		  
-			}
-		    s_prim.set_safe(iat, ipn, jat, jpn, ce * s_ele);
-		    t_prim.set_safe(iat, ipn, jat, jpn, -0.5* ce * t_ele);
-		    v_prim.set_safe(iat, ipn, jat, jpn, -2.0*M_PI/zetaP*eAB * v_ele);
-		    z_prim.set_safe(iat, ipn, jat, jpn, ce*z_ele);
-		  }}}}
-
-	    // -- contractions --
-	    for(RdsIt irds = isub->rds.begin();
-		irds != isub->rds.end();
-		++irds) {
-	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
-		dcomplex cumsum_s(0.0), cumsum_t(0.0), cumsum_v(0.0);
-		dcomplex cumsum_z(0.0);
-		for(int iat = 0; iat < isub->size_at(); iat++) {
-		  for(int ipn = 0; ipn < isub->size_pn(); ipn++) {
-		    for(int jat = 0; jat < jsub->size_at(); jat++) { 
-		      for(int jpn = 0; jpn < jsub->size_pn(); jpn++) {
-			dcomplex cc = 
-			  irds->coef_iat_ipn(iat, ipn) *
-			  jrds->coef_iat_ipn(jat, jpn) * 
-			  irds->coef_iz(iz) * 
-			  jrds->coef_iz(jz);
-			cumsum_s += cc*s_prim.get_safe(iat, ipn, jat, jpn);
-			cumsum_t += cc*t_prim.get_safe(iat, ipn, jat, jpn);
-			cumsum_v += cc*v_prim.get_safe(iat, ipn, jat, jpn);
-			cumsum_z += cc*z_prim.get_safe(iat, jpn, jat, jpn);
-		      }}}}
-		int i(irds->offset + iz); int j(jrds->offset + jz);
-		int isym(irds->irrep); int jsym(jrds->irrep);
-		
-		mat_map.SelfAdd("s", isym, jsym, i, j, cumsum_s);
-		mat_map.SelfAdd("t", isym, jsym, i, j, cumsum_t);
-		mat_map.SelfAdd("v", isym, jsym, i, j, cumsum_v);
-		mat_map.SelfAdd("z", isym, jsym, i, j, cumsum_z);
-	      }
-	    }
+	    CalcPrim(*this, isub, jsub, iz, jz, dxmap, dymap, dzmap, Fjs_iat, prim);
+	    CalcTrans(isub, jsub, iz, jz, prim, mat_map);
 	  }
 	}
       }
