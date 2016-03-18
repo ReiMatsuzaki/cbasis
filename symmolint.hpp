@@ -31,13 +31,13 @@ namespace l2func {
     bool IncludeZ_2(Irrep a, Irrep b) const;
   };
   SymmetryGroup SymmetryGroup_Cs();
-  Irrep Cs_Ap(); 
+  Irrep Cs_Ap();
   Irrep Cs_App();
   SymmetryGroup SymmetryGroup_C1();
 
   // ==== AO Reduction Sets ====
   struct ReductionSets {
-    Irrep sym;
+    Irrep irrep;
     Eigen::MatrixXcd coef_iat_ipn;
 
     // ---- for calculation  ----
@@ -46,11 +46,17 @@ namespace l2func {
 
     // ReductionSets() {}
     ReductionSets(int _sym, Eigen::MatrixXcd _coef):
-      sym(_sym), coef_iat_ipn(_coef), offset(0) {}
+      irrep(_sym), coef_iat_ipn(_coef), offset(0) {}
     std::string str() const;
     void Display() const;
-    Irrep irrep() const { return sym; }
+    
     const Eigen::MatrixXcd& get_coef_iat_ipn() const { return coef_iat_ipn; }
+    // inline Irrep irrep() const { return irrep_; }
+    //    inline dcomplex coef_iat_ipn(int i, int j) const {return coef_iat_ipn(i,j); }
+    //    inline dcomplex coef_iz(int i) const { return coef_iz_(i); }
+    //    inline int offset() const { return offset_;}
+    inline int size_at() const { return coef_iat_ipn.rows(); }
+    inline int size_pn() const { return coef_iat_ipn.cols(); }
     void set_zs_size(int num_zs) {
       coef_iz = Eigen::VectorXcd::Zero(num_zs);
     }
@@ -58,32 +64,53 @@ namespace l2func {
 
   // ==== Sub sets of SymGTOs ====
   struct SubSymGTOs {
-    // ---- data ----
+    // ---- type ----
+    typedef std::vector<ReductionSets>::const_iterator cRdsIt;
+    typedef std::vector<ReductionSets>::iterator RdsIt;
+
+    // ---- Calculation data ----
     Eigen::MatrixXcd xyz_iat;
     Eigen::MatrixXi  ns_ipn;
-    std::vector<ReductionSets> rds;
     Eigen::VectorXcd zeta_iz;
+    std::vector<ReductionSets> rds;
 
     // ---- for calculation  ----
     bool setupq;
     int maxn;
 
-    // ---- new ----
+    // ---- Constructors ----
     SubSymGTOs();
-    void SetUp();
+
+    // ---- Accessors ----
     std::string str() const;
+    inline int nx(int ipn) const { return ns_ipn(0, ipn); }
+    inline int ny(int ipn) const { return ns_ipn(1, ipn); }
+    inline int nz(int ipn) const { return ns_ipn(2, ipn); }
+    inline dcomplex x(int iat) const { return xyz_iat(0, iat); }
+    inline dcomplex y(int iat) const { return xyz_iat(1, iat); }
+    inline dcomplex z(int iat) const { return xyz_iat(2, iat); }
+    inline dcomplex zeta(int iz) const { return zeta_iz[iz]; }
+    inline cRdsIt begin_rds() const { return rds.begin(); }
+    inline cRdsIt end_rds() const { return rds.end(); }
+    inline RdsIt begin_rds() { return rds.begin(); }
+    inline RdsIt end_rds() { return rds.end(); }
     void AddXyz(Eigen::Vector3cd xyz);
     void AddNs(Eigen::Vector3i ns);
     void AddZeta(const Eigen::VectorXcd& zs);
     void AddRds(const ReductionSets& rds);
+    inline int size_at() const { return xyz_iat.cols();}
+    inline int size_pn() const { return ns_ipn.cols(); }
+    inline int size_zeta() const { return zeta_iz.rows(); }
+
+    // ---- SetUp ----
+    // -- calculate inner information and check values.
+    void SetUp();
+    
     
     // ---- old ----
     SubSymGTOs(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
 	       std::vector<ReductionSets> cs, Eigen::VectorXcd zs);
-    int size_at() const { return xyz_iat.cols();}
-    int size_pn() const { return ns_ipn.cols(); }
     int size_cont() const { return rds.size(); }
-    int size_zeta() const { return zeta_iz.rows(); }
     const Eigen::MatrixXcd& get_xyz_iat() { return xyz_iat; }
     const Eigen::MatrixXi&  get_ns_ipn() const { return  ns_ipn; }
     const ReductionSets&  get_rds(int i) const { return  rds[i]; }
@@ -111,25 +138,24 @@ namespace l2func {
     // ---- Accessors ----    
     int size_atom() const;
     int size_basis_isym(Irrep isym) const;
-    std::string str() const;
+    std::string str() const;    
 
     // ---- Add information ----
     void SetAtoms(Eigen::MatrixXcd _xyzq_iat);
     void AddAtom(Eigen::Vector3cd _xyz, dcomplex q);
     void AddSub(SubSymGTOs);
+
+    // ---- SetUp ----
     void SetUp();
   private:
     void SetOffset();
     void Normalize();
+
   public:
     // ---- Calculation ----
     // -- to be removed
     void loop();
     void CalcMat(BMatSet* res);
-    // -- to be removed
-    void STVMat(BMatMap* res);
-    // -- to be removed
-    void ZMat(BMatMap* res);
     void AtR_Ylm(int L, int M,  int irrep,
 		 const Eigen::VectorXcd& cs_ibasis,
 		 const Eigen::VectorXcd& rs, Eigen::VectorXcd* vs );
