@@ -36,7 +36,7 @@ namespace l2func {
   SymmetryGroup SymmetryGroup_C1();
 
   // ==== AO Reduction Sets ====
-  struct ReductionSets {
+  struct Reduction {
     Irrep irrep;
     Eigen::MatrixXcd coef_iat_ipn;
 
@@ -45,16 +45,12 @@ namespace l2func {
     int offset;
 
     // ReductionSets() {}
-    ReductionSets(int _sym, Eigen::MatrixXcd _coef):
-      irrep(_sym), coef_iat_ipn(_coef), offset(0) {}
+    Reduction(int _irrep, Eigen::MatrixXcd _coef):
+      irrep(_irrep), coef_iat_ipn(_coef), offset(0) {}
     std::string str() const;
     void Display() const;
     
     const Eigen::MatrixXcd& get_coef_iat_ipn() const { return coef_iat_ipn; }
-    // inline Irrep irrep() const { return irrep_; }
-    //    inline dcomplex coef_iat_ipn(int i, int j) const {return coef_iat_ipn(i,j); }
-    //    inline dcomplex coef_iz(int i) const { return coef_iz_(i); }
-    //    inline int offset() const { return offset_;}
     inline int size_at() const { return coef_iat_ipn.rows(); }
     inline int size_pn() const { return coef_iat_ipn.cols(); }
     void set_zs_size(int num_zs) {
@@ -65,14 +61,14 @@ namespace l2func {
   // ==== Sub sets of SymGTOs ====
   struct SubSymGTOs {
     // ---- type ----
-    typedef std::vector<ReductionSets>::const_iterator cRdsIt;
-    typedef std::vector<ReductionSets>::iterator RdsIt;
+    typedef std::vector<Reduction>::const_iterator cRdsIt;
+    typedef std::vector<Reduction>::iterator RdsIt;
 
     // ---- Calculation data ----
     Eigen::MatrixXcd xyz_iat;
     Eigen::MatrixXi  ns_ipn;
     Eigen::VectorXcd zeta_iz;
-    std::vector<ReductionSets> rds;
+    std::vector<Reduction> rds;
 
     // ---- for calculation  ----
     bool setupq;
@@ -97,7 +93,7 @@ namespace l2func {
     void AddXyz(Eigen::Vector3cd xyz);
     void AddNs(Eigen::Vector3i ns);
     void AddZeta(const Eigen::VectorXcd& zs);
-    void AddRds(const ReductionSets& rds);
+    void AddRds(const Reduction& rds);
     inline int size_at() const { return xyz_iat.cols();}
     inline int size_pn() const { return ns_ipn.cols(); }
     inline int size_zeta() const { return zeta_iz.rows(); }
@@ -109,11 +105,11 @@ namespace l2func {
     
     // ---- old ----
     SubSymGTOs(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
-	       std::vector<ReductionSets> cs, Eigen::VectorXcd zs);
+	       std::vector<Reduction> cs, Eigen::VectorXcd zs);
     int size_cont() const { return rds.size(); }
     const Eigen::MatrixXcd& get_xyz_iat() { return xyz_iat; }
     const Eigen::MatrixXi&  get_ns_ipn() const { return  ns_ipn; }
-    const ReductionSets&  get_rds(int i) const { return  rds[i]; }
+    const Reduction&  get_rds(int i) const { return  rds[i]; }
     const Eigen::VectorXcd& get_zeta_iz() const { return  zeta_iz; }    
     void Display() const;
   };

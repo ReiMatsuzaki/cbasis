@@ -19,7 +19,7 @@ check_molint_bind: l2func_molint_bind.so
 
 
 # ==== SymMolInt ====
-symmolint_bind.so: symmolint_bind.cpp ../angmoment.o ../math_utils.o ../spec_func.o ../symmolint.o ../eigen_plus.o
+symmolint_bind.so: symmolint_bind.cpp ../symmolint.o ../fact.o ../mol_func.o ../bmatset.o ../angmoment.o ../eigen_plus.o 
 	${CXX} -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -DPIC -bundle -fPIC -o $@ $^  ${CXXFLAGS} -lboost_python -lboost_numpy -lgsl -lblas -framework Python
 
 check_symmolint_bind: symmolint_bind.so

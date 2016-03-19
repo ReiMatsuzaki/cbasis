@@ -2,6 +2,10 @@
 #include <boost/python.hpp>
 #include <boost/numpy.hpp>
 #include <Eigen/Core>
+
+#include "../macros.hpp"
+
+#include "../bmatset.hpp"
 #include "../eigen_plus.hpp"
 #include "../symmolint.hpp"
 
@@ -127,7 +131,7 @@ void PrintAsEigen(np::ndarray& a) {
 
 }
 // -- to be removed
-ReductionSets ReductionSetsInit(int irrep, np::ndarray& cs_iat_ipn) {
+Reduction ReductionSetsInit(int irrep, np::ndarray& cs_iat_ipn) {
 
   MatrixXcd coef;
   try {
@@ -139,7 +143,7 @@ ReductionSets ReductionSetsInit(int irrep, np::ndarray& cs_iat_ipn) {
     throw runtime_error(msg);
   }
 
-  ReductionSets rds(irrep, coef);
+  Reduction rds(irrep, coef);
   return rds;
 
 }
@@ -169,8 +173,8 @@ SubSymGTOs Sub_TwoSGTO_py(SymmetryGroup sym, Irrep irrep,
   return Sub_TwoSGTO(sym, irrep, xyz_in, zs_in);
 }
 
-BMatSets* SymGTOs_CalcMat(SymGTOs* gtos) {
-  BMatSets* res = new BMatSets(gtos->sym_group);
+BMatSet* SymGTOs_CalcMat(SymGTOs* gtos) {
+  BMatSet* res = new BMatSet(gtos->sym_group.order());
   gtos->CalcMat(res);
   return res;
 }
@@ -184,7 +188,7 @@ VectorXcd* SymGTOs_AtR_Ylm(SymGTOs* gtos,
   return ys;
   
 }
-const MatrixXcd& BMatSets_getitem(BMatSets* self, tuple name_i_j) {
+const MatrixXcd& BMatSets_getitem(BMatSet* self, tuple name_i_j) {
   string name = extract<string>(name_i_j[0]);
   Irrep i = extract<int>(name_i_j[1]);
   Irrep j = extract<int>(name_i_j[2]);
@@ -227,17 +231,17 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
   def("Cs_Ap", Cs_Ap);
   def("Cs_App", Cs_App);
 
-  class_<BMatSets>("BMatSets", init<SymmetryGroup>())
-    .def("get_matrix",  &BMatSets::GetMatrix, return_internal_reference<>())
+  class_<BMatSet>("BMatSet", init<int>())
+    .def("get_matrix",  &BMatSet::GetMatrix, return_internal_reference<>())
     .def("__getitem__", BMatSets_getitem, return_internal_reference<>())
-    .def("set_matrix", &BMatSets::SetMatrix);
+    .def("set_matrix", &BMatSet::SetMatrix);
 
-  class_<ReductionSets>("ReductionSets", init<int, MatrixXcd>())
-    .add_property("irrep",        &ReductionSets::irrep)
-    .def("coef_iat_ipn", &ReductionSets::get_coef_iat_ipn,
+  class_<Reduction>("Reduction", init<int, MatrixXcd>())
+    .add_property("irrep",        &Reduction::irrep)
+    .def("coef_iat_ipn", &Reduction::get_coef_iat_ipn,
 	 return_internal_reference<>())
-    .def("__str__", &ReductionSets::str)
-    .def("__repr__", &ReductionSets::str);
+    .def("__str__", &Reduction::str)
+    .def("__repr__", &Reduction::str);
 
   class_<SubSymGTOs>("SubSymGTOs")
     .def("xyz", &SubSymGTOs::AddXyz, return_self<>())

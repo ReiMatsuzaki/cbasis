@@ -10,9 +10,9 @@ namespace l2func {
   using namespace std;
   using namespace Eigen;
   typedef vector<SubSymGTOs>::iterator SubIt;
-  typedef vector<ReductionSets>::iterator RdsIt;
+  typedef vector<Reduction>::iterator RdsIt;
   typedef vector<SubSymGTOs>::const_iterator cSubIt;
-  typedef vector<ReductionSets>::const_iterator cRdsIt;
+  typedef vector<Reduction>::const_iterator cRdsIt;
   typedef MultArray<dcomplex, 2> A2dc;
   typedef MultArray<dcomplex, 3> A3dc;
   typedef MultArray<dcomplex, 4> A4dc;
@@ -101,7 +101,7 @@ namespace l2func {
   Irrep Cs_App() { return 1; }
 
   // ==== Reduction Sets ====
-  string ReductionSets::str() const {
+  string Reduction::str() const {
     ostringstream oss;
     oss << "==== RedcutionSets ====" << endl;
     oss << "irrep : " << irrep << endl;
@@ -110,7 +110,7 @@ namespace l2func {
     oss << "offset:  " << offset << endl;
     return oss.str();
   }
-  void ReductionSets::Display() const {
+  void Reduction::Display() const {
     cout << this->str() ;
   }
 
@@ -202,12 +202,12 @@ namespace l2func {
       res(i+zeta_iz.size()) = zs(i);
     zeta_iz.swap(res);
   }
-  void SubSymGTOs::AddRds(const ReductionSets& _rds) {
+  void SubSymGTOs::AddRds(const Reduction& _rds) {
     setupq = false;
     rds.push_back(_rds);
   }
   SubSymGTOs::SubSymGTOs(MatrixXcd xyz, MatrixXi ns,
-			 vector<ReductionSets> ao, VectorXcd zs) :
+			 vector<Reduction> ao, VectorXcd zs) :
     xyz_iat(xyz), ns_ipn(ns), zeta_iz(zs), rds(ao) {
 
     setupq = false;
@@ -233,8 +233,8 @@ namespace l2func {
     MatrixXcd xyz_in(3, 1);  xyz_in << xyz[0] , xyz[1] , xyz[2];
     MatrixXi ns  = MatrixXi::Zero(3, 1);
     MatrixXcd cs = MatrixXcd::Ones(1,1);
-    ReductionSets rds(sym, cs);
-    vector<ReductionSets> rds_list; rds_list.push_back(rds);
+    Reduction rds(sym, cs);
+    vector<Reduction> rds_list; rds_list.push_back(rds);
 
     SubSymGTOs sub(xyz_in, ns, rds_list, zs);
     return sub;
@@ -244,8 +244,8 @@ namespace l2func {
     MatrixXcd xyz_in(3, 1);  xyz_in << xyz[0] , xyz[1] , xyz[2];
     MatrixXi ns(3, 1); ns << 0, 0, 1;
     MatrixXcd cs = MatrixXcd::Ones(1,1);
-    ReductionSets rds(sym, cs);
-    vector<ReductionSets> rds_list; rds_list.push_back(rds);
+    Reduction rds(sym, cs);
+    vector<Reduction> rds_list; rds_list.push_back(rds);
 
     SubSymGTOs sub(xyz_in, ns, rds_list, zs);
     return sub;    
@@ -265,8 +265,8 @@ namespace l2func {
       } else if (irrep == Cs_App()){
 	cs << 1.0, -1.0;
       }
-      vector<ReductionSets> rds;
-      rds.push_back(ReductionSets(irrep, cs));
+      vector<Reduction> rds;
+      rds.push_back(Reduction(irrep, cs));
       SubSymGTOs sub(xyz_in, ns_in, rds, zs);
       return sub;
 

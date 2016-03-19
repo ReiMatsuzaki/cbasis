@@ -2,7 +2,8 @@
 ** perfomance
    対角行列に対してまじめに計算しているので、楽をしよう
    
-** python bindで見やすくなるように
+** DONE python bindで見やすくなるように
+   CLOSED: [2016-03-19 Sat 03:45]
    pythonで使うときにDSLになるようにメソッドを追加しよう
    データ構造は変えなくていいだろう。
 
@@ -38,7 +39,8 @@ gtos = SymGTOs(Cs())
    だんだん単純な構造ではなくなってるから、変数名をしっかりしようとしたけど
    計算部分を変えるのがめんどくさいから見送る。
 
-** SetUp
+** DONE SetUp
+   CLOSED: [2016-03-19 Sat 03:45]
    SubSymGTOsとSymGTOsでSetUpを実装しているが、
    その呼び出すタイミングを考える。
    SymGTOs::AddSub
@@ -49,15 +51,18 @@ gtos = SymGTOs(Cs())
 ** removed old
    to be removedでマークした部分を消す
 
-** BMatSets
+** DONE BMatSets
+   CLOSED: [2016-03-19 Sat 03:45]
    swapの実装でコピーを回避
    コピーコンストラクタの禁止
    
-** data check
+** DONE data check
+   CLOSED: [2016-03-19 Sat 03:45]
    SetUpでデータ構造をチェック。
    大きさ０になっていないか。複数のデータに矛盾はないか。SetUpが呼ばれているか。
 
-** remove raw pointer
+** DONE remove raw pointer
+   CLOSED: [2016-03-19 Sat 03:45]
    ポインターを露わに使っている部分を治したい。
    MultArrayをstd::vectorのように拡張する？
    CalcMatを整理したい。（できるかな？）
@@ -86,7 +91,9 @@ gtos = SymGTOs(Cs())
 c0 = gtos.correct_sign(eigvecs.col(0))
 ...
    #+end_src 
-** AtR_Ylm for higher moment
-** special function
+** DONE AtR_Ylm for higher moment
+   CLOSED: [2016-03-19 Sat 03:44]
+** DONE special function
+   CLOSED: [2016-03-19 Sat 03:44]
    legendre, special harmonicsなどまとめる。
    angmomentなど、いまは散らばっている。
