@@ -1,3 +1,8 @@
+CXXFLAGS=${INC_PATH} -Wall -O3  
+#CXXFLAGS=${INC_PATH} -Wall
+#CXXFLAGS=${INC_PATH} -Wall -g
+#CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
+
 OBJS= ../cip_exp.o ../cut_exp.o ../exp_func.o  ../delta.o ../fact.o ../erfc.o ../math_utils.o
 OBJS3D = ../angmoment.o ../cints.o ../gto3dset.o
 OBJMOLINT = ../molint.o ../angmoment.o ../math_utils.o

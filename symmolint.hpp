@@ -153,16 +153,20 @@ namespace l2func {
 
   public:
     // ---- Calculation ----
-    // -- to be removed
+    // -- to be removed --
     void loop();
+    // -- not uesd now --
     int max_n() const;
-    void CalcMatOther(SymGTOs& o,  BMatSet*);
+    // -- matrix calculation --
+    void CalcMatOther(SymGTOs& o, bool calc_coulomb, BMatSet*);
     void CalcMat(BMatSet* res);
+    // -- Radial wave function --
     void AtR_Ylm(int L, int M,  int irrep,
 		 const Eigen::VectorXcd& cs_ibasis,
 		 const Eigen::VectorXcd& rs,
 		 Eigen::VectorXcd* vs,
 		 Eigen::VectorXcd* dvs);
+    // -- Correction of wave function sign --
     void CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs);
 
   };

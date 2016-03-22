@@ -453,6 +453,7 @@ namespace l2func {
   }
 
   // ---- utils ----
+  // -- not used now --
   int SymGTOs::max_n() const {
     int max_n(0);
     for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
@@ -537,7 +538,7 @@ namespace l2func {
 
   void CalcPrim(const SymGTOs gtos, SubIt isub, SubIt jsub, int iz, int jz,
 		A3dc& dxmap, A3dc& dymap, A3dc& dzmap, A4dc& rmap, A2dc& Fjs_iat,
-		PrimBasis& prim) {
+		PrimBasis& prim, bool calc_coulomb) {
     dcomplex zetai, zetaj;
     zetai = isub->zeta_iz[iz]; zetaj = jsub->zeta_iz[jz];
     dcomplex zetaP = zetai + zetaj;
@@ -561,15 +562,21 @@ namespace l2func {
 	dcomplex eAB = exp(-zetai*zetaj/zetaP*d2);
 	dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
 	int mi = isub->maxn; int mj = jsub->maxn;
-	calc_d_coef(mi,mj+2,mi+mj,zetaP,wPx,xi,xj,dxmap);
-	calc_d_coef(mi,mj+2,mi+mj,zetaP,wPy,yi,yj,dymap);
-	calc_d_coef(mi,mj+2,mi+mj,zetaP,wPz,zi,zj,dzmap);
-	for(int kat = 0; kat < gtos.size_atom(); kat++) {
-	  dcomplex d2p = dist2(wPx-gtos.x_at(kat), wPy-gtos.y_at(kat),
-			       wPz-gtos.z_at(kat));
-	  IncompleteGamma(isub->maxn+jsub->maxn, zetaP * d2p, &Fjs_iat(kat, 0));
+	if(calc_coulomb) {
+	  calc_d_coef(mi,mj+2,mi+mj,zetaP,wPx,xi,xj,dxmap);
+	  calc_d_coef(mi,mj+2,mi+mj,zetaP,wPy,yi,yj,dymap);
+	  calc_d_coef(mi,mj+2,mi+mj,zetaP,wPz,zi,zj,dzmap);
+	  for(int kat = 0; kat < gtos.size_atom(); kat++) {
+	    dcomplex d2p = dist2(wPx-gtos.x_at(kat), wPy-gtos.y_at(kat),
+				 wPz-gtos.z_at(kat));
+	    IncompleteGamma(isub->maxn+jsub->maxn, zetaP * d2p, &Fjs_iat(kat, 0));
+	  }
+	} else {
+	  calc_d_coef(mi,mj+2,0,zetaP,wPx,xi,xj,dxmap);
+	  calc_d_coef(mi,mj+2,0,zetaP,wPy,yi,yj,dymap);
+	  calc_d_coef(mi,mj+2,0,zetaP,wPz,zi,zj,dzmap);	  
 	}
-	
+	  
 	for(int ipn = 0; ipn < nipn; ipn++) {
 	  for(int jpn = 0; jpn < njpn; jpn++) {
 	    int nxi, nxj, nyi, nyj, nzi, nzj;
@@ -582,15 +589,18 @@ namespace l2func {
 	      (dzmap(nzi,nzj+1,0)+zj*dzmap(nzi,nzj,0));
 	    dcomplex t_ele = calc_tele(isub, jsub, zetaj, ipn, jpn,
 				       dxmap, dymap, dzmap);	    
-	    calc_R_coef(zetaP, wPx, wPy, wPz, gtos.xyzq_iat, Fjs_iat,
-			nxi+nxj, nyi+nyj, nzi+nzj, gtos.size_atom(), rmap);
-	    dcomplex v_ele = calc_vele(gtos, isub, jsub, ipn, jpn,
-				       dxmap, dymap, dzmap, rmap);
 
 	    prim.s(iat, ipn, jat, jpn) =  ce * s_ele;
 	    prim.t(iat, ipn, jat, jpn) =  -0.5* ce * t_ele;
-	    prim.v(iat, ipn, jat, jpn) =  -2.0*M_PI/zetaP*eAB * v_ele;
 	    prim.z(iat, ipn, jat, jpn) =  ce*z_ele;
+
+	    if(calc_coulomb) {
+	      calc_R_coef(zetaP, wPx, wPy, wPz, gtos.xyzq_iat, Fjs_iat,
+			  nxi+nxj, nyi+nyj, nzi+nzj, gtos.size_atom(), rmap);
+	      dcomplex v_ele = calc_vele(gtos, isub, jsub, ipn, jpn,
+					 dxmap, dymap, dzmap, rmap);
+	      prim.v(iat, ipn, jat, jpn) =  -2.0*M_PI/zetaP*eAB * v_ele;
+	    }
 	  }}}}
 
   }
@@ -655,7 +665,7 @@ namespace l2func {
 	  }}
       }}
     }
-  void SymGTOs::CalcMatOther(SymGTOs& o,  BMatSet* res) {
+  void SymGTOs::CalcMatOther(SymGTOs& o, bool calc_coulomb, BMatSet* res) {
 
     if(not setupq)
       this->SetUp();
@@ -689,7 +699,7 @@ namespace l2func {
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
 	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
 	    CalcPrim(*this, isub, jsub, iz, jz, dxmap, dymap, dzmap, rmap,
-		     Fjs_iat, prim);
+		     Fjs_iat, prim, calc_coulomb);
 	    CalcTrans(isub, jsub, iz, jz, prim, mat_map);
 	  }
 	}
@@ -699,7 +709,7 @@ namespace l2func {
 
   }
   void SymGTOs::CalcMat(BMatSet* res) {
-    this->CalcMatOther(*this, res);
+    this->CalcMatOther(*this, true, res);
 /*
     if(not setupq)
       this->SetUp();

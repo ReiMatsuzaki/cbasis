@@ -47,7 +47,7 @@ void VectorNumPy2Eigen(np::ndarray& a, VectorXcd* b) {
 void VectorEigen2NumPy(VectorXcd& a, np::ndarray* b) {
 
   int num = a.size();
-  dcomplex* ptr;
+  dcomplex* ptr(NULL);
   Map<VectorXcd>(ptr, num) = a;
   *b = np::from_data(ptr,
 		     np::dtype::get_builtin<dcomplex>(),
@@ -60,7 +60,7 @@ void MatrixEigen2NumPy(MatrixXcd& a, np::ndarray* b) {
   int numi = a.rows();
   int numj = a.cols();
 
-  dcomplex* ptr;
+  dcomplex* ptr(NULL);
   Map<MatrixXcd>(ptr, numi, numj) = a;
 
   *b = np::from_data(ptr,
@@ -178,6 +178,11 @@ BMatSet* SymGTOs_CalcMat(SymGTOs* gtos) {
   gtos->CalcMat(res);
   return res;
 }
+BMatSet* SymGTOs_CalcMatOther(SymGTOs* a, SymGTOs* b, bool calc_coulombq) {
+  BMatSet* res = new BMatSet(a->sym_group.order());
+  a->CalcMatOther(*b, calc_coulombq, res);
+  return res;
+}
 tuple SymGTOs_AtR_Ylm(SymGTOs* gtos,
 		      int L, int M,  int irrep,
 		      const VectorXcd& cs_ibasis,
@@ -274,6 +279,8 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
     .def("atom", &SymGTOs::AddAtom, return_self<>())
     .def("setup", &SymGTOs::SetUp)
     .def("calc_mat", SymGTOs_CalcMat,
+	 return_value_policy<manage_new_object>())
+    .def("calc_mat", SymGTOs_CalcMatOther,
 	 return_value_policy<manage_new_object>())
     .def("at_r_ylm_cpp", SymGTOs_AtR_Ylm)
     .def("correct_sign", SymGTOs_CorrectSign,

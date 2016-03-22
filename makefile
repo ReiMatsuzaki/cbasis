@@ -1,8 +1,8 @@
 include local.mk
-#CXXFLAGS=${INC_PATH} -Wall -O3  
+CXXFLAGS=${INC_PATH} -Wall -O3  
 #CXXFLAGS=${INC_PATH} -Wall
 #CXXFLAGS=${INC_PATH} -Wall -g
-CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
+#CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
 
 MATH_OBJS=erfc.o math_utils.o
 FUNC_OBJS=cut_exp.o exp_func.o delta.o
