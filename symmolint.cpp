@@ -352,7 +352,6 @@ namespace l2func {
 
   // ---- SetUp ----
   void SymGTOs::SetUp() {
-
     
     for(SubIt it = subs.begin(); it != subs.end(); ++it) {
       // -- setup sub --
@@ -434,10 +433,14 @@ namespace l2func {
 	    }
 	  }
 
-	  if(abs(norm2) < pow(10.0, -7.0)) {
+	  if(abs(norm2) < pow(10.0, -14.0)) {
 	    string msg; SUB_LOCATION(msg);
-	    msg += ": Norm is too small";
-	    throw runtime_error(msg);
+	    ostringstream oss; oss << msg << ": " << endl;
+	    oss << "norm is too small" << endl;
+	    oss << "iz  : " << iz << endl;
+	    oss << "zeta: " << zetai << endl;
+	    oss << "norm2: " << norm2 << endl;	    
+	    throw runtime_error(oss.str());
 	  }
 
 	  // <<< Primitive GTOs <<<
@@ -449,7 +452,7 @@ namespace l2func {
 
   }
   
-  // ---- Calculation ----
+  // ---- CalcMat ----
   struct PrimBasis {
     A4dc s, t, v, z;
     PrimBasis(int num):
@@ -461,12 +464,9 @@ namespace l2func {
       z.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
     }
   };
-
   dcomplex dist2(dcomplex x, dcomplex y, dcomplex z) {
     return x*x + y*y + z*z;
-  }
-
-  
+  } 
   dcomplex calc_tele(SubIt isub, SubIt jsub, dcomplex zetaj, 
 		     int ipn, int jpn,
 		     A3dc& dxmap, A3dc& dymap, A3dc& dzmap) {
@@ -688,6 +688,8 @@ namespace l2func {
     }
     *res = mat_map;
   }
+
+  // ---- AtR ----
   bool IsCenter(SubIt isub, int iat, double eps) {
     dcomplex x  = isub->xyz_iat(0, iat);
     dcomplex y  = isub->xyz_iat(1, iat);
@@ -696,8 +698,8 @@ namespace l2func {
     dcomplex a = sqrt(a2);
     return (abs(a) < eps);
   }
-  dcomplex AtR_Ylm_cen(SubIt isub, int iz,
-		       int ipn, dcomplex r, int L, int M) {
+  void AtR_Ylm_cen(SubIt isub, int iz,
+		   int ipn, dcomplex r, int L, int M, dcomplex* v, dcomplex* dv) {
 
     int nx = isub->ns_ipn(0, ipn);
     int ny = isub->ns_ipn(1, ipn);
@@ -707,31 +709,41 @@ namespace l2func {
     if(L == 0) {
       // -- s-GTO --
       if(nn == 0) {
-	return sqrt(4.0*M_PI)*r*exp(-zeta*r*r);
+	dcomplex c(sqrt(4.0*M_PI));
+	*v = c*r*exp(-zeta*r*r);
+	*dv= c*(1.0 -2.0*zeta*r*r) * exp(-zeta*r*r);
       } else {
-	return 0.0;
+	*v = 0.0;
+	*dv= 0.0;
       }
-    }
-    if(L == 1) {
+    } else if(L == 1) {
       // -- p-GTO --
-      if(nx == 0 && ny == 0 && nz == 1 && M == 0)
-	return sqrt(4.0*M_PI/3.0)*r*r*exp(-zeta*r*r);	  
-      if(nx == 0 && ny == 1 && nz == 0 && M == 1)
+      if(nx == 0 && ny == 0 && nz == 1 && M == 0) {
+	dcomplex c(sqrt(4.0*M_PI/3.0));
+	*v = c*r*r*exp(-zeta*r*r);
+	*dv= c*(2.0*r - 2.0*zeta*r*r*r )*exp(-zeta*r*r);
+      }	  
+      else if(nx == 0 && ny == 1 && nz == 0 && M == 1)
 	throw runtime_error("0101 is not implemented");
-      if(nx == 1 && ny == 0 && nz == 0 && M ==-1)
+      else if(nx == 1 && ny == 0 && nz == 0 && M ==-1)
 	throw runtime_error("0101 is not implemented");	
-      return 0.0;
+      else {
+	*v = 0.0;
+	*dv= 0.0;
+      }
+    } else {
+      string msg; SUB_LOCATION(msg);
+      msg += "L>1 is not implemented";
+      throw runtime_error(msg);
     }
-
-    string msg; SUB_LOCATION(msg);
-    msg += "L>1 is not implemented";
-    throw runtime_error(msg);
     
   }
-  dcomplex AtR_Ylm_noncen(SubIt isub, int iz, int iat, int ipn,
-			  dcomplex r, int L, int M) {
+  void AtR_Ylm_noncen(SubIt isub, int iz, int iat, int ipn,
+		      dcomplex r, int L, int M, dcomplex* v, dcomplex *dv) {
 
-    dcomplex* il  = new dcomplex[L+1];
+    dcomplex* il_ipl  = new dcomplex[2*L+2];
+    dcomplex* il = &il_ipl[0];
+    dcomplex* ipl= &il_ipl[L+1];
     dcomplex* ylm = new dcomplex[num_lm_pair(L)];
 
     dcomplex res;
@@ -756,27 +768,37 @@ namespace l2func {
     dcomplex expz = exp(-zeta*(r*r+a2));
     dcomplex theta = acos(z / a);
     dcomplex phi   = (abs(xxyy) < 0.00001) ? 0.0 : acos(x / sqrt(xxyy));
-    ModSphericalBessel(2.0*zeta*a*r, L, il);
+    ModSphericalBessel(2.0*zeta*a*r, L, il_ipl);
     RealSphericalHarmonics(theta, phi, L, ylm);
     if(nn == 0) {
-      res = r * (4.0*M_PI) * il[L] * expz * pow(-1.0, M) * ylm[lm_index(L, -M)];
+      
+      dcomplex c((4.0*M_PI) * pow(-1.0, M) * ylm[lm_index(L, -M)]);
+      *v = c * r * il[L] * expz;
+      *dv = (c*   il[L]*expz +
+	     c*r*ipl[L]*expz*(+2.0*zeta*a) +
+	     c*r* il[L]*expz*(-2.0*zeta*r));
     } else {
       string msg; SUB_LOCATION(msg);
       msg += ": not implemented yet for p or higher orbital";
       throw runtime_error(msg);
     }		  
 
-    delete[] il;
+    delete[] il_ipl;
     delete[] ylm;
-    return res;
     
-  }
-			      
+  }      
   void SymGTOs::AtR_Ylm(int L, int M, int irrep, const VectorXcd& cs_ibasis,
-			const VectorXcd& rs, VectorXcd* res ) {
+			const VectorXcd& rs,
+			VectorXcd* res_vs, VectorXcd* res_dvs ) {
 
     if(not setupq) 
       this->SetUp();
+
+    if(!is_lm_pair(L, M)) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": invalid L,M pair";
+      throw runtime_error(msg);
+    }
 
     try{
       sym_group.CheckIrrep(irrep);
@@ -792,9 +814,10 @@ namespace l2func {
       throw runtime_error(msg);
     }
 
-    VectorXcd vs = VectorXcd::Zero(rs.size()); // copy
+    VectorXcd vs  = VectorXcd::Zero(rs.size());   // copy
+    VectorXcd dvs = VectorXcd::Zero(rs.size());   // copy
     dcomplex* ylm = new dcomplex[num_lm_pair(L)];
-    dcomplex* il  = new dcomplex[L+1];
+    dcomplex* il  = new dcomplex[2*L+2];
     double eps(0.0000001);
 
     // Y00   = 1/sqrt(4pi)
@@ -812,11 +835,13 @@ namespace l2func {
 		dcomplex c = (cs_ibasis(ibasis) *
 			      irds->coef_iat_ipn(iat, ipn) *
 			      irds->coef_iz(iz));
+		dcomplex v, dv;
 		if(IsCenter(isub, iat, eps)) {
-		  vs[ir] += c * AtR_Ylm_cen(isub, iz, ipn, rs[ir], L, M);
+		  AtR_Ylm_cen(isub, iz, ipn, rs[ir], L, M, &v, &dv);
 		} else {
-		  vs[ir] += c * AtR_Ylm_noncen(isub, iz, iat, ipn, rs[ir], L, M);
+		  AtR_Ylm_noncen(isub, iz, iat, ipn, rs[ir], L, M, &v, &dv);
 		}
+		vs[ir] += c * v; dvs[ir]+= c * dv;
 	      }
 	    }
 	  }
@@ -825,7 +850,47 @@ namespace l2func {
     }
     delete[] ylm;
     delete[] il;
-    res->swap(vs);
+    res_vs->swap(vs);
+    res_dvs->swap(dvs);
+  }
+
+  // ---- Correct Sign ----
+  void SymGTOs::CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs) {
+			    
+
+    if(not setupq) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": call SetUp() before calculation.";
+      throw runtime_error(msg);
+    }
+
+    if(!is_lm_pair(L, M)) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": invalid L,M pair";
+      throw runtime_error(msg);
+    }
+
+    try{
+      sym_group.CheckIrrep(irrep);
+    } catch(const runtime_error& e) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": Invalid irreq.\n";
+      msg += e.what(); throw runtime_error(msg);
+    }
+
+    if(cs.size() != this->size_basis_isym(irrep)) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": size of cs must be equal to basis size";
+      throw runtime_error(msg);
+    }
+
+    VectorXcd rs(1); rs << 0.0;
+    VectorXcd vs, ds;
+    this->AtR_Ylm(L, M, irrep, cs, rs, &vs, &ds);
+
+    if(ds(0).real() < 0) {
+      cs = -cs;
+    }
   }
   
 }

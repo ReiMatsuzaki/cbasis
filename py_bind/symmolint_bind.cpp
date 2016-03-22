@@ -178,15 +178,22 @@ BMatSet* SymGTOs_CalcMat(SymGTOs* gtos) {
   gtos->CalcMat(res);
   return res;
 }
-VectorXcd* SymGTOs_AtR_Ylm(SymGTOs* gtos,
-			   int L, int M,  int irrep,
-			   const VectorXcd& cs_ibasis,
-			   VectorXcd rs) {
+tuple SymGTOs_AtR_Ylm(SymGTOs* gtos,
+		      int L, int M,  int irrep,
+		      const VectorXcd& cs_ibasis,
+		      VectorXcd rs) {
   
   VectorXcd* ys = new VectorXcd();
-  gtos->AtR_Ylm(L, M, irrep, cs_ibasis, rs, ys);
-  return ys;
+  VectorXcd* ds = new VectorXcd();
+  gtos->AtR_Ylm(L, M, irrep, cs_ibasis, rs, ys, ds);
+  return make_tuple(ys, ds);
   
+}
+VectorXcd* SymGTOs_CorrectSign(SymGTOs* gtos, int L, int M,  int irrep,
+			       const VectorXcd& cs_ibasis) {
+  VectorXcd* cs = new VectorXcd(cs_ibasis); // call copy constructor
+  gtos->CorrectSign(L, M, irrep, *cs);
+  return cs;
 }
 const MatrixXcd& BMatSets_getitem(BMatSet* self, tuple name_i_j) {
   string name = extract<string>(name_i_j[0]);
@@ -268,10 +275,10 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
     .def("setup", &SymGTOs::SetUp)
     .def("calc_mat", SymGTOs_CalcMat,
 	 return_value_policy<manage_new_object>())
-    .def("at_r_ylm_cpp", SymGTOs_AtR_Ylm,
+    .def("at_r_ylm_cpp", SymGTOs_AtR_Ylm)
+    .def("correct_sign", SymGTOs_CorrectSign,
 	 return_value_policy<manage_new_object>())
-    .def("at_r_ylm", SymGTOs_AtR_Ylm,
-	 return_value_policy<manage_new_object>())
+    //    .def("at_r_ylm", SymGTOs_AtR_Ylm)    
     .def("__str__", &SymGTOs::str)
     .def("__repr__", &SymGTOs::str);
   

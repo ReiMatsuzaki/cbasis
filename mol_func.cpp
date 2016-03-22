@@ -1,4 +1,8 @@
+#include <string>
+#include <sstream>
 #include "mol_func.hpp"
+
+using namespace std;
 
 namespace l2func {
 
@@ -10,7 +14,7 @@ namespace l2func {
     double y = imag(z);
     double eps(pow(10.0, -10.0));
 
-    if(x < -eps || y < -eps) {
+    if(x < +eps || y < -eps) {
       std::string msg;
       SUB_LOCATION(msg);
       msg += "Re[z] and Im[z] must positive in F1 algorithms";
@@ -21,13 +25,13 @@ namespace l2func {
     double z2 = x*x+y*y;
     double az = abs(z);
     double c = sqrt(pi*(az+x)/(8.0*z2));
-    double s = sqrt(pi*(az-x)/(8.0*z2));
+    double s = sqrt(pi*(az-x)/(8.0*z2)) + eps;
 
     int NF_max(50);
     int NF(0);
     int NF_0(10);
-    double* anR = new double[NF_max];
-    double* anI = new double[NF_max];
+    double* anR = new double[NF_max+1];
+    double* anI = new double[NF_max+1];
     
     double phiR = -x/(2.0*z2)*exp(-x)*cos(y) + y/(2.0*z2)*exp(-x)*sin(y);
     double phiI = +y/(2.0*z2)*exp(-x)*cos(y) + x/(2.0*z2)*exp(-x)*sin(y);
@@ -36,6 +40,7 @@ namespace l2func {
     double sum_anR(anR[0]);
     double sum_anI(anI[0]);
     double delta(pow(10.0, -15.0));
+    bool convq(false);
     for(int n = 1; n <= NF_max; n++) {
       anR[n] = -(2.0*n-1) * (x/(2.0*z2)*anR[n-1] + y/(2.0*z2)*anI[n-1]);
       anI[n] = +(2.0*n-1) * (y/(2.0*z2)*anR[n-1] - x/(2.0*z2)*anI[n-1]);      
@@ -43,9 +48,25 @@ namespace l2func {
       sum_anI += anI[n];
       if(n > NF_0)
 	if(c * delta > std::abs(anR[n]) && s*delta > std::abs(anI[n])) {
+	  convq = true;
 	  NF = n;
 	  break;
 	}
+    }
+    
+    if(!convq) {
+      string msg; SUB_LOCATION(msg);
+      ostringstream oss; 
+      oss << msg << ": not converged" << endl;
+      oss << "z = " << z << endl;
+      oss << "c = " << c << endl;
+      oss << "s = " << s << endl;
+      oss << "delta = " << delta << endl;
+      oss << "anR[NF_max] = " << anR[NF_max] << endl;
+      
+      oss << "anI[NF_max] = " << anI[NF_max] << endl;
+      
+      throw runtime_error(oss.str());
     }
 
     double* fmR = new double[max_m+1];

@@ -14,6 +14,8 @@ using namespace std;
 namespace l2func {
 
   // ==== Exception class ====
+  // -- to be removed
+  /*
   ExceptionBadYlm::ExceptionBadYlm(int L, int M, std::string msg) :std::exception() {
       std::stringstream ss;
       ss << "\nUnphysical (L, M) pair. (L, M) = (" << L << ", " << M << ")";
@@ -23,6 +25,7 @@ namespace l2func {
   const char* ExceptionBadYlm::what() const throw() {
     return msg_.c_str();
   }
+  */
 
   // ==== Utilities ====
   double cg_coef(int j1, int j2, int m1, int m2, int j3, int m3) {
@@ -37,6 +40,11 @@ namespace l2func {
     return lm_index(max_l+1, -max_l-1);
 
   }
+  bool is_lm_pair(int L, int M) {
+    return 0<=L &&abs(M) <= L;
+  }
+  
+  // -- not used now
   double GTOExpansionCoef(int l, int m, int lp, int lppp,
 			  int Jp, int Mp, int Jpp, int Mpp) {
 
@@ -68,34 +76,100 @@ namespace l2func {
   }
 
   // ==== Special functions ====
-  void ModSphericalBessel(dcomplex x, int max_n, dcomplex* res) {
+  void ModSphericalBessel(dcomplex x, int max_n, dcomplex* y_dy_array) {
 
-    double eps(0.0001);
+    if(max_n < 0) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": max_n must be 0 or positive.";
+      throw runtime_error(msg);
+    }
 
+
+    dcomplex* ys = y_dy_array;
+    dcomplex* dys= &y_dy_array[max_n + 1];
+
+    double eps(0.02);
+
+    // -- compute { ys[n] | n=0,...,max_n+1 }
     if(abs(x) < eps) {
+
+      // >>> small x
       dcomplex xx(0.5*x*x);
       dcomplex xn(1);
-      for(int n = 0; n < max_n + 1; n++) {
-	res[n] = (xn / (1.0*DoubleFactorial(2*n+1)) *
-		  (1.0 + xx/(2.0*n+3.0) +
-		   pow(xx,2)/(2.0*(2.0*n+3)*(2.0*n+5))));
+      
+      for(int n = 0; n <= max_n+1; n++) {
+
+	int kf(20);
+	dcomplex c(1.0/dcomplex(2*n+1));
+	dcomplex cumsum(0.0);
+	dcomplex xxk(1.0);
+	bool convq(false);
+	double machine_eps(pow(10.0, -15.0));
+	for(int k = 0; k < kf; k++) {
+	  if(abs(c) < machine_eps) {
+	    convq = true;
+	    break;
+	  }
+	  c = xxk / dcomplex(Factorial(k) * DoubleFactorial(2*n+2*k+1));
+	  xxk *= xx;
+	  cumsum += c;	  
+	}
+	/*
+	c = 1.0 / dcomplex(2*n+1);
+	for(int k = 0; k < kf; k++) {
+	  if(abs(c) < machine_eps) {
+	    convq = true;
+	    break;
+	  }
+	  cumsum += c;
+	  c *= xx / dcomplex((k+1) * (2*n+2*k+3));
+	}
+	*/
+	if(!convq) {
+	  string msg; SUB_LOCATION(msg);
+	  ostringstream oss;
+	  oss << msg << ": " << endl;
+	  oss << "x=" << x << endl;
+	  oss << "n=" << n << endl;
+	  oss << "c=" << c << endl;
+	  oss << ": not converged";
+	  throw runtime_error(oss.str());
+	}
+	ys[n] = xn * cumsum;
 	xn *= x;
+
       }
+      // <<< small x
+
     } else {
-      res[0] = sinh(x) / x;
-      if(max_n > 0) 
-	res[1] = (x*cosh(x)-sinh(x)) / (x*x);
+
+      // >>> large x
+      ys[0] = sinh(x) / x;
+      ys[1] = (x*cosh(x)-sinh(x)) / (x*x);
       if(max_n > 1)
-	for(int n = 1; n < max_n; n++) 
-	  res[n+1] = res[n-1] - (2.0*n+1.0)/x*res[n];
+	for(int n = 1; n <= max_n; n++)  {
+	  ys[n+1] = ys[n-1] - (2.0*n+1.0)/x*ys[n];
+	}
+      // <<< large x
+
     }
+
+    // -- compute {dys[n] | n=0,...,max_n}
+    for(int n = max_n; n >= 0; n--) {
+      dys[n] = dcomplex(n+1)*ys[n+1];
+      if(n != 0)
+	dys[n] += dcomplex(n) * ys[n-1];
+      dys[n] *= 1.0 / dcomplex(2*n+1);
+    }
+
   }
   void AssociatedLegendre(dcomplex x, int max_l, dcomplex* res) {
 
-    /*
-      before calling this function, pointer res must allocate:
-      // res = new dcomplex[num_lm_pair(max_l)]
-     */
+    if(max_l < 0) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": max_l must be 0 or positive.";
+      throw runtime_error(msg);
+    }
 
     double eps(0.000001);
     if(abs(x-1.0) < eps|| abs(x+1.0) < eps) {
@@ -178,7 +252,7 @@ namespace l2func {
       zeta   : orbital exponents
       *rs    : location array for evaluation. (new dcomplex[num_r])
       num_r  : number of location rs.
-      *work  : working space (new dcomplex[num_lm(Jpp) + Jpp +1])
+      *work  : working space (new dcomplex[num_lm(Jpp) + 2*Jpp +2])
      */
 
     dcomplex a2= x*x+y*y+z*z;

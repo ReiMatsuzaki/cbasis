@@ -158,7 +158,10 @@ namespace l2func {
     void CalcMat(BMatSet* res);
     void AtR_Ylm(int L, int M,  int irrep,
 		 const Eigen::VectorXcd& cs_ibasis,
-		 const Eigen::VectorXcd& rs, Eigen::VectorXcd* vs );
+		 const Eigen::VectorXcd& rs,
+		 Eigen::VectorXcd* vs,
+		 Eigen::VectorXcd* dvs);
+    void CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs);
 
   };
 }
