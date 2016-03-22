@@ -451,6 +451,18 @@ namespace l2func {
     // <<< Irrep Adapted GTOs <<<
 
   }
+
+  // ---- utils ----
+  int SymGTOs::max_n() const {
+    int max_n(0);
+    for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
+      for(int ipn = 0; ipn < isub->ns_ipn.cols(); ipn++)
+	for(int i = 0; i < 3; i++)
+	  if(max_n < isub->ns_ipn(i, ipn))
+	    max_n = isub->ns_ipn(i, ipn);
+    }    
+    return max_n;
+  }
   
   // ---- CalcMat ----
   struct PrimBasis {
@@ -536,6 +548,7 @@ namespace l2func {
     Fjs_iat.SetRange(0, gtos.size_atom(), 0, isub->maxn+jsub->maxn);
 
     for(int iat = 0; iat < niat; iat++) {
+      // int jat0 = (isub == jsub && iz == jz ? iat : 0);
       for(int jat = 0; jat < njat; jat++) { 
 	dcomplex xi, xj, yi, yj, zi, zj, wPx, wPy, wPz;
 	xi = isub->x(iat); yi = isub->y(iat); zi = isub->z(iat);
@@ -641,18 +654,51 @@ namespace l2func {
 	  }}
       }}
     }
-  void SymGTOs::CalcMat(BMatSet* res) {
+  void SymGTOs::CalcMatOther(SymGTOs& o,  BMatSet* res) {
 
     if(not setupq)
       this->SetUp();
 
-    int max_n(0);
-    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
-      for(int ipn = 0; ipn < isub->ns_ipn.cols(); ipn++)
-	for(int i = 0; i < 3; i++)
-	  if(max_n < isub->ns_ipn(i, ipn))
-	    max_n = isub->ns_ipn(i, ipn);
+    BMatSet mat_map(sym_group.order());
+    for(Irrep isym = 0; isym < sym_group.order(); isym++) {
+      for(Irrep jsym = 0; jsym < o.sym_group.order(); jsym++) {
+	int numi = this->size_basis_isym(isym);
+	int numj = o.size_basis_isym(jsym);
+	MatrixXcd s = MatrixXcd::Zero(numi, numj);
+	mat_map.SetMatrix("s", isym, jsym, s);
+	MatrixXcd t = MatrixXcd::Zero(numi, numj); 
+	mat_map.SetMatrix("t", isym, jsym, t);
+	MatrixXcd v = MatrixXcd::Zero(numi, numj); 
+	mat_map.SetMatrix("v", isym, jsym, v);
+	MatrixXcd z = MatrixXcd::Zero(numi, numj); 
+	mat_map.SetMatrix("z", isym, jsym, z);
+      }
     }
+
+    PrimBasis prim(100);
+    A4dc rmap(100);
+    A3dc dxmap(100),  dymap(100),  dzmap(100);
+    A2dc Fjs_iat(100);
+    
+    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
+      for(SubIt jsub = o.subs.begin(); jsub != o.subs.end(); ++jsub) {
+	for(int iz = 0; iz < isub->size_zeta(); iz++) {
+	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
+	    CalcPrim(*this, isub, jsub, iz, jz, dxmap, dymap, dzmap, rmap,
+		     Fjs_iat, prim);
+	    CalcTrans(isub, jsub, iz, jz, prim, mat_map);
+	  }
+	}
+      }
+    }
+    *res = mat_map;    
+
+  }
+  void SymGTOs::CalcMat(BMatSet* res) {
+    this->CalcMatOther(*this, res);
+/*
+    if(not setupq)
+      this->SetUp();
 
     BMatSet mat_map(sym_group.order());
     for(Irrep isym = 0; isym < sym_group.order(); isym++) {
@@ -687,6 +733,7 @@ namespace l2func {
       }
     }
     *res = mat_map;
+    */
   }
 
   // ---- AtR ----

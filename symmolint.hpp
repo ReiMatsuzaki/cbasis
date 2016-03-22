@@ -155,6 +155,8 @@ namespace l2func {
     // ---- Calculation ----
     // -- to be removed
     void loop();
+    int max_n() const;
+    void CalcMatOther(SymGTOs& o,  BMatSet*);
     void CalcMat(BMatSet* res);
     void AtR_Ylm(int L, int M,  int irrep,
 		 const Eigen::VectorXcd& cs_ibasis,
