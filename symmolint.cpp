@@ -596,6 +596,7 @@ namespace l2func {
   }
   void CalcTrans(SubIt isub, SubIt jsub, int iz, int jz,
 		 PrimBasis& prim, BMatSet& mat_map) {
+
     for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
       for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
 	dcomplex cumsum_s(0.0), cumsum_t(0.0), cumsum_v(0.0);
@@ -658,6 +659,9 @@ namespace l2func {
 
     if(not setupq)
       this->SetUp();
+
+    if(not o.setupq)
+      o.SetUp();
 
     BMatSet mat_map(sym_group.order());
     for(Irrep isym = 0; isym < sym_group.order(); isym++) {
