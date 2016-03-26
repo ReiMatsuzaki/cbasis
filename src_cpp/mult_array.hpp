@@ -1,10 +1,6 @@
 #ifndef MULT_ARRAY_H
 #define MULT_ARRAY_H
 
-// header library
-#include <string>
-#include <iostream>
-#include <ostream>
 #include "macros.hpp"
 
 namespace l2func {
@@ -22,44 +18,11 @@ namespace l2func {
     int n0_[N];
     int n1_[N];
   public:
-    MultArray(int _num0) {
-      data_ = new F[_num0];
-      data_num_ = _num0;
-      num_ = _num0;
-    }
-    ~MultArray() {
-      delete[] data_;
-    }
-    void SetRange(int nx0, int nx1, int ny0, int ny1) {
-      n0_[0] = nx0; n0_[1] = ny0;
-      n1_[0] = nx1; n1_[1] = ny1;
-      num_ = (nx1-nx0+1)*(ny1-ny0+1);
-      if(data_num_ < num_) {
-	delete[] data_;
-	data_num_ = num_;
-	data_ = new F[num_];
-      }
-    }
+    MultArray(int _num0);
+    ~MultArray();
+    void SetRange(int nx0, int nx1, int ny0, int ny1);
     int size() const { return num_; }
-    F& operator()(int nx, int ny) {
-      int index = ((nx - n0_[0]) * (n1_[1] - n0_[1] + 1) + 
-		   (ny - n0_[1]));
-#ifndef ARG_NO_CHECK
-      if(index < 0   || num_-1 < index ||
-	 nx < n0_[0] || n1_[0] < nx ||
-	 ny < n0_[1] || n1_[1] < ny) {
-
-	std::string msg;
-	std::stringstream ss;
-	SUB_LOCATION(msg);
-	ss << ": index: (" << nx << ", " << ny << ") "
-	   << index << std::endl;
-	msg += ss.str();
-	throw std::runtime_error(msg);
-      }
-#endif
-      return data_[index];
-    }
+    F& operator()(int nx, int ny);
   };
 
   template<class F>

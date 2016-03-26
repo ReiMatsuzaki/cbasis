@@ -42,7 +42,7 @@ symmolint.o: symmolint.cpp symmolint.hpp bmatset.hpp angmoment.hpp mol_func.hpp
 test_math.o: test_math.cpp math_utils.hpp erfc.hpp lgamma.hpp mol_func.hpp angmoment.hpp eigen_plus.hpp bmatset.hpp
 MATH_OBJS = \
 	test_math.o fact.o erfc.o lgamma.o mol_func.o \
-	angmoment.o eigen_plus.o bmatset.o
+	angmoment.o eigen_plus.o bmatset.o mult_array.o
 ${BINDIR}/test_math: $(foreach o, ${MATH_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
 .PHONY: check_math
