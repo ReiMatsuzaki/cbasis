@@ -44,8 +44,10 @@ namespace l2func {
       return ((nx - n0_[0]) * (n1_[1] - n0_[1] + 1) + 
 	      (ny - n0_[1]));
     }
-    void check_index(int nx, int ny) {
+    int size() const { return num_; }
+    F& operator()(int nx, int ny) {
       int index = this->idx(nx, ny);
+#ifndef ARG_NO_CHECK
       if(index < 0   || num_-1 < index ||
 	 nx < n0_[0] || n1_[0] < nx ||
 	 ny < n0_[1] || n1_[1] < ny) {
@@ -58,43 +60,8 @@ namespace l2func {
 	msg += ss.str();
 	throw std::runtime_error(msg);
       }
-    }
-    void set(int nx, int ny, F v) {
-      data_[idx(nx, ny)] = v;
-    }
-    void set_safe(int nx, int ny, F v) {
-      try{
-	check_index(nx, ny);
-      } catch(const std::exception& e) {
-	throw e;
-      }
-      set(nx, ny, v);
-    }
-    int size() const { return num_; }
-    F& get(int nx, int ny) {
-      return data_[idx(nx, ny)];
-    }
-    F& get_safe(int nx, int ny) {
-      try{
-	check_index(nx, ny);
-      } catch(const std::runtime_error& e) {
-	throw e;
-      }
-      return this->get(nx, ny);
-    }
-    F& operator()(int nx, int ny) {
-
-#ifndef ARG_NO_CHECK
-      try {
-	this->check_index(nx, ny);
-      } catch(const std::runtime_error& e) {
-	std::string msg; SUB_LOCATION(msg);
-	msg += ": ";
-	msg += e.what();
-	throw std::runtime_error(msg);
-      }
 #endif
-      return get_safe(nx, ny);
+      return data_[index];
     }
   };
 
@@ -131,7 +98,10 @@ namespace l2func {
 	      (ny - n0_[1]) * (n1_[2] - n0_[2] + 1) + 
 	      (nz - n0_[2]));
     }
-    void check_index(int nx, int ny, int nz) {
+    int size() const { return num_; }
+    F& operator()(int nx, int ny, int nz) {
+
+#ifndef ARG_NO_CHECK
       int index = this->idx(nx, ny, nz);
       if(index < 0   || num_-1 < index ||
 	 nx < n0_[0] || n1_[0] < nx ||
@@ -145,36 +115,9 @@ namespace l2func {
 	msg += ss.str();
 	throw std::runtime_error(msg);
       }
-    }
-    void set(int nx, int ny, int nz, F v) {
-      data_[idx(nx, ny, nz)] = v;
-    }
-    void set_safe(int nx, int ny, int nz, F v) {
-      check_index(nx, ny, nz);
-      set(nx, ny, nz, v);
-    }
-    int size() const { return num_; }
-    F& get(int nx, int ny, int nz) {
-      return data_[idx(nx, ny, nz)];
-    }
-    F& get_safe(int nx, int ny, int nz) {
-      check_index(nx, ny, nz);
-      return this->get(nx, ny, nz);
-    }
-    F& operator()(int nx, int ny, int nz) {
-
-#ifndef ARG_NO_CHECK
-      try {
-	this->check_index(nx, ny, nz);
-      } catch(const std::runtime_error& e) {
-	std::string msg; SUB_LOCATION(msg);
-	msg += ": ";
-	msg += e.what();
-	throw std::runtime_error(msg);
-      }
 #endif
 
-      return get_safe(nx, ny, nz);
+      return data_[this->idx(nx, ny, nz)];
     }
   };
 
@@ -216,8 +159,10 @@ namespace l2func {
 	      (nz - n0_[2]) * num3 +
 	      (nw - n0_[3]));
     }
-    void check_index(int nx, int ny, int nz, int nw) {
+    F& operator()(int nx, int ny, int nz, int nw) {
+
       int index = this->idx(nx, ny, nz, nw);
+#ifndef ARG_NO_CHECK
       if(index < 0   || num_-1 < index ||
 	 nx < n0_[0] || n1_[0] < nx ||
 	 ny < n0_[1] || n1_[1] < ny ||
@@ -233,35 +178,8 @@ namespace l2func {
 	msg += ss.str();
 	throw std::out_of_range(msg);
       }
-    }
-    void set(int nx, int ny, int nz, int nw, F v) {
-      data_[idx(nx, ny, nz, nw)] = v;
-    }
-    void set_safe(int nx, int ny, int nz, int nw, F v) {
-      check_index(nx, ny, nz, nw);
-      set(nx, ny, nz, nw, v);
-    }
-    F& get(int nx, int ny, int nz, int nw) {
-      return data_[idx(nx, ny, nz, nw)];
-    }
-    F& get_safe(int nx, int ny, int nz, int nw) {
-      check_index(nx, ny, nz, nw);
-      return this->get(nx, ny, nz, nw);
-    }
-    F& operator()(int nx, int ny, int nz, int nw) {
-
-#ifndef ARG_NO_CHECK
-      try {
-	this->check_index(nx, ny, nz, nw);
-      } catch(const std::runtime_error& e) {
-	std::string msg; SUB_LOCATION(msg);
-	msg += ": ";
-	msg += e.what();
-	throw std::runtime_error(msg);
-      }
 #endif
-
-      return get_safe(nx, ny, nz, nw);
+      return data_[this->idx(nx, ny, nz, nw)];
     }
   };
 

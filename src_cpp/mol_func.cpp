@@ -205,11 +205,11 @@ namespace l2func {
 		 0, max_nj,
 		 -max_ni-max_nj, max_ni+max_nj+max_n);
 
-    res.set(0, 0, 0, 1.0);
+    res(0, 0, 0) = 1.0;
     for(int n = -max_ni -max_nj; n < 0; n++) 
-      res.set(0, 0, n, 0.0);
+      res(0, 0, n) =  0.0;
     for(int n = 1; n <= max_ni+max_nj+max_n; n++) 
-      res.set(0, 0, n, 0.0);
+      res(0, 0, n) = 0.0;
 
     for(int ni_nj = 1; ni_nj <= max_ni + max_nj; ni_nj++) {
       for(int ni = 0; ni <= std::min(max_ni, ni_nj); ni++) {
@@ -218,15 +218,15 @@ namespace l2func {
 	  for(int n = -(max_ni + max_nj - ni_nj);
 	      n <= max_ni + max_nj + max_n - ni_nj; n++) {
 	    if(ni > 0) {
-	      dcomplex v = (1.0/(2.0*zetaP) * res.get_safe(ni-1, nj, n-1) +
-			    (wPx - xi)      * res.get_safe(ni-1, nj, n) + 
-			    (n + 1.0)      * res.get_safe(ni-1, nj, n+1));
-	      res.set(ni, nj, n, v);
+	      dcomplex v = (1.0/(2.0*zetaP) * res(ni-1, nj, n-1) +
+			    (wPx - xi)      * res(ni-1, nj, n) + 
+			    (n + 1.0)      * res(ni-1, nj, n+1));
+	      res(ni, nj, n) = v;
 	    } else if(nj > 0) {
-	      dcomplex v = (1.0/(2.0*zetaP) * res.get_safe(ni, nj-1, n-1) +
-			    (wPx - xj)      * res.get_safe(ni, nj-1, n) + 
-			    (n + 1.0)      * res.get_safe(ni, nj-1, n+1));
-	      res.set(ni, nj, n, v);	    
+	      dcomplex v = (1.0/(2.0*zetaP) * res(ni, nj-1, n-1) +
+			    (wPx - xj)      * res(ni, nj-1, n) + 
+			    (n + 1.0)      * res(ni, nj-1, n+1));
+	      res(ni, nj, n) = v;
 	    }
 	  }
 	}
@@ -297,9 +297,9 @@ namespace l2func {
     dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
 
     dcomplex res = (ce *
-		    dxmap.get(nAx, nBx, 0) * 
-		    dymap.get(nAy, nBy, 0) * 
-		    dzmap.get(nAz, nBz, 0));
+		    dxmap(nAx, nBx, 0) * 
+		    dymap(nAy, nBy, 0) * 
+		    dzmap(nAz, nBz, 0));
     return res;
 
   }
@@ -343,23 +343,23 @@ namespace l2func {
     dcomplex eAB = exp(-zetaA*zetaB/zetaP*d2);
     dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
 
-    dcomplex dx00 = dxmap.get(nAx, nBx,   0);
-    dcomplex dx02 = dxmap.get(nAx, nBx+2, 0);
-    dcomplex dy00 = dymap.get(nAy, nBy,   0);
-    dcomplex dy02 = dymap.get(nAy, nBy+2, 0);
-    dcomplex dz00 = dzmap.get(nAz, nBz,   0);
-    dcomplex dz02 = dzmap.get(nAz, nBz+2, 0);
+    dcomplex dx00 = dxmap(nAx, nBx,   0);
+    dcomplex dx02 = dxmap(nAx, nBx+2, 0);
+    dcomplex dy00 = dymap(nAy, nBy,   0);
+    dcomplex dy02 = dymap(nAy, nBy+2, 0);
+    dcomplex dz00 = dzmap(nAz, nBz,   0);
+    dcomplex dz02 = dzmap(nAz, nBz+2, 0);
 
     dcomplex res = 4.0 * zetaB * zetaB *
       (dx02*dy00*dz00 + dx00*dy02*dz00 + dx00*dy00*dz02);
     res += -2.0*(2*nBx+2*nBy+2*nBz+3)*zetaB*dx00*dy00*dz00;
     
     if(nBx > 1)
-      res += 1.0*nBx*(nBx-1) * dxmap.get(nAx, nBx-2, 0) * dy00 * dz00;
+      res += 1.0*nBx*(nBx-1) * dxmap(nAx, nBx-2, 0) * dy00 * dz00;
     if(nBy > 1)
-      res += 1.0*nBy*(nBy-1) * dymap.get(nAy, nBy-2, 0) * dx00 * dz00;
+      res += 1.0*nBy*(nBy-1) * dymap(nAy, nBy-2, 0) * dx00 * dz00;
     if(nBz > 1)
-      res += 1.0*nBz*(nBz-1) * dzmap.get(nAz, nBz-2, 0) * dx00 * dy00;
+      res += 1.0*nBz*(nBz-1) * dzmap(nAz, nBz-2, 0) * dx00 * dy00;
 
     res *= -0.5 * ce;
     return res;    
@@ -396,9 +396,9 @@ namespace l2func {
     for(int nx = 0; nx <= nAx + nBx; nx++)
       for(int ny = 0; ny <= nAy + nBy; ny++)
 	for(int nz = 0; nz <= nAz + nBz; nz++)
-	  res += (dxmap.get_safe(nAx, nBx, nx) *
-		  dymap.get_safe(nAy, nBy, ny) *
-		  dzmap.get_safe(nAz, nBz, nz) *
+	  res += (dxmap(nAx, nBx, nx) *
+		  dymap(nAy, nBy, ny) *
+		  dzmap(nAz, nBz, nz) *
 		  coef_R(zetaP, wPx, wPy, wPz,
 			 wCx, wCy, wCz,
 			 nx, ny, nz, 0, Fjs));
