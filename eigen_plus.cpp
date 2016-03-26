@@ -52,7 +52,7 @@ void matrix_inv_sqrt(const CM& s, CM* s_inv_sqrt) {
 void SortEigs(VectorXcd& eigs, MatrixXcd& eigvecs) {
   
   int n = eigs.size();
-  if(n != eigvecs.cols() || n != eigvecs.rows()) {
+  if(n != eigvecs.cols()) {
     string msg; SUB_LOCATION(msg);
     msg += ": size mismatch";
     throw runtime_error(msg);
@@ -89,6 +89,57 @@ void generalizedComplexEigenSolve(const CM& f, const CM& s, CM* c, CV* eig){
   SortEigs(*eig, *c);
     
 }
+void CanonicalMatrix(const CM& S, double eps, CM* res) {
+
+  int num(S.rows());
+  if(num != S.cols()) {
+    string msg; SUB_LOCATION(msg);
+    msg += ": size mismatch."; 
+    throw runtime_error(msg);
+  }
+
+  ComplexEigenSolver<CM> es;
+  es.compute(S, true);
+  CV s;
+  CM U;
+  s.swap(es.eigenvalues());
+  U.swap(es.eigenvectors());
+  SortEigs(s, U);
+  
+  int num_non0(0);
+  for(int j = 0; j < num; j++)
+    if(abs(s[j]) > eps) {
+      num_non0++;
+    }
+  
+  MatrixXcd X(num, num_non0);
+  int j_idx(0);
+  for(int j = 0; j < num; j++) {
+    if(abs(s[j]) > eps) {
+      for(int i = 0; i < num; i++) {
+	X(i, j_idx) = U(i, j) / sqrt(s(j));
+      }
+      j_idx++;
+    }
+  }
+  
+  *res = CM::Zero(1, 1);
+  res->swap(X);
+
+}
+void CEigenSolveCanonical(const CM& F, const CM& S, double eps, CM* c, CV* eig) {
+
+  MatrixXcd X;
+  CanonicalMatrix(S, eps, &X);
+  CM Fp = X.transpose() * F * X;
+
+  ComplexEigenSolver<CM> es;
+  es.compute(Fp, true);
+  *c = X * es.eigenvectors();
+  eig->swap(es.eigenvalues());
+  SortEigs(*eig, *c);
+}
+
 
 SymGenComplexEigenSolver::SymGenComplexEigenSolver() {}
 SymGenComplexEigenSolver::SymGenComplexEigenSolver(const CM& A, const CM& B) {

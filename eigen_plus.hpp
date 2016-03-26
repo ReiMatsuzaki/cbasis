@@ -14,6 +14,8 @@ void col_cnormalize(CM& c);
 void matrix_inv_sqrt(const CM& s, CM* s_inv_sqrt);
 void SortEigs(Eigen::VectorXcd& eigs, Eigen::MatrixXcd& eigvecs);
 void generalizedComplexEigenSolve(const CM& f, const CM& s, CM* c, CV* eig);
+void CanonicalMatrix(const CM& S, double eps, CM* res);
+void CEigenSolveCanonical(const CM& f, const CM& s, double eps, CM* c, CV* eig);
 
 class SymGenComplexEigenSolver {
 private:

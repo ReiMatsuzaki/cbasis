@@ -4,8 +4,7 @@
 #include <boost/timer.hpp>
 #include <gtest/gtest.h>
 
-#include "utils.hpp"
-#include "math_utils.hpp"
+#include "gtest_plus.hpp"
 
 #include "erfc.hpp"
 #include "lgamma.hpp"
@@ -24,7 +23,6 @@
 using namespace std;
 using namespace l2func;
 using namespace erfc_mori;
-
 typedef std::complex<double> CD;
 
 TEST(Func, NTermFunc) {

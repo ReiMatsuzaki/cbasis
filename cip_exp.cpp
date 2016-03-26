@@ -1,18 +1,18 @@
-#include <complex>
+#include "typedef.hpp"
+#include "fact.hpp"
 #include "lgamma.hpp"
 #include "erfc.hpp"
 #include "math_utils.hpp"
 
 namespace {
   using namespace erfc_mori;
-  typedef std::complex<double> CD;
 }
 
 namespace l2func {
-  const CD operator*(const CD& a, int b) {
-    return CD(a.real() * b, a.imag() * b); }
-  const CD operator*(int b, const CD& a) {
-    return CD(a.real() * b, a.imag() * b); }  
+  const dcomplex operator*(const dcomplex& a, int b) {
+    return dcomplex(a.real() * b, a.imag() * b); }
+  const dcomplex operator*(int b, const dcomplex& a) {
+    return dcomplex(a.real() * b, a.imag() * b); }  
 
   int int_pow(int base, unsigned int expo) {
 
@@ -24,7 +24,7 @@ namespace l2func {
   }
 
   template<class F> F STO_Int(F z, int n) {
-    return pow(z, -n-1.0) * (1.0 * Factorial(n));
+    return pow(z, -n-1.0) * DFactorial(n);
   }
   template<class F> F GTO_Int(F z, int n) {
     
@@ -235,13 +235,13 @@ namespace l2func {
 
   // ==== explicit ====
   template double STO_Int<double>(double, int);
-  template CD STO_Int<CD >(CD, int);
+  template dcomplex STO_Int<dcomplex >(dcomplex, int);
   template double GTO_Int<double>(double, int);
-  template CD GTO_Int<CD >(CD, int);
+  template dcomplex GTO_Int<dcomplex >(dcomplex, int);
   template double STO_GTO_Int<double>(double, double, int);
-  template CD STO_GTO_Int<CD >(CD, CD, int);
+  template dcomplex STO_GTO_Int<dcomplex >(dcomplex, dcomplex, int);
   template double CutSTO_Int<double>(double, int, double);
-  template CD CutSTO_Int<CD >(CD, int, double);
+  template dcomplex CutSTO_Int<dcomplex >(dcomplex, int, double);
 
 
 }

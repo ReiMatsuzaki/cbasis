@@ -151,6 +151,7 @@ op_apply_dict[(Cut, STO)] = __cut_exp_func(CutSTO)
 
 
 # ==== Basis set 3D ====
+"""
 def lambda_s_mat(self, other = None):
     if(other == None):
         other = self
@@ -191,3 +192,4 @@ SphericalGTOSet.v_mat = lambda_v_mat
 SphericalGTOSet.xyz_mat = lambda_xyz_mat
 SphericalGTOSet.add_one_basis = lambda_add_one_basis
 SphericalGTOSet.add_basis = lambda_add_basis
+"""

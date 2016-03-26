@@ -871,8 +871,16 @@ namespace l2func {
 
     if(cs_ibasis.size() != this->size_basis_isym(irrep)) {
       string msg; SUB_LOCATION(msg);
-      msg += ": size of cs must be equal to basis size";
-      throw runtime_error(msg);
+      ostringstream oss;
+      oss << msg << endl << ": size of cs must be equal to basis size" << endl;
+      oss << "(L, M, irrep)     = " << L << M << irrep << endl;
+      oss << "csibasis.size()   = " << cs_ibasis.size() << endl;
+      oss << "size_basis_isym() = " << this->size_basis_isym(irrep) << endl;
+      oss << endl;
+      oss << "print SymGTOs:" << endl;
+      oss << this->str();
+      
+      throw runtime_error(oss.str());
     }
 
     VectorXcd vs  = VectorXcd::Zero(rs.size());   // copy

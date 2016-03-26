@@ -1,13 +1,12 @@
 #include <boost/python.hpp>
 #include <boost/numpy.hpp>
+#include "../typedef.hpp"
 #include "../linspace.hpp"
 #include "../exp_func.hpp"
 #include "../cut_exp.hpp"
 #include "../delta.hpp"
 #include "../cip_exp.hpp"
 #include "../op.hpp"
-
-#include "../gto3dset.hpp"
 
 namespace {
   using namespace boost::python;
@@ -32,6 +31,7 @@ np::ndarray array_transform(dcomplex* xs, int n) {
 		       bp::object());
 }
 
+/*
 np::ndarray CalcSMat(const SphericalGTOSet& a, const SphericalGTOSet& b) {
   dcomplex* vs = a.SMat(b);
   np::ndarray res = array_transform(vs, a.size() * b.size());
@@ -53,12 +53,13 @@ np::ndarray CalcXyzMat(const SphericalGTOSet& a,
   dcomplex* vs = a.XyzMat(nx, ny, nz, b);
   return array_transform(vs, a.size() * b.size());
 }
-
+*/
 BOOST_PYTHON_MODULE(l2func_bind) {
 
   Py_Initialize();
   np::initialize();
 
+  /*
   class_<array3<F> >("tuple_c3", init<F, F, F>())
     .add_property("x", &array3<F>::x, &array3<F>::set_x)
     .add_property("y", &array3<F>::y, &array3<F>::set_y)
@@ -68,6 +69,7 @@ BOOST_PYTHON_MODULE(l2func_bind) {
     .add_property("x", &array3<int>::x, &array3<int>::set_x)
     .add_property("y", &array3<int>::y, &array3<int>::set_y)
     .add_property("z", &array3<int>::z, &array3<int>::set_z);
+    */
   
   typedef ExpFunc<F,1> STO;
   class_<STO>("STO", init<F, int, F>())
@@ -140,6 +142,7 @@ BOOST_PYTHON_MODULE(l2func_bind) {
 
 
   // ==== 3D ====
+  /*
   class_<SphericalGTOSet>("SphericalGTOSet", init<>())
     .add_property("size", &SphericalGTOSet::size)
     .def("add_one_basis_cpp", &SphericalGTOSet::AddOneBasis)
@@ -149,6 +152,6 @@ BOOST_PYTHON_MODULE(l2func_bind) {
   def("calc_t_mat", CalcTMat);
   def("calc_v_mat", CalcVMat);
   def("calc_xyz_mat", CalcXyzMat);
-
+  */
 }
 

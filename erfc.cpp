@@ -1,5 +1,5 @@
+#include "typedef.hpp"
 #include "erfc.hpp"
-typedef std::complex<double> CD;
 
 namespace erfc_mori {
 
@@ -14,7 +14,7 @@ namespace erfc_mori {
     return 0; }
   template<> int erfc_start_num_term<double>() {
     return 10; }
-  template<> int erfc_start_num_term<CD>() {
+  template<> int erfc_start_num_term<dcomplex>() {
     return 10; }
 
   template<class F>  bool erfc_add_Eh_q(F x, F h) {
@@ -23,7 +23,7 @@ namespace erfc_mori {
   template<> bool erfc_add_Eh_q(double x, double h) {
     return x < M_PI / h;
   }
-  template<> bool erfc_add_Eh_q(CD x, CD h) {
+  template<> bool erfc_add_Eh_q(dcomplex x, dcomplex h) {
     return x.real() + std::abs(x.imag()) < M_PI / h.real();
   }
   template<class F>
@@ -154,21 +154,21 @@ namespace erfc_mori {
   }
   
   // explicit instance
-  typedef std::complex<double> CD;
+  typedef std::complex<double> dcomplex;
   template bool NormIsLessThan<double>(double x, double y);
-  template bool NormIsLessThan<CD>(CD x, double y);
+  template bool NormIsLessThan<dcomplex>(dcomplex x, double y);
   template int ErfcAtN<double>(double x, unsigned int n,
 			       double& y, double& yn);
-  template int ErfcAtN<CD>(CD x, unsigned int n, CD& y, CD& yn);
+  template int ErfcAtN<dcomplex>(dcomplex x, unsigned int n, dcomplex& y, dcomplex& yn);
   template int Erfc<double>(double, double&, ErfcCalcData&);
-  template int Erfc<CD>(CD, CD&, ErfcCalcData&);
+  template int Erfc<dcomplex>(dcomplex, dcomplex&, ErfcCalcData&);
   template int Exp2ErfcAtN<double>(double x, unsigned int n,
 				   double&, double&);
-  template int Exp2ErfcAtN<CD>(CD x, unsigned int n,
-			       CD&, CD&);  
+  template int Exp2ErfcAtN<dcomplex>(dcomplex x, unsigned int n,
+			       dcomplex&, dcomplex&);  
 
   template int Exp2Erfc<double>(double x, double& y,
 				ErfcCalcData& data);
-  template int Exp2Erfc<CD>(CD x, CD& y, ErfcCalcData& data);  
+  template int Exp2Erfc<dcomplex>(dcomplex x, dcomplex& y, ErfcCalcData& data);  
 			    
 }

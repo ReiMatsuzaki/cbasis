@@ -1,9 +1,6 @@
 #ifndef ERFC_H
 #define ERFC_H
 
-#include <math.h>
-#include <complex>
-
 namespace {
 }
 

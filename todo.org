@@ -1,8 +1,10 @@
 * symmolint.cpp
 ** perfomance for matrix
+   おそいと感じたら改善しよう。
+   
    1. 対角要素行列に対してまじめに計算しているので、楽をしよう
-   2. クーロンを計算するかしないかのスイッチを導入する。
-   3. 他のSymGTOsオブジェクトとの行列の計算を導入。
+   2. クーロンを計算するかしないかのスイッチを導入する。(適用済み)
+   3. 他のSymGTOsオブジェクトとの行列の計算を導入。(適用済み)
    
 ** DONE python bindで見やすくなるように
    CLOSED: [2016-03-19 Sat 03:45]
@@ -109,3 +111,39 @@ c0 = gtos.correct_sign(eigvecs.col(0))
    高速バージョンをコンパイルするときに、MultArray<F, N>の境界チェックを取り外したい。
    
 ** add const
+** iterator for GTO pair
+   例えば、行列要素を計算するためのループ構造だけを記述しておいて、
+   そのループごとの値を取ってくるiteratorを定義して、pythonに渡せば、
+   python再度ですきな行列の計算がそこそこ速くできるのではないか。
+   どちらかと言うと、Lambda expressionが適切か。
+   python bindとの兼ね合いは？
+
+   #+begin_src c++
+struct GTOPair {
+  int nAx, nAy, nAz, nBx, nBy, nBz;
+  dcomplex wAx, wAy, wAz, ...
+}
+for(vector<GTOPair>::const_iterator it = gtos.pair_begin(), 
+    end = gtos.pair_end(); it != end; ++it) {
+
+  it->nAx
+  it->nBx
+  ...
+}
+   #+end_src
+   
+* other
+** rename eigen_plus.cpp
+   対角化の関数名をどうにかしたい。
+   
+* General
+** directory
+   build directoryをつくろうかな。
+   
+** memory allocation at one time
+   例えばSymMolintでAddするたびに、必要なメモリを確保しておいて、
+   オブジェクトを破壊するまでとっておく。
+
+   数値微分を計算するときにその都度、オブジェクトを作るのではなく、
+   値の変更を駆使して確保したBuffer領域は変化しないようにする。
+
