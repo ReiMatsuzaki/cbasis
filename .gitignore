@@ -1,10 +1,7 @@
-utest*
-test*
-opt_cbf
 *.o
 *.so
 *.a
 *out
-l2func.a
+bin/
 local.mk
 *.pyc

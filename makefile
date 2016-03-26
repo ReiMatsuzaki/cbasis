@@ -5,7 +5,7 @@ ifeq (${ARCH},debug)
 else
   CXXFLAGS=${INC_PATH} -Wall -O3
 endif
-BINDIR=${ARCH}
+BINDIR=bin/${ARCH}
 
 VALGRIND=valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no
 
