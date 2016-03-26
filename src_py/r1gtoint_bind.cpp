@@ -4,7 +4,7 @@
 #include <boost/python/suite/indexing/map_indexing_suite.hpp>
 #include <Eigen/Core>
 
-#include "../r1gtoint.hpp"
+#include "../src_cpp/r1gtoint.hpp"
 
 using namespace Eigen;
 using namespace std;

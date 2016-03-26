@@ -6,9 +6,6 @@
 
 #include "gtest_plus.hpp"
 
-#include "erfc.hpp"
-#include "lgamma.hpp"
-
 #include "exp_func.hpp"
 #include "normal_exp.hpp"
 #include "cut_exp.hpp"
@@ -22,7 +19,6 @@
 
 using namespace std;
 using namespace l2func;
-using namespace erfc_mori;
 typedef std::complex<double> CD;
 
 TEST(Func, NTermFunc) {

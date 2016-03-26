@@ -1,9 +1,18 @@
 include local.mk
 ARCH=debug
+$(shell mkdir -p ${BINDIR})
+
 ifeq (${ARCH},fast)
-  CXXFLAGS=${INC_PATH} -Wall -O3 -DARG_NO_CHECK
-else
-  CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
+  # calculation speed
+  CXXFLAGS=${INC_PATH} -Wall -O3 
+endif
+ifeq (${ARCH},debug)
+  # debug mode
+  CXXFLAGS=${INC_PATH} -Wall -g 
+endif
+ifeq (${ARCH},mem)
+  # for memory check. (very slow)
+  CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline -DARG_NO_CHECK -DEIGEN_NO_DEBUG
 endif
 BINDIR=bin/${ARCH}
 
@@ -11,38 +20,16 @@ VALGRIND=valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reac
 
 SRCS:=$(wildcard *.cpp)
 DEPS:=$(SRCS:%.cpp=${BINDIR}/%.d)
-
 -include ${DEPS}
 
 # -- basic relation --
 ${BINDIR}/%.o: %.cpp
-#	@[ -d ${BINDIR} ] || mkdir -p ${BINDIR}
 	${CXX} -c -o $@ -MMD ${CXXFLAGS} $<
 
-# -- mathematics --
-fact.o: fact.cpp fact.hpp
-erfc.o:  erfc.cpp  erfc.hpp 
-lgamma.o: lgamma.cpp lgamma.hpp typedef.hpp
-mol_func.o: mol_func.cpp mol_func.hpp typedef.hpp mult_array.hpp
-angmoment.o: angmoment.cpp angmoment.hpp typedef.hpp macros.hpp fact.hpp 
-
-# -- Eigen --
-eigen_plus.o: eigen_plus.cpp eigen_plus.hpp typedef.hpp macros.hpp
-bmatset.o: bmatset.cpp bmatset.hpp
-
-# -- L2(R1) --
-cut_exp.o: cut_exp.hpp exp_func.hpp linspace.hpp
-exp_func.o: exp_func.cpp exp_func.hpp linspace.hpp
-cip_exp.o: cip_exp.cpp
-
-# -- SymGTOs --
-symmolint.o: symmolint.cpp symmolint.hpp bmatset.hpp angmoment.hpp mol_func.hpp
-
 # -- test math --
-test_math.o: test_math.cpp math_utils.hpp erfc.hpp lgamma.hpp mol_func.hpp angmoment.hpp eigen_plus.hpp bmatset.hpp
 MATH_OBJS = \
 	test_math.o fact.o erfc.o lgamma.o mol_func.o \
-	angmoment.o eigen_plus.o bmatset.o mult_array.o
+	angmoment.o eigen_plus.o bmatset.o 
 ${BINDIR}/test_math: $(foreach o, ${MATH_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
 .PHONY: check_math
@@ -50,35 +37,34 @@ check_math: ${BINDIR}/test_math
 	${VALGRIND} ./$<
 
 # -- test symmolint --
-test_symmolint.o: test_symmolint.cpp symmolint.hpp
-test_symmolint: test_symmolint.o symmolint.o bmatset.o angmoment.o eigen_plus.o fact.o mol_func.o
+SYMMOLINT_OBJS = \
+	test_symmolint.o symmolint.o bmatset.o angmoment.o \
+	eigen_plus.o fact.o mol_func.o
+${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_symmolint
-check_symmolint: test_symmolint
-	valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no ./$<
-
-# -- test r1gto --
-r1gtoint.o: r1gtoint.cpp r1gtoint.hpp 
-test_r1gtoint.o: test_r1gtoint.cpp r1gtoint.hpp cip_exp.hpp
-test_r1gtoint: test_r1gtoint.o r1gtoint.o l2.a eigen_plus.o
-	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
-.PHONY: check_r1gtoint
-check_r1gtoint: test_r1gtoint
-	echo ${ARCH}
-	valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no ./$<
-
+check_symmolint: ${BINDIR}/test_symmolint
+	${VALGRIND} ./$<
 
 # -- test L2(R1) --
-l2.a: fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o cip_exp.o delta.o
+L2OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o cip_exp.o delta.o
+${BINDIR}/l2.a: $(foreach o, ${L2OBJS}, ${BINDIR}/$o)
 	ar r $@ $^
-
-test.o: test.cpp
-test: test.o l2.a
+${BINDIR}/test_l2: ${BINDIR}/test_l2.o ${BINDIR}/l2.a
 	${CXX} -o $@ ${CXXFLAGS} $^ -lgtest
+.PHONY: /check_l2
+check_l2: ${BINDIR}/test_l2
+	${VALGRIND} ./$<
 
-.PHONY: check
-check: test
-	./test
+
+# -- test r1gto --
+R1GTOINT_OBJS=test_r1gtoint.o r1gtoint.o l2.a eigen_plus.o
+${BINDIR}/test_r1gtoint: $(foreach o, ${R1GTOINT_OBJS}, ${BINDIR}/$o)
+	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
+.PHONY: check_r1gtoint
+check_r1gtoint: ${BINDIR}/test_r1gtoint
+	${VALGRIND} ./$<
+
 
 clean:
 	rm -f ${BINDIR}/*.o

@@ -3,11 +3,11 @@
 #include <boost/numpy.hpp>
 #include <Eigen/Core>
 
-#include "../macros.hpp"
+#include "../src_cpp/macros.hpp"
 
-#include "../bmatset.hpp"
-#include "../eigen_plus.hpp"
-#include "../symmolint.hpp"
+#include "../src_cpp/bmatset.hpp"
+#include "../src_cpp/eigen_plus.hpp"
+#include "../src_cpp/symmolint.hpp"
 
 namespace {
   using namespace boost::python;

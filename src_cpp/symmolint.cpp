@@ -421,9 +421,9 @@ namespace l2func {
 		    nyi = isub->ns_ipn(1, ipn); nyj = isub->ns_ipn(1, jpn);
 		    nzi = isub->ns_ipn(2, ipn); nzj = isub->ns_ipn(2, jpn);
 		    dcomplex dx00, dy00, dz00;
-		    dx00 = dxmap.get_safe(nxi, nxj ,0);
-		    dy00 = dymap.get_safe(nyi, nyj ,0);
-		    dz00 = dzmap.get_safe(nzi, nzj ,0);
+		    dx00 = dxmap(nxi, nxj ,0);
+		    dy00 = dymap(nyi, nyj ,0);
+		    dz00 = dzmap(nzi, nzj ,0);
 		    dcomplex s_ele = dx00 * dy00 * dz00;
 		    norm2 += ce * s_ele *
 		      irds->coef_iat_ipn(iat, ipn) *
@@ -488,27 +488,27 @@ namespace l2func {
     nyi = isub->ny(ipn); nyj = jsub->ny(jpn);
     nzi = isub->nz(ipn); nzj = jsub->nz(jpn);
     dcomplex dx00, dy00, dz00, dx02, dy02, dz02, dz01;
-    dx00 = dxmap.get_safe(nxi, nxj ,0);
-    dy00 = dymap.get_safe(nyi, nyj ,0);
-    dz00 = dzmap.get_safe(nzi, nzj ,0);
-    dz01 = dzmap.get_safe(nzi, nzj+1 ,0);
-    dx02 = dxmap.get_safe(nxi, nxj+2 ,0);
-    dy02 = dymap.get_safe(nyi, nyj+2 ,0);
-    dz02 = dzmap.get_safe(nzi, nzj+2 ,0);
+    dx00 = dxmap(nxi, nxj ,0);
+    dy00 = dymap(nyi, nyj ,0);
+    dz00 = dzmap(nzi, nzj ,0);
+    dz01 = dzmap(nzi, nzj+1 ,0);
+    dx02 = dxmap(nxi, nxj+2 ,0);
+    dy02 = dymap(nyi, nyj+2 ,0);
+    dz02 = dzmap(nzi, nzj+2 ,0);
 
     dcomplex t_ele(0.0);		    
     t_ele += -2.0*(2*nxj+2*nyj+2*nzj+3)*zetaj*dx00*dy00*dz00;
     t_ele += 4.0*zetaj*zetaj*(dx02*dy00*dz00+dx00*dy02*dz00+dx00*dy00*dz02);
     if(nxj > 1) {
-      dcomplex dx = dxmap.get(nxi, nxj-2, 0);
+      dcomplex dx = dxmap(nxi, nxj-2, 0);
       t_ele += 1.0*nxj*(nxj-1) * dx * dy00 * dz00;
     }
     if(nyj > 1) {
-      dcomplex dy = dymap.get(nyi, nyj-2, 0);
+      dcomplex dy = dymap(nyi, nyj-2, 0);
       t_ele += 1.0*nyj*(nyj-1) * dx00 * dy * dz00;
     }
     if(nzj > 1) {
-      dcomplex dz = dzmap.get(nzi, nzj-2, 0);
+      dcomplex dz = dzmap(nzi, nzj-2, 0);
       t_ele += 1.0*nzj*(nzj-1) * dx00 * dy00 * dz;
     }
     return t_ele;
@@ -620,10 +620,10 @@ namespace l2func {
 		  jrds->coef_iat_ipn(jat, jpn) * 
 		  irds->coef_iz(iz) * 
 		  jrds->coef_iz(jz);
-		cumsum_s += cc*prim.s.get_safe(iat, ipn, jat, jpn);
-		cumsum_t += cc*prim.t.get_safe(iat, ipn, jat, jpn);
-		cumsum_v += cc*prim.v.get_safe(iat, ipn, jat, jpn);
-		cumsum_z += cc*prim.z.get_safe(iat, jpn, jat, jpn);
+		cumsum_s += cc*prim.s(iat, ipn, jat, jpn);
+		cumsum_t += cc*prim.t(iat, ipn, jat, jpn);
+		cumsum_v += cc*prim.v(iat, ipn, jat, jpn);
+		cumsum_z += cc*prim.z(iat, jpn, jat, jpn);
 	      }}}}
 	int i(irds->offset + iz); int j(jrds->offset + jz);
 	int isym(irds->irrep); int jsym(jrds->irrep);

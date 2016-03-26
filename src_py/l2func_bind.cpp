@@ -1,12 +1,12 @@
 #include <boost/python.hpp>
 #include <boost/numpy.hpp>
-#include "../typedef.hpp"
-#include "../linspace.hpp"
-#include "../exp_func.hpp"
-#include "../cut_exp.hpp"
-#include "../delta.hpp"
-#include "../cip_exp.hpp"
-#include "../op.hpp"
+#include "../src_cpp/typedef.hpp"
+#include "../src_cpp/linspace.hpp"
+#include "../src_cpp/exp_func.hpp"
+#include "../src_cpp/cut_exp.hpp"
+#include "../src_cpp/delta.hpp"
+#include "../src_cpp/cip_exp.hpp"
+#include "../src_cpp/op.hpp"
 
 namespace {
   using namespace boost::python;
