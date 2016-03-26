@@ -40,13 +40,10 @@ namespace l2func {
 	data_ = new F[num_];
       }
     }
-    int idx(int nx, int ny) {
-      return ((nx - n0_[0]) * (n1_[1] - n0_[1] + 1) + 
-	      (ny - n0_[1]));
-    }
     int size() const { return num_; }
     F& operator()(int nx, int ny) {
-      int index = this->idx(nx, ny);
+      int index = ((nx - n0_[0]) * (n1_[1] - n0_[1] + 1) + 
+		   (ny - n0_[1]));
 #ifndef ARG_NO_CHECK
       if(index < 0   || num_-1 < index ||
 	 nx < n0_[0] || n1_[0] < nx ||
@@ -93,16 +90,13 @@ namespace l2func {
 	data_ = new F[num_];
       }
     }
-    int idx(int nx, int ny, int nz) {
-      return ((nx - n0_[0]) * (n1_[2] - n0_[2] + 1) * (n1_[1] - n0_[1] + 1) + 
-	      (ny - n0_[1]) * (n1_[2] - n0_[2] + 1) + 
-	      (nz - n0_[2]));
-    }
     int size() const { return num_; }
     F& operator()(int nx, int ny, int nz) {
-
+      int index = ((nx - n0_[0]) * (n1_[2] - n0_[2] + 1) * (n1_[1] - n0_[1] + 1) + 
+		   (ny - n0_[1]) * (n1_[2] - n0_[2] + 1) + 
+		   (nz - n0_[2]));
 #ifndef ARG_NO_CHECK
-      int index = this->idx(nx, ny, nz);
+
       if(index < 0   || num_-1 < index ||
 	 nx < n0_[0] || n1_[0] < nx ||
 	 ny < n0_[1] || n1_[1] < ny ||
@@ -117,7 +111,7 @@ namespace l2func {
       }
 #endif
 
-      return data_[this->idx(nx, ny, nz)];
+      return data_[index];
     }
   };
 
@@ -150,18 +144,16 @@ namespace l2func {
 	data_ = new F[num_];
       }
     }
-    int idx(int nx, int ny, int nz, int nw) {
+    F& operator()(int nx, int ny, int nz, int nw) {
+
       int num1 = n1_[1] - n0_[1] + 1;
       int num2 = n1_[2] - n0_[2] + 1;
       int num3 = n1_[3] - n0_[3] + 1;
-      return ((nx - n0_[0]) * num3 * num2 * num1 + 
-	      (ny - n0_[1]) * num3 * num2 + 
-	      (nz - n0_[2]) * num3 +
-	      (nw - n0_[3]));
-    }
-    F& operator()(int nx, int ny, int nz, int nw) {
+      int index = ((nx - n0_[0]) * num3 * num2 * num1 + 
+		   (ny - n0_[1]) * num3 * num2 + 
+		   (nz - n0_[2]) * num3 +
+		   (nw - n0_[3]));
 
-      int index = this->idx(nx, ny, nz, nw);
 #ifndef ARG_NO_CHECK
       if(index < 0   || num_-1 < index ||
 	 nx < n0_[0] || n1_[0] < nx ||
@@ -179,7 +171,7 @@ namespace l2func {
 	throw std::out_of_range(msg);
       }
 #endif
-      return data_[this->idx(nx, ny, nz, nw)];
+      return data_[index];
     }
   };
 

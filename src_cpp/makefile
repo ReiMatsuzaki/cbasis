@@ -81,9 +81,9 @@ check: test
 	./test
 
 clean:
-	rm -f *.o
-	rm -f *.a
-	rm -f utest
+	rm -f ${BINDIR}/*.o
+	rm -f ${BINDIR}*.a
+	rm -f ${BINDIR}*.d
 
 # ==== old ====
 
