@@ -2,6 +2,8 @@
 *.so
 *.a
 *out
+*.dat
+*.pyc
 bin/
 local.mk
-*.pyc
+
