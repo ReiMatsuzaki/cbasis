@@ -4,6 +4,7 @@
 // header library
 #include <string>
 #include <iostream>
+#include <ostream>
 #include "macros.hpp"
 
 namespace l2func {
@@ -50,7 +51,7 @@ namespace l2func {
 	 ny < n0_[1] || n1_[1] < ny) {
 
 	std::string msg;
-	std::ostringstream ss;
+	std::stringstream ss;
 	SUB_LOCATION(msg);
 	ss << ": index: (" << nx << ", " << ny << ") "
 	   << index << std::endl;
@@ -82,6 +83,17 @@ namespace l2func {
       return this->get(nx, ny);
     }
     F& operator()(int nx, int ny) {
+
+#ifndef ARG_NO_CHECK
+      try {
+	this->check_index(nx, ny);
+      } catch(const std::runtime_error& e) {
+	std::string msg; SUB_LOCATION(msg);
+	msg += ": ";
+	msg += e.what();
+	throw std::runtime_error(msg);
+      }
+#endif
       return get_safe(nx, ny);
     }
   };
@@ -150,6 +162,18 @@ namespace l2func {
       return this->get(nx, ny, nz);
     }
     F& operator()(int nx, int ny, int nz) {
+
+#ifndef ARG_NO_CHECK
+      try {
+	this->check_index(nx, ny, nz);
+      } catch(const std::runtime_error& e) {
+	std::string msg; SUB_LOCATION(msg);
+	msg += ": ";
+	msg += e.what();
+	throw std::runtime_error(msg);
+      }
+#endif
+
       return get_safe(nx, ny, nz);
     }
   };
@@ -225,6 +249,18 @@ namespace l2func {
       return this->get(nx, ny, nz, nw);
     }
     F& operator()(int nx, int ny, int nz, int nw) {
+
+#ifndef ARG_NO_CHECK
+      try {
+	this->check_index(nx, ny, nz, nw);
+      } catch(const std::runtime_error& e) {
+	std::string msg; SUB_LOCATION(msg);
+	msg += ": ";
+	msg += e.what();
+	throw std::runtime_error(msg);
+      }
+#endif
+
       return get_safe(nx, ny, nz, nw);
     }
   };

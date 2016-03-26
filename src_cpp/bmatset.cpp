@@ -1,4 +1,5 @@
 #include <string>
+#include <ostream>
 #include "macros.hpp"
 #include "bmatset.hpp"
 
@@ -10,13 +11,8 @@ namespace l2func {
   BMatSet::BMatSet(): block_num_(1) {}
   BMatSet::BMatSet(int _block_num): block_num_(_block_num) {}
   void BMatSet::SetMatrix(string name, int i, int j, MatrixXcd& mat) {
-
-    if(i < 0 || block_num_ <= i ||
-       j < 0 || block_num_ <= j) {
-      string msg; SUB_LOCATION(msg);
-      msg += "Error for int i or j.";
-      throw runtime_error(msg);
-    }
+#ifndef ARG_NO_CHECK
+#endif
 
     MatrixXcd tmp;
     mat_map_[name][make_pair(i, j)] = tmp;
@@ -24,7 +20,8 @@ namespace l2func {
 
   }
   const MatrixXcd& BMatSet::GetMatrix(string name, int i, int j) {
-
+    
+#ifndef ARG_NO_CHECK
     if(i < 0 || block_num_ <= i ||
        j < 0 || block_num_ <= j) {
       string msg; SUB_LOCATION(msg);
@@ -44,13 +41,64 @@ namespace l2func {
       msg += " : matrix (i,j) is not found.\n";
       throw runtime_error(msg);
     }
+#endif
 
     return mat_map_[name][make_pair(i, j)];
   }
   void BMatSet::SelfAdd(string name, int i, int j, int a, int b, dcomplex v) {
+
+#ifndef ARG_NO_CHECK
+    if(i < 0 || block_num_ <= i ||
+       j < 0 || block_num_ <= j) {
+      string msg; SUB_LOCATION(msg);
+      msg += "Error for int i or j.";
+      throw runtime_error(msg);
+    }
+
+    if(mat_map_.find(name) == mat_map_.end()) {
+      string msg; SUB_LOCATION(msg);
+      msg += " : key not found.\n" ;
+      msg += "name : " + name;
+      throw runtime_error(msg);
+    }
+
+    if(mat_map_[name].find(make_pair(i, j)) == mat_map_[name].end()) {
+      string msg; SUB_LOCATION(msg);
+      msg += " : matrix (i,j) is not found.\n";
+      throw runtime_error(msg);
+    }
+#endif
+
     mat_map_[name][make_pair(i, j)](a, b) += v;
   }
   dcomplex BMatSet::GetValue(string name, int i, int j, int a, int b) {
+
+#ifndef ARG_NO_CHECK
+    if(mat_map_.find(name) == mat_map_.end()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": key not found.\n" ;
+      msg += "name : " + name;
+      throw runtime_error(msg);
+    }
+
+    if(i < 0 || block_num_ <= i ||
+       j < 0 || block_num_ <= j) {
+      string msg; SUB_LOCATION(msg);
+      stringstream oss;
+      oss << msg << endl << "Error for int i or j" << endl;
+      oss << "i = " << i << endl;
+      oss << "j = " << j << endl;
+      oss << "block_num = " << block_num_ << endl;
+      throw runtime_error(oss.str());
+    }
+
+    if(mat_map_[name].find(make_pair(i, j)) == mat_map_[name].end()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": matrix (i,j) is not found.\n";
+      throw runtime_error(msg);
+    }
+#endif
+
     return mat_map_[name][make_pair(i, j)](a, b);
   } 
   void BMatSet::swap(BMatSet& o) {
@@ -74,6 +122,11 @@ namespace l2func {
       this->mat_map_[it_tmp->first].swap(it_tmp->second);
       ++it_tmp;
     }
+
+    int tmp = o.block_num_;
+    o.block_num_ = this->block_num_;
+    this->block_num_ = tmp;
+
   }
   string BMatSet::str() const {
     ostringstream oss;

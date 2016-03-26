@@ -23,14 +23,6 @@ TEST(MultArray, MultArray2) {
   MultArray<int, 2> xs(100);
   xs.SetRange(-2, 3, -1, 4);
 
-  /*
-  try {
-    xs.get_safe(-4, 0);
-  } catch(const exception& e) {
-    cout << e.what() << endl;
-  }
-  */
-
   for(int i = -2; i <= 3; i++)
     for(int j = -1; j <= 4; j++)
       xs(i, j) = 10*i+j;
@@ -38,6 +30,20 @@ TEST(MultArray, MultArray2) {
   for(int i = -2; i <= 3; i++)
     for(int j = -1; j <= 4; j++)
       EXPECT_EQ(10*i+j, xs(i, j));
+
+}
+TEST(MultArray, MultArray2Exception) {
+
+  MultArray<int, 2> xs(100);
+  xs.SetRange(-2, 3, -1, 4);
+
+#ifdef ARG_NO_CHECK  
+#else
+  EXPECT_ANY_THROW(xs(-3, 1));
+  EXPECT_ANY_THROW(xs(4, 4));
+  EXPECT_ANY_THROW(xs(0, 5));  
+  EXPECT_ANY_THROW(xs(-3, 4));
+#endif
 
 }
 TEST(MultArray, MultArray3) {
@@ -668,14 +674,20 @@ TEST(BMatSet, Exception) {
   BMatSet sets(2);
   
   MatrixXcd s00 = MatrixXcd::Zero(2, 2);
-  EXPECT_ANY_THROW(sets.SetMatrix("s", 2, 1, s00));
-  EXPECT_ANY_THROW(sets.SetMatrix("s", -1, 1, s00));
   
   sets.SetMatrix("s", 0, 0, s00);
+  EXPECT_NO_THROW(sets.SetMatrix("s", 2, 1, s00));
+  EXPECT_NO_THROW(sets.SetMatrix("s", -1, 1, s00));
   
+#ifdef ARG_NO_CHECK
+  EXPECT_NO_THROW(sets.GetMatrix("t", 0, 0));
+  EXPECT_NO_THROW(sets.GetMatrix("s", -1, 0));
+  EXPECT_NO_THROW(sets.GetMatrix("s", 1, 2));
+#else
   EXPECT_ANY_THROW(sets.GetMatrix("t", 0, 0));
   EXPECT_ANY_THROW(sets.GetMatrix("s", -1, 0));
   EXPECT_ANY_THROW(sets.GetMatrix("s", 1, 2));
+#endif  
 
   try {
     sets.GetMatrix("s", -1, 0);

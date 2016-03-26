@@ -1,9 +1,9 @@
 include local.mk
 ARCH=debug
-ifeq (${ARCH},debug)
-  CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
+ifeq (${ARCH},fast)
+  CXXFLAGS=${INC_PATH} -Wall -O3 -DARG_NO_CHECK
 else
-  CXXFLAGS=${INC_PATH} -Wall -O3
+  CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline
 endif
 BINDIR=bin/${ARCH}
 
@@ -16,8 +16,8 @@ DEPS:=$(SRCS:%.cpp=${BINDIR}/%.d)
 
 # -- basic relation --
 ${BINDIR}/%.o: %.cpp
-	@[ -d ${BINDIR} ] || mkdir -p ${BINDIR}
-	${CXX} -c -o $@ -MMD ${CXXFLAGS} $< 
+#	@[ -d ${BINDIR} ] || mkdir -p ${BINDIR}
+	${CXX} -c -o $@ -MMD ${CXXFLAGS} $<
 
 # -- mathematics --
 fact.o: fact.cpp fact.hpp

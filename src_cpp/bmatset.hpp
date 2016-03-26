@@ -5,6 +5,11 @@
 #include <Eigen/Core>
 #include "typedef.hpp"
 
+/**
+   BMatSet is Block Matrix set.
+   if ARG_NO_CHECK is defined, given argument for map and vector is not checked.
+*/
+
 namespace l2func {
 
   typedef std::map<std::pair<int, int>, Eigen::MatrixXcd> BMat;
