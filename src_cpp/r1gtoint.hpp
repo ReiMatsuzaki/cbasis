@@ -48,7 +48,7 @@ namespace l2func {
     bool normalized_q_;
     std::vector<R1GTO> gtos_;
     int L_;
-    std::vector<dcomplex> gto_int_buf_;
+    std::vector<dcomplex> buf_;
   public:
     R1GTOs(int _L);
     int L() const { return L_; }
@@ -62,6 +62,7 @@ namespace l2func {
     int max_n() const;
     void Normalize();
     void Reserve();
+    void Reserve(int n);
     void CalcMat(MatMap* res);
     MatMap* CalcMatNew();
     void CalcVec(R1GTOs& o, VecMap* res);    

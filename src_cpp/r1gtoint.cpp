@@ -62,7 +62,7 @@ namespace l2func {
   }
 
   R1GTOs::R1GTOs(int _L): normalized_q_(false), L_(_L) {
-    gto_int_buf_.reserve(4);
+    buf_.reserve(1);
   }
   void R1GTOs::Add(dcomplex c, int _n, dcomplex _zeta) {
     this->normalized_q_ = false;
@@ -94,6 +94,8 @@ namespace l2func {
       gtos_[i].z = zs(i);
     }
 
+    this->normalized_q_ = false;
+
   }
   int  R1GTOs::max_n() const {
     int maxn(0);
@@ -103,8 +105,11 @@ namespace l2func {
     return maxn;    
   }
   void R1GTOs::Normalize() {
-    int maxn = max_n();
-    dcomplex* gs = new dcomplex[2*maxn+1];
+
+    int maxn = this->max_n() + this->max_n() + 2 + 1;
+    this->Reserve(maxn);
+    dcomplex* gs = &buf_[0];
+
     for(int i = 0; i < size_basis(); i++) {
       dcomplex z(this->basis(i).z);
       int n(this->basis(i).n);
@@ -112,14 +117,12 @@ namespace l2func {
       dcomplex norm2 = gs[n*2];
       this->gtos_[i].c = 1.0/sqrt(norm2);
     }    
-    delete[] gs;
     this->normalized_q_ = true;
   }
-  void R1GTOs::Reserve() {
+  void R1GTOs::Reserve(int n) {
 
-    int new_capacity = this->max_n() + 2 + 1;
-    if((int)gto_int_buf_.capacity() < new_capacity)
-      gto_int_buf_.reserve(new_capacity);
+    if((int)buf_.capacity() < n)
+      buf_.reserve(n);
 
   }
   void R1GTOs::CalcMat(MatMap* res) {
@@ -127,9 +130,10 @@ namespace l2func {
     if(!this->normalized_q())
       this->Normalize();
 
-    int maxn = this->max_n() + this->max_n() + 2 + 1;
-    dcomplex* gs = new dcomplex[maxn];
-    int num = size_basis();
+    int maxn = 2*this->max_n() + 2 + 1;
+    this->Reserve(maxn);
+    dcomplex* gs = &buf_[0];
+    int num = size_basis();    
 
     if(res->find("s") == res->end())
       (*res)["s"] = MatrixXcd::Zero(num, num);
@@ -173,7 +177,7 @@ namespace l2func {
       }
     }
 
-    delete[] gs;
+    // delete[] gs;
   }
   MatMap* R1GTOs::CalcMatNew() {
     MatMap* res = new MatMap();
@@ -186,10 +190,17 @@ namespace l2func {
       this->Normalize();
 
     int maxn = this->max_n() + o.max_n() + 1;
-    dcomplex* gs = new dcomplex[maxn];
-    VectorXcd m(this->size_basis());
+    this->Reserve(maxn);
+    dcomplex* gs = &buf_[0];
 
-    for(int i = 0; i < this->size_basis(); i++) {
+    int num(this->size_basis());
+
+    if(res->find("m") == res->end())
+      (*res)["m"] = VectorXcd::Zero(num);
+
+    VectorXcd& m = (*res)["m"];
+
+    for(int i = 0; i < num; i++) {
       m[i] = 0.0;
       for(int j = 0; j < o.size_basis(); j++) {
 	int      n(this->basis(i).n + o.basis(j).n);
@@ -200,7 +211,7 @@ namespace l2func {
 	m[i] += c * gs[n];
       }      
     }
-    delete[] gs;
+
     (*res)["m"] = MatrixXcd::Zero(1, 1);
     (*res)["m"].swap(m);
   }
@@ -212,7 +223,6 @@ namespace l2func {
     int num(this->size_basis());
     if(res->find("m") == res->end())
       (*res)["m"] = VectorXcd::Zero(num);
-
     VectorXcd& m = (*res)["m"];
 
     for(int i = 0; i < this->size_basis(); i++) {
