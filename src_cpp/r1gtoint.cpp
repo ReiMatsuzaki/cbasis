@@ -61,6 +61,9 @@ namespace l2func {
     return out;
   }
 
+  R1GTOs::R1GTOs(int _L): normalized_q_(false), L_(_L) {
+    gto_int_buf_.reserve(4);
+  }
   void R1GTOs::Add(dcomplex c, int _n, dcomplex _zeta) {
     this->normalized_q_ = false;
     gtos_.push_back(R1GTO(c, _n, _zeta));
@@ -112,22 +115,35 @@ namespace l2func {
     delete[] gs;
     this->normalized_q_ = true;
   }
+  void R1GTOs::Reserve() {
+
+    int new_capacity = this->max_n() + 2 + 1;
+    if((int)gto_int_buf_.capacity() < new_capacity)
+      gto_int_buf_.reserve(new_capacity);
+
+  }
   void R1GTOs::CalcMat(MatMap* res) {
 
-    if(!this->normalized_q())
-      this->Normalize();
     if(!this->normalized_q())
       this->Normalize();
 
     int maxn = this->max_n() + this->max_n() + 2 + 1;
     dcomplex* gs = new dcomplex[maxn];
     int num = size_basis();
-    MatrixXcd s(num, num);
-    MatrixXcd t(num, num);
-    MatrixXcd v(num, num);
+
+    if(res->find("s") == res->end())
+      (*res)["s"] = MatrixXcd::Zero(num, num);
+    if(res->find("t") == res->end())
+      (*res)["t"] = MatrixXcd::Zero(num, num);
+    if(res->find("v") == res->end())
+      (*res)["v"] = MatrixXcd::Zero(num, num);
+
+    MatrixXcd& s = (*res)["s"];
+    MatrixXcd& t = (*res)["t"];
+    MatrixXcd& v = (*res)["v"];
     
-    for(int i = 0; i < (int)this->gtos_.size(); i++) {
-      for(int j = i; j < (int)this->gtos_.size(); j++) {
+    for(int i = 0; i < num; i++) {
+      for(int j = i; j < num; j++) {
 	int ni(this->gtos_[i].n);
 	int nj(    this->gtos_[j].n);
 	dcomplex zi(this->gtos_[i].z);
@@ -158,13 +174,6 @@ namespace l2func {
     }
 
     delete[] gs;
-
-    (*res)["s"] = MatrixXcd::Zero(1, 1);
-    (*res)["t"] = MatrixXcd::Zero(1, 1);
-    (*res)["v"] = MatrixXcd::Zero(1, 1);
-    (*res)["s"].swap(s);
-    (*res)["t"].swap(t);
-    (*res)["v"].swap(v);
   }
   MatMap* R1GTOs::CalcMatNew() {
     MatMap* res = new MatMap();
@@ -199,18 +208,21 @@ namespace l2func {
 
     if(!this->normalized_q())
       this->Normalize();
-    
-    VectorXcd m(this->size_basis());
+
+    int num(this->size_basis());
+    if(res->find("m") == res->end())
+      (*res)["m"] = VectorXcd::Zero(num);
+
+    VectorXcd& m = (*res)["m"];
+
     for(int i = 0; i < this->size_basis(); i++) {
-      m[i] = 0.0;
+      m(i) = 0.0;
       for(int j = 0; j < o.size_basis(); ++j) {
 	int n(o.basis(j).n + this->basis(i).n);
 	dcomplex c(o.basis(j).c * this->basis(i).c);
-	m[i] += c * STO_GTO_Int(o.basis(j).z, this->basis(i).z, n);
+	m(i) += c * STO_GTO_Int(o.basis(j).z, this->basis(i).z, n);
       }
     }
-    (*res)["m"] = VectorXcd::Zero(1);
-    (*res)["m"].swap(m);
   }
   VecMap* R1GTOs::CalcVecSTONew(const R1STOs& vs) {
     VecMap* res = new VecMap();

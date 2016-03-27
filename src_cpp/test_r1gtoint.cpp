@@ -147,7 +147,7 @@ dcomplex CalcAlpha(dcomplex z_shift) {
 
 }
 dcomplex CalcAlpha(R1GTOs& gtos, R1STOs& driv,
-		   MatMap& mat, VecMap& vec, MatrixXcd& L, VectorXcd c,
+		   MatMap& mat, VecMap& vec, MatrixXcd& L,
 		   dcomplex z_shift) {
 
   VectorXcd zs(15);  
@@ -173,8 +173,8 @@ dcomplex CalcAlpha(R1GTOs& gtos, R1STOs& driv,
   gtos.CalcVecSTO(driv, &vec);
 
   L = mat["t"] + mat["v"] - 0.5 * mat["s"];
-  c = L.fullPivLu().solve(vec["m"]);
-  dcomplex a = (c.array() * vec["m"].array()).sum();
+  dcomplex a = (vec["m"].array() *
+		(L.fullPivLu().solve(vec["m"])).array()).sum();
   //dcomplex a = vec["m"].dot(L.fullPivLu().solve(vec["m"]));
   return a;
 
@@ -224,7 +224,58 @@ TEST(OptAlpha, ShiftKaufmann) {
   EXPECT_C_NEAR(ref, z_shift, eps*10);
   dcomplex ref_alpha(dcomplex(-5.6568937518988989, 1.0882823480377297));
   EXPECT_C_NEAR(ref_alpha, alpha, pow(10.0, -9.0));
+}
+TEST(OptAlpha, ShiftKaufmann2) {
 
+  // 2016/3/26
+  // ARCH=fast
+  // 201ms
+
+  R1GTOs gtos(1);
+  int num(15);
+  VectorXcd zs(num);
+  gtos.Add(2, zs);
+
+  int max_iter(100);
+  dcomplex h(0.0001);
+  dcomplex ih(0.0, 0.0001);
+  dcomplex ii(0.0, 1.0);
+  double eps(0.000001);
+  dcomplex z_shift(0.0, -0.02);
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  MatrixXcd L(num, num);
+  MatMap mat;
+  VecMap vec;
+  
+  int i(0);
+  dcomplex alpha;
+  for(i = 0; i < max_iter; i++) {
+
+    alpha = CalcAlpha(z_shift);
+    dcomplex ap0 = CalcAlpha(gtos, driv, mat, vec, L, z_shift + h);
+    dcomplex am0 = CalcAlpha(gtos, driv, mat, vec, L, z_shift - h);
+    dcomplex a0p = CalcAlpha(gtos, driv, mat, vec, L, z_shift + ih);
+    dcomplex a0m = CalcAlpha(gtos, driv, mat, vec, L, z_shift - ih);
+
+    dcomplex grad = (ap0 - am0 + ii*a0m - ii*a0p) / (4.0 * h);
+    dcomplex hess = (ap0 + am0 - a0p - a0m) / (2.0*h*h);
+
+    dcomplex dz(grad/hess);
+    z_shift -= dz;
+
+    if(abs(grad) < eps && abs(dz) < eps) {
+      break;
+    }
+  }
+
+  // -- from 2016/3/25
+  // -- -0.00293368-0.0204361j 
+  
+  EXPECT_TRUE(i < 90) << i;
+  dcomplex ref(-0.00293368, -0.0204361);
+  EXPECT_C_NEAR(ref, z_shift, eps*10);
+  dcomplex ref_alpha(dcomplex(-5.6568937518988989, 1.0882823480377297));
+  EXPECT_C_NEAR(ref_alpha, alpha, pow(10.0, -9.0));
 }
 TEST(TestHAtom, s_state) {
   
