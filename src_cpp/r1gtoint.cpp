@@ -77,6 +77,21 @@ namespace l2func {
     }
     
   }
+  void R1GTOs::Set(int n, const Eigen::VectorXcd& zs) {
+    
+    if(zs.size() != this->size_basis()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": size mismatch.";
+      throw runtime_error(msg);
+    }
+
+    this->normalized_q_ = false;
+    for(int i = 0; i < zs.size(); i++) {
+      gtos_[i].n = n;
+      gtos_[i].z = zs(i);
+    }
+
+  }
   int  R1GTOs::max_n() const {
     int maxn(0);
     for(CIt it = this->gtos_.begin(); it != this->gtos_.end(); ++it)

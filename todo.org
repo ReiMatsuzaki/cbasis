@@ -106,7 +106,8 @@ c0 = gtos.correct_sign(eigvecs.col(0))
 ** Write Readme.md file
    symmolintについてまとめておく。
    
-** make file option
+** DONE make file option
+   CLOSED: [2016-03-27 Sun 11:52]
    高速バージョンと低速バージョンをコンパイルしたい。
    高速バージョンをコンパイルするときに、MultArray<F, N>の境界チェックを取り外したい。
    
@@ -137,7 +138,8 @@ for(vector<GTOPair>::const_iterator it = gtos.pair_begin(),
    対角化の関数名をどうにかしたい。
    
 * General
-** directory
+** DONE directory
+   CLOSED: [2016-03-27 Sun 11:52]
    build directoryをつくろうかな。
    
 ** memory allocation at one time

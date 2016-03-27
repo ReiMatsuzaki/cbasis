@@ -57,6 +57,7 @@ namespace l2func {
     void Add(dcomplex c, int n, dcomplex zeta);
     void Add(int n, dcomplex zeta);
     void Add(int n, const Eigen::VectorXcd& zs);    
+    void Set(int n, const Eigen::VectorXcd& zs);
     int max_n() const;
     void Normalize();
     void CalcMat(MatMap* res);

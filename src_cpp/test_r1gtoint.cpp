@@ -1,4 +1,5 @@
 #include <iostream>
+#include <Eigen/Dense>
 #include <gtest/gtest.h>
 
 #include "eigen_plus.hpp"
@@ -106,6 +107,124 @@ TEST_F(TestR1GTOs, vector_sto) {
     EXPECT_C_EQ(ref, res["m"](i));
   }
   
+}
+dcomplex CalcAlpha(dcomplex z_shift) {
+
+  R1GTOs gtos(1);
+  VectorXcd zs(15);  
+  zs << 0.463925,
+    1.202518,
+    3.379649,
+    10.6072,
+    38.65163,
+    173.5822,
+    1170.498,
+    0.16934112166516593 + z_shift,
+    0.08989389391311804 + z_shift,
+    0.055610873913491725 + z_shift,
+    0.03776599632952126 + z_shift,
+    0.02731159914174668 + z_shift,
+    0.020665855224060142 + z_shift,
+    0.016180602421004654 + z_shift,
+    0.013011569667967734 + z_shift;
+  gtos.Add(2, zs);
+  gtos.Normalize();
+
+  R1STOs driv;
+  driv.Add(2.0, 2, 1.0);
+
+  MatMap mat;
+  gtos.CalcMat(&mat);
+
+  VecMap vec;
+  gtos.CalcVecSTO(driv, &vec);
+
+  MatrixXcd L = mat["t"] + mat["v"] - 0.5 * mat["s"];
+  dcomplex a = (vec["m"].array() *
+		(L.fullPivLu().solve(vec["m"])).array()).sum();
+  //dcomplex a = vec["m"].dot(L.fullPivLu().solve(vec["m"]));
+  return a;
+
+}
+dcomplex CalcAlpha(R1GTOs& gtos, R1STOs& driv,
+		   MatMap& mat, VecMap& vec, MatrixXcd& L, VectorXcd c,
+		   dcomplex z_shift) {
+
+  VectorXcd zs(15);  
+  zs << 0.463925,
+    1.202518,
+    3.379649,
+    10.6072,
+    38.65163,
+    173.5822,
+    1170.498,
+    0.16934112166516593 + z_shift,
+    0.08989389391311804 + z_shift,
+    0.055610873913491725 + z_shift,
+    0.03776599632952126 + z_shift,
+    0.02731159914174668 + z_shift,
+    0.020665855224060142 + z_shift,
+    0.016180602421004654 + z_shift,
+    0.013011569667967734 + z_shift;
+  gtos.Set(2, zs);
+  gtos.Normalize();
+
+  gtos.CalcMat(&mat);
+  gtos.CalcVecSTO(driv, &vec);
+
+  L = mat["t"] + mat["v"] - 0.5 * mat["s"];
+  c = L.fullPivLu().solve(vec["m"]);
+  dcomplex a = (c.array() * vec["m"].array()).sum();
+  //dcomplex a = vec["m"].dot(L.fullPivLu().solve(vec["m"]));
+  return a;
+
+}
+TEST(OptAlpha, ShiftKaufmann) {
+
+  // 2016/3/26
+  // ARCH=fast
+  // 258ms
+
+  R1GTOs gtos(1);
+  
+  int max_iter(100);
+  dcomplex h(0.0001);
+  dcomplex ih(0.0, 0.0001);
+  dcomplex ii(0.0, 1.0);
+  double eps(0.000001);
+
+  dcomplex z_shift(0.0, -0.02);
+  
+  int i(0);
+  dcomplex alpha;
+  for(i = 0; i < max_iter; i++) {
+
+    alpha = CalcAlpha(z_shift);
+    dcomplex ap0 = CalcAlpha(z_shift + h);
+    dcomplex am0 = CalcAlpha(z_shift - h);
+    dcomplex a0p = CalcAlpha(z_shift + ih);
+    dcomplex a0m = CalcAlpha(z_shift - ih);
+
+    dcomplex grad = (ap0 - am0 + ii*a0m - ii*a0p) / (4.0 * h);
+    dcomplex hess = (ap0 + am0 - a0p - a0m) / (2.0*h*h);
+
+    dcomplex dz(grad/hess);
+    z_shift -= dz;
+
+    if(abs(grad) < eps && abs(dz) < eps) {
+      break;
+    }
+  }
+
+  // -- from 2016/3/25
+  // -- -0.00293368-0.0204361j 
+  
+  EXPECT_TRUE(i < 90) << i;
+  dcomplex ref(-0.00293368, -0.0204361);
+  EXPECT_C_NEAR(ref, z_shift, eps*10);
+  dcomplex ref_alpha(dcomplex(-5.6568937518988989, 1.0882823480377297));
+  EXPECT_C_NEAR(ref_alpha, alpha, pow(10.0, -9.0));
+
 }
 TEST(TestHAtom, s_state) {
   
