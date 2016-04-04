@@ -49,12 +49,16 @@ namespace l2func {
     std::vector<R1GTO> gtos_;
     int L_;
     std::vector<dcomplex> buf_;
+    MatMap mat_;
+    VecMap vec_;
   public:
     R1GTOs(int _L);
     int L() const { return L_; }
     int size_basis() const { return gtos_.size();}
     const R1GTO& basis(int i) const { return gtos_[i]; }
     R1GTO& basis(int i) { return gtos_[i]; }
+    Eigen::MatrixXcd& mat(std::string label) { return mat_[label]; }
+    Eigen::VectorXcd& vec(std::string label) { return vec_[label]; }
     bool normalized_q() const { return normalized_q_; }
     void Add(dcomplex c, int n, dcomplex zeta);
     void Add(int n, dcomplex zeta);
@@ -64,11 +68,17 @@ namespace l2func {
     void Normalize();
     void Reserve();
     void Reserve(int n);
+  private:
     void CalcMat(MatMap* res);
     MatMap* CalcMatNew();
+  public:
+    void CalcMat();
+  private:
     void CalcVec(R1GTOs& o, VecMap* res);    
     void CalcVecSTO(const R1STOs&, VecMap* res);
     VecMap* CalcVecSTONew(const R1STOs&);
+  public:
+    void CalcVecSTO(const R1STOs&);    
     void AtR(const Eigen::VectorXcd&,
 	     const Eigen::VectorXcd&, Eigen::VectorXcd*);
     Eigen::VectorXcd* AtR(const Eigen::VectorXcd&,

@@ -184,6 +184,9 @@ namespace l2func {
     this->CalcMat(res);
     return res;
   }
+  void R1GTOs::CalcMat() {
+    this->CalcMat(&this->mat_);
+  }
   void R1GTOs::CalcVec(R1GTOs& o, VecMap* res) {
     
     if(!this->normalized_q())
@@ -238,6 +241,9 @@ namespace l2func {
     VecMap* res = new VecMap();
     this->CalcVecSTO(vs, res);
     return res;
+  }
+  void R1GTOs::CalcVecSTO(const R1STOs& o) {
+    this->CalcVecSTO(o, &this->vec_);
   }
   void R1GTOs::AtR(const VectorXcd& cs, const VectorXcd& rs,
 		   VectorXcd* ys) {

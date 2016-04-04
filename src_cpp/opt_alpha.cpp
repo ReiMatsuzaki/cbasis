@@ -20,58 +20,58 @@ namespace l2func {
     }
   }
 
-  dcomplex CalcAlpha(const R1STOs& driv,
-		     R1GTOs& gtos, dcomplex ene,
-		     MatMap& mat, VecMap& vec, double eps) {
-    
-    gtos.CalcMat(&mat);
-    gtos.CalcVecSTO(driv, &vec);
-    
+  dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos,
+		     dcomplex ene, double eps) {
+    gtos.CalcMat();
+    gtos.CalcVecSTO(driv);
     MatrixXcd X;
-    CanonicalMatrix(mat["s"], eps, &X);
-    MatrixXcd Lp = X.transpose()*(mat["t"] + mat["v"] - ene * mat["s"])*X;
-    VectorXcd m = X.transpose()*vec["m"];
+    CanonicalMatrix(gtos.mat("s"), eps, &X);
+    MatrixXcd Lp = (X.transpose() *
+		    (gtos.mat("t") + gtos.mat("v") - ene * gtos.mat("s")) *
+		    X);
+    VectorXcd m = X.transpose()*gtos.vec("m");
     dcomplex a = (m.array() *
 		  Lp.fullPivLu().solve(m).array()).sum();
   
     return a;
-  }
-  dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos,
-		     dcomplex ene, double eps) {
-    MatMap mat;
-    VecMap vec;
-    return CalcAlpha(driv, gtos, ene, mat, vec, eps);
-  }  
-  dcomplex CalcAlphaFull(const R1STOs& driv,R1GTOs& gtos,
-			 dcomplex ene,
-			 MatMap& mat, VecMap& vec) {
-    
-    gtos.CalcMat(&mat);
-    gtos.CalcVecSTO(driv, &vec);
 
-    dcomplex a = (vec["m"].array() *
-		  ((mat["t"] + mat["v"] - ene * mat["s"]).fullPivLu().solve(vec["m"])).array()).sum();
+  }  
+  dcomplex CalcAlphaFull(const R1STOs& driv,R1GTOs& gtos, dcomplex ene) {
+    
+    gtos.CalcMat();
+    gtos.CalcVecSTO(driv);
+
+    VectorXcd& m = gtos.vec("m");
+    MatrixXcd& t = gtos.mat("t");
+    MatrixXcd& v = gtos.mat("v");
+    MatrixXcd& s = gtos.mat("s");
+    
+    dcomplex a = (m.array() * 
+		  ((t+v-ene*s).fullPivLu().solve(m)).array()).sum();
     return a;
   }
 
   VectorXcd SolveAlpha(const R1STOs& driv,  R1GTOs& gtos, dcomplex ene, double eps) {
 
-    MatMap mat;
-    VecMap vec;
-    gtos.CalcMat(&mat);
-    gtos.CalcVecSTO(driv, &vec);
+    gtos.CalcMat();
+    gtos.CalcVecSTO(driv);
+
+    VectorXcd& m = gtos.vec("m");
+    MatrixXcd& t = gtos.mat("t");
+    MatrixXcd& v = gtos.mat("v");
+    MatrixXcd& s = gtos.mat("s");
 
     if(eps > pow(10.0, -14.0)) {
       MatrixXcd X;
-      CanonicalMatrix(mat["s"], eps, &X);
+      CanonicalMatrix(s, eps, &X);
 
       MatrixXcd Lp = (X.transpose() *
-		      (mat["t"] + mat["v"] - ene * mat["s"]) *
+		      (t+v-ene*s) *
 		      X);
-      VectorXcd m = X.transpose() * vec["m"];
-      return X*Lp.fullPivLu().solve(m);
+      VectorXcd mp = X.transpose() * m;
+      return X*Lp.fullPivLu().solve(mp);
     } else {
-      return (mat["t"] + mat["v"] - ene * mat["s"]).fullPivLu().solve(vec["m"]);
+      return (t+v-ene*s).fullPivLu().solve(m);
     }
   }
 
@@ -86,9 +86,6 @@ namespace l2func {
 			 bool* convq,
 			 dcomplex* alpha) {
 
-    MatMap mat;
-    VecMap vec;
-    //    MatrixXcd L;
     VectorXcd zs0(gtos.size_basis());
     VectorXcd zs1(gtos.size_basis());
     dcomplex ih(0.0, h);
@@ -104,25 +101,19 @@ namespace l2func {
       dcomplex ap0, am0, a0p, a0m;
       VectorShift(zs0, zs1, opt_idx, z_shift + h);
       gtos.Set(2, zs1); gtos.Normalize();
-      ap0 = CalcAlphaFull(driv, gtos, ene, mat, vec);      
+      ap0 = CalcAlphaFull(driv, gtos, ene);
 
       VectorShift(zs0, zs1, opt_idx, z_shift - h);
       gtos.Set(2, zs1); gtos.Normalize();
-      am0 = CalcAlphaFull(driv, gtos, ene, mat, vec);	
+      am0 = CalcAlphaFull(driv, gtos, ene);
 
       VectorShift(zs0, zs1, opt_idx, z_shift + ih);
       gtos.Set(2, zs1); gtos.Normalize();
-      a0p = CalcAlphaFull(driv, gtos, ene, mat, vec);      
+      a0p = CalcAlphaFull(driv, gtos, ene);
 
       VectorShift(zs0, zs1, opt_idx, z_shift - ih);
       gtos.Set(2, zs1);       gtos.Normalize();
-      a0m = CalcAlphaFull(driv, gtos, ene, mat, vec);      
-
-      /*
-      VectorShift(zs0, zs1, opt_idx, z_shift);
-      gtos.Set(2, zs1); gtos.Normalize();
-      a00 = CalcAlpha(driv, gtos, mat, vec, 0.0);
-      */
+      a0m = CalcAlphaFull(driv, gtos, ene);
       
       dcomplex grad = (ap0 - am0 + ii*a0m - ii*a0p) / (4.0 * h);
       dcomplex hess = (ap0 + am0 - a0p - a0m) / (2.0*h*h);
@@ -138,7 +129,7 @@ namespace l2func {
 
     VectorShift(zs0, zs1, opt_idx, z_shift);
     gtos.Set(2, zs1); gtos.Normalize();
-    a00 = CalcAlphaFull(driv, gtos, ene, mat, vec);
+    a00 = CalcAlphaFull(driv, gtos, ene);
 
     *alpha = a00;
 
@@ -175,19 +166,19 @@ namespace l2func {
       dcomplex ap0, am0, a0p, a0m;
       VectorShift(zs0, zs1, opt_idx, z_shift + h);
       gtos.Set(2, zs1);
-      ap0 = CalcAlpha(driv, gtos, ene, mat, vec, eps_canonical);
+      ap0 = CalcAlpha(driv, gtos, ene, eps_canonical);
 
       VectorShift(zs0, zs1, opt_idx, z_shift - h);
       gtos.Set(2, zs1);
-      am0 = CalcAlpha(driv, gtos, ene, mat, vec, eps_canonical);
+      am0 = CalcAlpha(driv, gtos, ene, eps_canonical);
 
       VectorShift(zs0, zs1, opt_idx, z_shift + ih);
       gtos.Set(2, zs1);
-      a0p = CalcAlpha(driv, gtos, ene, mat, vec, eps_canonical);	
+      a0p = CalcAlpha(driv, gtos, ene, eps_canonical);	
 
       VectorShift(zs0, zs1, opt_idx, z_shift - ih);
       gtos.Set(2, zs1);      
-      a0m = CalcAlpha(driv, gtos, ene, mat, vec, eps_canonical);	
+      a0m = CalcAlpha(driv, gtos, ene, eps_canonical);	
       
       dcomplex grad = (ap0 - am0 + ii*a0m - ii*a0p) / (4.0 * h);
       dcomplex hess = (ap0 + am0 - a0p - a0m) / (2.0*h*h);
@@ -202,8 +193,7 @@ namespace l2func {
     *convq = (i < max_iter-2);
     VectorShift(zs0, zs1, opt_idx, z_shift);
     gtos.Set(2, zs1);
-    *alpha = CalcAlpha(driv, gtos, ene, mat, vec, 0.0);;
-
+    *alpha = CalcAlpha(driv, gtos, ene, 0.0);;
 
   }
 
