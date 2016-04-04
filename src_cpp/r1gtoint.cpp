@@ -61,20 +61,26 @@ namespace l2func {
     return out;
   }
 
-  R1GTOs::R1GTOs(int _L): normalized_q_(false), L_(_L) {
+  R1GTOs::R1GTOs(int _L): normalized_q_(false), calc_mat_q_(false), calc_vec_q_(false), L_(_L) {
     buf_.reserve(1);
   }
   void R1GTOs::Add(dcomplex c, int _n, dcomplex _zeta) {
     this->normalized_q_ = false;
+    this->calc_mat_q_ = false;
+    this->calc_vec_q_ = false;
     gtos_.push_back(R1GTO(c, _n, _zeta));
   }
   void R1GTOs::Add(int _n, dcomplex _zeta) {
     this->normalized_q_ = false;
+    this->calc_mat_q_ = false;
+    this->calc_vec_q_ = false;
     gtos_.push_back(R1GTO(1.0, _n, _zeta));
   }
   void R1GTOs::Add(int n, const VectorXcd& zs) {
 
     this->normalized_q_ = false;
+    this->calc_mat_q_ = false;
+    this->calc_vec_q_ = false;
     for(int i = 0; i < zs.size(); i++) {
       this->Add(n, zs[i]);
     }
@@ -95,7 +101,27 @@ namespace l2func {
     }
 
     this->normalized_q_ = false;
+    this->calc_mat_q_ = false;
+    this->calc_vec_q_ = false;
 
+  }
+  MatrixXcd& R1GTOs::mat(string label) {
+
+    if(!this->calc_mat_q_) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": matrix is calculated yet.";
+      throw runtime_error(msg);
+    }
+
+    return mat_[label];
+  }
+  VectorXcd& R1GTOs::vec(string label) {
+    if(!this->calc_vec_q_) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": vector is calculated yet.";
+      throw runtime_error(msg);
+    }
+    return vec_[label];
   }
   int  R1GTOs::max_n() const {
     int maxn(0);
@@ -125,8 +151,7 @@ namespace l2func {
       buf_.reserve(n);
 
   }
-  void R1GTOs::CalcMat(MatMap* res) {
-
+  void R1GTOs::CalcMat() {
     if(!this->normalized_q())
       this->Normalize();
 
@@ -135,16 +160,16 @@ namespace l2func {
     dcomplex* gs = &buf_[0];
     int num = size_basis();    
 
-    if(res->find("s") == res->end())
-      (*res)["s"] = MatrixXcd::Zero(num, num);
-    if(res->find("t") == res->end())
-      (*res)["t"] = MatrixXcd::Zero(num, num);
-    if(res->find("v") == res->end())
-      (*res)["v"] = MatrixXcd::Zero(num, num);
+    if(mat_.find("s") == mat_.end())
+      mat_["s"] = MatrixXcd::Zero(num, num);
+    if(mat_.find("t") == mat_.end())
+      mat_["t"] = MatrixXcd::Zero(num, num);
+    if(mat_.find("v") == mat_.end())
+      mat_["v"] = MatrixXcd::Zero(num, num);
 
-    MatrixXcd& s = (*res)["s"];
-    MatrixXcd& t = (*res)["t"];
-    MatrixXcd& v = (*res)["v"];
+    MatrixXcd& s = mat_["s"];
+    MatrixXcd& t = mat_["t"];
+    MatrixXcd& v = mat_["v"];
     
     for(int i = 0; i < num; i++) {
       for(int j = i; j < num; j++) {
@@ -177,17 +202,9 @@ namespace l2func {
       }
     }
 
-    // delete[] gs;
+    this->calc_mat_q_ = true;
   }
-  MatMap* R1GTOs::CalcMatNew() {
-    MatMap* res = new MatMap();
-    this->CalcMat(res);
-    return res;
-  }
-  void R1GTOs::CalcMat() {
-    this->CalcMat(&this->mat_);
-  }
-  void R1GTOs::CalcVec(R1GTOs& o, VecMap* res) {
+  void R1GTOs::CalcVec(const R1GTOs& o) {
     
     if(!this->normalized_q())
       this->Normalize();
@@ -198,10 +215,10 @@ namespace l2func {
 
     int num(this->size_basis());
 
-    if(res->find("m") == res->end())
-      (*res)["m"] = VectorXcd::Zero(num);
+    if(vec_.find("m") == vec_.end())
+      vec_["m"] = VectorXcd::Zero(num);
 
-    VectorXcd& m = (*res)["m"];
+    VectorXcd& m = vec_["m"];
 
     for(int i = 0; i < num; i++) {
       m[i] = 0.0;
@@ -214,19 +231,19 @@ namespace l2func {
 	m[i] += c * gs[n];
       }      
     }
-
-    (*res)["m"] = MatrixXcd::Zero(1, 1);
-    (*res)["m"].swap(m);
+    
+    calc_vec_q_ = true;
+    
   }
-  void R1GTOs::CalcVecSTO(const R1STOs& o, VecMap* res) {
+  void R1GTOs::CalcVec(const R1STOs& o) {
 
     if(!this->normalized_q())
       this->Normalize();
 
     int num(this->size_basis());
-    if(res->find("m") == res->end())
-      (*res)["m"] = VectorXcd::Zero(num);
-    VectorXcd& m = (*res)["m"];
+    if(vec_.find("m") == vec_.end())
+      vec_["m"] = VectorXcd::Zero(num);
+    VectorXcd& m = vec_["m"];
 
     for(int i = 0; i < this->size_basis(); i++) {
       m(i) = 0.0;
@@ -236,14 +253,9 @@ namespace l2func {
 	m(i) += c * STO_GTO_Int(o.basis(j).z, this->basis(i).z, n);
       }
     }
-  }
-  VecMap* R1GTOs::CalcVecSTONew(const R1STOs& vs) {
-    VecMap* res = new VecMap();
-    this->CalcVecSTO(vs, res);
-    return res;
-  }
-  void R1GTOs::CalcVecSTO(const R1STOs& o) {
-    this->CalcVecSTO(o, &this->vec_);
+
+    calc_vec_q_ = true;
+
   }
   void R1GTOs::AtR(const VectorXcd& cs, const VectorXcd& rs,
 		   VectorXcd* ys) {

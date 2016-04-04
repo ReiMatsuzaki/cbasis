@@ -23,7 +23,7 @@ namespace l2func {
   dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos,
 		     dcomplex ene, double eps) {
     gtos.CalcMat();
-    gtos.CalcVecSTO(driv);
+    gtos.CalcVec(driv);
     MatrixXcd X;
     CanonicalMatrix(gtos.mat("s"), eps, &X);
     MatrixXcd Lp = (X.transpose() *
@@ -39,7 +39,7 @@ namespace l2func {
   dcomplex CalcAlphaFull(const R1STOs& driv,R1GTOs& gtos, dcomplex ene) {
     
     gtos.CalcMat();
-    gtos.CalcVecSTO(driv);
+    gtos.CalcVec(driv);
 
     VectorXcd& m = gtos.vec("m");
     MatrixXcd& t = gtos.mat("t");
@@ -54,7 +54,7 @@ namespace l2func {
   VectorXcd SolveAlpha(const R1STOs& driv,  R1GTOs& gtos, dcomplex ene, double eps) {
 
     gtos.CalcMat();
-    gtos.CalcVecSTO(driv);
+    gtos.CalcVec(driv);
 
     VectorXcd& m = gtos.vec("m");
     MatrixXcd& t = gtos.mat("t");

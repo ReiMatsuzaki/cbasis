@@ -56,6 +56,20 @@ TEST_F(TestR1GTOs, add) {
   EXPECT_C_EQ(dcomplex(0.2, 0.3), gtos.basis(3).z);
 
 }
+TEST_F(TestR1GTOs, Exception) {
+
+  EXPECT_ANY_THROW(gtos.mat("s"));
+  EXPECT_ANY_THROW(gtos.vec("m"));
+
+  gtos.CalcMat();
+  R1STOs stos;
+  stos.Add(1.1, 2, dcomplex(0.1, 0.01));
+  gtos.CalcVec(stos);
+
+  EXPECT_NO_THROW(gtos.mat("s"));
+  EXPECT_NO_THROW(gtos.vec("m"));
+
+}
 TEST_F(TestR1GTOs, max_n) {
   EXPECT_EQ(4, gtos.max_n());
 }
@@ -99,7 +113,7 @@ TEST_F(TestR1GTOs, vector_sto) {
   ss.push_back(  CSTO( 0.11, 3, 0.3));
   stos.Add(0.11, 3, 0.3);
 
-  gtos.CalcVecSTO(stos);
+  gtos.CalcVec(stos);
   for(int i = 0; i < 4; i++) {
     dcomplex ref = CIP(CNormalize(gs[i]),
 		       func_add_func(ss[0], ss[1]));
@@ -133,7 +147,7 @@ dcomplex CalcAlpha(dcomplex z_shift) {
   driv.Add(2.0, 2, 1.0);
 
   gtos.CalcMat();
-  gtos.CalcVecSTO(driv);
+  gtos.CalcVec(driv);
 
   MatrixXcd L = gtos.mat("t") + gtos.mat("v") -0.5* gtos.mat("s");
   VectorXcd& m = gtos.vec("m");
