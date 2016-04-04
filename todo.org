@@ -144,7 +144,8 @@ for(vector<GTOPair>::const_iterator it = gtos.pair_begin(),
 ** segmented contractions
    Contractionの計算をサポートしたい。
    
-** result in object
+** DONE result in object
+   CLOSED: [2016-04-04 Mon 21:39]
    計算結果や途中で使うオブジェクトを内部にとっておく。
    そうすれば、繰り返し計算にもすぐに対応できる。
    
