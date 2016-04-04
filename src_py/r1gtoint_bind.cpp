@@ -103,8 +103,9 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
     .def("basis",  &R1STOs::basis,
 	 return_internal_reference<>());
 
-  def("calc_alpha", (dcomplex (*)(const R1STOs&, R1GTOs&, double))CalcAlpha);
+  def("calc_alpha", (dcomplex (*)(const R1STOs&, R1GTOs&, dcomplex, double))CalcAlpha);
   def("opt_alpha_shift", OptAlphaShift_py);
+  def("solve_alpha", SolveAlpha);
   
   //def("print_c", print_c);
   //def("print_i", print_i);

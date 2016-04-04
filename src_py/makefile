@@ -39,6 +39,8 @@ check_l2: ${BINDIR}/l2func_bind.so
 	ln -s ${BINDIR}/l2func_bind.so .
 	python test.py
 	rm l2func_bind.so
+install_l2: ${BINDIR}/l2func_bind.so
+	cp $< ~/local/Python
 
 # ==== SymMolInt ====
 SYMMOLINT_OBJS=symmolint.o fact.o mol_func.o bmatset.o angmoment.o eigen_plus.o 
@@ -48,6 +50,10 @@ check_symmolint_bind: ${BINDIR}/symmolint_bind.so
 	ln -s ${BINDIR}/symmolint_bind.so .
 	python test_symmolint.py
 	rm symmolint_bind.so
+install_symmolint: ${BINDIR}/symmolint_bind.so
+	cp $< ~/local/Python/
+	cp symmolint_plus.py ~/local/Python/
+	cp symmolint.py ~/local/Python/
 
 # ==== R1GTOs ====
 R1GTOINT_OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o \
@@ -59,8 +65,8 @@ check_r1gtoint: ${BINDIR}/r1gtoint_bind.so
 	ln -s ${BINDIR}/r1gtoint_bind.so .
 	python test_r1gtoint.py
 	rm r1gtoint_bind.so
-install_r1gtoint: r1gtoint_bind.so
-	cp r1gtoint_bind.so ~/local/Python/
+install_r1gtoint: ${BINDIR}/r1gtoint_bind.so
+	cp ${BINDIR}/r1gtoint_bind.so ~/local/Python/
 	cp r1gtoint.py ~/local/Python/
 
 # ==== operation ====

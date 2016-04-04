@@ -93,6 +93,31 @@ class Test_r1gtos(unittest.TestCase):
         self.assertAlmostEqual(shift_ref, z_shift, places=4);
         alpha_ref = -5.6568937518988989+1.0882823480377297j
         self.assertAlmostEqual(alpha_ref, alpha)
+
+    def test_solve_alpha(self):
+        gs = R1GTOs(1)
+        zs = [0.463925,
+              1.202518,
+              3.379649,
+              10.6072,
+              38.65163,
+              173.5822,
+              1170.498,
+              0.16934112166516593 - 0.01j,
+              0.08989389391311804 - 0.01j,
+              0.05561087391349172 - 0.01j,
+              0.03776599632952126 - 0.01j,
+              0.02731159914174668 - 0.01j,
+              0.02066585522406014 - 0.01j,
+              0.01618060242100465 - 0.01j,
+              0.01301156966796773 - 0.01j]
+        gs.add(2, zs)
+        driv = R1STOs(); driv.add(2.0, 2, 1.0)
+        ref = calc_alpha(driv, gs, 0.57, 10.0**(-7))
+        cs = solve_alpha(driv, gs, 0.57, 10.0**(-7))
+        ms = gs.calc_vec(driv)
+        calc= sum([c*m for (c, m) in zip(np.array(cs), ms["m"])])
+        self.assertAlmostEqual(ref, calc)
         
  
 if __name__ == '__main__':

@@ -20,6 +20,12 @@ namespace l2func {
 		     dcomplex& z_shift,
 		     bool* convq,
 		     dcomplex* alpha);
+  /*
+    Compute coefficient for driven type equation.
+    Notice that calculation speed is not fast.
+   */
+  Eigen::VectorXcd SolveAlpha(const R1STOs& driv, R1GTOs& gtos, dcomplex ene, double eps);
+			      
   dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos, dcomplex ene, double eps);
 }
 #endif

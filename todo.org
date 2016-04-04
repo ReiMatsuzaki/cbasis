@@ -133,6 +133,21 @@ for(vector<GTOPair>::const_iterator it = gtos.pair_begin(),
 }
    #+end_src
    
+* R1GTOs
+** const
+   例えば、
+   R1GTOs::CalcMat
+   R1GTOs::CalcVec
+   がconstで使えない。
+   そのためには、Normalization指定なかったら、例外を出すバージョンを用意しないとだめだ。
+   
+** segmented contractions
+   Contractionの計算をサポートしたい。
+   
+** result in object
+   計算結果や途中で使うオブジェクトを内部にとっておく。
+   そうすれば、繰り返し計算にもすぐに対応できる。
+   
 * other
 ** rename eigen_plus.cpp
    対角化の関数名をどうにかしたい。

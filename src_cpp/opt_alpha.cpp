@@ -19,6 +19,7 @@ namespace l2func {
       zs_out[opt_idx[i]] += z_shift;
     }
   }
+
   dcomplex CalcAlpha(const R1STOs& driv,
 		     R1GTOs& gtos, dcomplex ene,
 		     MatMap& mat, VecMap& vec, double eps) {
@@ -51,6 +52,27 @@ namespace l2func {
     dcomplex a = (vec["m"].array() *
 		  ((mat["t"] + mat["v"] - ene * mat["s"]).fullPivLu().solve(vec["m"])).array()).sum();
     return a;
+  }
+
+  VectorXcd SolveAlpha(const R1STOs& driv,  R1GTOs& gtos, dcomplex ene, double eps) {
+
+    MatMap mat;
+    VecMap vec;
+    gtos.CalcMat(&mat);
+    gtos.CalcVecSTO(driv, &vec);
+
+    if(eps > pow(10.0, -14.0)) {
+      MatrixXcd X;
+      CanonicalMatrix(mat["s"], eps, &X);
+
+      MatrixXcd Lp = (X.transpose() *
+		      (mat["t"] + mat["v"] - ene * mat["s"]) *
+		      X);
+      VectorXcd m = X.transpose() * vec["m"];
+      return X*Lp.fullPivLu().solve(m);
+    } else {
+      return (mat["t"] + mat["v"] - ene * mat["s"]).fullPivLu().solve(vec["m"]);
+    }
   }
 
   void OptAlphaShiftFull(const R1STOs& driv,
