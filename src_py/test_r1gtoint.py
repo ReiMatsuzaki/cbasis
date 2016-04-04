@@ -5,6 +5,16 @@ from r1gtoint import *
 import unittest
 from minieigen import *
 
+class Test_Eigen(unittest.TestCase):
+    def setUp(self):
+        pass
+    
+    def test_print_matrixxi(self):
+        ivec = VectorXi.Zero(3)
+        ivec[0] = 1; ivec[1] = 2; ivec[2] = 3;
+        print_vectorxi(ivec)
+        print_vectorxi([4, 3, 3])
+
 class Test_r1gtos(unittest.TestCase):
     def setUp(self):
         self.gtos = R1GTOs(0)
@@ -44,6 +54,46 @@ class Test_r1gtos(unittest.TestCase):
         ys = gs.at_r([1.3], [1.1])[0]
         print ys
 
+    def test_opt_alpha_shift(self):
+        gs = R1GTOs(1)
+        zs = [0.463925,
+              1.202518,
+              3.379649,
+              10.6072,
+              38.65163,
+              173.5822,
+              1170.498,
+              0.16934112166516593,
+              0.08989389391311804,
+              0.055610873913491725,
+              0.03776599632952126,
+              0.02731159914174668,
+              0.020665855224060142,
+              0.016180602421004654,
+              0.013011569667967734]
+        gs.add(2, zs)
+        
+        driv = R1STOs(); driv.add(2.0, 2, 1.0)
+        
+        #opt_idx = np.array([7.0, 8, 9, 10, 11, 12, 13, 14]);
+        #opt_idx = np.array([7, 8, 9, 10, 11, 12, 13, 14]);
+        opt_idx = [7, 8, 9, 10, 11, 12, 13, 14];
+
+        h= 0.0001;
+        eps = 0.000001;
+        z_shift = 0.0-0.02j;
+        convq = False;
+        alpha = 0.0;
+        (convq, alpha, z_shift) = opt_alpha_shift(driv, opt_idx,
+                                                  0.5,
+		                                  h, 100, eps, 10.0**(-10), 
+		                                  gs, z_shift)
+        self.assertTrue(convq)
+        shift_ref = -0.00293368-0.0204361j
+        self.assertAlmostEqual(shift_ref, z_shift, places=4);
+        alpha_ref = -5.6568937518988989+1.0882823480377297j
+        self.assertAlmostEqual(alpha_ref, alpha)
+        
  
 if __name__ == '__main__':
     unittest.main()

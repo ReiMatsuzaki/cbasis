@@ -54,6 +54,7 @@ namespace l2func {
     int L() const { return L_; }
     int size_basis() const { return gtos_.size();}
     const R1GTO& basis(int i) const { return gtos_[i]; }
+    R1GTO& basis(int i) { return gtos_[i]; }
     bool normalized_q() const { return normalized_q_; }
     void Add(dcomplex c, int n, dcomplex zeta);
     void Add(int n, dcomplex zeta);

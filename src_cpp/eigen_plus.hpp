@@ -2,6 +2,7 @@
 #define EIGNN_PLUS_H
 
 #include <Eigen/Core>
+#include "typedef.hpp"
 
 namespace {
   typedef Eigen::MatrixXcd CM;
@@ -29,6 +30,7 @@ public:
   CV eigenvalues() const;
   CM eigenvectors() const;
 };
+
 
 
 

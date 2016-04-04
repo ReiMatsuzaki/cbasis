@@ -149,3 +149,7 @@ for(vector<GTOPair>::const_iterator it = gtos.pair_begin(),
    数値微分を計算するときにその都度、オブジェクトを作るのではなく、
    値の変更を駆使して確保したBuffer領域は変化しないようにする。
 
+** MatrixXi in minieign
+   on cpp side, argument written as
+   const MatrixXi& does not support
+   

@@ -4,7 +4,7 @@ $(shell mkdir -p ${BINDIR})
 
 ifeq (${ARCH},fast)
   # calculation speed
-  CXXFLAGS=${INC_PATH} -Wall -O3 
+  CXXFLAGS=${INC_PATH} -Wall -O3 -DARG_NO_CHECK -DEIGEN_NO_DEBUG
 endif
 ifeq (${ARCH},debug)
   # debug mode
@@ -58,7 +58,7 @@ check_l2: ${BINDIR}/test_l2
 
 
 # -- test r1gto --
-R1GTOINT_OBJS=test_r1gtoint.o r1gtoint.o l2.a eigen_plus.o
+R1GTOINT_OBJS=test_r1gtoint.o r1gtoint.o l2.a eigen_plus.o opt_alpha.o
 ${BINDIR}/test_r1gtoint: $(foreach o, ${R1GTOINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
 .PHONY: check_r1gtoint
