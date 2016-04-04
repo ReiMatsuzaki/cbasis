@@ -85,10 +85,11 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
     .def("normalize", &R1GTOs::Normalize)
     .def("basis",(R1GTO&(R1GTOs::*)(int))&R1GTOs::basis,
 	 return_internal_reference<>())
-    .def("calc_mat", &R1GTOs::CalcMatNew, 
-	 return_value_policy<manage_new_object>())
-    .def("calc_vec", &R1GTOs::CalcVecSTONew,
-	 return_value_policy<manage_new_object>())
+    .def("mat", &R1GTOs::mat, return_internal_reference<>())
+    .def("vec", &R1GTOs::vec, return_internal_reference<>())
+    .def("calc_mat", &R1GTOs::CalcMat)
+    .def("calc_vec", (void(R1GTOs::*)(const R1GTOs&))&R1GTOs::CalcVec)
+    .def("calc_vec", (void(R1GTOs::*)(const R1STOs&))&R1GTOs::CalcVec)
     .def(self_ns::str(self))
     .def(self_ns::repr(self))
     .def("at_r_cpp",

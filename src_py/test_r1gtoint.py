@@ -34,9 +34,9 @@ class Test_r1gtos(unittest.TestCase):
         self.assertAlmostEqual(1.3-0.1j, self.gtos.basis(2).z)
 
     def test_matrix(self):
-        res = self.gtos.calc_mat()
-        self.assertAlmostEqual(1.0, res["s"][0, 0])
-        self.assertAlmostEqual(1.0, res["s"][1, 1])
+        self.gtos.calc_mat()
+        self.assertAlmostEqual(1.0, self.gtos.mat("s")[0, 0])
+        self.assertAlmostEqual(1.0, self.gtos.mat("s")[1, 1])
 
     def test_vector(self):
         stos = R1STOs()
@@ -115,8 +115,8 @@ class Test_r1gtos(unittest.TestCase):
         driv = R1STOs(); driv.add(2.0, 2, 1.0)
         ref = calc_alpha(driv, gs, 0.57, 10.0**(-7))
         cs = solve_alpha(driv, gs, 0.57, 10.0**(-7))
-        ms = gs.calc_vec(driv)
-        calc= sum([c*m for (c, m) in zip(np.array(cs), ms["m"])])
+        gs.calc_vec(driv)
+        calc= sum([c*m for (c, m) in zip(np.array(cs), gs.vec("m"))])
         self.assertAlmostEqual(ref, calc)
         
  
