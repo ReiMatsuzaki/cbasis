@@ -1,22 +1,26 @@
 include local.mk
 ARCH=debug
 $(shell mkdir -p ${BINDIR})
+VALGRIND=valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no
 
 ifeq (${ARCH},fast)
   # calculation speed
   CXXFLAGS=${INC_PATH} -Wall -O3 -DARG_NO_CHECK -DEIGEN_NO_DEBUG
+  RUN=
 endif
 ifeq (${ARCH},debug)
   # debug mode
-  CXXFLAGS=${INC_PATH} -Wall -g 
+  CXXFLAGS=${INC_PATH} -Wall -g
+  RUN=VALGRIND
 endif
 ifeq (${ARCH},mem)
   # for memory check. (very slow)
   CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline -DARG_NO_CHECK -DEIGEN_NO_DEBUG
+  RUN=VALGRIND
 endif
 BINDIR=bin/${ARCH}
 
-VALGRIND=valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no
+
 
 SRCS:=$(wildcard *.cpp)
 DEPS:=$(SRCS:%.cpp=${BINDIR}/%.d)
@@ -63,7 +67,7 @@ ${BINDIR}/test_r1gtoint: $(foreach o, ${R1GTOINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
 .PHONY: check_r1gtoint
 check_r1gtoint: ${BINDIR}/test_r1gtoint
-	${VALGRIND} ./$<
+	${RUN} ./$<
 
 
 clean:

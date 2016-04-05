@@ -87,45 +87,38 @@ namespace l2func {
     return cumsum;
   }
   const R1GTO& R1GTOs::basis(int i) const {
+
     typedef vector<Contraction>::const_iterator ContIt;
+    int cumsum(0);
+
     for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
-      if(i < it->offset ) {
-	ContIt it0 = it - 1;
-	return it0->basis[i-it0->offset];
-      }
+      if(cumsum <= i && i < cumsum + it->size_prim() )
+	return it->basis[i-cumsum];
+      cumsum += it->size_prim();
     }
 
-    if(i < this->size_basis()) {
-      ContIt it = (conts_.end()-1);
-      return it->basis[i-it->offset];
-    } else {
-      string msg; SUB_LOCATION(msg);
-      ostringstream oss; 
-      oss << msg << endl << ": Failed to find index i." << endl;
-      oss << "i: " << i << endl;
-      throw runtime_error(oss.str());
-    }
+    string msg; SUB_LOCATION(msg);
+    ostringstream oss; 
+    oss << msg << endl << ": Failed to find index i." << endl;
+    oss << "i: " << i << endl;
+    throw runtime_error(oss.str());
     
   }
   R1GTO& R1GTOs::basis(int i) {
     typedef vector<Contraction>::iterator ContIt;
+    int cumsum(0);
+
     for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
-      if(i < it->offset ) {
-	ContIt it0 = it - 1;
-	return it0->basis[i-it0->offset];
-      }
+      if(cumsum <= i && i < cumsum + it->size_prim() )
+	return it->basis[i-cumsum];
+      cumsum += it->size_prim();
     }
 
-    if(i < this->size_basis()) {
-      ContIt it = (conts_.end()-1);
-      return it->basis[i-it->offset];
-    } else {
-      string msg; SUB_LOCATION(msg);
-      ostringstream oss; 
-      oss << msg << endl << ": Failed to find index i." << endl;
-      oss << "i: " << i << endl;
-      throw runtime_error(oss.str());
-    }
+    string msg; SUB_LOCATION(msg);
+    ostringstream oss; 
+    oss << msg << endl << ": Failed to find index i." << endl;
+    oss << "i: " << i << endl;
+    throw runtime_error(oss.str());
   }
   void R1GTOs::Add(dcomplex c, int _n, dcomplex _zeta) {
     this->normalized_q_ = false;
@@ -169,15 +162,15 @@ namespace l2func {
   }
   void R1GTOs::Set(int n, const Eigen::VectorXcd& zs) {
     
-    if(zs.size() != this->size_basis()) {
+    if(zs.size() != this->size_prim()) {
       string msg; SUB_LOCATION(msg);
       msg += ": size mismatch.";
       throw runtime_error(msg);
     }
 
+    int i(0);
     for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
 	it != end; ++it) {
-      int i(it->offset);
       for(vector<R1GTO>::iterator it_g = it->basis.begin(), end_g = it->basis.end();
 	  it_g != end_g; ++it_g, ++i) {
 	it_g->n = n;
@@ -226,24 +219,34 @@ namespace l2func {
   }
   void R1GTOs::Normalize() {
 
-    int maxn = this->max_n() + this->max_n() + 2 + 1;
-    this->Reserve(maxn);
-    dcomplex* gs = &buf_[0];
+    static MultArray<dcomplex, 1> m_prim_(20);
 
-    //    MultArray<dcomplex, 2> smat_prim(10*10);
+    int maxn = this->max_n() + this->max_n() + 2 + 1;
+    static vector<dcomplex> buf(maxn);
+    if((int)buf.capacity() < maxn)
+      buf.reserve(maxn);
+    dcomplex* gs = &buf[0];
 
     typedef vector<Contraction>::iterator ItCont;
     typedef vector<R1GTO>::iterator ItPrim;
 
     for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
-      for(ItPrim it_g = it->basis.begin(), end_g = it->basis.end();
-	  it_g != end_g; ++it_g) {
-	  
-	dcomplex z(it_g->z);
-	int n(it_g->n);
-	CalcGTOInt(2*n, 2.0*z, gs);
-	dcomplex norm2 = gs[n*2];
-	it_g->c = 1.0/sqrt(norm2);
+
+      for(int ibasis = 0; ibasis < it->size_basis(); ++ibasis) {
+	dcomplex norm2(0);
+	for(int i = 0; i < it->size_prim(); i++) {
+	  for(int j = 0; j < it->size_prim(); j++) {
+	    dcomplex c(it->coef(ibasis, i) * it->coef(ibasis, j));
+	    int      n(it->basis[i].n + it->basis[j].n);
+	    dcomplex z(it->basis[i].z + it->basis[j].z);
+	    CalcGTOInt(n, z, gs);
+	    norm2 += c*gs[n];
+	  }
+	}
+	dcomplex scale(1.0/sqrt(norm2));
+	for(int i = 0; i < it->size_prim(); i++) {
+	  it->coef(ibasis, i) *= scale;
+	}
       }
     }
 
@@ -259,9 +262,18 @@ namespace l2func {
     if(!this->normalized_q())
       this->Normalize();
 
+    static MultArray<dcomplex, 2> s_prim_(1000);
+    static MultArray<dcomplex, 2> t_prim_(1000);
+    static MultArray<dcomplex, 2> v_prim_(1000);
+
     int maxn = 2*this->max_n() + 2 + 1;
-    this->Reserve(maxn);
-    dcomplex* gs = &buf_[0];
+    // this->Reserve(maxn);
+    // dcomplex* gs = &buf_[0];
+    static vector<dcomplex> buf(maxn);
+    if((int)buf.capacity() < maxn)
+      buf.reserve(maxn);
+    dcomplex* gs = &buf[0];
+
     int num = size_basis();    
 
     if(mat_.find("s") == mat_.end())
@@ -278,83 +290,54 @@ namespace l2func {
     typedef vector<Contraction>::const_iterator ContIt;
     typedef vector<R1GTO>::const_iterator BasisIt;
     for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
-      if(it->basis.size() != 1) {
-	throw runtime_error("contraction!");
-      }
       for(ContIt jt = conts_.begin(); jt != end; ++jt) {
-	int i(it->offset);
-	for(BasisIt ib = it->basis.begin(), end_ib = it->basis.end();
-	    ib != end_ib; ++ib, ++i) {
-	  int j(jt->offset);
-	  for(BasisIt jb = jt->basis.begin(), end_jb = jt->basis.end();
-	      jb != end_jb; ++jb, ++j) {
-	    
-	    dcomplex cc(ib->c * jb->c);
-	    int      ni(ib->n);
-	    int      nj(jb->n);
-	    dcomplex zi(ib->z);
-	    dcomplex zj(jb->z);
 
-	    CalcGTOInt(ni+nj+2, zi+zj, gs);
+	s_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	t_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	v_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	for(int i = 0; i < it->size_prim(); i++) {
+	  for(int j = 0; j < jt->size_prim(); j++) {
 	    
-	    dcomplex sval = cc*gs[ni+nj];
+	    int      ni(it->basis[i].n);
+	    int      nj(jt->basis[j].n);
+	    dcomplex zi(it->basis[i].z);
+	    dcomplex zj(jt->basis[j].z);
+	    CalcGTOInt(ni+nj+2, zi+zj, gs);
+	    dcomplex sval = gs[ni+nj];
 	    dcomplex tval(0.0);
 	    tval -= zj * dcomplex(4*nj+2) * gs[ni+nj];
 	    if(ni+nj >= 2)
 	      tval += dcomplex(nj*nj-nj-L_*L_-L_) * gs[ni+nj-2];
 	    tval += 4.0*zj*zj*gs[ni+nj+2];
-	    tval *= -0.5*cc;
-	    dcomplex vval = -cc*gs[ni+nj-1];
-
+	    tval *= -0.5;
+	    dcomplex vval = -gs[ni+nj-1];
+	    s_prim_(i, j) = sval;
+	    v_prim_(i, j) = vval;
+	    t_prim_(i, j) = tval;
 	    
-	    s(i, j) = sval;
-	    t(i, j) = tval;
-	    v(i, j) = vval;
-	  
-	    if(i != j) {
-	      s(j, i) = sval;
-	      t(j, i) = tval;
-	      v(j, i) = vval;
-	    }
+	  }
+	}
 
+	int idx(it->offset);
+	for(int ib = 0; ib < it->size_basis(); ib++, idx++) {
+	  int jdx(jt->offset);
+	  for(int jb = 0; jb < jt->size_basis(); jb++, jdx++) {
+	    dcomplex s0(0), t0(0), v0(0);
+	    for(int i = 0; i < it->size_prim(); i++) {
+	      for(int j = 0; j < jt->size_prim(); j++) {
+		dcomplex cc(it->coef(ib, i) * jt->coef(jb, j));
+		s0 += cc * s_prim_(i, j);
+		t0 += cc * t_prim_(i, j);
+		v0 += cc * v_prim_(i, j);
+	      }
+	    }
+	    s(idx, jdx) = s0;
+	    t(idx, jdx) = t0;
+	    v(idx, jdx) = v0;
 	  }
 	}
       }
     }
-
-
-/*
-    for(int i = 0; i < num; i++) {
-      for(int j = i; j < num; j++) {
-	int ni(this->gtos_[i].n);
-	int nj(    this->gtos_[j].n);
-	dcomplex zi(this->gtos_[i].z);
-	dcomplex zj(this->gtos_[j].z);
-	dcomplex cc = this->gtos_[i].c * this->gtos_[j].c;
-
-	CalcGTOInt(ni+nj+2, zi+zj, gs);
-	
-	dcomplex sval = cc*gs[ni+nj];
-	dcomplex tval(0.0);
-	tval -= zj * dcomplex(4*nj+2) * gs[ni+nj];
-	if(ni+nj >= 2)
-	  tval += dcomplex(nj*nj-nj-L_*L_-L_) * gs[ni+nj-2];
-	tval += 4.0*zj*zj*gs[ni+nj+2];
-	tval *= -0.5*cc;
-	dcomplex vval = -cc*gs[ni+nj-1];
-
-	s(i, j) = sval;
-	t(i, j) = tval;
-	v(i, j) = vval;
-	  
-	if(i != j) {
-	  s(j, i) = sval;
-	  t(j, i) = tval;
-	  v(j, i) = vval;
-	}
-      }
-    }
-*/    
 
     this->calc_mat_q_ = true;
   }
@@ -364,8 +347,12 @@ namespace l2func {
       this->Normalize();
 
     int maxn = this->max_n() + o.max_n() + 1;
-    this->Reserve(maxn);
-    dcomplex* gs = &buf_[0];
+
+    static vector<dcomplex> buf(maxn);
+    if((int)buf.capacity() < maxn)
+      buf.reserve(maxn);
+    dcomplex* gs = &buf[0];
+
 
     int num(this->size_basis());
 
@@ -412,45 +399,43 @@ namespace l2func {
   }
   void R1GTOs::CalcVec(const R1STOs& o) {
 
+    static MultArray<dcomplex, 1> m_prim_(20);
+    
     if(!this->normalized_q())
       this->Normalize();
-
+    
     int num(this->size_basis());
     if(vec_.find("m") == vec_.end())
       vec_["m"] = VectorXcd::Zero(num);
     VectorXcd& m = vec_["m"];
+    
+    typedef vector<Contraction>::iterator ContIt;
+    for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
 
-    for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
-	it != end; ++it) {
-      if(it->basis.size() != 1) {
-	throw runtime_error("contraction!");
-      }
-      int i(it->offset);
-      for(vector<R1GTO>::iterator it_g = it->basis.begin(), end_g = it->basis.end();
-	  it_g != end_g; ++it_g, ++i) {
-	m(i) = 0.0;
+      int num_prim(it->size_prim());
+      m_prim_.SetRange(0, num_prim);
+      for(int i = 0; i < num_prim; i++ ) {
+	dcomplex cumsum(0);
 	for(int io = 0; io < o.size_basis(); io++ ) {
-	  dcomplex c(it_g->c * o.basis(io).c);
-	  int      n(it_g->n + o.basis(io).n);
-	  m(i) += c * STO_GTO_Int(o.basis(io).z, it_g->z, n);
+	  dcomplex c(o.basis(io).c);
+	  int      n(it->basis[i].n + o.basis(io).n);
+	  dcomplex z(it->basis[i].z);
+	  cumsum += c * STO_GTO_Int(o.basis(io).z, z, n);
+	}
+	m_prim_(i) = cumsum;
+
+	int idx(it->offset);
+	for(int ib = 0; ib < it->size_basis(); ib++, idx++) {
+	  dcomplex mval(0);
+	  for(int i = 0; i < it->size_prim(); i++) {
+	    dcomplex cc(it->coef(ib, i));
+	    mval += cc * m_prim_(i);
+	  }
+	  m(idx) = mval;
 	}
       }
     }
-
-
-    /*
-    for(int i = 0; i < this->size_basis(); i++) {
-      m(i) = 0.0;
-      for(int j = 0; j < o.size_basis(); ++j) {
-	int n(o.basis(j).n + this->basis(i).n);
-	dcomplex c(o.basis(j).c * this->basis(i).c);
-	m(i) += c * STO_GTO_Int(o.basis(j).z, this->basis(i).z, n);
-      }
-    }
-    */
-
     calc_vec_q_ = true;
-
   }
   void R1GTOs::AtR(const VectorXcd& cs, const VectorXcd& rs,
 		   VectorXcd* ys) {

@@ -16,6 +16,53 @@ namespace l2func {
   class MultArray {};
 
   template<class F>
+  class MultArray<F, 1> {
+  private:
+    static const int N = 1;
+    F* data_;
+    int data_num_;
+    int num_;
+    int n0_[N];
+    int n1_[N];
+  public:
+    MultArray(int _num) {
+      data_ = new F[_num];
+      data_num_ = _num;
+      num_ = _num;
+    }
+    ~MultArray() {
+      delete[] data_;
+    }
+    int size() const { return num_; }
+    void SetRange(int n0, int n1) {
+      n0_[0] = n0; n1_[0] = n1;
+      int num_ = n1-n0+1;
+      if(data_num_ < num_) {
+	delete[] data_;
+	data_num_ = num_;
+	data_ = new F[num_];
+      }
+    }
+    F& operator()(int nx) {
+      int index = nx - n0_[0];
+
+#ifndef ARG_NO_CHECK
+
+      if(index < 0   || num_-1 < index ||
+	 nx < n0_[0] || n1_[0] < nx) {
+	std::string msg; SUB_LOCATION(msg);
+	std::ostringstream oss;
+	oss << std::endl << msg;
+	oss << "index: (" << nx << ") "
+	   << index << std::endl;
+	throw std::runtime_error(oss.str());
+      }
+#endif
+    return data_[index];
+    }
+  };
+
+  template<class F>
   class MultArray<F, 2> {
   private:
     static const int N = 2;
@@ -61,7 +108,7 @@ namespace l2func {
 	throw std::runtime_error(msg);
       }
 #endif
-    return data_[index];
+      return data_[index];
     }
   };
 

@@ -59,34 +59,49 @@ TEST_F(TestR1GTOsCont, size) {
   EXPECT_EQ(1+3+2, gs0.size_prim());
   EXPECT_EQ(1+2+2, gs0.size_basis());
 }
+TEST_F(TestR1GTOsCont, basis) {
+
+  for(int i = 0; i < 5; i++) {
+    EXPECT_C_EQ(gs0.basis(i).z, gs1.basis(i).z)
+      << "i = " << i;
+  }
+
+}
 TEST_F(TestR1GTOsCont, set) {
   
-  VectorXcd zs(5); zs << 0.1, 0.2, 0.3, 0.4, 0.5;
+  VectorXcd zs(6); zs << 0.1, 0.2, 0.3, 0.4, 0.5, 0.6;
   gs0.Set(2, zs);
   EXPECT_C_EQ(0.1, gs0.basis(0).z);
   EXPECT_C_EQ(0.2, gs0.basis(1).z);
   EXPECT_C_EQ(0.3, gs0.basis(2).z);
   EXPECT_C_EQ(0.4, gs0.basis(3).z);
   EXPECT_C_EQ(0.5, gs0.basis(4).z);
+  EXPECT_C_EQ(0.6, gs0.basis(5).z);
 
 }
 TEST_F(TestR1GTOsCont, normalized) {
 
   gs0.Normalize();
   gs0.CalcMat();
-  for(int i = 0; i < 4; i++) {
-    EXPECT_C_EQ(1.0, gs0.mat("s")(0, 0));
+  for(int i = 0; i < gs0.size_basis(); i++) {
+    EXPECT_C_EQ(1.0, gs0.mat("s")(i, i))
+      << "i = " << i;
   }
 }
 TEST_F(TestR1GTOsCont, vec) {
 
-/*
   R1STOs driv; driv.Add(2.0, 2, 1.0);
   gs0.CalcVec(driv); gs1.CalcVec(driv);
-  EXPECT_EQ(4, gs0.vec("m").size());
+  EXPECT_EQ(5, gs0.vec("m").size());
 
   EXPECT_C_EQ(gs0.vec("m")(0), gs1.vec("m")(0));
-  */
+
+  /*
+  dcomplex mcalc = gs0.vec("m")(1);
+  dcomplex mref(0);
+  for(int i = 0; i < 3; i++)
+    mref += gs1.vec("m")(1+i);
+    */  
 
 }
 class TestR1GTOs : public ::testing::Test {
@@ -160,11 +175,6 @@ TEST_F(TestR1GTOs, max_n) {
   EXPECT_EQ(4, gtos.max_n());
 }
 TEST_F(TestR1GTOs, normalized) {
-
-  for(int i = 0; i < gtos.size_basis(); i++)
-    EXPECT_C_EQ(gtos.basis(i).c,
-		1.0/sqrt(GTO_Int(2.0*gtos.basis(i).z, 2*gtos.basis(i).n)))
-      << i;
 
   gtos.CalcMat();
   for(int i = 0; i < 4; i++)
@@ -258,7 +268,7 @@ TEST(OptAlpha, ShiftKaufmann) {
   dcomplex h(0.0001);
   dcomplex ih(0.0, 0.0001);
   dcomplex ii(0.0, 1.0);
-  double eps(0.000001);
+  double eps(0.000003);
 
   dcomplex z_shift(0.0, -0.02);
   
@@ -426,6 +436,32 @@ TEST(TestHAtom, s_state) {
   generalizedComplexEigenSolve(H, S, &c, &eig);
   EXPECT_C_NEAR(-0.5, eig(0), 0.0001);
   
+}
+TEST(TestHAtom, contraction) {
+
+  R1GTOs gtos(0);
+  VectorXcd zs(11);
+  for(int n = -5; n <= 5; n++)
+    zs(n + 5) = pow(2.0, n);
+
+  MatrixXcd coef = MatrixXcd::Zero(10, 11);
+  for(int i = 0; i < 10; i++) {
+    coef(i, i)   = 1;
+    coef(i, i+1) = 2;
+  }
+  
+  gtos.Add(1, zs, coef);
+  gtos.CalcMat();
+
+  MatrixXcd H = gtos.mat("t") + gtos.mat("v");
+  MatrixXcd S = gtos.mat("s");
+  
+  MatrixXcd c;
+  VectorXcd eig;
+  generalizedComplexEigenSolve(H, S, &c, &eig);
+  EXPECT_C_NEAR(-0.5, eig(0), 0.0001);
+
+
 }
 TEST(TestHAtom, p_state) {
 

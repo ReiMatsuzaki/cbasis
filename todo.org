@@ -162,7 +162,10 @@ struct {
    そうすれば、繰り返し計算にもすぐに対応できる。
    
 ** remove cip_int.hpp from r1gtoint.hpp
+** Rename basis_ -> prim_
+** add unittest for contraction
    
+** data size of MultArray in R1GTOs
 * other
 ** rename eigen_plus.cpp
    対角化の関数名をどうにかしたい。
@@ -182,4 +185,6 @@ struct {
 ** MatrixXi in minieign
    on cpp side, argument written as
    const MatrixXi& does not support
+   
+** implement boost/pool to MultArray
    

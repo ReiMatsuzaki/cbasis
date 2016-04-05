@@ -5,6 +5,7 @@
 #include <map>
 #include <Eigen/Core>
 #include "typedef.hpp"
+#include "mult_array.hpp"
 
 // TODO
 // CalcVecの引数をR1GTOsから、std::vector<R1GTO>に変更。
@@ -48,6 +49,8 @@ namespace l2func {
       std::vector<R1GTO> basis;
       Eigen::MatrixXcd    coef;
       int offset;
+      int size_prim() const { return coef.cols(); }
+      int size_basis() const { return coef.rows(); }
     };
   public:
     bool normalized_q_;       // basis is normalized or not

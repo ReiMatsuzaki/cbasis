@@ -18,6 +18,17 @@ using namespace std;
 using namespace l2func;
 using namespace Eigen;
 
+TEST(MultArray, MultArray1) {
+
+  MultArray<int, 1> xs(10);
+  xs.SetRange(-1, 3);
+  for(int i = -1; i <= 3; i++)
+    xs(i) = i*2;
+
+  for(int i = -1; i <= 3; i++)
+    EXPECT_EQ(i*2, xs(i));
+
+}
 TEST(MultArray, MultArray2) {
 
   MultArray<int, 2> xs(100);
