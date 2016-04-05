@@ -143,6 +143,18 @@ for(vector<GTOPair>::const_iterator it = gtos.pair_begin(),
    
 ** segmented contractions
    Contractionの計算をサポートしたい。
+
+   実装は大変かもしれない。
+   データ構造として、
+
+   Contraction classを導入しよう。
+   #+begin_src c++
+struct {
+    std::vector<R1GTO> gtos;
+    Eigen::MatrixXcd   coef;
+};
+   #+end_src
+   Contraction objectのVectorをR1GTOsが持てばいい。R1GTOsのAddはContraction
    
 ** DONE result in object
    CLOSED: [2016-04-04 Mon 21:39]

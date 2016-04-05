@@ -39,16 +39,21 @@ namespace l2func {
   typedef std::vector<R1GTO>::const_iterator CIt;
   typedef std::map<std::string, Eigen::VectorXcd> VecMap;
   class R1GTOs;
-  class R1STOs;
+  class R1STOs;  
 
   void CalcGTOInt(int maxn, dcomplex a, dcomplex* res);
-
+  
   class R1GTOs {
+    struct Contraction {
+      std::vector<R1GTO> basis;
+      Eigen::MatrixXcd    coef;
+    };
   public:
     bool normalized_q_;       // basis is normalized or not
     bool calc_mat_q_;         // matrix is calculated with current setting
     bool calc_vec_q_;         // vector is calculated with current setting
-    std::vector<R1GTO> gtos_; // basis functions
+    //std::vector<R1GTO> gtos_; // basis functions
+    std::vector<Contraction> conts_;
     int L_;      // angular quantum number
     std::vector<dcomplex> buf_; // calculation buffer
     MatMap mat_; // store calculation results
@@ -58,6 +63,7 @@ namespace l2func {
 
     // ---- Constructors ----
     R1GTOs(int _L);
+    void swap(R1GTOs& o);
 
     // ---- Utils ----
     void Reserve();
@@ -66,9 +72,9 @@ namespace l2func {
 
     // ---- Accessors -----
     int L() const { return L_; }
-    int size_basis() const { return gtos_.size();}
-    const R1GTO& basis(int i) const { return gtos_[i]; }
-    R1GTO& basis(int i) { return gtos_[i]; }
+    int size_basis() const;
+    const R1GTO& basis(int i) const { return conts_[0].basis[0]; }
+    R1GTO& basis(int i) { return conts_[0].basis[0]; }
     Eigen::MatrixXcd& mat(std::string label);
     Eigen::VectorXcd& vec(std::string label);
     bool normalized_q() const { return normalized_q_; }
@@ -86,7 +92,7 @@ namespace l2func {
 	     const Eigen::VectorXcd&, Eigen::VectorXcd*);
     Eigen::VectorXcd* AtR(const Eigen::VectorXcd&,
 			  const Eigen::VectorXcd&);
-    void swap(R1GTOs& o);
+    
   };
   class R1STOs {
   public:
