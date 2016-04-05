@@ -67,9 +67,7 @@ namespace l2func {
     normalized_q_(false),
     calc_mat_q_(false),
     calc_vec_q_(false),
-    L_(_L) {
-    buf_.reserve(1);
-  }
+    L_(_L) { }
   int R1GTOs::size_basis() const {
     int cumsum(0);
     for(vector<Contraction>::const_iterator it = conts_.begin(), end = conts_.end();
@@ -251,12 +249,6 @@ namespace l2func {
     }
 
     this->normalized_q_ = true;
-  }
-  void R1GTOs::Reserve(int n) {
-
-    if((int)buf_.capacity() < n)
-      buf_.reserve(n);
-
   }
   void R1GTOs::CalcMat() {
     if(!this->normalized_q())
@@ -445,30 +437,25 @@ namespace l2func {
       msg += ": \n size of cs must be equal to basis size";
       throw runtime_error(msg);
     }
-    
+
+    typedef vector<Contraction>::iterator ContIt;
+
     VectorXcd res = VectorXcd::Zero(rs.size());
     for(int i = 0; i < rs.size(); i++) {
       dcomplex r(rs[i]);
       dcomplex cumsum(0);
 
-      for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
-	it != end; ++it) {
-	int ib(it->offset);
-	for(vector<R1GTO>::iterator it_g = it->basis.begin(), end_g = it->basis.end();
-	    it_g != end_g; ++it_g, ++ib) {
-	  dcomplex c(it_g->c);
-	  int      n(it_g->n);
-	  dcomplex z(it_g->z);
-	  cumsum += cs[ib] * c * pow(r, n) * exp(-z*r*r);
+      for(ContIt it = conts_.begin(), end = conts_.end();
+	  it != end; ++it) {
+	for(int ib = 0; ib < it->size_basis(); ib++) {
+	  for(int ip = 0; ip < it->size_prim(); ip++) {
+	    dcomplex c(it->coef(ib, ip)); 
+	    int      n(it->basis[ip].n); 
+	    dcomplex z(it->basis[ip].z); 
+	    cumsum += cs[it->offset+ib] * c * pow(r, n) * exp(-z*r*r);
+	  }
 	}
       }
-
-	  /*
-      for(int ib = 0; ib < this->size_basis(); ib++) {
-	R1GTO b(basis(ib));
-	cumsum += cs[ib] * b.c * pow(r, b.n) * exp(-b.z*r*r);
-      }
-      */
       res(i) = cumsum;
     }
     ys->swap(res);

@@ -82,6 +82,7 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
     .def("add", (void(R1GTOs::*)(dcomplex,int,dcomplex))&R1GTOs::Add)
     .def("add", (void(R1GTOs::*)(int,dcomplex))&R1GTOs::Add)
     .def("add", (void(R1GTOs::*)(int,const VectorXcd&))&R1GTOs::Add)
+    .def("add", (void(R1GTOs::*)(int,const VectorXcd&, const MatrixXcd&))&R1GTOs::Add)
     .def("normalize", &R1GTOs::Normalize)
     .def("basis",(R1GTO&(R1GTOs::*)(int))&R1GTOs::basis,
 	 return_internal_reference<>())

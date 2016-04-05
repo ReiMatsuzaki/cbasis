@@ -423,7 +423,7 @@ TEST(OptAlpha, WithCanonical) {
 TEST(TestHAtom, s_state) {
   
   R1GTOs gtos(0);
-  for(int n = -5; n <= 5; n++)
+  for(int n = -10; n <= 10; n++)
     gtos.Add(1, pow(2.0, n));
   gtos.Normalize();
   gtos.CalcMat();
@@ -435,6 +435,12 @@ TEST(TestHAtom, s_state) {
   VectorXcd eig;
   generalizedComplexEigenSolve(H, S, &c, &eig);
   EXPECT_C_NEAR(-0.5, eig(0), 0.0001);
+
+  VectorXcd rs(1); rs << 1.1;
+  VectorXcd ys;
+  gtos.AtR(c.col(0), rs, &ys);
+  dcomplex r(rs[0]);
+  EXPECT_C_NEAR(2.0*r*exp(-r), ys[0], pow(10.0, -6.0));
   
 }
 TEST(TestHAtom, contraction) {

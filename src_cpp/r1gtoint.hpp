@@ -5,7 +5,6 @@
 #include <map>
 #include <Eigen/Core>
 #include "typedef.hpp"
-#include "mult_array.hpp"
 
 // TODO
 // CalcVecの引数をR1GTOsから、std::vector<R1GTO>に変更。
@@ -56,10 +55,8 @@ namespace l2func {
     bool normalized_q_;       // basis is normalized or not
     bool calc_mat_q_;         // matrix is calculated with current setting
     bool calc_vec_q_;         // vector is calculated with current setting
-    //std::vector<R1GTO> gtos_; // basis functions
     std::vector<Contraction> conts_;
     int L_;      // angular quantum number
-    std::vector<dcomplex> buf_; // calculation buffer
     MatMap mat_; // store calculation results
     VecMap vec_; // store calculation results
 
@@ -70,8 +67,6 @@ namespace l2func {
     void swap(R1GTOs& o);
 
     // ---- Utils ----
-    void Reserve();
-    void Reserve(int n);
     int max_n() const;
 
     // ---- Accessors -----
