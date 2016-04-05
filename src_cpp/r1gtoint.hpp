@@ -47,6 +47,7 @@ namespace l2func {
     struct Contraction {
       std::vector<R1GTO> basis;
       Eigen::MatrixXcd    coef;
+      int offset;
     };
   public:
     bool normalized_q_;       // basis is normalized or not
@@ -73,14 +74,16 @@ namespace l2func {
     // ---- Accessors -----
     int L() const { return L_; }
     int size_basis() const;
-    const R1GTO& basis(int i) const { return conts_[0].basis[0]; }
-    R1GTO& basis(int i) { return conts_[0].basis[0]; }
+    int size_prim() const;
+    const R1GTO& basis(int i) const;
+    R1GTO& basis(int i);
     Eigen::MatrixXcd& mat(std::string label);
     Eigen::VectorXcd& vec(std::string label);
     bool normalized_q() const { return normalized_q_; }
     void Add(dcomplex c, int n, dcomplex zeta);
     void Add(int n, dcomplex zeta);
     void Add(int n, const Eigen::VectorXcd& zs);    
+    void Add(int n, const Eigen::VectorXcd& zs, const Eigen::MatrixXcd& coef);
     void Set(int n, const Eigen::VectorXcd& zs);
 
     // ---- Calculation ----

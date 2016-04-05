@@ -45,7 +45,6 @@ namespace l2func {
     MatrixXcd& t = gtos.mat("t");
     MatrixXcd& v = gtos.mat("v");
     MatrixXcd& s = gtos.mat("s");
-    
     dcomplex a = (m.array() * 
 		  ((t+v-ene*s).fullPivLu().solve(m)).array()).sum();
     return a;

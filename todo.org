@@ -161,6 +161,8 @@ struct {
    計算結果や途中で使うオブジェクトを内部にとっておく。
    そうすれば、繰り返し計算にもすぐに対応できる。
    
+** remove cip_int.hpp from r1gtoint.hpp
+   
 * other
 ** rename eigen_plus.cpp
    対角化の関数名をどうにかしたい。

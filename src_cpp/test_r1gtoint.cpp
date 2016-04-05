@@ -28,7 +28,67 @@ TEST(calc_gto_int, value) {
   delete[] calc;
 
 }
+class TestR1GTOsCont : public ::testing::Test {
+public:
+  R1GTOs gs0;
+  R1GTOs gs1;
+  TestR1GTOsCont(): gs0(1), gs1(1) {
+    gs0.Add(2, dcomplex(1.1, 0.2)); gs1.Add(2, dcomplex(1.1, 0.2));
+    VectorXcd zs(3); zs << 2.1, dcomplex(0.1, 0.2), dcomplex(0.2, 0.3);
+    MatrixXcd cs(2, 3); 
+    cs <<
+      1, 1, 0,
+      1, 0, 2;
+    gs0.Add(2, zs, cs); gs1.Add(2, zs);
+    
+    gs0.Add(3, 0.3); gs1.Add(3, 0.3);
+    gs0.Add(3, 0.4); gs1.Add(3, 0.4);
+  }
+};
+TEST_F(TestR1GTOsCont, offset) {
 
+  EXPECT_EQ(4, gs0.conts_.size());
+
+  EXPECT_EQ(0, gs0.conts_[0].offset);
+  EXPECT_EQ(1, gs0.conts_[1].offset);
+  EXPECT_EQ(3, gs0.conts_[2].offset);
+  EXPECT_EQ(4, gs0.conts_[3].offset);
+
+}
+TEST_F(TestR1GTOsCont, size) {
+  EXPECT_EQ(1+3+2, gs0.size_prim());
+  EXPECT_EQ(1+2+2, gs0.size_basis());
+}
+TEST_F(TestR1GTOsCont, set) {
+  
+  VectorXcd zs(5); zs << 0.1, 0.2, 0.3, 0.4, 0.5;
+  gs0.Set(2, zs);
+  EXPECT_C_EQ(0.1, gs0.basis(0).z);
+  EXPECT_C_EQ(0.2, gs0.basis(1).z);
+  EXPECT_C_EQ(0.3, gs0.basis(2).z);
+  EXPECT_C_EQ(0.4, gs0.basis(3).z);
+  EXPECT_C_EQ(0.5, gs0.basis(4).z);
+
+}
+TEST_F(TestR1GTOsCont, normalized) {
+
+  gs0.Normalize();
+  gs0.CalcMat();
+  for(int i = 0; i < 4; i++) {
+    EXPECT_C_EQ(1.0, gs0.mat("s")(0, 0));
+  }
+}
+TEST_F(TestR1GTOsCont, vec) {
+
+/*
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  gs0.CalcVec(driv); gs1.CalcVec(driv);
+  EXPECT_EQ(4, gs0.vec("m").size());
+
+  EXPECT_C_EQ(gs0.vec("m")(0), gs1.vec("m")(0));
+  */
+
+}
 class TestR1GTOs : public ::testing::Test {
 public:
   R1GTOs gtos;
@@ -47,6 +107,15 @@ public:
 
   }
 };
+TEST_F(TestR1GTOs, offset) {
+
+  EXPECT_EQ(4, gtos.conts_.size());
+  EXPECT_EQ(0, gtos.conts_[0].offset);
+  EXPECT_EQ(1, gtos.conts_[1].offset);
+  EXPECT_EQ(2, gtos.conts_[2].offset);
+  EXPECT_EQ(3, gtos.conts_[3].offset);
+
+}
 TEST_F(TestR1GTOs, add) {
 
   EXPECT_EQ(4, gtos.size_basis());
@@ -54,6 +123,23 @@ TEST_F(TestR1GTOs, add) {
   EXPECT_EQ(  3                 , gtos.basis(1).n);
   EXPECT_C_EQ(dcomplex(0.1, 0.2), gtos.basis(2).z);
   EXPECT_C_EQ(dcomplex(0.2, 0.3), gtos.basis(3).z);
+
+}
+TEST_F(TestR1GTOs, set) {
+
+  EXPECT_EQ(4, gtos.size_basis());
+  VectorXcd zs(4); zs << 1.1, 1.2, 1.3, 1.4;
+  gtos.Set(5, zs);
+
+  EXPECT_EQ(5, gtos.basis(1).n);
+  EXPECT_C_EQ(1.1, gtos.basis(0).z);
+  EXPECT_C_EQ(1.2, gtos.basis(1).z);
+  EXPECT_C_EQ(1.3, gtos.basis(2).z);
+  EXPECT_C_EQ(1.4, gtos.basis(3).z);
+
+  VectorXcd zs1(5); zs1 << 1.1, 1.2, 1.3, 1.4, 1.2;
+  EXPECT_ANY_THROW(gtos.Set(4, zs1));
+
 
 }
 TEST_F(TestR1GTOs, Exception) {
@@ -83,6 +169,7 @@ TEST_F(TestR1GTOs, normalized) {
   gtos.CalcMat();
   for(int i = 0; i < 4; i++)
     EXPECT_C_EQ(1.0, gtos.mat("s")(i, i)) << i;
+
 }
 TEST_F(TestR1GTOs, matrix) {
 
@@ -101,6 +188,7 @@ TEST_F(TestR1GTOs, matrix) {
 			   CNormalize(gs[j]));
       EXPECT_C_EQ(vref, gtos.mat("v")(i, j)) << i << j;
     }
+
 }
 TEST_F(TestR1GTOs, vector_sto) {
 
@@ -142,6 +230,7 @@ dcomplex CalcAlpha(dcomplex z_shift) {
     0.013011569667967734 + z_shift;
   gtos.Add(2, zs);
   gtos.Normalize();
+  
 
   R1STOs driv;
   driv.Add(2.0, 2, 1.0);
@@ -193,6 +282,7 @@ TEST(OptAlpha, ShiftKaufmann) {
       break;
     }
   }
+  cout << i << endl;
 
   // -- from 2016/3/25
   // -- -0.00293368-0.0204361j 
@@ -203,7 +293,7 @@ TEST(OptAlpha, ShiftKaufmann) {
   dcomplex ref_alpha(dcomplex(-5.6568937518988989, 1.0882823480377297));
   EXPECT_C_NEAR(ref_alpha, alpha, pow(10.0, -9.0));
 }
-TEST(OptAlpha, WithoutCanonical) {
+TEST(OptAlpha, CalcAlpha) {
 
   R1GTOs gtos(1);
   VectorXcd zs(15);  
@@ -227,14 +317,45 @@ TEST(OptAlpha, WithoutCanonical) {
   R1STOs driv; driv.Add(2.0, 2, 1.0);
   VectorXi opt_idx(8);
   opt_idx << 7, 8, 9, 10, 11, 12, 13, 14;
+  
+  EXPECT_C_EQ(CalcAlpha(0.0),
+	      CalcAlphaFull(driv, gtos, 0.5));
+  
+
+}
+TEST(OptAlpha, WithoutCanonical) {
+
+  R1GTOs gtos(1);
+  VectorXcd zs(15);  
+  zs <<
+    0.463925,
+    1.202518,
+    3.379649,
+    10.6072,
+    38.65163,
+    173.5822,
+    1170.498,
+    0.16934112166516593,
+    0.08989389391311804,
+    0.055610873913491725,
+    0.03776599632952126,
+    0.02731159914174668,
+    0.020665855224060142,
+    0.016180602421004654,
+    0.013011569667967734;
+  gtos.Add(2, zs);
+
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  VectorXi opt_idx(8);
+  opt_idx << 7, 8, 9, 10, 11, 12, 13, 14;
 
   double h(0.0001);
-  double eps(0.000001);
+  double eps(0.000003);
   dcomplex z_shift(0.0, -0.02);
   bool convq;
   dcomplex alpha;
   OptAlphaShift(driv, opt_idx, 0.5,
-		h, 100, eps, /*pow(10.0, -8.0)*/ 0.0,
+		h, 20, eps, /*pow(10.0, -8.0)*/ 0.0,
 		gtos, z_shift, &convq, &alpha);
 
   // -- from 2016/3/25
@@ -272,7 +393,7 @@ TEST(OptAlpha, WithCanonical) {
   opt_idx << 7, 8, 9, 10, 11, 12, 13, 14;
 
   double h(0.0001);
-  double eps(0.000001);
+  double eps(0.000003);
   dcomplex z_shift(0.0, -0.02);
   bool convq;
   dcomplex alpha;

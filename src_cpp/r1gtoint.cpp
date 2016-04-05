@@ -3,6 +3,7 @@
 #include "r1gtoint.hpp"
 #include "macros.hpp"
 #include "cip_exp.hpp"
+#include "mult_array.hpp"
 
 using namespace Eigen;
 using namespace std;
@@ -62,16 +63,69 @@ namespace l2func {
     return out;
   }
 
-  R1GTOs::R1GTOs(int _L): normalized_q_(false), calc_mat_q_(false), calc_vec_q_(false), L_(_L) {
+  R1GTOs::R1GTOs(int _L):
+    normalized_q_(false),
+    calc_mat_q_(false),
+    calc_vec_q_(false),
+    L_(_L) {
     buf_.reserve(1);
   }
   int R1GTOs::size_basis() const {
     int cumsum(0);
     for(vector<Contraction>::const_iterator it = conts_.begin(), end = conts_.end();
 	it != end; ++it) {
-      cumsum += it->basis.size();
+      cumsum += it->coef.rows();
     }
     return cumsum;
+  }
+  int R1GTOs::size_prim() const {
+    int cumsum(0);
+    for(vector<Contraction>::const_iterator it = conts_.begin(), end = conts_.end();
+	it != end; ++it) {
+      cumsum += it->coef.cols();
+    }
+    return cumsum;
+  }
+  const R1GTO& R1GTOs::basis(int i) const {
+    typedef vector<Contraction>::const_iterator ContIt;
+    for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+      if(i < it->offset ) {
+	ContIt it0 = it - 1;
+	return it0->basis[i-it0->offset];
+      }
+    }
+
+    if(i < this->size_basis()) {
+      ContIt it = (conts_.end()-1);
+      return it->basis[i-it->offset];
+    } else {
+      string msg; SUB_LOCATION(msg);
+      ostringstream oss; 
+      oss << msg << endl << ": Failed to find index i." << endl;
+      oss << "i: " << i << endl;
+      throw runtime_error(oss.str());
+    }
+    
+  }
+  R1GTO& R1GTOs::basis(int i) {
+    typedef vector<Contraction>::iterator ContIt;
+    for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+      if(i < it->offset ) {
+	ContIt it0 = it - 1;
+	return it0->basis[i-it0->offset];
+      }
+    }
+
+    if(i < this->size_basis()) {
+      ContIt it = (conts_.end()-1);
+      return it->basis[i-it->offset];
+    } else {
+      string msg; SUB_LOCATION(msg);
+      ostringstream oss; 
+      oss << msg << endl << ": Failed to find index i." << endl;
+      oss << "i: " << i << endl;
+      throw runtime_error(oss.str());
+    }
   }
   void R1GTOs::Add(dcomplex c, int _n, dcomplex _zeta) {
     this->normalized_q_ = false;
@@ -81,6 +135,7 @@ namespace l2func {
     Contraction cont;
     cont.basis.push_back(R1GTO(c, _n, _zeta));
     cont.coef = MatrixXcd::Ones(1, 1);
+    cont.offset = this->size_basis();
     conts_.push_back(cont);
   }
   void R1GTOs::Add(int _n, dcomplex _zeta) {
@@ -93,6 +148,25 @@ namespace l2func {
     }
     
   }
+  void R1GTOs::Add(int n, const VectorXcd& zs, const MatrixXcd& coef) {
+
+    if(zs.size() != coef.cols()) {
+      string msg; SUB_LOCATION(msg);
+      throw runtime_error(msg);
+    }
+
+    this->normalized_q_ = false;
+    this->calc_mat_q_ = false;
+    this->calc_vec_q_ = false;
+
+    Contraction cont;
+    for(int i = 0; i < zs.size(); i++)
+      cont.basis.push_back(R1GTO(1, n, zs(i)));
+    cont.coef = coef;
+    cont.offset = this->size_basis();
+    this->conts_.push_back(cont);
+    
+  }
   void R1GTOs::Set(int n, const Eigen::VectorXcd& zs) {
     
     if(zs.size() != this->size_basis()) {
@@ -101,13 +175,13 @@ namespace l2func {
       throw runtime_error(msg);
     }
 
-    int idx(0);
     for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
 	it != end; ++it) {
+      int i(it->offset);
       for(vector<R1GTO>::iterator it_g = it->basis.begin(), end_g = it->basis.end();
-	  it_g != end_g; ++it_g) {
-	*it_g = R1GTO(1, n, zs[idx]);
-	++idx;
+	  it_g != end_g; ++it_g, ++i) {
+	it_g->n = n;
+	it_g->z = zs[i];
       }
     }
 
@@ -127,6 +201,7 @@ namespace l2func {
     return mat_[label];
   }
   VectorXcd& R1GTOs::vec(string label) {
+
     if(!this->calc_vec_q_) {
       string msg; SUB_LOCATION(msg);
       msg += ": vector is calculated yet.";
@@ -142,7 +217,8 @@ namespace l2func {
     for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
       for(BasisIt it_g = it->basis.begin(), end_g = it->basis.end();
 	  it_g != end_g; ++it_g) {
-	maxn += it_g->n;
+	if(maxn < it_g->n)
+	  maxn = it_g->n;
       }
     }
 
@@ -154,13 +230,15 @@ namespace l2func {
     this->Reserve(maxn);
     dcomplex* gs = &buf_[0];
 
-    for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
-	it != end; ++it) {
-      if(it->basis.size() != 1) {
-	throw runtime_error("contraction!");
-      }
-      for(vector<R1GTO>::iterator it_g = it->basis.begin(), end_g = it->basis.end();
+    //    MultArray<dcomplex, 2> smat_prim(10*10);
+
+    typedef vector<Contraction>::iterator ItCont;
+    typedef vector<R1GTO>::iterator ItPrim;
+
+    for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+      for(ItPrim it_g = it->basis.begin(), end_g = it->basis.end();
 	  it_g != end_g; ++it_g) {
+	  
 	dcomplex z(it_g->z);
 	int n(it_g->n);
 	CalcGTOInt(2*n, 2.0*z, gs);
@@ -199,17 +277,17 @@ namespace l2func {
 
     typedef vector<Contraction>::const_iterator ContIt;
     typedef vector<R1GTO>::const_iterator BasisIt;
-    int i(0);
-    int j(0);
     for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
       if(it->basis.size() != 1) {
 	throw runtime_error("contraction!");
       }
       for(ContIt jt = conts_.begin(); jt != end; ++jt) {
+	int i(it->offset);
 	for(BasisIt ib = it->basis.begin(), end_ib = it->basis.end();
-	    ib != end_ib; ++ib) {
+	    ib != end_ib; ++ib, ++i) {
+	  int j(jt->offset);
 	  for(BasisIt jb = jt->basis.begin(), end_jb = jt->basis.end();
-	    jb != end_jb; ++jb) {
+	      jb != end_jb; ++jb, ++j) {
 	    
 	    dcomplex cc(ib->c * jb->c);
 	    int      ni(ib->n);
@@ -228,6 +306,7 @@ namespace l2func {
 	    tval *= -0.5*cc;
 	    dcomplex vval = -cc*gs[ni+nj-1];
 
+	    
 	    s(i, j) = sval;
 	    t(i, j) = tval;
 	    v(i, j) = vval;
@@ -341,20 +420,20 @@ namespace l2func {
       vec_["m"] = VectorXcd::Zero(num);
     VectorXcd& m = vec_["m"];
 
-    int i(0);
     for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
 	it != end; ++it) {
       if(it->basis.size() != 1) {
 	throw runtime_error("contraction!");
       }
+      int i(it->offset);
       for(vector<R1GTO>::iterator it_g = it->basis.begin(), end_g = it->basis.end();
-	  it_g != end_g; ++it_g) {
+	  it_g != end_g; ++it_g, ++i) {
+	m(i) = 0.0;
 	for(int io = 0; io < o.size_basis(); io++ ) {
 	  dcomplex c(it_g->c * o.basis(io).c);
 	  int      n(it_g->n + o.basis(io).n);
 	  m(i) += c * STO_GTO_Int(o.basis(io).z, it_g->z, n);
 	}
-	++i;
       }
     }
 
@@ -387,16 +466,15 @@ namespace l2func {
       dcomplex r(rs[i]);
       dcomplex cumsum(0);
 
-      int ib(0);
       for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
 	it != end; ++it) {
+	int ib(it->offset);
 	for(vector<R1GTO>::iterator it_g = it->basis.begin(), end_g = it->basis.end();
-	    it_g != end_g; ++it_g) {
+	    it_g != end_g; ++it_g, ++ib) {
 	  dcomplex c(it_g->c);
 	  int      n(it_g->n);
 	  dcomplex z(it_g->z);
 	  cumsum += cs[ib] * c * pow(r, n) * exp(-z*r*r);
-	  ++ib;
 	}
       }
 
