@@ -44,13 +44,22 @@ namespace l2func {
   void CalcGTOInt(int maxn, dcomplex a, dcomplex* res);
   
   class R1GTOs {
+    struct Prim {
+      int n;
+      dcomplex z;
+      Prim(int _n, dcomplex _z) : n(_n), z(_z) {}
+    };
     struct Contraction {
-      std::vector<R1GTO> basis;
+      std::vector<Prim> basis;
       Eigen::MatrixXcd    coef;
       int offset;
       int size_prim() const { return coef.cols(); }
       int size_basis() const { return coef.rows(); }
     };
+    typedef std::vector<Prim>::iterator ItPrim;
+    typedef std::vector<Prim>::const_iterator cItPrim;
+    typedef std::vector<Contraction>::iterator ItCont;
+    typedef std::vector<Contraction>::const_iterator cItCont;
   public:
     bool normalized_q_;       // basis is normalized or not
     bool calc_mat_q_;         // matrix is calculated with current setting
@@ -73,12 +82,14 @@ namespace l2func {
     int L() const { return L_; }
     int size_basis() const;
     int size_prim() const;
-    const R1GTO& basis(int i) const;
-    R1GTO& basis(int i);
+    const Prim& basis(int i) const;    
+    Prim& basis(int i);
+    dcomplex z_prim(int i) { return this->basis(i).z; }
+    int      n_prim(int i) { return this->basis(i).n; }
     Eigen::MatrixXcd& mat(std::string label);
     Eigen::VectorXcd& vec(std::string label);
     bool normalized_q() const { return normalized_q_; }
-    void Add(dcomplex c, int n, dcomplex zeta);
+    //    void Add(dcomplex c, int n, dcomplex zeta);
     void Add(int n, dcomplex zeta);
     void Add(int n, const Eigen::VectorXcd& zs);    
     void Add(int n, const Eigen::VectorXcd& zs, const Eigen::MatrixXcd& coef);

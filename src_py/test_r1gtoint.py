@@ -28,10 +28,10 @@ class Test_r1gtos(unittest.TestCase):
         self.assertAlmostEqual(1.1-0.2j, stos[1].c)
 
     def test_add(self):
-        self.assertEqual(2, self.gtos.basis(0).n)
-        self.assertAlmostEqual(1.1, self.gtos.basis(0).z)
-        self.assertAlmostEqual(1.2, self.gtos.basis(1).z)
-        self.assertAlmostEqual(1.3-0.1j, self.gtos.basis(2).z)
+        self.assertEqual(2, self.gtos.n_prim(0))
+        self.assertAlmostEqual(1.1, self.gtos.z_prim(0))
+        self.assertAlmostEqual(1.2, self.gtos.z_prim(1))
+        self.assertAlmostEqual(1.3-0.1j, self.gtos.z_prim(2))
 
     def test_matrix(self):
         self.gtos.calc_mat()
@@ -50,7 +50,7 @@ class Test_r1gtos(unittest.TestCase):
 
     def test_at_r(self):
         gs = R1GTOs(0)
-        gs.add(1.1, 2, 1.2)
+        gs.add(2, 1.2)
         ys = gs.at_r([1.3], [1.1])[0]
         print ys
 

@@ -79,13 +79,12 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
     .def(map_indexing_suite<MatMap>());
 
   class_<R1GTOs>("R1GTOs", init<int>())
-    .def("add", (void(R1GTOs::*)(dcomplex,int,dcomplex))&R1GTOs::Add)
     .def("add", (void(R1GTOs::*)(int,dcomplex))&R1GTOs::Add)
     .def("add", (void(R1GTOs::*)(int,const VectorXcd&))&R1GTOs::Add)
     .def("add", (void(R1GTOs::*)(int,const VectorXcd&, const MatrixXcd&))&R1GTOs::Add)
+    .def("z_prim", &R1GTOs::z_prim)
+    .def("n_prim", &R1GTOs::n_prim)
     .def("normalize", &R1GTOs::Normalize)
-    .def("basis",(R1GTO&(R1GTOs::*)(int))&R1GTOs::basis,
-	 return_internal_reference<>())
     .def("mat", &R1GTOs::mat, return_internal_reference<>())
     .def("vec", &R1GTOs::vec, return_internal_reference<>())
     .def("calc_mat", &R1GTOs::CalcMat)
@@ -97,7 +96,7 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
        	 (VectorXcd*(R1GTOs::*)
 	  (const VectorXcd&, const VectorXcd&))&R1GTOs::AtR,
 	 return_value_policy<manage_new_object>());
-
+  
 
   class_<R1STOs>("R1STOs")
     .def("add",  (void(R1STOs::*)(dcomplex,int,dcomplex))&R1STOs::Add)

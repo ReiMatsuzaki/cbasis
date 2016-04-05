@@ -84,7 +84,7 @@ namespace l2func {
     }
     return cumsum;
   }
-  const R1GTO& R1GTOs::basis(int i) const {
+  const R1GTOs::Prim& R1GTOs::basis(int i) const {
 
     typedef vector<Contraction>::const_iterator ContIt;
     int cumsum(0);
@@ -102,7 +102,7 @@ namespace l2func {
     throw runtime_error(oss.str());
     
   }
-  R1GTO& R1GTOs::basis(int i) {
+  R1GTOs::Prim& R1GTOs::basis(int i) {
     typedef vector<Contraction>::iterator ContIt;
     int cumsum(0);
 
@@ -118,19 +118,15 @@ namespace l2func {
     oss << "i: " << i << endl;
     throw runtime_error(oss.str());
   }
-  void R1GTOs::Add(dcomplex c, int _n, dcomplex _zeta) {
+  void R1GTOs::Add(int _n, dcomplex _zeta) {
     this->normalized_q_ = false;
     this->calc_mat_q_ = false;
     this->calc_vec_q_ = false;
-
     Contraction cont;
-    cont.basis.push_back(R1GTO(c, _n, _zeta));
+    cont.basis.push_back(Prim(_n, _zeta));
     cont.coef = MatrixXcd::Ones(1, 1);
     cont.offset = this->size_basis();
-    conts_.push_back(cont);
-  }
-  void R1GTOs::Add(int _n, dcomplex _zeta) {
-    this->Add(1.0, _n, _zeta);
+    conts_.push_back(cont);    
   }
   void R1GTOs::Add(int n, const VectorXcd& zs) {
 
@@ -151,8 +147,8 @@ namespace l2func {
     this->calc_vec_q_ = false;
 
     Contraction cont;
-    for(int i = 0; i < zs.size(); i++)
-      cont.basis.push_back(R1GTO(1, n, zs(i)));
+    for(int i = 0; i < zs.size(); i++) 
+      cont.basis.push_back(Prim(n, zs(i)));
     cont.coef = coef;
     cont.offset = this->size_basis();
     this->conts_.push_back(cont);
@@ -169,10 +165,9 @@ namespace l2func {
     int i(0);
     for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
 	it != end; ++it) {
-      for(vector<R1GTO>::iterator it_g = it->basis.begin(), end_g = it->basis.end();
-	  it_g != end_g; ++it_g, ++i) {
-	it_g->n = n;
-	it_g->z = zs[i];
+      for(int ip = 0; ip < it->size_prim(); ip++, i++) {
+	it->basis[ip].n = n;
+	it->basis[ip].z = zs[i];
       }
     }
 
@@ -202,14 +197,12 @@ namespace l2func {
   }
   int  R1GTOs::max_n() const {
 
-    typedef vector<Contraction>::const_iterator ContIt;
-    typedef vector<R1GTO>::const_iterator BasisIt;
     int maxn(0);
-    for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
-      for(BasisIt it_g = it->basis.begin(), end_g = it->basis.end();
-	  it_g != end_g; ++it_g) {
-	if(maxn < it_g->n)
-	  maxn = it_g->n;
+    for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+      for(cItPrim it_p = it->basis.begin(), end_p = it->basis.end();
+	  it_p != end_p; ++it_p) {
+	if(maxn < it_p->n)
+	  maxn = it_p->n;
       }
     }
 
@@ -334,7 +327,10 @@ namespace l2func {
     this->calc_mat_q_ = true;
   }
   void R1GTOs::CalcVec(const R1GTOs& o) {
-    
+    string msg; SUB_LOCATION(msg);
+    msg += ": Not implemented yet";
+    throw runtime_error(msg);
+    /*
     if(!this->normalized_q())
       this->Normalize();
 
@@ -354,8 +350,7 @@ namespace l2func {
     VectorXcd& m = vec_["m"];
 
     int i(0);
-    for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
-	it != end; ++it) {
+    for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
       if(it->basis.size() != 1) {
 	throw runtime_error("contraction!");
       }
@@ -371,7 +366,7 @@ namespace l2func {
 	++i;
       }
     }
-    
+    */
     /*
     for(int i = 0; i < num; i++) {
       m[i] = 0.0;
@@ -489,7 +484,7 @@ namespace l2func {
 	<< (us.normalized_q() ? "Yes" : "No")
 	<< endl;
     for(int i = 0; i < us.size_basis(); ++i) {
-      out << us.basis(i) << endl;
+      out << us.basis(i).n << us.basis(i).z << endl;
     }
     return out;
   }

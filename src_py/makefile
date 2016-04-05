@@ -72,7 +72,7 @@ install_r1gtoint: ${BINDIR}/r1gtoint_bind.so
 # ==== operation ====
 .PHONY: clean
 clean:
-	rm -f ${BINDIR}
+	rm -r -f ${BINDIR}
 
 # ==== old ====
 check_gto3d: l2func_bind.so
