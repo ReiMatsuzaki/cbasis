@@ -2,17 +2,12 @@
 #include "fact.hpp"
 #include "lgamma.hpp"
 #include "erfc.hpp"
-#include "math_utils.hpp"
 
-namespace {
-  using namespace erfc_mori;
-}
+#include "exp_int.hpp"
+
+using namespace erfc_mori;
 
 namespace l2func {
-  const dcomplex operator*(const dcomplex& a, int b) {
-    return dcomplex(a.real() * b, a.imag() * b); }
-  const dcomplex operator*(int b, const dcomplex& a) {
-    return dcomplex(a.real() * b, a.imag() * b); }  
 
   int int_pow(int base, unsigned int expo) {
 
@@ -22,6 +17,10 @@ namespace l2func {
     return(acc);
     
   }
+  const dcomplex operator*(const dcomplex& a, int b) {
+    return dcomplex(a.real() * b, a.imag() * b); }
+  const dcomplex operator*(int b, const dcomplex& a) {
+    return dcomplex(a.real() * b, a.imag() * b); }  
 
   template<class F> F STO_Int(F z, int n) {
     return pow(z, -n-1.0) * DFactorial(n);

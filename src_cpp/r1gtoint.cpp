@@ -2,7 +2,7 @@
 #include <algorithm>
 #include "r1gtoint.hpp"
 #include "macros.hpp"
-#include "cip_exp.hpp"
+#include "exp_int.hpp"
 #include "mult_array.hpp"
 
 using namespace Eigen;

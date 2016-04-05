@@ -1,11 +1,6 @@
 #ifndef MATH_UTILS_TEMPLATE_H
 #define MATH_UTILS_TEMPLATE_H
 
-#include <complex>
-#include <sstream>
-#include <vector>
-#include "macros.hpp"
-
 namespace l2func {
 
   // -- to be removed

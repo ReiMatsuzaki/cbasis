@@ -4,17 +4,9 @@
 #include "exp_func.hpp"
 #include "cut_exp.hpp"
 #include "normal_exp.hpp"
+#include "exp_int.hpp"
 
 namespace l2func {
-
-  // ==== Calculation ====
-  // ---- ExpFunc----
-  template<class F> F STO_Int(F z, int n);
-  template<class F> F GTO_Int(F z, int n);
-  template<class F> F STO_GTO_Int(F as, F ag, int n);
-  
-  // ---- CutExp ----
-  template<class F> F CutSTO_Int(F z, int n, double r0);
   
   // ==== static dispatch ====
   // ---- ExpFunc ----

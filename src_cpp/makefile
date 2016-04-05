@@ -21,7 +21,6 @@ endif
 BINDIR=bin/${ARCH}
 
 
-
 SRCS:=$(wildcard *.cpp)
 DEPS:=$(SRCS:%.cpp=${BINDIR}/%.d)
 -include ${DEPS}
@@ -51,7 +50,7 @@ check_symmolint: ${BINDIR}/test_symmolint
 	${VALGRIND} ./$<
 
 # -- test L2(R1) --
-L2OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o cip_exp.o delta.o
+L2OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o exp_int.o delta.o
 ${BINDIR}/l2.a: $(foreach o, ${L2OBJS}, ${BINDIR}/$o)
 	ar r $@ $^
 ${BINDIR}/test_l2: ${BINDIR}/test_l2.o ${BINDIR}/l2.a
