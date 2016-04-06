@@ -141,7 +141,8 @@ for(vector<GTOPair>::const_iterator it = gtos.pair_begin(),
    がconstで使えない。
    そのためには、Normalization指定なかったら、例外を出すバージョンを用意しないとだめだ。
    
-** segmented contractions
+** DONE segmented contractions
+   CLOSED: [2016-04-06 Wed 09:46]
    Contractionの計算をサポートしたい。
 
    実装は大変かもしれない。
@@ -161,11 +162,16 @@ struct {
    計算結果や途中で使うオブジェクトを内部にとっておく。
    そうすれば、繰り返し計算にもすぐに対応できる。
    
-** remove cip_int.hpp from r1gtoint.hpp
+** DONE remove cip_int.hpp from r1gtoint.hpp
+   CLOSED: [2016-04-06 Wed 09:46]
 ** Rename basis_ -> prim_
 ** add unittest for contraction
    
 ** data size of MultArray in R1GTOs
+** Symmetry consideration on CalcMat
+** Data structure
+   行列要素を計算するためのclassと単なる線形結合を明確に区別するべきか。
+   
 * other
 ** rename eigen_plus.cpp
    対角化の関数名をどうにかしたい。

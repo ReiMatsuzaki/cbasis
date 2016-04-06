@@ -92,7 +92,7 @@ namespace l2func {
     dcomplex a00;
 
     for(int i = 0; i < gtos.size_basis(); i++) {
-      zs0[i] = gtos.basis(i).z;
+      zs0[i] = gtos.prim(i).z;
     }
 
     int i(0);
@@ -157,7 +157,7 @@ namespace l2func {
     MatrixXcd L;
 
     for(int i = 0; i < gtos.size_basis(); i++) {
-      zs0[i] = gtos.basis(i).z;
+      zs0[i] = gtos.prim(i).z;
     }
 
     int i(0);

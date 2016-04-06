@@ -50,8 +50,8 @@ namespace l2func {
       Prim(int _n, dcomplex _z) : n(_n), z(_z) {}
     };
     struct Contraction {
-      std::vector<Prim> basis;
-      Eigen::MatrixXcd    coef;
+      std::vector<Prim> prim;
+      Eigen::MatrixXcd  coef;
       int offset;
       int size_prim() const { return coef.cols(); }
       int size_basis() const { return coef.rows(); }
@@ -82,10 +82,10 @@ namespace l2func {
     int L() const { return L_; }
     int size_basis() const;
     int size_prim() const;
-    const Prim& basis(int i) const;    
-    Prim& basis(int i);
-    dcomplex z_prim(int i) { return this->basis(i).z; }
-    int      n_prim(int i) { return this->basis(i).n; }
+    const Prim& prim(int i) const;    
+    Prim& prim(int i);
+    dcomplex z_prim(int i) { return this->prim(i).z; }
+    int      n_prim(int i) { return this->prim(i).n; }
     Eigen::MatrixXcd& mat(std::string label);
     Eigen::VectorXcd& vec(std::string label);
     bool normalized_q() const { return normalized_q_; }

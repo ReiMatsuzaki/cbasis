@@ -59,10 +59,10 @@ TEST_F(TestR1GTOsCont, size) {
   EXPECT_EQ(1+3+2, gs0.size_prim());
   EXPECT_EQ(1+2+2, gs0.size_basis());
 }
-TEST_F(TestR1GTOsCont, basis) {
+TEST_F(TestR1GTOsCont, prim) {
 
   for(int i = 0; i < 5; i++) {
-    EXPECT_C_EQ(gs0.basis(i).z, gs1.basis(i).z)
+    EXPECT_C_EQ(gs0.prim(i).z, gs1.prim(i).z)
       << "i = " << i;
   }
 
@@ -71,12 +71,12 @@ TEST_F(TestR1GTOsCont, set) {
   
   VectorXcd zs(6); zs << 0.1, 0.2, 0.3, 0.4, 0.5, 0.6;
   gs0.Set(2, zs);
-  EXPECT_C_EQ(0.1, gs0.basis(0).z);
-  EXPECT_C_EQ(0.2, gs0.basis(1).z);
-  EXPECT_C_EQ(0.3, gs0.basis(2).z);
-  EXPECT_C_EQ(0.4, gs0.basis(3).z);
-  EXPECT_C_EQ(0.5, gs0.basis(4).z);
-  EXPECT_C_EQ(0.6, gs0.basis(5).z);
+  EXPECT_C_EQ(0.1, gs0.prim(0).z);
+  EXPECT_C_EQ(0.2, gs0.prim(1).z);
+  EXPECT_C_EQ(0.3, gs0.prim(2).z);
+  EXPECT_C_EQ(0.4, gs0.prim(3).z);
+  EXPECT_C_EQ(0.5, gs0.prim(4).z);
+  EXPECT_C_EQ(0.6, gs0.prim(5).z);
 
 }
 TEST_F(TestR1GTOsCont, normalized) {
@@ -134,10 +134,10 @@ TEST_F(TestR1GTOs, offset) {
 TEST_F(TestR1GTOs, add) {
 
   EXPECT_EQ(4, gtos.size_basis());
-  EXPECT_C_EQ(dcomplex(1.1, 0.2), gtos.basis(0).z);
-  EXPECT_EQ(  3                 , gtos.basis(1).n);
-  EXPECT_C_EQ(dcomplex(0.1, 0.2), gtos.basis(2).z);
-  EXPECT_C_EQ(dcomplex(0.2, 0.3), gtos.basis(3).z);
+  EXPECT_C_EQ(dcomplex(1.1, 0.2), gtos.prim(0).z);
+  EXPECT_EQ(  3                 , gtos.prim(1).n);
+  EXPECT_C_EQ(dcomplex(0.1, 0.2), gtos.prim(2).z);
+  EXPECT_C_EQ(dcomplex(0.2, 0.3), gtos.prim(3).z);
 
 }
 TEST_F(TestR1GTOs, set) {
@@ -146,11 +146,11 @@ TEST_F(TestR1GTOs, set) {
   VectorXcd zs(4); zs << 1.1, 1.2, 1.3, 1.4;
   gtos.Set(5, zs);
 
-  EXPECT_EQ(5, gtos.basis(1).n);
-  EXPECT_C_EQ(1.1, gtos.basis(0).z);
-  EXPECT_C_EQ(1.2, gtos.basis(1).z);
-  EXPECT_C_EQ(1.3, gtos.basis(2).z);
-  EXPECT_C_EQ(1.4, gtos.basis(3).z);
+  EXPECT_EQ(5, gtos.prim(1).n);
+  EXPECT_C_EQ(1.1, gtos.prim(0).z);
+  EXPECT_C_EQ(1.2, gtos.prim(1).z);
+  EXPECT_C_EQ(1.3, gtos.prim(2).z);
+  EXPECT_C_EQ(1.4, gtos.prim(3).z);
 
   VectorXcd zs1(5); zs1 << 1.1, 1.2, 1.3, 1.4, 1.2;
   EXPECT_ANY_THROW(gtos.Set(4, zs1));

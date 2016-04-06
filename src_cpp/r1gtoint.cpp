@@ -84,14 +84,14 @@ namespace l2func {
     }
     return cumsum;
   }
-  const R1GTOs::Prim& R1GTOs::basis(int i) const {
+  const R1GTOs::Prim& R1GTOs::prim(int i) const {
 
     typedef vector<Contraction>::const_iterator ContIt;
     int cumsum(0);
 
     for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
       if(cumsum <= i && i < cumsum + it->size_prim() )
-	return it->basis[i-cumsum];
+	return it->prim[i-cumsum];
       cumsum += it->size_prim();
     }
 
@@ -102,13 +102,13 @@ namespace l2func {
     throw runtime_error(oss.str());
     
   }
-  R1GTOs::Prim& R1GTOs::basis(int i) {
+  R1GTOs::Prim& R1GTOs::prim(int i) {
     typedef vector<Contraction>::iterator ContIt;
     int cumsum(0);
 
     for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
       if(cumsum <= i && i < cumsum + it->size_prim() )
-	return it->basis[i-cumsum];
+	return it->prim[i-cumsum];
       cumsum += it->size_prim();
     }
 
@@ -123,7 +123,7 @@ namespace l2func {
     this->calc_mat_q_ = false;
     this->calc_vec_q_ = false;
     Contraction cont;
-    cont.basis.push_back(Prim(_n, _zeta));
+    cont.prim.push_back(Prim(_n, _zeta));
     cont.coef = MatrixXcd::Ones(1, 1);
     cont.offset = this->size_basis();
     conts_.push_back(cont);    
@@ -148,7 +148,7 @@ namespace l2func {
 
     Contraction cont;
     for(int i = 0; i < zs.size(); i++) 
-      cont.basis.push_back(Prim(n, zs(i)));
+      cont.prim.push_back(Prim(n, zs(i)));
     cont.coef = coef;
     cont.offset = this->size_basis();
     this->conts_.push_back(cont);
@@ -166,8 +166,8 @@ namespace l2func {
     for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
 	it != end; ++it) {
       for(int ip = 0; ip < it->size_prim(); ip++, i++) {
-	it->basis[ip].n = n;
-	it->basis[ip].z = zs[i];
+	it->prim[ip].n = n;
+	it->prim[ip].z = zs[i];
       }
     }
 
@@ -199,7 +199,7 @@ namespace l2func {
 
     int maxn(0);
     for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
-      for(cItPrim it_p = it->basis.begin(), end_p = it->basis.end();
+      for(cItPrim it_p = it->prim.begin(), end_p = it->prim.end();
 	  it_p != end_p; ++it_p) {
 	if(maxn < it_p->n)
 	  maxn = it_p->n;
@@ -228,15 +228,15 @@ namespace l2func {
 	for(int i = 0; i < it->size_prim(); i++) {
 	  for(int j = 0; j < it->size_prim(); j++) {
 	    dcomplex c(it->coef(ibasis, i) * it->coef(ibasis, j));
-	    int      n(it->basis[i].n + it->basis[j].n);
-	    dcomplex z(it->basis[i].z + it->basis[j].z);
+	    int      n(it->prim[i].n + it->prim[j].n);
+	    dcomplex z(it->prim[i].z + it->prim[j].z);
 	    CalcGTOInt(n, z, gs);
 	    norm2 += c*gs[n];
 	  }
 	}
 	dcomplex scale(1.0/sqrt(norm2));
-	for(int i = 0; i < it->size_prim(); i++) {
-	  it->coef(ibasis, i) *= scale;
+	for(int iprim = 0; iprim < it->size_prim(); iprim++) {
+	  it->coef(ibasis, iprim) *= scale;
 	}
       }
     }
@@ -283,10 +283,10 @@ namespace l2func {
 	for(int i = 0; i < it->size_prim(); i++) {
 	  for(int j = 0; j < jt->size_prim(); j++) {
 	    
-	    int      ni(it->basis[i].n);
-	    int      nj(jt->basis[j].n);
-	    dcomplex zi(it->basis[i].z);
-	    dcomplex zj(jt->basis[j].z);
+	    int      ni(it->prim[i].n);
+	    int      nj(jt->prim[j].n);
+	    dcomplex zi(it->prim[i].z);
+	    dcomplex zj(jt->prim[j].z);
 	    CalcGTOInt(ni+nj+2, zi+zj, gs);
 	    dcomplex sval = gs[ni+nj];
 	    dcomplex tval(0.0);
@@ -405,8 +405,8 @@ namespace l2func {
 	dcomplex cumsum(0);
 	for(int io = 0; io < o.size_basis(); io++ ) {
 	  dcomplex c(o.basis(io).c);
-	  int      n(it->basis[i].n + o.basis(io).n);
-	  dcomplex z(it->basis[i].z);
+	  int      n(it->prim[i].n + o.basis(io).n);
+	  dcomplex z(it->prim[i].z);
 	  cumsum += c * STO_GTO_Int(o.basis(io).z, z, n);
 	}
 	m_prim_(i) = cumsum;
@@ -445,8 +445,8 @@ namespace l2func {
 	for(int ib = 0; ib < it->size_basis(); ib++) {
 	  for(int ip = 0; ip < it->size_prim(); ip++) {
 	    dcomplex c(it->coef(ib, ip)); 
-	    int      n(it->basis[ip].n); 
-	    dcomplex z(it->basis[ip].z); 
+	    int      n(it->prim[ip].n); 
+	    dcomplex z(it->prim[ip].z); 
 	    cumsum += cs[it->offset+ib] * c * pow(r, n) * exp(-z*r*r);
 	  }
 	}
@@ -483,8 +483,8 @@ namespace l2func {
     out << "normalized_q : "
 	<< (us.normalized_q() ? "Yes" : "No")
 	<< endl;
-    for(int i = 0; i < us.size_basis(); ++i) {
-      out << us.basis(i).n << us.basis(i).z << endl;
+    for(int i = 0; i < us.size_prim(); ++i) {
+      out << us.prim(i).n << us.prim(i).z << endl;
     }
     return out;
   }
