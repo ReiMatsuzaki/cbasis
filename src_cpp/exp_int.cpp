@@ -1,10 +1,14 @@
+#include <iostream>
+
 #include "typedef.hpp"
+#include "macros.hpp"
 #include "fact.hpp"
 #include "lgamma.hpp"
 #include "erfc.hpp"
 
 #include "exp_int.hpp"
 
+using namespace std;
 using namespace erfc_mori;
 
 namespace l2func {
@@ -221,9 +225,11 @@ namespace l2func {
       res = sto_gto_int_9(as, ag);
       break;      
     default:
-      std::string msg;
-      msg = "this is not supported in STO_GTO_int";
-      throw msg;
+      string msg; SUB_LOCATION(msg);
+      ostringstream oss; oss << msg;
+      oss << ": Unsupported integer n." << endl;
+      oss << "n = " << n << endl;
+      throw runtime_error(oss.str());
     }
 
     return res;

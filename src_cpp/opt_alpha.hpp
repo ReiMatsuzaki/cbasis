@@ -25,8 +25,11 @@ namespace l2func {
     Notice that calculation speed is not fast.
    */
   Eigen::VectorXcd SolveAlpha(const R1STOs& driv, R1GTOs& gtos, dcomplex ene, double eps);
+  Eigen::VectorXcd SolveAlpha(const R1STOs& driv, R1GTOs& gtos, dcomplex ene,
+			      const R1STOs& sto_pot);
 
   dcomplex CalcAlphaFull(const R1STOs& driv,R1GTOs& gtos, dcomplex ene);    
   dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos, dcomplex ene, double eps);
+  dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos, dcomplex ene, const R1STOs&);
 }
 #endif

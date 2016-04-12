@@ -1,6 +1,8 @@
 #include <iostream>
+#include <algorithm>
 #include <Eigen/Dense>
 #include <iomanip>
+#include "macros.hpp"
 #include "eigen_plus.hpp"
 #include "opt_alpha.hpp"
 
@@ -85,13 +87,25 @@ namespace l2func {
 			 bool* convq,
 			 dcomplex* alpha) {
 
-    VectorXcd zs0(gtos.size_basis());
-    VectorXcd zs1(gtos.size_basis());
+    if(opt_idx.array().minCoeff() < 0 ||
+       opt_idx.array().maxCoeff() >= gtos.size_prim()) {
+      string msg; SUB_LOCATION(msg);
+      ostringstream oss;
+      oss << msg << ": invalid opt_idx" << endl;
+      oss << "min(opt_idx): " << opt_idx.array().minCoeff() << endl;
+      oss << "max(opt_idx): " << opt_idx.array().maxCoeff() << endl;
+      oss << "size_prim   : " << gtos.size_prim() << endl;
+      throw runtime_error(oss.str());
+    }
+
+
+    VectorXcd zs0(gtos.size_prim());
+    VectorXcd zs1(gtos.size_prim());
     dcomplex ih(0.0, h);
     dcomplex ii(0.0, 1.0);
     dcomplex a00;
 
-    for(int i = 0; i < gtos.size_basis(); i++) {
+    for(int i = 0; i < gtos.size_prim(); i++) {
       zs0[i] = gtos.prim(i).z;
     }
 
@@ -215,6 +229,36 @@ namespace l2func {
     else
       OptAlphaShiftCanonical(driv, opt_idx, ene, h, max_iter, eps, eps_canonical,
 			     gtos, z_shift, convq, alpha);
+  }
+  dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos,
+		     dcomplex ene, const R1STOs& sto_pot) {
+
+    gtos.CalcMat();
+    gtos.CalcMat(sto_pot, "v2");
+    gtos.CalcVec(driv);
+
+    VectorXcd& m = gtos.vec("m");
+    MatrixXcd& t = gtos.mat("t");
+    MatrixXcd& v = gtos.mat("v");
+    MatrixXcd& v2= gtos.mat("v2");
+    MatrixXcd& s = gtos.mat("s");
+    return (m.array() * 
+	    ((t+v+v2-ene*s).fullPivLu().solve(m)).array()).sum();
+  }
+  VectorXcd SolveAlpha(const R1STOs& driv, R1GTOs& gtos,
+		       dcomplex ene, const R1STOs& sto_pot) {
+
+    gtos.CalcMat();
+    gtos.CalcMat(sto_pot, "v2");
+    gtos.CalcVec(driv);
+
+    VectorXcd& m = gtos.vec("m");
+    MatrixXcd& t = gtos.mat("t");
+    MatrixXcd& v = gtos.mat("v");
+    MatrixXcd& v2= gtos.mat("v2");
+    MatrixXcd& s = gtos.mat("s");
+    return (t+v+v2-ene*s).fullPivLu().solve(m);
+
   }
 
 }

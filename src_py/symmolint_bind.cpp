@@ -224,13 +224,20 @@ tuple generalizedComplexEigenSolve_py(const CM& F, const CM& S) {
   }
   */
 }
+MatrixXcd* CanonicalMatrix_py(const MatrixXcd& S, double eps) {
+
+  MatrixXcd* X = new MatrixXcd();
+  CanonicalMatrix(S, eps, X);
+  return X;
+}
 
 BOOST_PYTHON_MODULE(symmolint_bind) {
 
   Py_Initialize();
   np::initialize();
   
-  //def("print_as_eigen", PrintAsEigen);
+  def("canonical_matrix", CanonicalMatrix_py,
+      return_value_policy<manage_new_object>());
   def("ceig", generalizedComplexEigenSolve_py);
 
   class_<SymmetryGroup>("SymmetryGroup", init<int, string>())

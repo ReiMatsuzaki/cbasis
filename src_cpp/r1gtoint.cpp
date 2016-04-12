@@ -1,3 +1,4 @@
+#include <iostream>
 #include <exception>
 #include <algorithm>
 #include "r1gtoint.hpp"
@@ -8,7 +9,9 @@
 using namespace Eigen;
 using namespace std;
 
-namespace l2func {
+namespace l2func {  
+
+  typedef MultArray<dcomplex, 2> A2;
 
   R1GTO::R1GTO(dcomplex _c, int _n, dcomplex _z): c(_c), n(_n), z(_z) {
     if(n < 1) {
@@ -18,11 +21,13 @@ namespace l2func {
     }
   }
   R1STO::R1STO(dcomplex _c, int _n, dcomplex _z): c(_c), n(_n), z(_z) {
-    if(n < 1) {
+    /*
+    if(n < 0) {
       string msg; SUB_LOCATION(msg);
-      msg += "n must be positive.";
+      msg += "n must be positive or 0.";
       throw runtime_error(msg);
     }
+    */
   }
 
   void CalcGTOInt(int maxn, dcomplex a, dcomplex* res) {
@@ -252,8 +257,6 @@ namespace l2func {
     static MultArray<dcomplex, 2> v_prim_(1000);
 
     int maxn = 2*this->max_n() + 2 + 1;
-    // this->Reserve(maxn);
-    // dcomplex* gs = &buf_[0];
     static vector<dcomplex> buf(maxn);
     if((int)buf.capacity() < maxn)
       buf.reserve(maxn);
@@ -272,10 +275,8 @@ namespace l2func {
     MatrixXcd& t = mat_["t"];
     MatrixXcd& v = mat_["v"];
 
-    typedef vector<Contraction>::const_iterator ContIt;
-    typedef vector<R1GTO>::const_iterator BasisIt;
-    for(ContIt it = conts_.begin(), end = conts_.end(); it != end; ++it) {
-      for(ContIt jt = conts_.begin(); jt != end; ++jt) {
+    for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+      for(ItCont jt = conts_.begin(); jt != end; ++jt) {
 
 	s_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
 	t_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
@@ -319,6 +320,57 @@ namespace l2func {
 	    s(idx, jdx) = s0;
 	    t(idx, jdx) = t0;
 	    v(idx, jdx) = v0;
+	  }
+	}
+      }
+    }
+
+    this->calc_mat_q_ = true;
+  }
+  void R1GTOs::CalcMat(const R1STOs& sto, string label) {
+    if(!this->normalized_q())
+      this->Normalize();
+
+    static MultArray<dcomplex, 2> prim_(1000);
+
+    int num = size_basis();    
+
+    if(mat_.find(label) == mat_.end())
+      mat_[label] = MatrixXcd::Zero(num, num);
+
+    MatrixXcd& s = mat_[label];
+
+    for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {      
+      for(ItCont jt = conts_.begin(); jt != end; ++jt) {
+
+	prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	for(int i = 0; i < it->size_prim(); i++) {
+	  for(int j = 0; j < jt->size_prim(); j++) {
+	    int      n(it->prim[i].n + jt->prim[j].n);
+	    dcomplex z(it->prim[i].z + jt->prim[j].z);
+	    dcomplex cumsum(0);
+	    for(int io = 0; io < sto.size_basis(); io++ ) {
+	      dcomplex sto_c(sto.basis(io).c);
+	      int      sto_n(sto.basis(io).n);
+	      dcomplex sto_z(sto.basis(io).z);
+	      cumsum += sto_c * STO_GTO_Int(sto_z, z, sto_n+n);
+	    }
+	    prim_(i, j) = cumsum;
+	  }
+	}
+
+	int idx(it->offset);
+	for(int ib = 0; ib < it->size_basis(); ib++, idx++) {
+	  int jdx(jt->offset);
+	  for(int jb = 0; jb < jt->size_basis(); jb++, jdx++) {
+	    dcomplex s0(0);
+	    for(int i = 0; i < it->size_prim(); i++) {
+	      for(int j = 0; j < jt->size_prim(); j++) {
+		dcomplex cc(it->coef(ib, i) * jt->coef(jb, j));
+		s0 += cc * prim_(i, j);
+	      }
+	    }
+	    s(idx, jdx) = s0;
 	  }
 	}
       }

@@ -9,6 +9,7 @@
 #include "cip_exp.hpp"
 #include "linspace.hpp"
 #include "opt_alpha.hpp"
+#include "exp_int.hpp"
 
 using namespace l2func;
 using namespace Eigen;
@@ -200,6 +201,29 @@ TEST_F(TestR1GTOs, matrix) {
     }
 
 }
+TEST_F(TestR1GTOs, matrix_sto) {
+
+  R1STOs sto; sto.Add(1.1, 1, 0.3); sto.Add(1.2, 1, 0.35);
+  cout << "calc" << endl;
+  gtos.CalcMat(sto, "vexp");
+  cout << "end" << endl;
+
+  for(int i = 0; i < 4; i++)
+    for(int j = 0; j < 4; j++) {
+      dcomplex nconst = 1.0/(CNorm(gs[i]) * CNorm(gs[j]));
+      dcomplex val1 = STO_GTO_Int(dcomplex(0.3, 0.0),
+				 gs[i].z() + gs[j].z(),
+				  gs[i].n()+gs[j].n()+1);
+      dcomplex val2 = STO_GTO_Int(dcomplex(0.35, 0.0),
+				 gs[i].z() + gs[j].z(),
+				 gs[i].n()+gs[j].n()+1);
+      EXPECT_C_EQ(nconst*(1.1*val1+1.2*val2), gtos.mat("vexp")(i, j))
+	<< i << j;
+
+    }
+  
+
+}
 TEST_F(TestR1GTOs, vector_sto) {
 
   vector<CSTO> ss;
@@ -254,6 +278,61 @@ dcomplex CalcAlpha(dcomplex z_shift) {
 		(L.fullPivLu().solve(m)).array()).sum();
   //dcomplex a = vec["m"].dot(L.fullPivLu().solve(vec["m"]));
   return a;
+
+}
+TEST(OptAlpha, WithContraction) {
+  
+  
+  VectorXcd zs_h(7);  
+  zs_h <<
+    0.463925,
+    1.202518,
+    3.379649,
+    10.6072,
+    38.65163,
+    173.5822,
+    1170.498;
+
+  VectorXcd zs_k(10);
+  zs_k << 0.16934112166516593, 
+    0.08989389391311804, 
+    0.055610873913491725,
+    0.03776599632952126, 
+    0.02731159914174668, 
+    0.020665855224060142,
+    0.016180602421004654,
+    0.013011569667967734,
+    0.01068994588552496, 
+    0.008938476331399546;
+  
+  R1GTOs gtos(1);
+  gtos.Add(2, zs_k);
+  gtos.CalcMat();
+  MatrixXcd xmat;
+  CanonicalMatrix(gtos.mat("s"), pow(10.0, -5.0), &xmat);
+
+  R1GTOs gtos2(1);
+  gtos2.Add(2, zs_h);
+  gtos2.Add(2, zs_k, xmat.transpose());
+
+  EXPECT_EQ(10+7, gtos2.size_prim());
+
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  VectorXi opt_idx(10);
+  opt_idx << 7, 8, 9, 10, 11, 12, 13, 14, 15, 16;
+
+  double h(0.0001);
+  double eps(0.000003);
+  dcomplex z_shift(0.0, -0.02);
+  bool convq;
+  dcomplex alpha;
+  OptAlphaShift(driv, opt_idx, 0.5,
+		h, 20, eps, /*pow(10.0, -8.0)*/ 0.0,
+		gtos2, z_shift, &convq, &alpha);
+
+  EXPECT_TRUE(convq);
+  dcomplex ref_alpha(dcomplex(-5.6568937518988989, 1.0882823480377297));
+  EXPECT_C_NEAR(ref_alpha, alpha, pow(10.0, -9.0));  
 
 }
 TEST(OptAlpha, ShiftKaufmann) {
@@ -331,6 +410,37 @@ TEST(OptAlpha, CalcAlpha) {
   EXPECT_C_EQ(CalcAlpha(0.0),
 	      CalcAlphaFull(driv, gtos, 0.5));
   
+
+}
+TEST(OptAlpha, CalcAlphaSTO) {
+  R1GTOs gtos(1);
+  VectorXcd zs(15);  
+  zs << 0.463925,
+    1.202518,
+    3.379649,
+    10.6072,
+    38.65163,
+    173.5822,
+    1170.498,
+    0.16934112166516593 -dcomplex(0, 0.02),
+    0.08989389391311804 -dcomplex(0, 0.02),
+    0.055610873913491725 -dcomplex(0, 0.02),
+    0.03776599632952126 -dcomplex(0, 0.02),
+    0.02731159914174668 -dcomplex(0, 0.02),
+    0.020665855224060142 -dcomplex(0, 0.02),
+    0.016180602421004654 -dcomplex(0, 0.02),
+    0.013011569667967734 -dcomplex(0, 0.02);
+  gtos.Add(2, zs);
+
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  R1STOs pot;  pot.Add(-1.0, 0, 1.0);
+
+  // 2016/4/12
+  // alpha = -4.770452, -0.235177
+
+  EXPECT_C_NEAR(CalcAlpha(driv, gtos, 0.5, pot),
+		dcomplex(-4.770452, -0.235177),
+		pow(10.0, -4.0));
 
 }
 TEST(OptAlpha, WithoutCanonical) {

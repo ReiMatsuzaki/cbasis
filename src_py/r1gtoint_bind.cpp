@@ -87,7 +87,8 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
     .def("normalize", &R1GTOs::Normalize)
     .def("mat", &R1GTOs::mat, return_internal_reference<>())
     .def("vec", &R1GTOs::vec, return_internal_reference<>())
-    .def("calc_mat", &R1GTOs::CalcMat)
+    .def("calc_mat", (void(R1GTOs::*)())&R1GTOs::CalcMat)
+    .def("calc_mat", (void(R1GTOs::*)(const R1STOs&, string))&R1GTOs::CalcMat)
     .def("calc_vec", (void(R1GTOs::*)(const R1GTOs&))&R1GTOs::CalcVec)
     .def("calc_vec", (void(R1GTOs::*)(const R1STOs&))&R1GTOs::CalcVec)
     .def(self_ns::str(self))
@@ -107,8 +108,10 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
     .def(self_ns::repr(self));
 
   def("calc_alpha", (dcomplex (*)(const R1STOs&, R1GTOs&, dcomplex, double))CalcAlpha);
+  def("calc_alpha", (dcomplex (*)(const R1STOs&, R1GTOs&, dcomplex, const R1STOs&))CalcAlpha);
   def("opt_alpha_shift", OptAlphaShift_py);
-  def("solve_alpha", SolveAlpha);
+  def("solve_alpha", (VectorXcd (*)(const R1STOs&, R1GTOs&, dcomplex, double))SolveAlpha);
+  def("solve_alpha", (VectorXcd (*)(const R1STOs&, R1GTOs&, dcomplex, const R1STOs&))SolveAlpha);
   
   //def("print_c", print_c);
   //def("print_i", print_i);

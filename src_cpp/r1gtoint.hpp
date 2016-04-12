@@ -34,7 +34,7 @@ namespace l2func {
 
   std::ostream& operator<<(std::ostream& out, const R1GTO& basis);
   std::ostream& operator<<(std::ostream& out, const R1STO& basis);
-
+  
   typedef std::map<std::string, Eigen::MatrixXcd> MatMap;
   typedef std::vector<R1GTO>::const_iterator CIt;
   typedef std::map<std::string, Eigen::VectorXcd> VecMap;
@@ -44,6 +44,7 @@ namespace l2func {
   void CalcGTOInt(int maxn, dcomplex a, dcomplex* res);
   
   class R1GTOs {
+  public:
     struct Prim {
       int n;
       dcomplex z;
@@ -97,7 +98,10 @@ namespace l2func {
 
     // ---- Calculation ----
     void Normalize();
-    void CalcMat();
+    void CalcMat();    
+    void CalcMat(const R1STOs&, std::string label);
+    void CalcMatH();
+    void CalcMatH(const R1STOs&, std::string label);
     void CalcVec(const R1GTOs&);
     void CalcVec(const R1STOs&);
     void AtR(const Eigen::VectorXcd&,

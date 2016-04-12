@@ -164,7 +164,8 @@ struct {
    
 ** DONE remove cip_int.hpp from r1gtoint.hpp
    CLOSED: [2016-04-06 Wed 09:46]
-** Rename basis_ -> prim_
+** DONE Rename basis_ -> prim_
+   CLOSED: [2016-04-06 Wed 10:00]
 ** add unittest for contraction
    
 ** data size of MultArray in R1GTOs
