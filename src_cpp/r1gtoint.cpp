@@ -115,6 +115,21 @@ namespace l2func {
 
     return maxn;    
   }
+  bool R1GTOs::IsSameStructure(const R1GTOs& o) const {
+    if(this->conts_.size() != o.conts_.size())
+      return false;
+    
+    for(cItCont it = this->conts_.begin(), it_end = this->conts_.end(),
+	  jt = o.conts_.begin(); it != it_end; ++it, ++jt) {
+      if(it->size_prim() != jt->size_prim())
+	return false;
+      if(it->size_basis() != jt->size_basis())
+	return false;
+    }
+
+    return true;
+      
+  }
 
   // ---- Getter ----
   int R1GTOs::size_basis() const {
@@ -226,6 +241,41 @@ namespace l2func {
     this->coef_type_ = "Nothing";
 
   }
+
+  // ---- basis convert ----  
+  void R1GTOs::SetConj(const R1GTOs& o) {
+    if(!o.coef_set_q_) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": coef is not set.";
+      throw runtime_error(msg);
+    }
+
+    if(!this->IsSameStructure(o)) {
+
+      *this = o; // copy
+
+    }
+
+    ItCont it = this->conts_.begin();
+    ItCont end = this->conts_.end();
+    cItCont jt =  o.conts_.begin();
+    for(; it != end; ++it, ++jt) {
+      ItPrim iprim = it->prim.begin();
+      ItPrim prim0 = it->prim.end();
+      cItPrim  jprim = jt->prim.begin();
+      for(; iprim != prim0; ++iprim, ++jprim) {
+	iprim->z = conj(iprim->z);
+      }
+      it->coef = it->coef.conjugate();
+    }
+    
+    this->coef_set_q_ = o.coef_set_q_;
+    this->coef_type_  = o.coef_type_;
+    this->L_          = o.L_;
+
+  }
+  
+
   /*
   MatrixXcd& R1GTOs::mat(string label) {
     if(!this->calc_mat_q_) {
@@ -264,6 +314,8 @@ namespace l2func {
   }
   */
   
+
+
   void R1GTOs::Normalize() {
 
     static MultArray<dcomplex, 1> m_prim_(20);

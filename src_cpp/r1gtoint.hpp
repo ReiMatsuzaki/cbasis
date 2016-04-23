@@ -88,6 +88,7 @@ namespace l2func {
 
     // ---- Utils ----
     int max_n() const;
+    bool IsSameStructure(const R1GTOs& o) const;
 
     // ---- Getter -----
     int L() const { return L_; }
@@ -109,7 +110,7 @@ namespace l2func {
     void Set(int n, const Eigen::VectorXcd& zs);
 
     // ---- basis convert ----
-    void SetConj(R1GTOs& o) const;
+    void SetConj(const R1GTOs& o);
 
     // ---- Calculation ----
     void Normalize();
