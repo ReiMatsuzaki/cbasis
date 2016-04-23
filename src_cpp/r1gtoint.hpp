@@ -44,9 +44,19 @@ namespace l2func {
   class R1GTOs;
   class R1STOs;  
 
-  struct MatVecMap {
-    std::map<std::string, Eigen::MatrixXcd> mat;
-    std::map<std::string, Eigen::VectorXcd> vec;
+  class MatVecMap {
+  private:
+    std::map<std::string, Eigen::MatrixXcd> mat_;
+    std::map<std::string, Eigen::VectorXcd> vec_;
+  public:
+    const Eigen::MatrixXcd& mat(std::string lbl) const;
+    Eigen::MatrixXcd& mat(std::string lbl);
+    bool exist_mat(std::string lbl) const { return mat_.find(lbl) != mat_.end(); }
+    void InitMatIfNecessary(std::string lbl, int ni, int nj);
+    const Eigen::VectorXcd& vec(std::string lbl) const;
+    Eigen::VectorXcd& vec(std::string lbl);
+    bool exist_vec(std::string lbl) const { return vec_.find(lbl) != vec_.end(); }
+    void InitVecIfNecessary(std::string lbl, int n);
   };
 
   void CalcGTOInt(int maxn, dcomplex a, dcomplex* res);
@@ -71,19 +81,13 @@ namespace l2func {
     typedef std::vector<Contraction>::iterator ItCont;
     typedef std::vector<Contraction>::const_iterator cItCont;
   public:
-    //bool normalized_q_;       // basis is normalized or not
     bool coef_set_q_;         // coefcient is setup or not
     std::string coef_type_;        // coefficient type (Nothing, normalized, derivativ)
-    // bool calc_mat_q_;         // matrix is calculated with current setting
-    // bool calc_vec_q_;         // vector is calculated with current setting
     std::vector<Contraction> conts_;
-    int L_;      // angular quantum number
-    std::map<std::string, Eigen::MatrixXcd> mat_; // store calculation results(to be removed)
-    std::map<std::string, Eigen::VectorXcd> vec_; // store calculation results(to be removed)
   public:
 
     // ---- Constructors ----
-    R1GTOs(int _L);
+    R1GTOs();
     void swap(R1GTOs& o);
 
     // ---- Utils ----
@@ -91,17 +95,14 @@ namespace l2func {
     bool IsSameStructure(const R1GTOs& o) const;
 
     // ---- Getter -----
-    int L() const { return L_; }
+    //    int L() const { return L_; }
     int size_basis() const;
     int size_prim() const;
     const Prim& prim(int i) const;    
     Prim& prim(int i);
     dcomplex z_prim(int i) { return this->prim(i).z; }
     int      n_prim(int i) { return this->prim(i).n; }
-    //Eigen::MatrixXcd& mat(std::string label);
-    //Eigen::VectorXcd& vec(std::string label);
     bool coef_set_q() const { return coef_set_q_; }
-    //    void Add(dcomplex c, int n, dcomplex zeta);
 
     // ---- Setter ----
     void Add(int n, dcomplex zeta);
@@ -114,7 +115,6 @@ namespace l2func {
 
     // ---- Calculation ----
     void Normalize();
-    // -- compute (new stype) --
     void CalcMatSTV(const R1GTOs& o, int L,  MatVecMap& mat_vec,
 		    std::string s_lbl, std::string t_lbl, std::string v_lbl) const;
     void CalcMatSTV(int L, MatVecMap& mat_vec,
@@ -123,21 +123,6 @@ namespace l2func {
     void CalcMatSTO(const R1STOs& v, MatVecMap& res, std::string) const;
     void CalcVec(const R1STOs& o, MatVecMap& mat_vec, std::string label="m") const;
 
-
-
-    // -- compute S,T,V matrix --
-    void CalcMat();    
-    // -- compute STO matrixl --
-    void CalcMat(const R1STOs&, std::string label);
-    // -- compute S,T,V matrix for hermitian symmetry --
-    void CalcMatH();
-    // -- compute STO matrix for hermitian symmetry --
-    void CalcMatH(const R1STOs&, std::string label);
-    // -- compute derivative matrix of H-ES --
-    void CalcDerivMat(double energy);
-    void CalcVec(const R1GTOs&, const std::string label="m");
-    void CalcVec(const R1STOs&, const std::string label="m");
-    void CalcDerivVec(const R1STOs& o);
     void AtR(const Eigen::VectorXcd&,
 	     const Eigen::VectorXcd&, Eigen::VectorXcd*);
     Eigen::VectorXcd* AtR(const Eigen::VectorXcd&,
