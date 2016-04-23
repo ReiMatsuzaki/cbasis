@@ -38,15 +38,15 @@ namespace l2func {
   std::ostream& operator<<(std::ostream& out, const R1GTO& basis);
   std::ostream& operator<<(std::ostream& out, const R1STO& basis);
   
-  typedef std::map<std::string, Eigen::MatrixXcd> MatMap;
+  //  typedef std::map<std::string, Eigen::MatrixXcd> MatMap;
   typedef std::vector<R1GTO>::const_iterator CIt;
-  typedef std::map<std::string, Eigen::VectorXcd> VecMap;
+  //  typedef std::map<std::string, Eigen::VectorXcd> VecMap;
   class R1GTOs;
   class R1STOs;  
 
   struct MatVecMap {
-    std::map<std::string, Eigen::MatrixXcd> mat_map;
-    std::map<std::string, Eigen::VectorXcd> vec_map;
+    std::map<std::string, Eigen::MatrixXcd> mat;
+    std::map<std::string, Eigen::VectorXcd> vec;
   };
 
   void CalcGTOInt(int maxn, dcomplex a, dcomplex* res);
@@ -78,9 +78,8 @@ namespace l2func {
     // bool calc_vec_q_;         // vector is calculated with current setting
     std::vector<Contraction> conts_;
     int L_;      // angular quantum number
-    MatMap mat_; // store calculation results
-    VecMap vec_; // store calculation results
-
+    std::map<std::string, Eigen::MatrixXcd> mat_; // store calculation results(to be removed)
+    std::map<std::string, Eigen::VectorXcd> vec_; // store calculation results(to be removed)
   public:
 
     // ---- Constructors ----
@@ -90,7 +89,7 @@ namespace l2func {
     // ---- Utils ----
     int max_n() const;
 
-    // ---- Accessors -----
+    // ---- Getter -----
     int L() const { return L_; }
     int size_basis() const;
     int size_prim() const;
@@ -98,17 +97,32 @@ namespace l2func {
     Prim& prim(int i);
     dcomplex z_prim(int i) { return this->prim(i).z; }
     int      n_prim(int i) { return this->prim(i).n; }
-    Eigen::MatrixXcd& mat(std::string label);
-    Eigen::VectorXcd& vec(std::string label);
+    //Eigen::MatrixXcd& mat(std::string label);
+    //Eigen::VectorXcd& vec(std::string label);
     bool coef_set_q() const { return coef_set_q_; }
     //    void Add(dcomplex c, int n, dcomplex zeta);
+
+    // ---- Setter ----
     void Add(int n, dcomplex zeta);
     void Add(int n, const Eigen::VectorXcd& zs);    
     void Add(int n, const Eigen::VectorXcd& zs, const Eigen::MatrixXcd& coef);
     void Set(int n, const Eigen::VectorXcd& zs);
 
+    // ---- basis convert ----
+    void SetConj(R1GTOs& o) const;
+
     // ---- Calculation ----
     void Normalize();
+    // -- compute (new stype) --
+    void CalcMatSTV(const R1GTOs& o, MatVecMap& mat_vec) const;
+    void CalcMatSTV(MatVecMap& mat_vec) const;
+    void CalcMatSTV_H(const R1GTOs& o, MatVecMap& mat_vec) const;
+    void CalcMatSTO(const R1GTOs& o, const R1STOs& v, MatVecMap& res, std::string) const;
+    void CalcMatSTO(const R1STOs& v, MatVecMap& res, std::string) const;
+    void CalcVec(const R1STOs& o, MatVecMap& mat_vec, std::string label="m") const;
+
+
+
     // -- compute S,T,V matrix --
     void CalcMat();    
     // -- compute STO matrixl --

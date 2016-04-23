@@ -100,6 +100,23 @@ namespace l2func {
     coef_set_q_(false),
     coef_type_("Nothing"),
     L_(_L) { }
+
+  // ---- Utils ----
+  int  R1GTOs::max_n() const {
+
+    int maxn(0);
+    for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+      for(cItPrim it_p = it->prim.begin(), end_p = it->prim.end();
+	  it_p != end_p; ++it_p) {
+	if(maxn < it_p->n)
+	  maxn = it_p->n;
+      }
+    }
+
+    return maxn;    
+  }
+
+  // ---- Getter ----
   int R1GTOs::size_basis() const {
     int cumsum(0);
     for(vector<Contraction>::const_iterator it = conts_.begin(), end = conts_.end();
@@ -150,6 +167,8 @@ namespace l2func {
     oss << "i: " << i << endl;
     throw runtime_error(oss.str());
   }
+
+  // ---- Setter ----
   void R1GTOs::Add(int _n, dcomplex _zeta) {
     this->coef_set_q_ = false;
     this->coef_type_ = "Nothing";
@@ -207,16 +226,14 @@ namespace l2func {
     this->coef_type_ = "Nothing";
 
   }
+  /*
   MatrixXcd& R1GTOs::mat(string label) {
-
-    /*
     if(!this->calc_mat_q_) {
       string msg; SUB_LOCATION(msg);
       msg += ": matrix is not calculated yet. ";
       msg += "label: " + label;
       throw runtime_error(msg);
     }
-    */
 
     if(this->mat_.find(label) == this->mat_.end()) {
       string msg; SUB_LOCATION(msg);
@@ -236,29 +253,17 @@ namespace l2func {
       throw runtime_error(msg);
     }
 
-    /*
     if(!this->calc_vec_q_) {
       string msg; SUB_LOCATION(msg);
       msg += ": vector is not calculated yet.";
       msg += "label: " + label;
       throw runtime_error(msg);
     }
-    */
+
     return vec_[label];
   }
-  int  R1GTOs::max_n() const {
-
-    int maxn(0);
-    for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
-      for(cItPrim it_p = it->prim.begin(), end_p = it->prim.end();
-	  it_p != end_p; ++it_p) {
-	if(maxn < it_p->n)
-	  maxn = it_p->n;
-      }
-    }
-
-    return maxn;    
-  }
+  */
+  
   void R1GTOs::Normalize() {
 
     static MultArray<dcomplex, 1> m_prim_(20);
@@ -295,6 +300,253 @@ namespace l2func {
     this->coef_set_q_ = true;
     this->coef_type_ = "Normalized";
   }
+  void R1GTOs::CalcMatSTV(const R1GTOs& o, MatVecMap& mat_vec) const {
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": coef is not set.";
+      throw runtime_error(msg);
+    }
+
+    static MultArray<dcomplex, 2> s_prim_(1000);
+    static MultArray<dcomplex, 2> t_prim_(1000);
+    static MultArray<dcomplex, 2> v_prim_(1000);
+
+    int maxn = 2*this->max_n() + 2 + 1;
+    static vector<dcomplex> buf(maxn);
+    if((int)buf.capacity() < maxn)
+      buf.reserve(maxn);
+    dcomplex* gs = &buf[0];
+
+    int num = size_basis();    
+    
+    if(mat_vec.mat.find("s") == mat_vec.mat.end())
+      mat_vec.mat["s"] = MatrixXcd::Zero(num, num);
+    if(mat_vec.mat.find("t") == mat_vec.mat.end())
+      mat_vec.mat["t"] = MatrixXcd::Zero(num, num);
+    if(mat_vec.mat.find("v") == mat_vec.mat.end())
+      mat_vec.mat["v"] = MatrixXcd::Zero(num, num);
+
+    MatrixXcd& s = mat_vec.mat["s"];
+    MatrixXcd& t = mat_vec.mat["t"];
+    MatrixXcd& v = mat_vec.mat["v"];
+
+    for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+      for(cItCont jt = o.conts_.begin(); jt != end; ++jt) {
+
+	s_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	t_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	v_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	for(int i = 0; i < it->size_prim(); i++) {
+	  for(int j = 0; j < jt->size_prim(); j++) {
+	    
+	    int      ni(it->prim[i].n);
+	    int      nj(jt->prim[j].n);
+	    dcomplex zi(it->prim[i].z);
+	    dcomplex zj(jt->prim[j].z);
+	    CalcGTOInt(ni+nj+2, zi+zj, gs);
+	    s_prim_(i, j) = gs[ni+nj];
+	    v_prim_(i, j) = -gs[ni+nj-1];
+	    t_prim_(i, j) = TMat(ni, nj, zj, L_, gs);;
+	    
+	  }
+	}
+
+	int idx(it->offset);
+	for(int ib = 0; ib < it->size_basis(); ib++, idx++) {
+	  int jdx(jt->offset);
+	  for(int jb = 0; jb < jt->size_basis(); jb++, jdx++) {
+	    dcomplex s0(0), t0(0), v0(0);
+	    for(int i = 0; i < it->size_prim(); i++) {
+	      for(int j = 0; j < jt->size_prim(); j++) {
+		dcomplex cc(it->coef(ib, i) * jt->coef(jb, j));
+		s0 += cc * s_prim_(i, j);
+		t0 += cc * t_prim_(i, j);
+		v0 += cc * v_prim_(i, j);
+	      }
+	    }
+	    s(idx, jdx) = s0;
+	    t(idx, jdx) = t0;
+	    v(idx, jdx) = v0;
+	  }
+	}
+      }
+    }    
+  }
+  void R1GTOs::CalcMatSTV(MatVecMap& mat_vec) const {
+    this->CalcMatSTV(*this, mat_vec);
+  }
+  void R1GTOs::CalcMatSTV_H(const R1GTOs& o, MatVecMap& mat_vec) const {
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": coef is not set.";
+      throw runtime_error(msg);
+    }
+
+    static MultArray<dcomplex, 2> s_prim_(1000);
+    static MultArray<dcomplex, 2> t_prim_(1000);
+    static MultArray<dcomplex, 2> v_prim_(1000);
+
+    int maxn = 2*this->max_n() + 2 + 1;
+    static vector<dcomplex> buf(maxn);
+    if((int)buf.capacity() < maxn)
+      buf.reserve(maxn);
+    dcomplex* gs = &buf[0];
+
+    int num = size_basis();    
+    
+    if(mat_vec.mat.find("hs") == mat_vec.mat.end())
+      mat_vec.mat["hs"] = MatrixXcd::Zero(num, num);
+    if(mat_vec.mat.find("ht") == mat_vec.mat.end())
+      mat_vec.mat["ht"] = MatrixXcd::Zero(num, num);
+    if(mat_vec.mat.find("hv") == mat_vec.mat.end())
+      mat_vec.mat["hv"] = MatrixXcd::Zero(num, num);
+
+    MatrixXcd& s = mat_vec.mat["hs"];
+    MatrixXcd& t = mat_vec.mat["ht"];
+    MatrixXcd& v = mat_vec.mat["hv"];
+
+    for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+      for(cItCont jt = o.conts_.begin(); jt != end; ++jt) {
+
+	s_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	t_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	v_prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	for(int i = 0; i < it->size_prim(); i++) {
+	  for(int j = 0; j < jt->size_prim(); j++) {
+	    
+	    int      ni(it->prim[i].n);
+	    int      nj(jt->prim[j].n);
+	    dcomplex zi(conj(it->prim[i].z));
+	    dcomplex zj(jt->prim[j].z);
+	    CalcGTOInt(ni+nj+2, zi+zj, gs);
+	    s_prim_(i, j) = gs[ni+nj];
+	    v_prim_(i, j) = -gs[ni+nj-1];
+	    t_prim_(i, j) = TMat(ni, nj, zj, L_, gs);;
+	    
+	  }
+	}
+
+	int idx(it->offset);
+	for(int ib = 0; ib < it->size_basis(); ib++, idx++) {
+	  int jdx(jt->offset);
+	  for(int jb = 0; jb < jt->size_basis(); jb++, jdx++) {
+	    dcomplex s0(0), t0(0), v0(0);
+	    for(int i = 0; i < it->size_prim(); i++) {
+	      for(int j = 0; j < jt->size_prim(); j++) {
+		dcomplex cc(conj(it->coef(ib, i)) * jt->coef(jb, j));
+		s0 += cc * s_prim_(i, j);
+		t0 += cc * t_prim_(i, j);
+		v0 += cc * v_prim_(i, j);
+	      }
+	    }
+	    s(idx, jdx) = s0;
+	    t(idx, jdx) = t0;
+	    v(idx, jdx) = v0;
+	  }
+	}
+      }
+    }    
+  }
+  void R1GTOs::CalcMatSTO(const R1GTOs& o, const R1STOs& sto,
+			  MatVecMap& res, string label) const {
+
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": coef is not set.";
+      throw runtime_error(msg);
+    }
+
+    static MultArray<dcomplex, 2> prim_(1000);
+
+    int num = size_basis();    
+
+    if(res.mat.find(label) == res.mat.end())
+      res.mat[label] = MatrixXcd::Zero(num, num);
+
+    MatrixXcd& s = res.mat[label];
+
+    for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {      
+      for(cItCont jt = o.conts_.begin(); jt != end; ++jt) {
+
+	prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
+	for(int i = 0; i < it->size_prim(); i++) {
+	  for(int j = 0; j < jt->size_prim(); j++) {
+	    int      n(it->prim[i].n + jt->prim[j].n);
+	    dcomplex z(it->prim[i].z + jt->prim[j].z);
+	    dcomplex cumsum(0);
+	    for(int io = 0; io < sto.size_basis(); io++ ) {
+	      dcomplex sto_c(sto.basis(io).c);
+	      int      sto_n(sto.basis(io).n);
+	      dcomplex sto_z(sto.basis(io).z);
+	      cumsum += sto_c * STO_GTO_Int(sto_z, z, sto_n+n);
+	    }
+	    prim_(i, j) = cumsum;
+	  }
+	}
+
+	int idx(it->offset);
+	for(int ib = 0; ib < it->size_basis(); ib++, idx++) {
+	  int jdx(jt->offset);
+	  for(int jb = 0; jb < jt->size_basis(); jb++, jdx++) {
+	    dcomplex s0(0);
+	    for(int i = 0; i < it->size_prim(); i++) {
+	      for(int j = 0; j < jt->size_prim(); j++) {
+		dcomplex cc(it->coef(ib, i) * jt->coef(jb, j));
+		s0 += cc * prim_(i, j);
+	      }
+	    }
+	    s(idx, jdx) = s0;
+	  }
+	}
+      }
+    }
+
+  }
+  void R1GTOs::CalcMatSTO(const R1STOs& v, MatVecMap& res, string lbl) const {
+    this->CalcMatSTO(*this, v, res, lbl);
+  }
+  void R1GTOs::CalcVec(const R1STOs& o, MatVecMap& mat_vec, string label) const {
+    static MultArray<dcomplex, 1> m_prim_(20);
+
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }          
+    
+    int num(this->size_basis());
+    if(mat_vec.vec.find(label) == mat_vec.vec.end())
+      mat_vec.vec[label] = VectorXcd::Zero(num);
+    VectorXcd& m = mat_vec.vec[label];
+
+    for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+
+      int num_prim(it->size_prim());
+      m_prim_.SetRange(0, num_prim);
+      for(int i = 0; i < num_prim; i++ ) {
+	dcomplex cumsum(0);
+	for(int io = 0; io < o.size_basis(); io++ ) {
+	  dcomplex c(o.basis(io).c);
+	  int      n(it->prim[i].n + o.basis(io).n);
+	  dcomplex z(it->prim[i].z);
+	  cumsum += c * STO_GTO_Int(o.basis(io).z, z, n);
+	}
+	m_prim_(i) = cumsum;
+
+	int idx(it->offset);
+	for(int ib = 0; ib < it->size_basis(); ib++, idx++) {
+	  dcomplex mval(0);
+	  for(int i = 0; i < it->size_prim(); i++) {
+	    dcomplex cc(it->coef(ib, i));
+	    mval += cc * m_prim_(i);
+	  }
+	  m(idx) = mval;
+	}
+      }
+    }
+
+  }
+
   void R1GTOs::CalcMat() {
     if(!this->coef_set_q_) {
       string msg; SUB_LOCATION(msg); 
@@ -390,7 +642,7 @@ namespace l2func {
       mat_["hs"] = MatrixXcd::Zero(num, num);
     if(mat_.find("ht") == mat_.end())
       mat_["ht"] = MatrixXcd::Zero(num, num);
-    if(mat_.find("v") == mat_.end())
+    if(mat_.find("hv") == mat_.end())
       mat_["hv"] = MatrixXcd::Zero(num, num);
 
     MatrixXcd& s = mat_["hs"];
@@ -498,7 +750,7 @@ namespace l2func {
 	}
       }
     }
-  }
+  }  
   void R1GTOs::CalcMatH(const R1STOs& sto, string label) {
     if(!this->coef_set_q_) {
       string msg; SUB_LOCATION(msg); 

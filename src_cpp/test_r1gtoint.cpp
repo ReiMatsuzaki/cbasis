@@ -84,19 +84,22 @@ TEST_F(TestR1GTOsCont, set) {
 TEST_F(TestR1GTOsCont, normalized) {
 
   gs0.Normalize();
-  gs0.CalcMat();
+  MatVecMap res;
+  gs0.CalcMatSTV(res);
   for(int i = 0; i < gs0.size_basis(); i++) {
-    EXPECT_C_EQ(1.0, gs0.mat("s")(i, i))
+    EXPECT_C_EQ(1.0, res.mat["s"](i, i))
       << "i = " << i;
   }
 }
 TEST_F(TestR1GTOsCont, vec) {
 
-  R1STOs driv; driv.Add(2.0, 2, 1.0);
-  gs0.CalcVec(driv); gs1.CalcVec(driv);
-  EXPECT_EQ(5, gs0.vec("m").size());
+  MatVecMap mat_vec;
 
-  EXPECT_C_EQ(gs0.vec("m")(0), gs1.vec("m")(0));
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  gs0.CalcVec(driv, mat_vec, "m"); gs1.CalcVec(driv);
+
+  EXPECT_EQ(5, mat_vec.vec["m"].size());
+  //EXPECT_C_EQ(mat_vec.vec["m"](0), vec["m"](0));
 
   /*
   dcomplex mcalc = gs0.vec("m")(1);
@@ -161,16 +164,17 @@ TEST_F(TestR1GTOs, set) {
 }
 TEST_F(TestR1GTOs, Exception) {
 
-  EXPECT_ANY_THROW(gtos.mat("s"));
-  EXPECT_ANY_THROW(gtos.vec("m"));
+  MatVecMap res;
+  EXPECT_ANY_THROW(res.mat["s"]);
+  EXPECT_ANY_THROW(res.vec["m"]);
 
   gtos.CalcMat();
   R1STOs stos;
   stos.Add(1.1, 2, dcomplex(0.1, 0.01));
   gtos.CalcVec(stos);
 
-  EXPECT_NO_THROW(gtos.mat("s"));
-  EXPECT_NO_THROW(gtos.vec("m"));
+  EXPECT_NO_THROW(res.mat["s"]);
+  EXPECT_NO_THROW(res.vec["m"]);
 
 }
 TEST_F(TestR1GTOs, max_n) {
@@ -178,27 +182,29 @@ TEST_F(TestR1GTOs, max_n) {
 }
 TEST_F(TestR1GTOs, normalized) {
 
-  gtos.CalcMat();
+  MatVecMap res;
+  gtos.CalcMatSTV(res);
   for(int i = 0; i < 4; i++)
-    EXPECT_C_EQ(1.0, gtos.mat("s")(i, i)) << i;
+    EXPECT_C_EQ(1.0, res.mat["s"](i, i)) << i;
 
 }
 TEST_F(TestR1GTOs, matrix) {
 
-  gtos.CalcMat();
+  MatVecMap res;
+  gtos.CalcMatSTV(res);
 
   for(int i = 0; i < 4; i++)
     for(int j = 0; j < 4; j++) {
       EXPECT_C_EQ(CIP(CNormalize(gs[i]), CNormalize(gs[j])),
-		  gtos.mat("s")(i, j)) << i << j;
+		  res.mat["s"](i, j)) << i << j;
       dcomplex tref = -0.5*CIP(CNormalize(gs[i]),
 			       OpD<dcomplex, double, 2>(),
 			       CNormalize(gs[j]));
-      EXPECT_C_EQ(tref, gtos.mat("t")(i, j)) << i << j;
+      EXPECT_C_EQ(tref, res.mat["t"](i, j)) << i << j;
       dcomplex vref = -CIP(CNormalize(gs[i]),
 			   OpRm<dcomplex, double>(-1),
 			   CNormalize(gs[j]));
-      EXPECT_C_EQ(vref, gtos.mat("v")(i, j)) << i << j;
+      EXPECT_C_EQ(vref, res.mat["v"](i, j)) << i << j;
     }
 
 }
@@ -206,7 +212,10 @@ TEST_F(TestR1GTOs, matrix_sto) {
 
   R1STOs sto; sto.Add(1.1, 1, 0.3); sto.Add(1.2, 1, 0.35);
   cout << "calc" << endl;
-  gtos.CalcMat(sto, "vexp");
+  
+  MatVecMap res;
+
+  gtos.CalcMatSTO(sto, res, "vexp");
   cout << "end" << endl;
 
   for(int i = 0; i < 4; i++)
@@ -218,7 +227,7 @@ TEST_F(TestR1GTOs, matrix_sto) {
       dcomplex val2 = STO_GTO_Int(dcomplex(0.35, 0.0),
 				 gs[i].z() + gs[j].z(),
 				 gs[i].n()+gs[j].n()+1);
-      EXPECT_C_EQ(nconst*(1.1*val1+1.2*val2), gtos.mat("vexp")(i, j))
+      EXPECT_C_EQ(nconst*(1.1*val1+1.2*val2), res.mat["vexp"](i, j))
 	<< i << j;
 
     }
