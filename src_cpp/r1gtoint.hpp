@@ -44,7 +44,13 @@ namespace l2func {
   class R1GTOs;
   class R1STOs;  
 
+  struct MatVecMap {
+    std::map<std::string, Eigen::MatrixXcd> mat_map;
+    std::map<std::string, Eigen::VectorXcd> vec_map;
+  };
+
   void CalcGTOInt(int maxn, dcomplex a, dcomplex* res);
+
   
   class R1GTOs {
   public:
@@ -65,9 +71,11 @@ namespace l2func {
     typedef std::vector<Contraction>::iterator ItCont;
     typedef std::vector<Contraction>::const_iterator cItCont;
   public:
-    bool normalized_q_;       // basis is normalized or not
-    bool calc_mat_q_;         // matrix is calculated with current setting
-    bool calc_vec_q_;         // vector is calculated with current setting
+    //bool normalized_q_;       // basis is normalized or not
+    bool coef_set_q_;         // coefcient is setup or not
+    std::string coef_type_;        // coefficient type (Nothing, normalized, derivativ)
+    // bool calc_mat_q_;         // matrix is calculated with current setting
+    // bool calc_vec_q_;         // vector is calculated with current setting
     std::vector<Contraction> conts_;
     int L_;      // angular quantum number
     MatMap mat_; // store calculation results
@@ -92,7 +100,7 @@ namespace l2func {
     int      n_prim(int i) { return this->prim(i).n; }
     Eigen::MatrixXcd& mat(std::string label);
     Eigen::VectorXcd& vec(std::string label);
-    bool normalized_q() const { return normalized_q_; }
+    bool coef_set_q() const { return coef_set_q_; }
     //    void Add(dcomplex c, int n, dcomplex zeta);
     void Add(int n, dcomplex zeta);
     void Add(int n, const Eigen::VectorXcd& zs);    

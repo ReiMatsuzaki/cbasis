@@ -61,7 +61,7 @@ check_l2: ${BINDIR}/test_l2
 
 
 # -- test r1gto --
-${BINDIR}/r1gtoint.a: $(foreach o, r1gtoint.o eigen_plus.o opt_alpha.o, ${BINDIR}/$o)
+${BINDIR}/r1gtoint.a: $(foreach o, r1gtoint.o eigen_plus.o, ${BINDIR}/$o)
 	ar r $@ $^
 R1GTOINT_OBJS=test_r1gtoint.o  l2.a r1gtoint.a
 ${BINDIR}/test_r1gtoint: $(foreach o, ${R1GTOINT_OBJS}, ${BINDIR}/$o)

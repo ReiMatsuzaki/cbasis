@@ -97,9 +97,8 @@ namespace l2func {
   }
 
   R1GTOs::R1GTOs(int _L):
-    normalized_q_(false),
-    calc_mat_q_(false),
-    calc_vec_q_(false),
+    coef_set_q_(false),
+    coef_type_("Nothing"),
     L_(_L) { }
   int R1GTOs::size_basis() const {
     int cumsum(0);
@@ -152,9 +151,8 @@ namespace l2func {
     throw runtime_error(oss.str());
   }
   void R1GTOs::Add(int _n, dcomplex _zeta) {
-    this->normalized_q_ = false;
-    this->calc_mat_q_ = false;
-    this->calc_vec_q_ = false;
+    this->coef_set_q_ = false;
+    this->coef_type_ = "Nothing";
     Contraction cont;
     cont.prim.push_back(Prim(_n, _zeta));
     cont.coef = MatrixXcd::Ones(1, 1);
@@ -162,6 +160,8 @@ namespace l2func {
     conts_.push_back(cont);    
   }
   void R1GTOs::Add(int n, const VectorXcd& zs) {
+    this->coef_set_q_ = false;
+    this->coef_type_ = "Nothing";
 
     for(int i = 0; i < zs.size(); i++) {
       this->Add(n, zs[i]);
@@ -175,9 +175,8 @@ namespace l2func {
       throw runtime_error(msg);
     }
 
-    this->normalized_q_ = false;
-    this->calc_mat_q_ = false;
-    this->calc_vec_q_ = false;
+    this->coef_set_q_ = false;
+    this->coef_type_ = "Nothing";
 
     Contraction cont;
     for(int i = 0; i < zs.size(); i++) 
@@ -204,9 +203,8 @@ namespace l2func {
       }
     }
 
-    this->normalized_q_ = false;
-    this->calc_mat_q_ = false;
-    this->calc_vec_q_ = false;
+    this->coef_set_q_ = false;
+    this->coef_type_ = "Nothing";
 
   }
   MatrixXcd& R1GTOs::mat(string label) {
@@ -294,11 +292,15 @@ namespace l2func {
       }
     }
 
-    this->normalized_q_ = true;
+    this->coef_set_q_ = true;
+    this->coef_type_ = "Normalized";
   }
   void R1GTOs::CalcMat() {
-    if(!this->normalized_q())
-      this->Normalize();
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }
 
     static MultArray<dcomplex, 2> s_prim_(1000);
     static MultArray<dcomplex, 2> t_prim_(1000);
@@ -364,12 +366,13 @@ namespace l2func {
 	}
       }
     }
-
-    this->calc_mat_q_ = true;
   }
   void R1GTOs::CalcMatH() {
-    if(!this->normalized_q())
-      this->Normalize();
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }
 
     static MultArray<dcomplex, 2> s_prim_(1000);
     static MultArray<dcomplex, 2> t_prim_(1000);
@@ -443,12 +446,13 @@ namespace l2func {
 	}
       }
     }
-
-    this->calc_mat_q_ = true;    
   }
   void R1GTOs::CalcMat(const R1STOs& sto, string label) {
-    if(!this->normalized_q())
-      this->Normalize();
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": coef is not set.";
+      throw runtime_error(msg);
+    }
 
     static MultArray<dcomplex, 2> prim_(1000);
 
@@ -494,12 +498,13 @@ namespace l2func {
 	}
       }
     }
-
-    this->calc_mat_q_ = true;
   }
   void R1GTOs::CalcMatH(const R1STOs& sto, string label) {
-    if(!this->normalized_q())
-      this->Normalize();
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }
 
     static MultArray<dcomplex, 2> prim_(1000);
 
@@ -545,8 +550,6 @@ namespace l2func {
 	}
       }
     }
-
-    this->calc_mat_q_ = true;
   }
   dcomplex HmES(int ni, int nj, dcomplex zj, int L, double energy, dcomplex *gs) {
     return (TMat(ni,   nj, zj, L, gs)
@@ -569,8 +572,11 @@ namespace l2func {
       buf.reserve(maxn);
     dcomplex* gs = &buf[0];
 
-    if(!this->normalized_q())
-      this->Normalize();
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }
 
     int num = this->size_basis();    
     if(mat_.find("d10_hmes") == mat_.end())
@@ -622,6 +628,16 @@ namespace l2func {
     msg += ": Not implemented yet.";
     msg += "label: " + label;
     throw runtime_error(msg);
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }      
+    if(o.coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }      
     /*
     if(!this->normalized_q())
       this->Normalize();
@@ -673,15 +689,16 @@ namespace l2func {
     }
     */
     
-    calc_vec_q_ = true;
-    
   }
   void R1GTOs::CalcVec(const R1STOs& o, string label) {
 
     static MultArray<dcomplex, 1> m_prim_(20);
-    
-    if(!this->normalized_q())
-      this->Normalize();
+
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }          
     
     int num(this->size_basis());
     if(vec_.find(label) == vec_.end())
@@ -714,7 +731,6 @@ namespace l2func {
 	}
       }
     }
-    calc_vec_q_ = true;
   }
   void R1GTOs::CalcDerivVec(const R1STOs& o) { 
     
@@ -723,6 +739,12 @@ namespace l2func {
     u' = (N' r^n - N r^(n+2)             ) Exp[-zr^2]
     u''= (N''r^n -2N'r^(n+2) + N r^(n+4) ) Exp[-zr^2]
     */
+    
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }      
 
     //    typedef vector<Contraction>::iterator ContIt;
     for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
@@ -733,8 +755,12 @@ namespace l2func {
       }
     }
 
-    if(!this->normalized_q())
-      this->Normalize();
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }      
+
     int num = this->size_basis();    
     if(vec_.find("d1_m") == vec_.end())
       vec_["d1_m"] = VectorXcd::Zero(num);
@@ -772,6 +798,13 @@ namespace l2func {
   void R1GTOs::AtR(const VectorXcd& cs, const VectorXcd& rs,
 		   VectorXcd* ys) {
 
+    if(!this->coef_set_q_) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": coef is not set up.";
+      throw runtime_error(msg);
+    }      
+
+
     if(cs.size() != this->size_basis()) {
       string msg; SUB_LOCATION(msg);
       msg += ": \n size of cs must be equal to basis size";
@@ -807,27 +840,25 @@ namespace l2func {
     return ys;
   }
   void R1GTOs::swap(R1GTOs& o) {
-    ::swap(this->normalized_q_, o.normalized_q_);
-    ::swap(this->calc_mat_q_, o.calc_mat_q_);
-    ::swap(this->calc_vec_q_, o.calc_vec_q_);
+    ::swap(this->coef_set_q_, o.coef_set_q_);
     this->conts_.swap(o.conts_);
     ::swap(this->L_, o.L_);
   }
 
   void R1STOs::Add(dcomplex c, int n, dcomplex zeta) {
-    this->normalized_q_ = false;
     stos_.push_back(R1STO(c, n, zeta));
   }
   void R1STOs::Add(int n, dcomplex zeta) {
-    this->normalized_q_ = false;
     stos_.push_back(R1STO(1, n, zeta));
   }
 
   ostream& operator<<(ostream& out, const R1GTOs& us) {
     out << "R1GTOs" << endl;
-    out << "normalized_q : "
-	<< (us.normalized_q() ? "Yes" : "No")
+    out << "coef_set_q : "
+	<< (us.coef_set_q_ ? "Yes" : "No")
 	<< endl;
+    out << "coef type : " << us.coef_type_ << endl;
+      
     for(int i = 0; i < us.size_prim(); ++i) {
       out << us.prim(i).n << us.prim(i).z << endl;
     }
