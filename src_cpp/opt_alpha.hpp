@@ -33,6 +33,7 @@ namespace l2func {
    */
   void OptAlphaShift(const R1STOs& driv,
 		     const Eigen::VectorXi& opt_idx,
+		     int L,
 		     dcomplex ene,
 		     double h,
 		     int max_iter,
@@ -50,8 +51,10 @@ namespace l2func {
   Eigen::VectorXcd SolveAlpha(const R1STOs& driv, R1GTOs& gtos, dcomplex ene,
 			      const R1STOs& sto_pot);
 
-  dcomplex CalcAlphaFull(const R1STOs& driv,R1GTOs& gtos, dcomplex ene);    
-  dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos, dcomplex ene, double eps);
-  dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos, dcomplex ene, const R1STOs&);
+  dcomplex CalcAlphaFull(const R1STOs& driv,R1GTOs& gtos, int L, dcomplex ene);
+  dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos, int L,  dcomplex ene,
+		     double eps);
+  dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos, int L, dcomplex ene, const R1STOs&);
+		     
 }
 #endif

@@ -2,38 +2,46 @@
 #include <gtest/gtest.h>
 
 #include "typedef.hpp"
+#include "eigen_plus.hpp"
 #include "gtest_plus.hpp"
+
 #include "r1gtoint.hpp"
+#include "opt_alpha.hpp"
 #include "l_algebra.hpp"
 
+using namespace std;
 using namespace l2func;
 using namespace Eigen;
 
 dcomplex NormalTerm(int n, dcomplex z0) {
-  R1GTOs gtos(0);
+  R1GTOs gtos;
   gtos.Add(n, z0);
   gtos.Normalize();
   return gtos.conts_[0].coef(0, 0);
 }
 MatrixXcd CalcL(dcomplex z0, dcomplex z1) {
-  R1GTOs gtos(1);
+  R1GTOs gtos;
   gtos.Add(2, z0);
   gtos.Add(2, z1);
   gtos.Normalize();
-  gtos.CalcMat();
+
+  MatVecMap res;
+  gtos.CalcMatSTV(1, res, "s", "t", "v");
   dcomplex energy(0.5);
 
-  MatrixXcd hmes00 = gtos.mat("t") + gtos.mat("v") -energy*gtos.mat("s");
+  MatrixXcd hmes00 = res.mat("t") + res.mat("v") -energy*res.mat("s");
   return hmes00;
 }
 VectorXcd CalcM(dcomplex z0, dcomplex z1, const R1STOs& driv) {
-  R1GTOs gtos(1);
+  R1GTOs gtos;
   gtos.Add(2, z0);
   gtos.Add(2, z1);
   gtos.Normalize();
-  gtos.CalcVec(driv);
 
-  return gtos.vec("m");
+  MatVecMap res;
+  gtos.CalcVec(driv, res, "m");
+
+  return res.vec("m");
 
 }
 
@@ -79,14 +87,23 @@ TEST(DerivBasis, DrivVec) {
   grad = (vp0 - vm0 - ii*v0p +ii*v0m)/(4.0*h);
   hess = (vp0 + vm0 - v0p - v0m)/(2.0*h*h);
 
-  R1GTOs gtos(1);
+  R1GTOs gtos;
   gtos.Add(2, z0); gtos.Add(2, z1);
   gtos.Normalize();
-  gtos.CalcDerivVec(driv);
+
+  R1GTOs d1_gtos;
+  d1_gtos.SetOneDeriv(gtos);
+
+  R1GTOs d2_gtos;
+  d2_gtos.SetTwoDeriv(gtos);
+  
+  MatVecMap res;
+  d1_gtos.CalcVec(driv, res, "d1_m");
+  d2_gtos.CalcVec(driv, res, "d2_m");
   
   double eps(pow(10.0, -7.0));
-  EXPECT_C_NEAR(grad, gtos.vec("d1_m")(0), eps);
-  EXPECT_C_NEAR(hess, gtos.vec("d2_m")(0), eps);
+  EXPECT_C_NEAR(grad, res.vec("d1_m")(0), eps);
+  EXPECT_C_NEAR(hess, res.vec("d2_m")(0), eps);
   
 }
 TEST(DerivBasis, HMES) {
@@ -107,16 +124,27 @@ TEST(DerivBasis, HMES) {
   grad = (vp0 - vm0 - ii*v0p +ii*v0m)/(4.0*h);
   hess = (vp0 + vm0 -    v0p -   v0m)/(2.0*h*h);
 
-  R1GTOs gtos(1);
+  R1GTOs gtos, d1_gs, d2_gs;
   gtos.Add(2, z0); gtos.Add(2, z1);
   gtos.Normalize();
-  gtos.CalcDerivMat(0.5);
+  d1_gs.SetOneDeriv(gtos);
+  d2_gs.SetTwoDeriv(gtos);
+  
+  MatVecMap res;
+  d1_gs.CalcMatSTV(gtos,  1, res, "d10_s", "d10_t", "d10_v");
+  d1_gs.CalcMatSTV(d1_gs, 1, res, "d11_s", "d11_t", "d11_v");
+  d2_gs.CalcMatSTV(gtos, 1, res, "d20_s", "d20_t", "d20_v");
+  //  gtos.CalcDerivMat(0.5);
 
   double eps(pow(10.0, -7.0));
-  EXPECT_C_NEAR(grad, gtos.mat("d10_hmes")(0, 1), eps);
-  EXPECT_C_NEAR(hess, gtos.mat("d20_hmes")(0, 1), eps);
+  double energy(0.5);
+  MatrixXcd d10_hmes = res.mat("d10_t") + res.mat("d10_v") - energy*res.mat("d10_s");
+  MatrixXcd d11_hmes = res.mat("d11_t") + res.mat("d11_v") - energy*res.mat("d11_s");
+  MatrixXcd d20_hmes = res.mat("d20_t") + res.mat("d20_v") - energy*res.mat("d20_s");
+  EXPECT_C_NEAR(grad, d10_hmes(0, 1), eps);
+  EXPECT_C_NEAR(hess, d20_hmes(0, 1), eps);
   EXPECT_C_NEAR(dcomplex(0.8990314915292628, -1.6007590026235783),
-    gtos.mat("d11_hmes")(0, 1), eps);
+    d11_hmes(0, 1), eps);
 
 }
 
@@ -184,7 +212,7 @@ TEST(LinearAlgebra, sym) {
 
 dcomplex CalcAlpha(dcomplex z_shift) {
 
-  R1GTOs gtos(1);
+  R1GTOs gtos;
   VectorXcd zs(15);  
   zs << 0.463925,
     1.202518,
@@ -208,11 +236,12 @@ dcomplex CalcAlpha(dcomplex z_shift) {
   R1STOs driv;
   driv.Add(2.0, 2, 1.0);
 
-  gtos.CalcMat();
-  gtos.CalcVec(driv);
+  MatVecMap res;
+  gtos.CalcMatSTV(1, res, "s", "t", "v");
+  gtos.CalcVec(driv, res, "m");
 
-  MatrixXcd L = gtos.mat("t") + gtos.mat("v") -0.5* gtos.mat("s");
-  VectorXcd& m = gtos.vec("m");
+  MatrixXcd L = res.mat("t") + res.mat("v") -0.5* res.mat("s");
+  VectorXcd& m = res.vec("m");
   dcomplex a = (m.array() *
 		(L.fullPivLu().solve(m)).array()).sum();
   //dcomplex a = vec["m"].dot(L.fullPivLu().solve(vec["m"]));
@@ -243,15 +272,19 @@ TEST(OptAlpha, WithContraction) {
     0.01068994588552496, 
     0.008938476331399546;
   
-  R1GTOs gtos(1);
+  R1GTOs gtos;
   gtos.Add(2, zs_k);
-  gtos.CalcMat();
+  gtos.Normalize();
+  
+  MatVecMap res;
+  gtos.CalcMatSTV(1, res, "s", "t", "v");
   MatrixXcd xmat;
-  CanonicalMatrix(gtos.mat("s"), pow(10.0, -5.0), &xmat);
+  CanonicalMatrix(res.mat("s"), pow(10.0, -5.0), &xmat);
 
-  R1GTOs gtos2(1);
+  R1GTOs gtos2;
   gtos2.Add(2, zs_h);
   gtos2.Add(2, zs_k, xmat.transpose());
+  gtos2.Normalize();
 
   EXPECT_EQ(10+7, gtos2.size_prim());
 
@@ -264,7 +297,7 @@ TEST(OptAlpha, WithContraction) {
   dcomplex z_shift(0.0, -0.02);
   bool convq;
   dcomplex alpha;
-  OptAlphaShift(driv, opt_idx, 0.5,
+  OptAlphaShift(driv, opt_idx, 1, 0.5,
 		h, 20, eps, /*pow(10.0, -8.0)*/ 0.0,
 		gtos2, z_shift, &convq, &alpha);
 
@@ -279,7 +312,7 @@ TEST(OptAlpha, ShiftKaufmann) {
   // ARCH=fast
   // 258ms
 
-  R1GTOs gtos(1);
+  R1GTOs gtos;
   
   int max_iter(100);
   dcomplex h(0.0001);
@@ -322,7 +355,7 @@ TEST(OptAlpha, ShiftKaufmann) {
 }
 TEST(OptAlpha, CalcAlpha) {
 
-  R1GTOs gtos(1);
+  R1GTOs gtos;
   VectorXcd zs(15);  
   zs << 0.463925,
     1.202518,
@@ -340,18 +373,20 @@ TEST(OptAlpha, CalcAlpha) {
     0.016180602421004654,
     0.013011569667967734;
   gtos.Add(2, zs);
+  gtos.Normalize();
 
   R1STOs driv; driv.Add(2.0, 2, 1.0);
   VectorXi opt_idx(8);
   opt_idx << 7, 8, 9, 10, 11, 12, 13, 14;
   
-  EXPECT_C_EQ(CalcAlpha(0.0),
-	      CalcAlphaFull(driv, gtos, 0.5));
-  
+  dcomplex v0 = CalcAlpha(0.0);
+  dcomplex v1 = CalcAlphaFull(driv, gtos, 1, 0.5);
+
+  EXPECT_C_EQ(v0, v1);
 
 }
 TEST(OptAlpha, CalcAlphaSTO) {
-  R1GTOs gtos(1);
+  R1GTOs gtos;
   VectorXcd zs(15);  
   zs << 0.463925,
     1.202518,
@@ -369,6 +404,7 @@ TEST(OptAlpha, CalcAlphaSTO) {
     0.016180602421004654 -dcomplex(0, 0.02),
     0.013011569667967734 -dcomplex(0, 0.02);
   gtos.Add(2, zs);
+  gtos.Normalize();
 
   R1STOs driv; driv.Add(2.0, 2, 1.0);
   R1STOs pot;  pot.Add(-1.0, 0, 1.0);
@@ -376,14 +412,14 @@ TEST(OptAlpha, CalcAlphaSTO) {
   // 2016/4/12
   // alpha = -4.770452, -0.235177
 
-  EXPECT_C_NEAR(CalcAlpha(driv, gtos, 0.5, pot),
-		dcomplex(-4.770452, -0.235177),
-		pow(10.0, -4.0));
+  EXPECT_C_NEAR(CalcAlpha(driv, gtos, 1, 0.5, pot),
+    dcomplex(-4.770452, -0.235177),
+    pow(10.0, -4.0));
 
 }
 TEST(OptAlpha, WithoutCanonical) {
 
-  R1GTOs gtos(1);
+  R1GTOs gtos;
   VectorXcd zs(15);  
   zs <<
     0.463925,
@@ -412,7 +448,7 @@ TEST(OptAlpha, WithoutCanonical) {
   dcomplex z_shift(0.0, -0.02);
   bool convq;
   dcomplex alpha;
-  OptAlphaShift(driv, opt_idx, 0.5,
+  OptAlphaShift(driv, opt_idx, 1, 0.5,
 		h, 20, eps, /*pow(10.0, -8.0)*/ 0.0,
 		gtos, z_shift, &convq, &alpha);
 
@@ -427,7 +463,7 @@ TEST(OptAlpha, WithoutCanonical) {
 }
 TEST(OptAlpha, WithCanonical) {
 
-  R1GTOs gtos(1);
+  R1GTOs gtos;
   VectorXcd zs(15);  
   zs << 0.463925,
     1.202518,
@@ -445,6 +481,7 @@ TEST(OptAlpha, WithCanonical) {
     0.016180602421004654,
     0.013011569667967734;
   gtos.Add(2, zs);
+  gtos.Normalize();
 
   R1STOs driv; driv.Add(2.0, 2, 1.0);
   VectorXi opt_idx(8);
@@ -455,7 +492,7 @@ TEST(OptAlpha, WithCanonical) {
   dcomplex z_shift(0.0, -0.02);
   bool convq;
   dcomplex alpha;
-  OptAlphaShift(driv, opt_idx, 0.5,
+  OptAlphaShift(driv, opt_idx, 1, 0.5,
 		h, 100, eps, pow(10.0, -8.0),
 		gtos, z_shift, &convq, &alpha);
 

@@ -233,12 +233,9 @@ TEST_F(TestR1GTOs, matrix) {
 TEST_F(TestR1GTOs, matrix_sto) {
 
   R1STOs sto; sto.Add(1.1, 1, 0.3); sto.Add(1.2, 1, 0.35);
-  cout << "calc" << endl;
   
   MatVecMap res;
-
   gtos.CalcMatSTO(sto, res, "vexp");
-  cout << "end" << endl;
 
   for(int i = 0; i < 4; i++)
     for(int j = 0; j < 4; j++) {

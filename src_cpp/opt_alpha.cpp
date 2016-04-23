@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 #include <iomanip>
 #include "macros.hpp"
+#include "l_algebra.hpp"
 #include "eigen_plus.hpp"
 #include "opt_alpha.hpp"
 
@@ -84,45 +85,16 @@ namespace l2func {
     }
   }
 
-  dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos,
-		     dcomplex ene, double eps) {
-    gtos.CalcMat();
-    gtos.CalcVec(driv);
-    MatrixXcd X;
-    CanonicalMatrix(gtos.mat("s"), eps, &X);
-    MatrixXcd Lp = (X.transpose() *
-		    (gtos.mat("t") + gtos.mat("v") - ene * gtos.mat("s")) *
-		    X);
-    VectorXcd m = X.transpose()*gtos.vec("m");
-    dcomplex a = (m.array() *
-		  Lp.fullPivLu().solve(m).array()).sum();
-  
-    return a;
+  VectorXcd SolveAlpha(const R1STOs& driv,  R1GTOs& gtos, int L, dcomplex ene,
+		       MatVecMap& d, double eps) {
 
-  }  
-  dcomplex CalcAlphaFull(const R1STOs& driv,R1GTOs& gtos, dcomplex ene) {
-    
-    gtos.CalcMat();
-    gtos.CalcVec(driv);
+    gtos.CalcMatSTV(L, d, "s", "t", "v");
+    gtos.CalcVec(driv, d, "m");
 
-    VectorXcd& m = gtos.vec("m");
-    MatrixXcd& t = gtos.mat("t");
-    MatrixXcd& v = gtos.mat("v");
-    MatrixXcd& s = gtos.mat("s");
-    dcomplex a = (m.array() * 
-		  ((t+v-ene*s).fullPivLu().solve(m)).array()).sum();
-    return a;
-  }
-
-  VectorXcd SolveAlpha(const R1STOs& driv,  R1GTOs& gtos, dcomplex ene, double eps) {
-
-    gtos.CalcMat();
-    gtos.CalcVec(driv);
-
-    VectorXcd& m = gtos.vec("m");
-    MatrixXcd& t = gtos.mat("t");
-    MatrixXcd& v = gtos.mat("v");
-    MatrixXcd& s = gtos.mat("s");
+    VectorXcd& m = d.vec("m");
+    MatrixXcd& t = d.mat("t");
+    MatrixXcd& v = d.mat("v");
+    MatrixXcd& s = d.mat("s");
 
     if(eps > pow(10.0, -14.0)) {
       MatrixXcd X;
@@ -140,6 +112,7 @@ namespace l2func {
 
   void OptAlphaShiftFull(const R1STOs& driv,
 			 const VectorXi& opt_idx,
+			 int L,
 			 dcomplex ene,
 			 double h,
 			 int max_iter,
@@ -160,7 +133,6 @@ namespace l2func {
       throw runtime_error(oss.str());
     }
 
-
     VectorXcd zs0(gtos.size_prim());
     VectorXcd zs1(gtos.size_prim());
     dcomplex ih(0.0, h);
@@ -176,19 +148,19 @@ namespace l2func {
       dcomplex ap0, am0, a0p, a0m;
       VectorShift(zs0, zs1, opt_idx, z_shift + h);
       gtos.Set(2, zs1); gtos.Normalize();
-      ap0 = CalcAlphaFull(driv, gtos, ene);
+      ap0 = CalcAlphaFull(driv, gtos, L, ene);
 
       VectorShift(zs0, zs1, opt_idx, z_shift - h);
       gtos.Set(2, zs1); gtos.Normalize();
-      am0 = CalcAlphaFull(driv, gtos, ene);
+      am0 = CalcAlphaFull(driv, gtos, L, ene);
 
       VectorShift(zs0, zs1, opt_idx, z_shift + ih);
       gtos.Set(2, zs1); gtos.Normalize();
-      a0p = CalcAlphaFull(driv, gtos, ene);
+      a0p = CalcAlphaFull(driv, gtos, L, ene);
 
       VectorShift(zs0, zs1, opt_idx, z_shift - ih);
       gtos.Set(2, zs1);       gtos.Normalize();
-      a0m = CalcAlphaFull(driv, gtos, ene);
+      a0m = CalcAlphaFull(driv, gtos, L, ene);
       
       dcomplex grad = (ap0 - am0 + ii*a0m - ii*a0p) / (4.0 * h);
       dcomplex hess = (ap0 + am0 - a0p - a0m) / (2.0*h*h);
@@ -204,12 +176,12 @@ namespace l2func {
 
     VectorShift(zs0, zs1, opt_idx, z_shift);
     gtos.Set(2, zs1); gtos.Normalize();
-    a00 = CalcAlphaFull(driv, gtos, ene);
+    a00 = CalcAlphaFull(driv, gtos, L, ene);
 
     *alpha = a00;
 
   }
-      
+/*
   void OptAlphaShiftCanonical(const R1STOs& driv,
 			      const VectorXi& opt_idx,
 			      dcomplex ene,
@@ -221,9 +193,6 @@ namespace l2func {
 			      dcomplex& z_shift,
 			      bool* convq,
 			      dcomplex* alpha) {
-
-    MatMap mat;
-    VecMap vec;
 
     VectorXcd zs0(gtos.size_basis());
     VectorXcd zs1(gtos.size_basis());
@@ -271,9 +240,10 @@ namespace l2func {
     *alpha = CalcAlpha(driv, gtos, ene, 0.0);;
 
   }
-
+*/      
   void OptAlphaShift(const R1STOs& driv,
 		     const VectorXi& opt_idx,
+		     int L,
 		     dcomplex ene,
 		     double h,
 		     int max_iter,
@@ -286,41 +256,85 @@ namespace l2func {
 
     double eps_canonical_th(pow(10.0, -14.0));
     if(eps_canonical < eps_canonical_th)
-      OptAlphaShiftFull(driv, opt_idx, ene, h, max_iter, eps,
+      OptAlphaShiftFull(driv, opt_idx, L, ene, h, max_iter, eps,
 			gtos, z_shift, convq, alpha);
-    else
-      OptAlphaShiftCanonical(driv, opt_idx, ene, h, max_iter, eps, eps_canonical,
-			     gtos, z_shift, convq, alpha);
+    else {
+      string msg; SUB_LOCATION(msg);
+      msg += ": canonical calculation is not supported";
+      throw runtime_error(msg);
+      //OptAlphaShiftCanonical(driv, opt_idx, ene, h, max_iter, eps, eps_canonical,
+      //gtos, z_shift, convq, alpha);
+		    }
+  }
+  VectorXcd SolveAlpha(const R1STOs& driv, R1GTOs& gtos,
+		       int L, dcomplex ene, const R1STOs& sto_pot) {
+
+    static MatVecMap d;
+    
+    gtos.CalcMatSTV(L, d, "s", "t", "v");
+    gtos.CalcMatSTO(sto_pot, d, "v2");
+    gtos.CalcVec(driv, d, "m");
+
+    VectorXcd& m = d.vec("m");
+    MatrixXcd& t = d.mat("t");
+    MatrixXcd& v = d.mat("v");
+    MatrixXcd& v2= d.mat("v2");
+    MatrixXcd& s = d.mat("s");
+    return (t+v+v2-ene*s).fullPivLu().solve(m);
+
   }
   dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos,
-		     dcomplex ene, const R1STOs& sto_pot) {
+		     int L, dcomplex ene, const R1STOs& sto_pot) {
 
-    gtos.CalcMat();
-    gtos.CalcMat(sto_pot, "v2");
-    gtos.CalcVec(driv);
+    static MatVecMap d;
 
-    VectorXcd& m = gtos.vec("m");
-    MatrixXcd& t = gtos.mat("t");
-    MatrixXcd& v = gtos.mat("v");
-    MatrixXcd& v2= gtos.mat("v2");
-    MatrixXcd& s = gtos.mat("s");
+    gtos.CalcMatSTV(L, d, "s", "t", "v");
+    gtos.CalcMatSTO(sto_pot, d, "v2");
+    gtos.CalcVec(driv, d, "m");
+
+    VectorXcd& m = d.vec("m");
+    MatrixXcd& t = d.mat("t");
+    MatrixXcd& v = d.mat("v");
+    MatrixXcd& v2= d.mat("v2");
+    MatrixXcd& s = d.mat("s");
     return (m.array() * 
 	    ((t+v+v2-ene*s).fullPivLu().solve(m)).array()).sum();
   }
-  VectorXcd SolveAlpha(const R1STOs& driv, R1GTOs& gtos,
-		       dcomplex ene, const R1STOs& sto_pot) {
 
-    gtos.CalcMat();
-    gtos.CalcMat(sto_pot, "v2");
-    gtos.CalcVec(driv);
+  dcomplex CalcAlpha(const R1STOs& driv, R1GTOs& gtos,
+		     int L, dcomplex ene, double eps) {
 
-    VectorXcd& m = gtos.vec("m");
-    MatrixXcd& t = gtos.mat("t");
-    MatrixXcd& v = gtos.mat("v");
-    MatrixXcd& v2= gtos.mat("v2");
-    MatrixXcd& s = gtos.mat("s");
-    return (t+v+v2-ene*s).fullPivLu().solve(m);
+    
+    static MatVecMap mat_vec;
+    
+    gtos.CalcMatSTV(L, mat_vec, "s", "t", "v");
+    gtos.CalcVec(driv, mat_vec, "m");
+    MatrixXcd X;
+    CanonicalMatrix(mat_vec.mat("s"), eps, &X);
+    MatrixXcd Lp = (X.transpose() *
+		    (mat_vec.mat("t") + mat_vec.mat("v") - ene * mat_vec.mat("s")) *
+		    X);
+    VectorXcd m = X.transpose()*mat_vec.vec("m");
+    dcomplex a = (m.array() *
+		  Lp.fullPivLu().solve(m).array()).sum();
+  
+    return a;
 
+  }  
+  dcomplex CalcAlphaFull(const R1STOs& driv,R1GTOs& gtos, int L, dcomplex ene) {
+
+    static MatVecMap mat_vec;
+    
+    gtos.CalcMatSTV(L, mat_vec, "s", "t", "v");
+    gtos.CalcVec(driv, mat_vec, "m");
+
+    VectorXcd& m = mat_vec.vec("m");
+    MatrixXcd& t = mat_vec.mat("t");
+    MatrixXcd& v = mat_vec.mat("v");
+    MatrixXcd& s = mat_vec.mat("s");
+    dcomplex a = (m.array() * 
+		  ((t+v-ene*s).fullPivLu().solve(m)).array()).sum();
+    return a;
   }
 
 }

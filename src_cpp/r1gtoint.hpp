@@ -81,9 +81,11 @@ namespace l2func {
     typedef std::vector<Contraction>::iterator ItCont;
     typedef std::vector<Contraction>::const_iterator cItCont;
   public:
-    bool coef_set_q_;         // coefcient is setup or not
-    std::string coef_type_;        // coefficient type (Nothing, normalized, derivativ)
+    bool coef_set_q_;        // coefcient is setup or not
+    std::string coef_type_;  // coefficient type (Nothing, normalized, derivativ)
     std::vector<Contraction> conts_;
+    int num_basis_;
+    int num_prim_;
   public:
 
     // ---- Constructors ----
@@ -96,13 +98,16 @@ namespace l2func {
 
     // ---- Getter -----
     //    int L() const { return L_; }
-    int size_basis() const;
-    int size_prim() const;
+    int calc_size_basis() const;
+    int calc_size_prim() const;
+    int size_basis() const { return num_basis_; }
+    int size_prim() const { return num_prim_; }
     const Prim& prim(int i) const;    
     Prim& prim(int i);
     dcomplex z_prim(int i) { return this->prim(i).z; }
     int      n_prim(int i) { return this->prim(i).n; }
     bool coef_set_q() const { return coef_set_q_; }
+    std::string coef_type() const { return coef_type_; }
 
     // ---- Setter ----
     void Add(int n, dcomplex zeta);
@@ -112,17 +117,31 @@ namespace l2func {
 
     // ---- basis convert ----
     void SetConj(const R1GTOs& o);
+    void SetOneDeriv(const R1GTOs& o);
+    void SetTwoDeriv(const R1GTOs& o);
 
-    // ---- Calculation ----
-    void Normalize();
+
+    // ---- Matrix/Vector ----
+    void CreateMat(const R1GTOs& o, Eigen::MatrixXcd& m) const;
+    void CreateVec(Eigen::VectorXcd& m) const;
     void CalcMatSTV(const R1GTOs& o, int L,  MatVecMap& mat_vec,
 		    std::string s_lbl, std::string t_lbl, std::string v_lbl) const;
+    void CalcMatSTV(const R1GTOs& o, int L, Eigen::MatrixXcd& S, 
+		    Eigen::MatrixXcd& T, Eigen::MatrixXcd& V) const;
     void CalcMatSTV(int L, MatVecMap& mat_vec,
 		    std::string s_lbl, std::string t_lbl, std::string v_lbl) const;
+    void CalcMatSTV(int L, Eigen::MatrixXcd& S, 
+		    Eigen::MatrixXcd& T, Eigen::MatrixXcd& V) const;
     void CalcMatSTO(const R1GTOs& o, const R1STOs& v, MatVecMap& res, std::string) const;
     void CalcMatSTO(const R1STOs& v, MatVecMap& res, std::string) const;
+    void CalcMatSTO(const R1GTOs& o, const R1STOs& v, Eigen::MatrixXcd&) const;
+    void CalcMatSTO(const R1STOs& v, Eigen::MatrixXcd&) const;
     void CalcVec(const R1STOs& o, MatVecMap& mat_vec, std::string label="m") const;
+    void CalcVec(const R1STOs& v, Eigen::VectorXcd& m) const;
 
+    // ---- Other ----
+    void SetUp();
+    void Normalize();
     void AtR(const Eigen::VectorXcd&,
 	     const Eigen::VectorXcd&, Eigen::VectorXcd*);
     Eigen::VectorXcd* AtR(const Eigen::VectorXcd&,

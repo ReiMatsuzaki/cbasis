@@ -69,6 +69,11 @@ namespace l2func {
   void MatVecMap::InitMatIfNecessary(string lbl, int ni, int nj) {
     if(!this->exist_mat(lbl)) {
       this->mat_[lbl] = MatrixXcd::Zero(ni, nj);
+    } else {
+      MatrixXcd& m = this->mat_[lbl];
+      if(m.rows() != ni || m.cols() != nj) {
+	m = MatrixXcd::Zero(ni, nj);
+      }
     }
   }
   const VectorXcd& MatVecMap::vec(string lbl) const {
@@ -95,11 +100,17 @@ namespace l2func {
     return it->second;
   }
   void MatVecMap::InitVecIfNecessary(string lbl, int n) {
-    if(!this->exist_vec(lbl))
+    if(!this->exist_vec(lbl)) {
       this->vec_[lbl] = VectorXcd::Zero(n);
+    }else {
+      VectorXcd& v = this->vec_[lbl];
+      if(v.size() != n) {
+	v = VectorXcd::Zero(n);
+      }
+    }
   }
-  // ==== R1GTO/R1STO ====
 
+  // ==== R1GTO/R1STO ====
   R1GTO::R1GTO(dcomplex _c, int _n, dcomplex _z): c(_c), n(_n), z(_z) {
     if(n < 1) {
       string msg; SUB_LOCATION(msg);
@@ -191,7 +202,7 @@ namespace l2func {
   }
 
   // ---- Getter ----
-  int R1GTOs::size_basis() const {
+  int R1GTOs::calc_size_basis() const {
     int cumsum(0);
     for(vector<Contraction>::const_iterator it = conts_.begin(), end = conts_.end();
 	it != end; ++it) {
@@ -199,7 +210,7 @@ namespace l2func {
     }
     return cumsum;
   }
-  int R1GTOs::size_prim() const {
+  int R1GTOs::calc_size_prim() const {
     int cumsum(0);
     for(vector<Contraction>::const_iterator it = conts_.begin(), end = conts_.end();
 	it != end; ++it) {
@@ -249,7 +260,7 @@ namespace l2func {
     Contraction cont;
     cont.prim.push_back(Prim(_n, _zeta));
     cont.coef = MatrixXcd::Ones(1, 1);
-    cont.offset = this->size_basis();
+    cont.offset = this->calc_size_basis();
     conts_.push_back(cont);    
   }
   void R1GTOs::Add(int n, const VectorXcd& zs) {
@@ -275,7 +286,7 @@ namespace l2func {
     for(int i = 0; i < zs.size(); i++) 
       cont.prim.push_back(Prim(n, zs(i)));
     cont.coef = coef;
-    cont.offset = this->size_basis();
+    cont.offset = this->calc_size_basis();
     this->conts_.push_back(cont);
     
   }
@@ -332,46 +343,146 @@ namespace l2func {
     this->coef_type_  = o.coef_type_;
 
   }
+  void R1GTOs::SetOneDeriv(const R1GTOs& o) {
 
-  // ---- Calculation ----
-  void R1GTOs::Normalize() {
+    if(o.coef_type() != "Normalized" || !o.coef_set_q()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": o must be normalized.";
+      throw runtime_error(msg);
+    }
 
-    static MultArray<dcomplex, 1> m_prim_(20);
-
-    int maxn = this->max_n() + this->max_n() + 2 + 1;
-    static vector<dcomplex> buf(maxn);
-    if((int)buf.capacity() < maxn)
-      buf.reserve(maxn);
-    dcomplex* gs = &buf[0];
-
-    typedef vector<Contraction>::iterator ItCont;
-    typedef vector<R1GTO>::iterator ItPrim;
-
-    for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
-
-      for(int ibasis = 0; ibasis < it->size_basis(); ++ibasis) {
-	dcomplex norm2(0);
-	for(int i = 0; i < it->size_prim(); i++) {
-	  for(int j = 0; j < it->size_prim(); j++) {
-	    dcomplex c(it->coef(ibasis, i) * it->coef(ibasis, j));
-	    int      n(it->prim[i].n + it->prim[j].n);
-	    dcomplex z(it->prim[i].z + it->prim[j].z);
-	    CalcGTOInt(n, z, gs);
-	    norm2 += c*gs[n];
-	  }
-	}
-	dcomplex scale(1.0/sqrt(norm2));
-	for(int iprim = 0; iprim < it->size_prim(); iprim++) {
-	  it->coef(ibasis, iprim) *= scale;
-	}
+    for(cItCont it = o.conts_.begin(), end = o.conts_.end(); it != end; ++it) {
+      if(it->size_prim() != 1 || it->size_basis() != 1) {
+	string msg; SUB_LOCATION(msg);
+	msg += ": Only support non contracted basis set.";
+	throw runtime_error(msg);
       }
     }
 
+    /*
+    bool is_allocated = true;
+    if(this->size_basis() != o.size_basis())
+      is_allocated = false;
+    else {
+      for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+	if(it->size_prim() != 2) {
+	  is_allocated = false;
+	}
+	if(it->size_basis() != 1) {
+	  is_allocated = false;
+	}
+      }
+    }
+    */
+
+    if(!this->coef_set_q_) {
+      vector<Contraction> conts;
+      this->conts_.swap(conts);
+      for(cItCont it = o.conts_.begin(), end = o.conts_.end(); it != end; ++it) {
+	VectorXcd zs = VectorXcd::Zero(2);
+	MatrixXcd cs = MatrixXcd::Ones(1, 2);
+	this->Add(it->prim[0].n, zs, cs);
+      }
+    }
+
+    ItCont it = this->conts_.begin();
+    for(cItCont jt = o.conts_.begin(), end = o.conts_.end(); jt != end; ++jt, ++it) {
+      dcomplex c(jt->coef(0, 0));
+      int      n(jt->prim[0].n);
+      dcomplex z(jt->prim[0].z);
+      it->coef(0, 0) = NPrimeGTO(c, n, z);
+      it->prim[0].n =  n;
+      it->prim[0].z =  z;
+
+      it->coef(0, 1) = -c;
+      it->prim[1].n  = n+2;
+      it->prim[1].z  = z;
+	
+    }
     this->coef_set_q_ = true;
-    this->coef_type_ = "Normalized";
+    this->coef_type_  = "D1Normalized";
   }
+  void R1GTOs::SetTwoDeriv(const R1GTOs& o) {
+    
+    if(o.coef_type() != "Normalized" || !o.coef_set_q()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": o must be normalized.";
+      throw runtime_error(msg);
+    }
+
+    for(cItCont it = o.conts_.begin(), end = o.conts_.end(); it != end; ++it) {
+      if(it->size_prim() != 1 || it->size_basis() != 1) {
+	string msg; SUB_LOCATION(msg);
+	msg += ": Only support non contracted basis set.";
+	throw runtime_error(msg);
+      }
+    }
+    
+    if(!this->coef_set_q_) {
+      vector<Contraction> conts;
+      this->conts_.swap(conts);
+      for(cItCont it = o.conts_.begin(), end = o.conts_.end(); it != end; ++it) {
+	VectorXcd zs = VectorXcd::Zero(3);
+	MatrixXcd cs = MatrixXcd::Ones(1, 3);
+	this->Add(it->prim[0].n, zs, cs);
+      }
+    }
+
+    ItCont it = this->conts_.begin();
+    for(cItCont jt = o.conts_.begin(), end = o.conts_.end(); jt != end; ++jt, ++it) {
+      dcomplex c(jt->coef(0, 0));
+      int      n(jt->prim[0].n);
+      dcomplex z(jt->prim[0].z);
+
+      it->coef(0, 0) = NDoublePrimeGTO(c, n, z);
+      it->prim[0].n =  n;
+      it->prim[0].z =  z;
+
+      it->coef(0, 1) = -2.0*NPrimeGTO(c, n, z);
+      it->prim[1].n  = n+2;
+      it->prim[1].z  = z;
+
+      it->coef(0, 2) = c;
+      it->prim[2].n  = n+4;
+      it->prim[2].z  = z;
+      
+    }    
+
+    this->coef_set_q_ = true;
+    this->coef_type_  = "D2Normalized";
+  }
+
+  // ---- Calculation ----
+  void R1GTOs::CreateMat(const R1GTOs& o, Eigen::MatrixXcd& m) const {
+    int ni(this->size_basis());
+    int nj(o.size_basis());
+    if(m.rows() != ni || m.cols() != nj) {
+      m = MatrixXcd::Zero(ni, nj);
+    }
+  }
+  void R1GTOs::CreateVec(Eigen::VectorXcd& m) const {
+    int n(this->size_basis());
+    if(m.size() != n) 
+      m = VectorXcd::Zero(n);
+  }
+  
   void R1GTOs::CalcMatSTV(const R1GTOs& o, int L, MatVecMap& mat_vec,
 			  string s_lbl, string t_lbl, string v_lbl) const {
+
+    int num = this->size_basis();
+    mat_vec.InitMatIfNecessary(s_lbl, num, num);
+    mat_vec.InitMatIfNecessary(t_lbl, num, num);
+    mat_vec.InitMatIfNecessary(v_lbl, num, num);
+
+    MatrixXcd& s = mat_vec.mat(s_lbl);
+    MatrixXcd& t = mat_vec.mat(t_lbl);
+    MatrixXcd& v = mat_vec.mat(v_lbl);
+
+    this->CalcMatSTV(o, L, s, t, v);
+
+  }
+  void R1GTOs::CalcMatSTV(const R1GTOs& o, int L,
+			  MatrixXcd& S, MatrixXcd& T, MatrixXcd& V) const {
     if(!this->coef_set_q_) {
       string msg; SUB_LOCATION(msg);
       msg += ": coef is not set.";
@@ -388,14 +499,7 @@ namespace l2func {
       buf.reserve(maxn);
     dcomplex* gs = &buf[0];
 
-    int num = this->size_basis();
-    mat_vec.InitMatIfNecessary(s_lbl, num, num);
-    mat_vec.InitMatIfNecessary(t_lbl, num, num);
-    mat_vec.InitMatIfNecessary(v_lbl, num, num);
-
-    MatrixXcd& s = mat_vec.mat(s_lbl);
-    MatrixXcd& t = mat_vec.mat(t_lbl);
-    MatrixXcd& v = mat_vec.mat(v_lbl);
+    this->CreateMat(o, S); this->CreateMat(o, T); this->CreateMat(o, V);
 
     for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
       for(cItCont jt = o.conts_.begin(); jt != o.conts_.end(); ++jt) {
@@ -431,21 +535,35 @@ namespace l2func {
 		v0 += cc * v_prim_(i, j);
 	      }
 	    }
-	    s(idx, jdx) = s0;
-	    t(idx, jdx) = t0;
-	    v(idx, jdx) = v0;
+	    S(idx, jdx) = s0;
+	    T(idx, jdx) = t0;
+	    V(idx, jdx) = v0;
 	  }
 	}
       }
-    }    
+    }        
+
   }
   void R1GTOs::CalcMatSTV(int L, MatVecMap& mat_vec,
 			  string s_lbl, string t_lbl, string v_lbl) const {
     this->CalcMatSTV(*this, L, mat_vec, s_lbl, t_lbl, v_lbl);
   }
+  void R1GTOs::CalcMatSTV(int L, MatrixXcd& S, 
+			  MatrixXcd& T, MatrixXcd& V) const {
+    this->CalcMatSTV(*this, L, S, T, V);
+  }
+
   void R1GTOs::CalcMatSTO(const R1GTOs& o, const R1STOs& sto,
 			  MatVecMap& res, string label) const {
-
+    int num = size_basis();    
+    res.InitMatIfNecessary(label, num, num);
+    MatrixXcd& s = res.mat(label);
+    this->CalcMatSTO(o, sto, s);
+  }
+  void R1GTOs::CalcMatSTO(const R1STOs& v, MatVecMap& res, string lbl) const {
+    this->CalcMatSTO(*this, v, res, lbl);
+  }
+  void R1GTOs::CalcMatSTO(const R1GTOs& o, const R1STOs& v, MatrixXcd& s) const {
     if(!this->coef_set_q_) {
       string msg; SUB_LOCATION(msg);
       msg += ": coef is not set.";
@@ -454,9 +572,7 @@ namespace l2func {
 
     static MultArray<dcomplex, 2> prim_(1000);
 
-    int num = size_basis();    
-    res.InitMatIfNecessary(label, num, num);
-    MatrixXcd& s = res.mat(label);
+    this->CreateMat(o, s);
 
     for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {      
       for(cItCont jt = o.conts_.begin(); jt != end; ++jt) {
@@ -467,10 +583,10 @@ namespace l2func {
 	    int      n(it->prim[i].n + jt->prim[j].n);
 	    dcomplex z(it->prim[i].z + jt->prim[j].z);
 	    dcomplex cumsum(0);
-	    for(int io = 0; io < sto.size_basis(); io++ ) {
-	      dcomplex sto_c(sto.basis(io).c);
-	      int      sto_n(sto.basis(io).n);
-	      dcomplex sto_z(sto.basis(io).z);
+	    for(int io = 0; io < v.size_basis(); io++ ) {
+	      dcomplex sto_c(v.basis(io).c);
+	      int      sto_n(v.basis(io).n);
+	      dcomplex sto_z(v.basis(io).z);
 	      cumsum += sto_c * STO_GTO_Int(sto_z, z, sto_n+n);
 	    }
 	    prim_(i, j) = cumsum;
@@ -495,10 +611,18 @@ namespace l2func {
     }
 
   }
-  void R1GTOs::CalcMatSTO(const R1STOs& v, MatVecMap& res, string lbl) const {
-    this->CalcMatSTO(*this, v, res, lbl);
+  void R1GTOs::CalcMatSTO(const R1STOs& v, MatrixXcd& s) const {
+    this->CalcMatSTO(*this, v, s);
   }
+
   void R1GTOs::CalcVec(const R1STOs& o, MatVecMap& mat_vec, string label) const {
+    int num = this->size_basis();
+    mat_vec.InitVecIfNecessary(label, num);
+    VectorXcd& m = mat_vec.vec(label);
+    this->CalcVec(o, m);
+  }
+  void R1GTOs::CalcVec(const R1STOs& o, Eigen::VectorXcd& m) const {
+
     static MultArray<dcomplex, 1> m_prim_(20);
 
     if(!this->coef_set_q_) {
@@ -506,10 +630,8 @@ namespace l2func {
       msg += ": coef is not set up.";
       throw runtime_error(msg);
     }          
-
-    int num = this->size_basis();
-    mat_vec.InitVecIfNecessary(label, num);
-    VectorXcd& m = mat_vec.vec(label);
+    
+    this->CreateVec(m);
 
     for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
 
@@ -536,7 +658,7 @@ namespace l2func {
 	}
       }
     }
-
+    
   }
 
   dcomplex HmES(int ni, int nj, dcomplex zj, int L, double energy, dcomplex *gs) {
@@ -739,6 +861,51 @@ namespace l2func {
     
   }
   */
+  void R1GTOs::SetUp() {
+    num_basis_ = this->calc_size_basis();
+    num_prim_ = this->calc_size_prim();
+
+    this->coef_set_q_ = true;
+    this->coef_type_ = "NotNormalized";
+  }
+  void R1GTOs::Normalize() {
+
+    static MultArray<dcomplex, 1> m_prim_(20);
+
+    this->SetUp();
+
+    int maxn = this->max_n() + this->max_n() + 2 + 1;
+    static vector<dcomplex> buf(maxn);
+    if((int)buf.capacity() < maxn)
+      buf.reserve(maxn);
+    dcomplex* gs = &buf[0];
+
+    typedef vector<Contraction>::iterator ItCont;
+    typedef vector<R1GTO>::iterator ItPrim;
+
+    for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+
+      for(int ibasis = 0; ibasis < it->size_basis(); ++ibasis) {
+	dcomplex norm2(0);
+	for(int i = 0; i < it->size_prim(); i++) {
+	  for(int j = 0; j < it->size_prim(); j++) {
+	    dcomplex c(it->coef(ibasis, i) * it->coef(ibasis, j));
+	    int      n(it->prim[i].n + it->prim[j].n);
+	    dcomplex z(it->prim[i].z + it->prim[j].z);
+	    CalcGTOInt(n, z, gs);
+	    norm2 += c*gs[n];
+	  }
+	}
+	dcomplex scale(1.0/sqrt(norm2));
+	for(int iprim = 0; iprim < it->size_prim(); iprim++) {
+	  it->coef(ibasis, iprim) *= scale;
+	}
+      }
+    }
+
+    this->coef_set_q_ = true;
+    this->coef_type_ = "Normalized";
+  }
   void R1GTOs::AtR(const VectorXcd& cs, const VectorXcd& rs,
 		   VectorXcd* ys) {
 
