@@ -224,6 +224,20 @@ TEST_F(TestR1GTOs, matrix_sto) {
   
 
 }
+TEST_F(TestR1GTOs, matrix_h) {
+
+  gtos.CalcMatH();
+  R1STOs sto; sto.Add(1.1, 1, 0.3); sto.Add(1.2, 1, 0.35);
+  gtos.CalcMatH(sto, "hv2");
+
+  for(int i = 0; i < 4; i++)
+    for(int j = 0; j < 4; j++) {
+      CGTO c_gs_i(gs[i]); c_gs_i.SetComplexConjugate();
+      EXPECT_C_EQ(CIP(CNormalize(c_gs_i), CNormalize(gs[j])),
+		  gtos.mat("hs")(i, j)) << i << j;
+    }
+
+}
 TEST_F(TestR1GTOs, vector_sto) {
 
   vector<CSTO> ss;
@@ -281,7 +295,6 @@ dcomplex CalcAlpha(dcomplex z_shift) {
 
 }
 TEST(OptAlpha, WithContraction) {
-  
   
   VectorXcd zs_h(7);  
   zs_h <<

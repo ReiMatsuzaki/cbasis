@@ -13,6 +13,9 @@
 
 namespace l2func {
 
+  dcomplex NPrimeGTO(dcomplex nterm, int n, dcomplex z);
+  dcomplex NDoublePrimeGTO(dcomplex nterm, int n, dcomplex z);
+
   struct R1GTO {
     R1GTO(dcomplex _c, int _n, dcomplex _z);
     dcomplex c;
@@ -98,12 +101,19 @@ namespace l2func {
 
     // ---- Calculation ----
     void Normalize();
+    // -- compute S,T,V matrix --
     void CalcMat();    
+    // -- compute STO matrixl --
     void CalcMat(const R1STOs&, std::string label);
+    // -- compute S,T,V matrix for hermitian symmetry --
     void CalcMatH();
+    // -- compute STO matrix for hermitian symmetry --
     void CalcMatH(const R1STOs&, std::string label);
-    void CalcVec(const R1GTOs&);
-    void CalcVec(const R1STOs&);
+    // -- compute derivative matrix of H-ES --
+    void CalcDerivMat(double energy);
+    void CalcVec(const R1GTOs&, const std::string label="m");
+    void CalcVec(const R1STOs&, const std::string label="m");
+    void CalcDerivVec(const R1STOs& o);
     void AtR(const Eigen::VectorXcd&,
 	     const Eigen::VectorXcd&, Eigen::VectorXcd*);
     Eigen::VectorXcd* AtR(const Eigen::VectorXcd&,

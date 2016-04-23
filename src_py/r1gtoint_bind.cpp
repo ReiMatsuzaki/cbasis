@@ -89,6 +89,8 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
     .def("vec", &R1GTOs::vec, return_internal_reference<>())
     .def("calc_mat", (void(R1GTOs::*)())&R1GTOs::CalcMat)
     .def("calc_mat", (void(R1GTOs::*)(const R1STOs&, string))&R1GTOs::CalcMat)
+    .def("calc_mat_h", (void(R1GTOs::*)())&R1GTOs::CalcMatH)
+    .def("calc_mat_h", (void(R1GTOs::*)(const R1STOs&, string))&R1GTOs::CalcMatH)
     .def("calc_vec", (void(R1GTOs::*)(const R1GTOs&))&R1GTOs::CalcVec)
     .def("calc_vec", (void(R1GTOs::*)(const R1STOs&))&R1GTOs::CalcVec)
     .def(self_ns::str(self))

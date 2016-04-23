@@ -6,6 +6,28 @@
 
 namespace l2func {
 
+  void AlphaGrad(const Eigen::VectorXcd& d, const Eigen::VectorXcd& c,
+   		 const Eigen::MatrixXcd& D10,
+		 const Eigen::VectorXcd& r1,
+		 const Eigen::VectorXcd& s0, const Eigen::VectorXcd& s1,
+		 dcomplex *a, Eigen::VectorXcd *g);
+  
+  void AlphaGradHess(const Eigen::VectorXcd& c,
+		     const Eigen::VectorXcd& d,
+		     const Eigen::MatrixXcd& U,
+		     const Eigen::MatrixXcd& D00,
+		     const Eigen::MatrixXcd& D10,
+		     const Eigen::MatrixXcd& D20,
+		     const Eigen::MatrixXcd& D11,
+		     const Eigen::VectorXcd& r0,
+		     const Eigen::VectorXcd& r1,
+		     const Eigen::VectorXcd& r2,
+		     const Eigen::VectorXcd& s0,
+		     const Eigen::VectorXcd& s1,
+		     const Eigen::VectorXcd& s2,
+		     dcomplex* a, Eigen::VectorXcd* g, Eigen::MatrixXcd* h);
+
+
   /*
     Optimize orbital exponents of cGTO for alpha.    
    */

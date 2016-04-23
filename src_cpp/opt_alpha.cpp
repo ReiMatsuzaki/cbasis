@@ -11,6 +11,68 @@ namespace l2func {
   
   using namespace Eigen;
   using namespace std;
+
+  void AlphaGrad(const VectorXcd& d, const VectorXcd& c,
+   		 const MatrixXcd& D10,
+		 const VectorXcd& r1,
+		 const VectorXcd& s0, const VectorXcd& s1,
+		 dcomplex *a, VectorXcd *g) {
+
+    // alpha
+    *a = (d.array() * s0.array()).sum();
+
+    // alpha
+    *a = (d.array() * s0.array()).sum();
+
+    // grad
+    VectorXcd g1 = Calc_a_Aj_b(d, D10, c);
+    VectorXcd g2 = Calc_ai_b(r1, c);
+    VectorXcd g3 = Calc_ai_b(s1, d);
+      
+    *g = g2 + g3 - g1;
+  }
+  
+  void AlphaGradHess(const VectorXcd& c, const VectorXcd& d, const MatrixXcd& U,
+		     const MatrixXcd& D00, const MatrixXcd& D10,
+		     const MatrixXcd& D20, const MatrixXcd& D11,
+		     const VectorXcd& r0,  const VectorXcd& r1,  const VectorXcd& r2,
+		     const VectorXcd& s0,  const VectorXcd& s1,  const VectorXcd& s2,
+		     dcomplex* a, VectorXcd* g, MatrixXcd* h) {
+
+    // alpha
+    *a = (d.array() * s0.array()).sum();
+
+    // grad
+    VectorXcd g1 = Calc_a_Aj_b(d, D10, c);
+    VectorXcd g2 = Calc_ai_b(r1, c);
+    VectorXcd g3 = Calc_ai_b(s1, d);
+      
+    *g = g2 + g3 - g1;
+
+    // hess
+    MatrixXcd rij_c       = (r2.array() * c.array()).matrix().asDiagonal();
+    MatrixXcd d_sij       = (s2.array() * d.array()).matrix().asDiagonal();
+    MatrixXcd d_Lij_c     = Calc_a_Aij_b(d, D20, D11, c);
+
+    MatrixXcd tmp = Calc_ai_A_Bj_b(r1, U, D10, c);
+    MatrixXcd ri_U_Lj_c   = tmp + tmp.transpose();    
+
+    tmp = (r1 * s1.transpose()).array() * U.array();
+    MatrixXcd ri_U_sj = tmp + tmp.transpose();
+
+    tmp = Calc_a_Ai_B_Aj_b(d, D10, U, c);
+    MatrixXcd d_Li_U_Lj_c = tmp + tmp.transpose();
+
+    tmp = Calc_ai_A_Bj_b(s1, U, D10, d);
+    MatrixXcd d_Li_U_sj   = tmp + tmp.transpose();
+
+    *h = rij_c - d_Lij_c + d_sij
+      - ri_U_Lj_c + d_Li_U_Lj_c - ri_U_Lj_c + ri_U_sj;
+
+  }
+
+
+
   void VectorShift(VectorXcd& zs_in, VectorXcd& zs_out,
 		   const VectorXi& opt_idx, dcomplex z_shift) {
 

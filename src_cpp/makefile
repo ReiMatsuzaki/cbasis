@@ -61,13 +61,21 @@ check_l2: ${BINDIR}/test_l2
 
 
 # -- test r1gto --
-R1GTOINT_OBJS=test_r1gtoint.o r1gtoint.o l2.a eigen_plus.o opt_alpha.o
+${BINDIR}/r1gtoint.a: $(foreach o, r1gtoint.o eigen_plus.o opt_alpha.o, ${BINDIR}/$o)
+	ar r $@ $^
+R1GTOINT_OBJS=test_r1gtoint.o  l2.a r1gtoint.a
 ${BINDIR}/test_r1gtoint: $(foreach o, ${R1GTOINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
 .PHONY: check_r1gtoint
 check_r1gtoint: ${BINDIR}/test_r1gtoint
 	${RUN} ./$<
 
+# -- test r1gto derivative --
+R1GTOINT_DERIV_OBJS=test_r1gtoint_deriv.o r1gtoint.o l2.a eigen_plus.o opt_alpha.o l_algebra.o
+${BINDIR}/test_r1gtoint_deriv: $(foreach o, ${R1GTOINT_DERIV_OBJS}, ${BINDIR}/$o)
+	${CXX} -o $@ $^ ${CXXFLAGS} ${LIBGTEST}
+check_r1gtoint_deriv: ${BINDIR}/test_r1gtoint_deriv
+	${RUN} ./$<
 
 clean:
 	rm -f ${BINDIR}/*.o

@@ -137,7 +137,6 @@ class TestCutExpFunc(unittest.TestCase):
         self.assertAlmostEqual(cip(s2, r2_s1),
                                cip(s2, rm(2), s1))
 
-
     def test_cut_op(self):
         r0 = 10.0
         cs1 = CutSTO(1.2, 2, 2.5, r0)
