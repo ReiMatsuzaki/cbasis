@@ -85,7 +85,7 @@ TEST_F(TestR1GTOsCont, normalized) {
 
   gs0.Normalize();
   MatVecMap res;
-  gs0.CalcMatSTV(res);
+  gs0.CalcMatSTV(1, res, "s", "t", "v");
   for(int i = 0; i < gs0.size_basis(); i++) {
     EXPECT_C_EQ(1.0, res.mat["s"](i, i))
       << "i = " << i;
@@ -96,10 +96,10 @@ TEST_F(TestR1GTOsCont, Conjugate) {
   R1GTOs c_gs0(1);
 
   c_gs0.SetConj(gs0);
-
-  cout << gs0   << endl;
-  cout << c_gs0 << endl;
-  
+  EXPECT_C_EQ(conj(gs0.conts_[1].coef(0, 1)),
+	      c_gs0.conts_[1].coef(0, 1));
+  EXPECT_C_EQ(conj(gs0.conts_[1].prim[0].z),
+	      c_gs0.conts_[1].prim[0].z);
 
 }
 TEST_F(TestR1GTOsCont, vec) {
@@ -194,7 +194,7 @@ TEST_F(TestR1GTOs, max_n) {
 TEST_F(TestR1GTOs, normalized) {
 
   MatVecMap res;
-  gtos.CalcMatSTV(res);
+  gtos.CalcMatSTV(1, res, "s", "t", "v");
   for(int i = 0; i < 4; i++)
     EXPECT_C_EQ(1.0, res.mat["s"](i, i)) << i;
 
@@ -202,7 +202,7 @@ TEST_F(TestR1GTOs, normalized) {
 TEST_F(TestR1GTOs, matrix) {
 
   MatVecMap res;
-  gtos.CalcMatSTV(res);
+  gtos.CalcMatSTV(0, res, "s", "t", "v");
 
   for(int i = 0; i < 4; i++)
     for(int j = 0; j < 4; j++) {
@@ -247,7 +247,17 @@ TEST_F(TestR1GTOs, matrix_sto) {
 }
 TEST_F(TestR1GTOs, matrix_h) {
 
-  cout << "not impled" << endl;
+  R1GTOs c_gtos(1);
+  c_gtos.SetConj(gtos);
+
+  MatVecMap res;
+  c_gtos.CalcMatSTV(gtos, 1, res, "s", "t", "v");
+  for(int i = 0; i < 4; i++)
+    for(int j = 0; j < 4; j++) {
+      CGTO c_gs_i(gs[i]); c_gs_i.SetComplexConjugate();
+      EXPECT_C_EQ(CIP(CNormalize(c_gs_i), CNormalize(gs[j])),
+		  res.mat["s"](i, j)) << i << j;
+    }
   /*
   gtos.CalcMatH();
   R1STOs sto; sto.Add(1.1, 1, 0.3); sto.Add(1.2, 1, 0.35);
@@ -292,7 +302,7 @@ TEST(TestHAtom, s_state) {
   gtos.Normalize();
 
   MatVecMap res;
-  gtos.CalcMatSTV(res);
+  gtos.CalcMatSTV(1, res, "s", "t", "v");
   
   MatrixXcd H = res.mat["t"] + res.mat["v"];
   MatrixXcd S = res.mat["s"];
@@ -326,7 +336,7 @@ TEST(TestHAtom, contraction) {
   gtos.Normalize();
 
   MatVecMap res;
-  gtos.CalcMatSTV(res);
+  gtos.CalcMatSTV(1, res, "s", "t", "v");
 
   MatrixXcd H = res.mat["t"] + res.mat["v"];
   MatrixXcd S = res.mat["s"];
@@ -346,7 +356,7 @@ TEST(TestHAtom, p_state) {
   gtos.Normalize();
   
   MatVecMap res;
-  gtos.CalcMatSTV(res);
+  gtos.CalcMatSTV(1, res, "s", "t", "v");
   
   MatrixXcd H = res.mat["t"] + res.mat["v"];
   MatrixXcd S = res.mat["s"];
@@ -364,7 +374,7 @@ TEST(TestHAtom, dense) {
     gtos.Add(1, pow(1.2, n));
   gtos.Normalize();
   MatVecMap res;
-  gtos.CalcMatSTV(res);
+  gtos.CalcMatSTV(1, res, "s", "t", "v");
   
   MatrixXcd H = res.mat["t"] + res.mat["v"];
   MatrixXcd S = res.mat["s"];

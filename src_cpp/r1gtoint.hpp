@@ -115,9 +115,10 @@ namespace l2func {
     // ---- Calculation ----
     void Normalize();
     // -- compute (new stype) --
-    void CalcMatSTV(const R1GTOs& o, MatVecMap& mat_vec) const;
-    void CalcMatSTV(MatVecMap& mat_vec) const;
-    void CalcMatSTV_H(const R1GTOs& o, MatVecMap& mat_vec) const;
+    void CalcMatSTV(const R1GTOs& o, int L,  MatVecMap& mat_vec,
+		    std::string s_lbl, std::string t_lbl, std::string v_lbl) const;
+    void CalcMatSTV(int L, MatVecMap& mat_vec,
+		    std::string s_lbl, std::string t_lbl, std::string v_lbl) const;
     void CalcMatSTO(const R1GTOs& o, const R1STOs& v, MatVecMap& res, std::string) const;
     void CalcMatSTO(const R1STOs& v, MatVecMap& res, std::string) const;
     void CalcVec(const R1STOs& o, MatVecMap& mat_vec, std::string label="m") const;
