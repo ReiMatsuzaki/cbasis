@@ -56,7 +56,7 @@ install_symmolint: ${BINDIR}/symmolint_bind.so
 	cp symmolint.py ~/local/Python/
 
 # ==== R1GTOs ====
-R1GTOINT_OBJS=fact.o erfc.o lgamma.o exp_int.o eigen_plus.o opt_alpha.o r1gtoint.o
+R1GTOINT_OBJS=fact.o erfc.o lgamma.o exp_int.o eigen_plus.o opt_alpha.o r1gtoint.o l_algebra.o op_driv.o
 ${BINDIR}/r1gtoint_bind.so: r1gtoint_bind.cpp $(foreach o, ${R1GTOINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS} ${LDFLAGS}
 check_r1gtoint: ${BINDIR}/r1gtoint_bind.so

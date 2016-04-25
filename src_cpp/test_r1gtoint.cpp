@@ -6,9 +6,11 @@
 #include "eigen_plus.hpp"
 #include "gtest_plus.hpp"
 #include "r1gtoint.hpp"
+#include "op_driv.hpp"
 #include "cip_exp.hpp"
 #include "linspace.hpp"
-#include "opt_alpha.hpp"
+
+//#include "opt_alpha.hpp"
 #include "exp_int.hpp"
 
 using namespace l2func;
@@ -289,7 +291,41 @@ TEST_F(TestR1GTOs, vector_sto) {
   }
   
 }
+TEST(OpDriv, driv_sto) {
+  R1STOs stos; stos.Add(2, 1.1);
+  IDriv *driv = new DrivSTO(stos);
 
+  R1GTOs gs; gs.Add(2, 1.2); gs.Add(2, 1.3);
+  gs.Normalize();
+
+  VectorXcd m0;
+  driv->Calc(gs, m0);
+
+  VectorXcd m1;
+  gs.CalcVec(stos, m1);
+
+  for(int i = 0; i < 2; i++)
+    EXPECT_C_EQ(m0(i), m1(i)) << i;
+
+  delete driv;
+}
+TEST(OpDriv, coulomb) {
+
+  IOp *op = new OpCoulomb(1, 0.5);
+
+  R1GTOs gs; gs.Add(2, 1.2); gs.Add(2, 1.3);
+  gs.Normalize();
+
+  MatrixXcd L, s, t, v, L2;
+  op->Calc(gs, L);
+  gs.CalcMatSTV(1, s, t, v);
+  L2 = t + v - 0.5*s;
+
+  EXPECT_C_EQ(L(0, 1), L2(0, 1));
+
+  delete op;
+
+}
 TEST(TestHAtom, s_state) {
   
   R1GTOs gtos;

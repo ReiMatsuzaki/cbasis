@@ -169,7 +169,7 @@ namespace l2func {
   //    coef_set_q_(false),
   //    coef_type_("Nothing"),
   //    L_(_L) { }
-  R1GTOs::R1GTOs(): coef_set_q_(false), coef_type_("Nothing") {}
+  R1GTOs::R1GTOs(): setup_q_(false), coef_type_("Nothing") {}
 
   // ---- Utils ----
   int  R1GTOs::max_n() const {
@@ -255,16 +255,15 @@ namespace l2func {
 
   // ---- Setter ----
   void R1GTOs::Add(int _n, dcomplex _zeta) {
-    this->coef_set_q_ = false;
+    this->setup_q_ = false;
     this->coef_type_ = "Nothing";
     Contraction cont;
     cont.prim.push_back(Prim(_n, _zeta));
-    cont.coef = MatrixXcd::Ones(1, 1);
-    cont.offset = this->calc_size_basis();
+    cont.coef = MatrixXcd::Ones(1, 1);    
     conts_.push_back(cont);    
   }
   void R1GTOs::Add(int n, const VectorXcd& zs) {
-    this->coef_set_q_ = false;
+    this->setup_q_ = false;
     this->coef_type_ = "Nothing";
 
     for(int i = 0; i < zs.size(); i++) {
@@ -279,7 +278,7 @@ namespace l2func {
       throw runtime_error(msg);
     }
 
-    this->coef_set_q_ = false;
+    this->setup_q_ = false;
     this->coef_type_ = "Nothing";
 
     Contraction cont;
@@ -289,6 +288,30 @@ namespace l2func {
     cont.offset = this->calc_size_basis();
     this->conts_.push_back(cont);
     
+  }
+  void R1GTOs::Set(const Eigen::VectorXcd& zs) {
+    
+    if(zs.size() != this->size_prim()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": size mismatch.";
+      ostringstream oss;
+      oss << msg << endl;
+      oss << "size_prim: " << this->size_prim() << endl;
+      oss << "zs.size:   " << zs.size() << endl;
+      throw runtime_error(oss.str());
+    }
+
+    int i(0);
+    for(vector<Contraction>::iterator it = conts_.begin(), end = conts_.end();
+	it != end; ++it) {
+      for(int ip = 0; ip < it->size_prim(); ip++, i++) {
+	it->prim[ip].z = zs[i];
+      }
+    }
+
+    this->setup_q_ = false;
+    this->coef_type_ = "Nothing";
+
   }
   void R1GTOs::Set(int n, const Eigen::VectorXcd& zs) {
     
@@ -307,16 +330,16 @@ namespace l2func {
       }
     }
 
-    this->coef_set_q_ = false;
+    this->setup_q_ = false;
     this->coef_type_ = "Nothing";
 
   }
 
   // ---- basis convert ----  
   void R1GTOs::SetConj(const R1GTOs& o) {
-    if(!o.coef_set_q_) {
+    if(!o.setup_q()) {
       string msg; SUB_LOCATION(msg);
-      msg += ": coef is not set.";
+      msg += ": Call SetUp first";
       throw runtime_error(msg);
     }
 
@@ -339,15 +362,17 @@ namespace l2func {
       it->coef = it->coef.conjugate();
     }
     
-    this->coef_set_q_ = o.coef_set_q_;
+    
     this->coef_type_  = o.coef_type_;
 
   }
   void R1GTOs::SetOneDeriv(const R1GTOs& o) {
 
-    if(o.coef_type() != "Normalized" || !o.coef_set_q()) {
+    if(o.coef_type() != "Normalized" || !o.setup_q()) {
       string msg; SUB_LOCATION(msg);
-      msg += ": o must be normalized.";
+      msg += ": o must be normalized.\n";
+      msg += "coef_type: " + o.coef_type() + "\n";
+      msg += "setup_q: " + string(o.setup_q()? "Yes" : "No" )+ "\n";
       throw runtime_error(msg);
     }
 
@@ -359,23 +384,8 @@ namespace l2func {
       }
     }
 
-    /*
-    bool is_allocated = true;
-    if(this->size_basis() != o.size_basis())
-      is_allocated = false;
-    else {
-      for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
-	if(it->size_prim() != 2) {
-	  is_allocated = false;
-	}
-	if(it->size_basis() != 1) {
-	  is_allocated = false;
-	}
-      }
-    }
-    */
-
-    if(!this->coef_set_q_) {
+    // -- we assume if setup_q is true, then this object has same structure as o.
+    if(!this->setup_q()) {
       vector<Contraction> conts;
       this->conts_.swap(conts);
       for(cItCont it = o.conts_.begin(), end = o.conts_.end(); it != end; ++it) {
@@ -383,6 +393,7 @@ namespace l2func {
 	MatrixXcd cs = MatrixXcd::Ones(1, 2);
 	this->Add(it->prim[0].n, zs, cs);
       }
+      this->SetUp();
     }
 
     ItCont it = this->conts_.begin();
@@ -399,12 +410,12 @@ namespace l2func {
       it->prim[1].z  = z;
 	
     }
-    this->coef_set_q_ = true;
+    
     this->coef_type_  = "D1Normalized";
   }
   void R1GTOs::SetTwoDeriv(const R1GTOs& o) {
     
-    if(o.coef_type() != "Normalized" || !o.coef_set_q()) {
+    if(o.coef_type() != "Normalized" || !o.setup_q()) {
       string msg; SUB_LOCATION(msg);
       msg += ": o must be normalized.";
       throw runtime_error(msg);
@@ -418,7 +429,8 @@ namespace l2func {
       }
     }
     
-    if(!this->coef_set_q_) {
+    // -- we assume if setup_q is true, then this object has same structure as o.
+    if(!this->setup_q()) {
       vector<Contraction> conts;
       this->conts_.swap(conts);
       for(cItCont it = o.conts_.begin(), end = o.conts_.end(); it != end; ++it) {
@@ -426,6 +438,7 @@ namespace l2func {
 	MatrixXcd cs = MatrixXcd::Ones(1, 3);
 	this->Add(it->prim[0].n, zs, cs);
       }
+      this->SetUp();
     }
 
     ItCont it = this->conts_.begin();
@@ -447,8 +460,7 @@ namespace l2func {
       it->prim[2].z  = z;
       
     }    
-
-    this->coef_set_q_ = true;
+    
     this->coef_type_  = "D2Normalized";
   }
 
@@ -483,7 +495,7 @@ namespace l2func {
   }
   void R1GTOs::CalcMatSTV(const R1GTOs& o, int L,
 			  MatrixXcd& S, MatrixXcd& T, MatrixXcd& V) const {
-    if(!this->coef_set_q_) {
+    if(!this->setup_q()) {
       string msg; SUB_LOCATION(msg);
       msg += ": coef is not set.";
       throw runtime_error(msg);
@@ -564,7 +576,7 @@ namespace l2func {
     this->CalcMatSTO(*this, v, res, lbl);
   }
   void R1GTOs::CalcMatSTO(const R1GTOs& o, const R1STOs& v, MatrixXcd& s) const {
-    if(!this->coef_set_q_) {
+    if(!this->setup_q()) {
       string msg; SUB_LOCATION(msg);
       msg += ": coef is not set.";
       throw runtime_error(msg);
@@ -625,7 +637,7 @@ namespace l2func {
 
     static MultArray<dcomplex, 1> m_prim_(20);
 
-    if(!this->coef_set_q_) {
+    if(!this->setup_q()) {
       string msg; SUB_LOCATION(msg); 
       msg += ": coef is not set up.";
       throw runtime_error(msg);
@@ -862,10 +874,15 @@ namespace l2func {
   }
   */
   void R1GTOs::SetUp() {
+
+    int cumsum(0);
+    for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+      it->offset = cumsum;
+      cumsum += it->size_basis();
+    }
     num_basis_ = this->calc_size_basis();
     num_prim_ = this->calc_size_prim();
-
-    this->coef_set_q_ = true;
+    this->setup_q_ = true;
     this->coef_type_ = "NotNormalized";
   }
   void R1GTOs::Normalize() {
@@ -903,13 +920,12 @@ namespace l2func {
       }
     }
 
-    this->coef_set_q_ = true;
     this->coef_type_ = "Normalized";
   }
   void R1GTOs::AtR(const VectorXcd& cs, const VectorXcd& rs,
 		   VectorXcd* ys) {
 
-    if(!this->coef_set_q_) {
+    if(!this->setup_q()) {
       string msg; SUB_LOCATION(msg); 
       msg += ": coef is not set up.";
       throw runtime_error(msg);
@@ -952,7 +968,7 @@ namespace l2func {
   }
   void R1GTOs::swap(R1GTOs& o) {
     
-    ::swap(this->coef_set_q_, o.coef_set_q_);
+    ::swap(this->setup_q_, o.setup_q_);
     ::swap(this->coef_type_, o.coef_type_);
     this->conts_.swap(o.conts_);
   }
@@ -966,8 +982,8 @@ namespace l2func {
 
   ostream& operator<<(ostream& out, const R1GTOs& us) {
     out << "R1GTOs" << endl;
-    out << "coef_set_q : "
-	<< (us.coef_set_q_ ? "Yes" : "No")
+    out << "setup? : "
+	<< (us.setup_q() ? "Yes" : "No")
 	<< endl;
     out << "coef type : " << us.coef_type_ << endl;
     

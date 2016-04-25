@@ -63,6 +63,7 @@ namespace l2func {
 
   
   class R1GTOs {
+    // setup_q_==false => coef, offset, num_basis_, num_prim is not setted.
   public:
     struct Prim {
       int n;
@@ -76,16 +77,18 @@ namespace l2func {
       int size_prim() const { return coef.cols(); }
       int size_basis() const { return coef.rows(); }
     };
-    typedef std::vector<Prim>::iterator ItPrim;
-    typedef std::vector<Prim>::const_iterator cItPrim;
-    typedef std::vector<Contraction>::iterator ItCont;
-    typedef std::vector<Contraction>::const_iterator cItCont;
   public:
-    bool coef_set_q_;        // coefcient is setup or not
+    //    bool coef_set_q_;        // coefcient is setup or not
+    bool setup_q_; 
     std::string coef_type_;  // coefficient type (Nothing, normalized, derivativ)
     std::vector<Contraction> conts_;
     int num_basis_;
     int num_prim_;
+
+    typedef std::vector<Prim>::iterator ItPrim;
+    typedef std::vector<Prim>::const_iterator cItPrim;
+    typedef std::vector<Contraction>::iterator ItCont;
+    typedef std::vector<Contraction>::const_iterator cItCont;
   public:
 
     // ---- Constructors ----
@@ -106,13 +109,14 @@ namespace l2func {
     Prim& prim(int i);
     dcomplex z_prim(int i) { return this->prim(i).z; }
     int      n_prim(int i) { return this->prim(i).n; }
-    bool coef_set_q() const { return coef_set_q_; }
+    bool setup_q() const { return this->setup_q_; }
     std::string coef_type() const { return coef_type_; }
 
     // ---- Setter ----
     void Add(int n, dcomplex zeta);
     void Add(int n, const Eigen::VectorXcd& zs);    
     void Add(int n, const Eigen::VectorXcd& zs, const Eigen::MatrixXcd& coef);
+    void Set(const Eigen::VectorXcd& zs);
     void Set(int n, const Eigen::VectorXcd& zs);
 
     // ---- basis convert ----

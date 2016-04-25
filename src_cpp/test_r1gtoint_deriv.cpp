@@ -6,12 +6,27 @@
 #include "gtest_plus.hpp"
 
 #include "r1gtoint.hpp"
+#include "op_driv.hpp"
 #include "opt_alpha.hpp"
 #include "l_algebra.hpp"
 
 using namespace std;
 using namespace l2func;
 using namespace Eigen;
+
+class OptTargetCos :public IOptTarget {
+public:
+  OptTargetCos() {}
+  ~OptTargetCos() {}
+  int dim() { return 1; }
+  void ValGradHess(const VectorXcd& zs, dcomplex* a, VectorXcd& g, MatrixXcd& h) {
+    g = VectorXcd::Zero(1);
+    h = MatrixXcd::Zero(1, 1);
+    *a      = +cos(zs[0]);
+    g(0)    = -sin(zs[0]);
+    h(0, 0) = -cos(zs[0]);
+  }
+};
 
 dcomplex NormalTerm(int n, dcomplex z0) {
   R1GTOs gtos;
@@ -248,8 +263,292 @@ dcomplex CalcAlpha(dcomplex z_shift) {
   return a;
 
 }
-TEST(OptAlpha, WithContraction) {
+TEST(Optimization, model) {
   
+  
+  IOptTarget* target = new OptTargetCos();
+  IOptimizer* optimizer = new OptNewton(100, pow(10.0, -5.0), target, 0);
+
+  VectorXcd z(1); z << 0.1;
+  optimizer->Optimize(z);
+  EXPECT_TRUE(optimizer->conv_q);
+  EXPECT_C_EQ(0.0, optimizer->zs[0]);
+  EXPECT_C_EQ(1.0, optimizer->val);
+
+  delete target;
+  delete optimizer;
+
+}
+TEST(OptAlphaInd, grad_hess) {
+  
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  IDriv* p_driv = new DrivSTO(driv);
+
+  IOp*   p_op   = new OpCoulomb(1, 0.5);
+
+  R1GTOs gs;
+  VectorXcd zs(1); zs << dcomplex(1.1, -0.4);
+  dcomplex ii(0, 1);
+  VectorXcd h(1);  h << 0.0001;
+  VectorXcd ih(1); ih << 0.0001*ii;
+  
+  gs.Add(2, zs);
+
+  OptAlpha opt(p_driv, p_op, gs);
+
+  dcomplex vp0, vm0, v0p, v0m;
+  try {
+    vp0 = opt.Val(zs+h);
+  } catch(const exception& e){
+    cout << "+h" << endl;
+    cout << e.what();
+  }
+  try{
+    vm0 = opt.Val(zs-h);
+  } catch(const exception& e){
+    cout << "-h" << endl;
+    cout << e.what();
+  }
+  try{
+    v0p = opt.Val(zs+ih);
+  } catch(const exception& e){
+    cout << "+ih" << endl;
+    cout << e.what();
+  }
+  try{
+    v0m = opt.Val(zs-ih);
+    cout << v0m << endl;
+  } catch(const exception& e){
+    cout << "-ih" << endl;
+    cout << e.what();
+  }
+  dcomplex v00;
+  VectorXcd grad(1);
+  MatrixXcd hess(1, 1);
+  try {
+    opt.ValGradHess(zs, &v00, grad, hess);
+  } catch(const exception& e) {
+    cout << "failed to call ValGradHess:" << e.what() << endl;
+  } catch(...) {
+    throw runtime_error("failed to call ValGradHess:");
+  }
+  
+  dcomplex g0 = (vp0-vm0-ii*v0p+ii*v0m)/(4.0*h[0]);
+  dcomplex h0 = (vp0+vm0-v0p-v0m)/(2.0*h[0]*h[0]);
+  EXPECT_C_EQ(g0, grad[0]);
+  EXPECT_C_NEAR(h0, hess(0, 0), pow(10.0, -6.0));
+
+  delete p_driv;
+  delete p_op;
+}
+TEST(OptAlphaInd, two) {
+
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  IDriv* p_driv = new DrivSTO(driv);
+
+  IOp*   p_op   = new OpCoulomb(1, 0.5);
+
+  R1GTOs gs;
+  VectorXcd zs(2); zs << dcomplex(1.1, -0.4), dcomplex(0.3, 0.1);
+  gs.Add(2, zs);
+
+  IOptTarget* opt = new OptAlpha(p_driv, p_op, gs);
+
+  dcomplex a;
+  VectorXcd g(2);
+  MatrixXcd h(2, 2);
+  try {
+    opt->ValGradHess(zs, &a, g, h);
+  } catch(const exception& e) {
+    cout << "failed to calc\n";
+    cout << e.what() << endl;
+  }
+
+  delete p_driv;
+  delete p_op;
+  delete opt;
+}
+TEST(OptAlphaInd, val) {
+
+  R1GTOs gtos;
+  VectorXcd zs(15);  
+  dcomplex zshift(0, -0.001);
+  zs << 0.463925,
+    1.202518,
+    3.379649,
+    10.6072,
+    38.65163,
+    173.5822,
+    1170.498,
+    0.16934112166516593+zshift,
+    0.08989389391311804+zshift,
+    0.05561087391349172+zshift,
+    0.03776599632952126+zshift,
+    0.02731159914174668+zshift,
+    0.020665855224060142+zshift,
+    0.016180602421004654+zshift,
+    0.013011569667967734+zshift;
+  gtos.Add(2, zs);
+  gtos.Normalize();
+
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  IDriv* p_driv = new DrivSTO(driv);
+  IOp*   p_op   = new OpCoulomb(1, 0.5);
+  OptAlpha opt(p_driv, p_op, gtos);
+  
+  dcomplex v0 = CalcAlpha(zshift);
+  dcomplex v1 = opt.Val(zs);
+
+  EXPECT_C_NEAR(v0, v1, pow(10.0, -8.0));
+  delete p_driv;
+  delete p_op;
+
+}
+TEST(OptAlphaInd, opt_one) {
+  
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  IDriv* p_driv = new DrivSTO(driv);
+
+  IOp*   p_op   = new OpCoulomb(1, 0.5);
+
+  R1GTOs gs;
+  VectorXcd zs(1);
+  zs << dcomplex(0.2, -0.1);
+  gs.Add(2, zs);
+  gs.Normalize();
+  
+  IOptTarget* target = new OptAlpha(p_driv, p_op, gs);
+  IOptimizer* optimizer = new OptNewton(100, pow(10.0, -5.0), target);
+  try {
+    optimizer->Optimize(zs);
+  } catch(const exception& e) {
+  cout << "exception in optimization:" << endl << e.what() << endl;
+  }
+
+  EXPECT_TRUE(optimizer->conv_q);
+  cout << optimizer->zs << endl;
+  cout << optimizer->val << endl;
+
+  delete p_driv;
+  delete p_op;
+  delete target;
+  delete optimizer;
+}
+TEST(OptAlphaInd, opt_two) {
+  
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  IDriv* p_driv = new DrivSTO(driv);
+  IOp*   p_op   = new OpCoulomb(1, 0.5);
+
+  R1GTOs gs;
+  VectorXcd zs(2);
+  zs << dcomplex(0.2, -0.1), dcomplex(0.8, -0.5);
+  gs.Add(2, zs);
+  gs.Normalize();
+  
+  IOptTarget* target = new OptAlpha(p_driv, p_op, gs);
+  IOptimizer* optimizer = new OptNewton(100, pow(10.0, -5.0), target);
+  try {
+    optimizer->Optimize(zs);
+  } catch(const exception& e) {
+  cout << "exception in optimization:" << endl << e.what() << endl;
+  }
+
+  EXPECT_TRUE(optimizer->conv_q);
+  cout << optimizer->zs << endl;
+  //  cout << optimizer->val << endl;
+
+  //  EXPECT_C_NEAR(optimizer->zs[0], dcomplex(0.964095, -0.0600633), eps);
+  //  EXPECT_C_NEAR(optimizer->zs[1], dcomplex(0.664185, -1.11116), eps);
+
+  CheckOptTarget(target, zs, 0.0001, 2.0*pow(10.0, -5.0));
+
+  delete p_driv;
+  delete p_op;
+  delete target;
+  delete optimizer;
+}
+TEST(OptAlphaInd, shift) {
+
+  R1GTOs gtos;
+  VectorXcd zs(15);  
+  zs << 0.463925,
+    1.202518,
+    3.379649,
+    10.6072,
+    38.65163,
+    173.5822,
+    1170.498,
+    0.16934112166516593,
+    0.08989389391311804,
+    0.055610873913491725,
+    0.03776599632952126,
+    0.02731159914174668,
+    0.020665855224060142,
+    0.016180602421004654,
+    0.013011569667967734;
+  gtos.Add(2, zs);
+  gtos.Normalize();
+
+  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  IDriv* p_driv = new DrivSTO(driv);
+  IOp*   p_op   = new OpCoulomb(1, 0.5);
+
+  VectorXi index(8); index << 7, 8, 9, 10, 11, 12, 13, 14;
+  IOptTarget *target = new OptAlphaShift(p_driv, p_op, gtos, index);
+  IOptimizer *optimizer = new OptNewton(10, pow(10.0, -5.0), target);
+
+  double shift0(0.02);
+  CheckOptTarget(target, dcomplex(0.0, -shift0), shift0/300.0, 1.0);
+  
+  optimizer->Optimize(dcomplex(0.0, -shift0));
+  EXPECT_TRUE(optimizer->conv_q);
+
+  double eps(0.000003);
+  dcomplex ref(-0.00293368, -0.0204361);
+  EXPECT_C_NEAR(ref, optimizer->zs[0], eps*10);
+  dcomplex ref_alpha(dcomplex(-5.6568937518988989, 1.0882823480377297));
+  EXPECT_C_NEAR(ref_alpha, optimizer->val, pow(10.0, -9.0));  
+
+  delete p_driv;
+  delete p_op;
+  delete target;
+  delete optimizer;
+}
+TEST(OptAlphaInd, part) {
+
+  R1GTOs gtos;
+  VectorXcd zs(3);
+  zs << dcomplex(0.18,-0.1), dcomplex(0.8, -0.6), dcomplex(2.9, -3.2);
+  gtos.Add(2, zs);
+  gtos.Normalize();
+
+  R1STOs driv_sto; driv_sto.Add(2.0, 2, 1.0);
+  IDriv* driv = new DrivSTO(driv_sto);
+  IOp*   op   = new OpCoulomb(1, 0.5);
+
+  VectorXi index(2); index << 1, 2;
+  IOptTarget* target = new OptAlphaPartial(driv, op, gtos, index);
+  IOptimizer* optimizer = new OptNewton(10, pow(10.0, -5.0), target, 0);
+
+  VectorXcd z0(2); z0 << dcomplex(0.8, -0.6), dcomplex(2.9, -3.2);
+  CheckOptTarget(target, z0, 0.001, pow(10.0, -5.0));
+
+  optimizer->Optimize(z0);
+  EXPECT_TRUE(optimizer->conv_q);
+  EXPECT_C_EQ(optimizer->zs[0], gtos.prim(1).z);
+  EXPECT_C_EQ(optimizer->zs[1], gtos.prim(2).z);
+  cout << optimizer->zs << endl;
+
+  delete driv;
+  delete op;
+  delete target;
+  delete optimizer;
+}
+ 
+TEST(OptAlpha, WithContraction) {
+  cout << "not impl" << endl;
+  /*
   VectorXcd zs_h(7);  
   zs_h <<
     0.463925,
@@ -298,12 +597,13 @@ TEST(OptAlpha, WithContraction) {
   bool convq;
   dcomplex alpha;
   OptAlphaShift(driv, opt_idx, 1, 0.5,
-		h, 20, eps, /*pow(10.0, -8.0)*/ 0.0,
+		h, 20, eps, 0.0,
 		gtos2, z_shift, &convq, &alpha);
 
   EXPECT_TRUE(convq);
   dcomplex ref_alpha(dcomplex(-5.6568937518988989, 1.0882823480377297));
   EXPECT_C_NEAR(ref_alpha, alpha, pow(10.0, -9.0));  
+  */
 
 }
 TEST(OptAlpha, ShiftKaufmann) {
@@ -376,13 +676,16 @@ TEST(OptAlpha, CalcAlpha) {
   gtos.Normalize();
 
   R1STOs driv; driv.Add(2.0, 2, 1.0);
-  VectorXi opt_idx(8);
-  opt_idx << 7, 8, 9, 10, 11, 12, 13, 14;
-  
-  dcomplex v0 = CalcAlpha(0.0);
-  dcomplex v1 = CalcAlphaFull(driv, gtos, 1, 0.5);
+  IDriv* p_driv = new DrivSTO(driv);
+  IOp*   p_op   = new OpCoulomb(1, 0.5);
 
-  EXPECT_C_EQ(v0, v1);
+  dcomplex v0 = CalcAlpha(0.0);
+  dcomplex v1 = CalcAlpha(p_driv, p_op, gtos);
+
+  EXPECT_C_NEAR(v0, v1, pow(10.0, -8.0));
+
+  delete p_driv;
+  delete p_op;
 
 }
 TEST(OptAlpha, CalcAlphaSTO) {
@@ -406,109 +709,24 @@ TEST(OptAlpha, CalcAlphaSTO) {
   gtos.Add(2, zs);
   gtos.Normalize();
 
-  R1STOs driv; driv.Add(2.0, 2, 1.0);
+  R1STOs sto; sto.Add(2.0, 2, 1.0);
+  IDriv *driv = new DrivSTO(sto);
+
   R1STOs pot;  pot.Add(-1.0, 0, 1.0);
+  IOp *op = new OpCoulombShort(1, 0.5, pot);
 
   // 2016/4/12
   // alpha = -4.770452, -0.235177
 
-  EXPECT_C_NEAR(CalcAlpha(driv, gtos, 1, 0.5, pot),
-    dcomplex(-4.770452, -0.235177),
-    pow(10.0, -4.0));
+  EXPECT_C_NEAR(
+    CalcAlpha(driv, op, gtos),
+    dcomplex(-4.770452, +0.235177),
+    pow(10.0, -3.0));
+
+  delete driv;
+  delete op;
 
 }
-TEST(OptAlpha, WithoutCanonical) {
-
-  R1GTOs gtos;
-  VectorXcd zs(15);  
-  zs <<
-    0.463925,
-    1.202518,
-    3.379649,
-    10.6072,
-    38.65163,
-    173.5822,
-    1170.498,
-    0.16934112166516593,
-    0.08989389391311804,
-    0.055610873913491725,
-    0.03776599632952126,
-    0.02731159914174668,
-    0.020665855224060142,
-    0.016180602421004654,
-    0.013011569667967734;
-  gtos.Add(2, zs);
-
-  R1STOs driv; driv.Add(2.0, 2, 1.0);
-  VectorXi opt_idx(8);
-  opt_idx << 7, 8, 9, 10, 11, 12, 13, 14;
-
-  double h(0.0001);
-  double eps(0.000003);
-  dcomplex z_shift(0.0, -0.02);
-  bool convq;
-  dcomplex alpha;
-  OptAlphaShift(driv, opt_idx, 1, 0.5,
-		h, 20, eps, /*pow(10.0, -8.0)*/ 0.0,
-		gtos, z_shift, &convq, &alpha);
-
-  // -- from 2016/3/25
-  // -- -0.00293368-0.0204361j 
-  EXPECT_TRUE(convq);
-  dcomplex ref(-0.00293368, -0.0204361);
-  EXPECT_C_NEAR(ref, z_shift, eps*10);
-  dcomplex ref_alpha(dcomplex(-5.6568937518988989, 1.0882823480377297));
-  EXPECT_C_NEAR(ref_alpha, alpha, pow(10.0, -9.0));  
-
-}
-TEST(OptAlpha, WithCanonical) {
-
-  R1GTOs gtos;
-  VectorXcd zs(15);  
-  zs << 0.463925,
-    1.202518,
-    3.379649,
-    10.6072,
-    38.65163,
-    173.5822,
-    1170.498,
-    0.16934112166516593,
-    0.08989389391311804,
-    0.055610873913491725,
-    0.03776599632952126,
-    0.02731159914174668,
-    0.020665855224060142,
-    0.016180602421004654,
-    0.013011569667967734;
-  gtos.Add(2, zs);
-  gtos.Normalize();
-
-  R1STOs driv; driv.Add(2.0, 2, 1.0);
-  VectorXi opt_idx(8);
-  opt_idx << 7, 8, 9, 10, 11, 12, 13, 14;
-
-  double h(0.0001);
-  double eps(0.000003);
-  dcomplex z_shift(0.0, -0.02);
-  bool convq;
-  dcomplex alpha;
-  OptAlphaShift(driv, opt_idx, 1, 0.5,
-		h, 100, eps, pow(10.0, -8.0),
-		gtos, z_shift, &convq, &alpha);
-
-  // -- from 2016/3/25
-  // -- -0.00293368-0.0204361j 
-  EXPECT_TRUE(convq);
-  dcomplex ref(-0.00293368, -0.0204361);
-  EXPECT_C_NEAR(ref, z_shift, eps*10);
-  dcomplex ref_alpha(dcomplex(-5.6568937518988989, 1.0882823480377297));
-  EXPECT_C_NEAR(ref_alpha, alpha, pow(10.0, -9.0));  
-
-}
-
-TEST(OptAlpha, Grad) {
-
- }
 
 int main(int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
