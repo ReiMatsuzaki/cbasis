@@ -150,7 +150,10 @@ namespace l2func {
 	     const Eigen::VectorXcd&, Eigen::VectorXcd*);
     Eigen::VectorXcd* AtR(const Eigen::VectorXcd&,
 			  const Eigen::VectorXcd&);
-    
+    void DerivAtR(const Eigen::VectorXcd&,
+		  const Eigen::VectorXcd&, Eigen::VectorXcd*) const;
+    Eigen::VectorXcd* DerivAtR(const Eigen::VectorXcd&,
+			       const Eigen::VectorXcd&) const;    
   };
   class R1STOs {
   public:

@@ -587,7 +587,7 @@ namespace l2func {
     this->CreateMat(o, s);
 
     for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {      
-      for(cItCont jt = o.conts_.begin(); jt != end; ++jt) {
+      for(cItCont jt = o.conts_.begin(); jt != o.conts_.end(); ++jt) {
 
 	prim_.SetRange(0, it->size_prim(), 0, jt->size_prim());
 	for(int i = 0; i < it->size_prim(); i++) {
@@ -639,7 +639,7 @@ namespace l2func {
 
     if(!this->setup_q()) {
       string msg; SUB_LOCATION(msg); 
-      msg += ": coef is not set up.";
+      msg += ": R1GTOs is not set up.";
       throw runtime_error(msg);
     }          
     
@@ -927,7 +927,7 @@ namespace l2func {
 
     if(!this->setup_q()) {
       string msg; SUB_LOCATION(msg); 
-      msg += ": coef is not set up.";
+      msg += ": this object is not set up.";
       throw runtime_error(msg);
     }      
 
@@ -966,6 +966,44 @@ namespace l2func {
     this->AtR(cs, rs, ys);
     return ys;
   }
+  void R1GTOs::DerivAtR(const VectorXcd& cs, const VectorXcd& rs,
+			VectorXcd* ys) const {
+    if(!this->setup_q()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": this object is not set up.";
+      throw runtime_error(msg);
+    }
+    if(cs.size() != this->size_basis()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": \n size of cs must be equal to basis size";
+      throw runtime_error(msg);
+    }
+    
+    VectorXcd res = VectorXcd::Zero(rs.size());
+    for(int i = 0; i <rs.size(); i++) {
+      dcomplex r(rs[i]);
+      dcomplex cumsum(0);
+      for(cItCont it = conts_.begin(), end = conts_.end();
+	  it != end; ++it) {
+	for(int ib = 0; ib < it->size_basis(); ib++) {
+	  for(int ip = 0; ip < it->size_prim(); ip++) {
+	    dcomplex c(it->coef(ib, ip));
+	    int      n(it->prim[ip].n);
+	    dcomplex z(it->prim[ip].z);
+	    cumsum += cs[it->offset+ib] * c *
+	      (dcomplex(n)*pow(r, n-1) -2.0*z*pow(r,n+1)) * exp(-z*r*r);
+	  }
+	}
+      }
+      res(i) = cumsum;
+    }
+    ys->swap(res);
+  }
+  VectorXcd* R1GTOs::DerivAtR(const VectorXcd& cs, const VectorXcd& rs) const {
+    VectorXcd* ys = new VectorXcd();
+    this->DerivAtR(cs, rs, ys);
+    return ys;
+  }
   void R1GTOs::swap(R1GTOs& o) {
     
     ::swap(this->setup_q_, o.setup_q_);
@@ -986,24 +1024,24 @@ namespace l2func {
 	<< (us.setup_q() ? "Yes" : "No")
 	<< endl;
     out << "coef type : " << us.coef_type_ << endl;
+    out << "num(contractions): " << us.conts_.size() << endl;
     
     for(R1GTOs::cItCont it = us.conts_.begin();
 	it != us.conts_.end(); ++it) {
       //      if(it->size_prim() == 1 && it->size_basis() == 1) {
       //	cout << it->prim[0].n << ", " << it->prim[0].z << endl;
       //      } else {
-	cout << "offset:" << it->offset << endl;
-	cout << "prim:" << endl;
-	for(R1GTOs::cItPrim iprim = it->prim.begin();
-	    iprim != it->prim.end(); ++iprim) {
-
-	  cout << iprim->n << ", " << iprim->z << endl;
-	  
-	}
-	cout << "coef:" << endl;
-	cout << it->coef << endl;
+      out << "offset:" << it->offset << endl;
+      out << "prim:" << endl;
+      for(R1GTOs::cItPrim iprim = it->prim.begin();
+	  iprim != it->prim.end(); ++iprim) {
 	
+	out << iprim->n << ", " << iprim->z << endl;
+	  
       }
+      out << "coef:" << endl;
+      out << it->coef << endl;
+    }
     //    }
 
     return out;

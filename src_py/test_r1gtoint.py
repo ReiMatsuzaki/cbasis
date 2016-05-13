@@ -39,6 +39,11 @@ class Test_r1gtos(unittest.TestCase):
         cg.set_conj(self.gtos)
         self.assertAlmostEqual(1.1, cg.z_prim(0))
         self.assertAlmostEqual(1.3+0.1j, cg.z_prim(2))
+        (s, t, v) = cg.calc_mat_stv(self.gtos, 1)
+        stos = R1STOs(); 
+        stos.add(1.1, 2, 1.2)
+        v1 = cg.calc_mat_sto(self.gtos, stos)
+        print v1
 
     def test_matrix(self):
         (s,t,v) = self.gtos.calc_mat_stv(1)

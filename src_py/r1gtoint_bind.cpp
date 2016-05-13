@@ -170,10 +170,15 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
     .def("calc_mat_sto", (void(R1GTOs::*)(const R1GTOs&, const R1STOs&, MatrixXcd&) const)&R1GTOs::CalcMatSTO)
     .def("calc_vec_sto", R1GTOs_VecSTO,   return_value_policy<manage_new_object>())
     .def("calc_vec_sto", (void(R1GTOs::*)(const R1STOs&, VectorXcd&) const)&R1GTOs::CalcVec)
+    .def("setup", &R1GTOs::SetUp)
     .def("normalize", &R1GTOs::Normalize)
     .def("at_r_cpp",
        	 (VectorXcd*(R1GTOs::*)
 	  (const VectorXcd&, const VectorXcd&))&R1GTOs::AtR,
+	 return_value_policy<manage_new_object>())
+    .def("deriv_at_r_cpp",
+       	 (VectorXcd*(R1GTOs::*)
+	  (const VectorXcd&, const VectorXcd&) const)&R1GTOs::DerivAtR,
 	 return_value_policy<manage_new_object>())
     .def(self_ns::str(self))
     .def(self_ns::repr(self));

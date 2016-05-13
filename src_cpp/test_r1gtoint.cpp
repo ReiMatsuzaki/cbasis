@@ -345,10 +345,13 @@ TEST(TestHAtom, s_state) {
   EXPECT_C_NEAR(-0.5, eig(0), 0.0001);
 
   VectorXcd rs(1); rs << 1.1;
-  VectorXcd ys;
+  VectorXcd ys, dys;
   gtos.AtR(c.col(0), rs, &ys);
+  gtos.DerivAtR(c.col(0), rs, &dys);
   dcomplex r(rs[0]);
-  EXPECT_C_NEAR(2.0*r*exp(-r), ys[0], pow(10.0, -6.0));
+  double eps(pow(10.0, -6.0));
+  EXPECT_C_NEAR(2.0*r*exp(-r), ys[0], eps);
+  EXPECT_C_NEAR(2.0*(1.0-r)*exp(-r), dys[0], eps*100);
   
 }
 TEST(TestHAtom, contraction) {

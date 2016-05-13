@@ -1,7 +1,6 @@
 #ifndef MULT_ARRAY_H
 #define MULT_ARRAY_H
 
-
 #include <string>
 #include <ostream>
 #include "macros.hpp"
@@ -226,4 +225,56 @@ namespace l2func {
   };
 
 }
+/*
+namespace future {
+  
+  template<class F, int N>
+  class MultArray {
+
+    // ---- Typedef ----
+  public:
+    typedef MultArray<F, N-1> Element;
+
+    // ---- Field member ----
+    Element* data;
+    int step;
+    int n0;
+    int n1;
+
+    // ---- Constructors ----
+    MultArray(int num): elements(num), n0(0), n1(num-1) {}
+    static Create
+    ~MultArray() {}
+    int size() const { return elements.size(); }
+    Element& SetRange(int _n0, int _n1) { n0 = _n0; n1 = _n1; }
+    void CheckArg(int index, int n) {
+      int num(this->size());
+      if(index < 0   || num-1 < index) {
+	std::string msg;
+	std::stringstream ss;
+	SUB_LOCATION(msg);
+	ss << "index: " << n << ", "
+	   << index << std::endl;
+	msg += ss.str();
+	throw std::runtime_error(msg);
+      }
+    }
+    Element& operator[](int n) {
+      int index = (n-n0);
+#ifndef ARG_NO_CHECK
+      CheckArg(index, n);
+#endif
+      return elements[index];
+    }
+    const Element& operator[](int n) const {
+      int index = n-n0;
+#ifndef ARG_NO_CHECK
+      CheckArg(index, n);
+#endif
+      return elements[index];      
+    }
+  };
+  
+}
+*/
 #endif

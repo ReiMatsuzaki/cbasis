@@ -5,38 +5,19 @@ functions. Now some one dimendional function such as Slater Type Orbital(STO)
 and Gauss Type Orbitals are supported. Complex version
 of these functions are also supported.
 
-# Source files
-## Utilities
+# Directories
+## data
 
-	- macros.hpp : simple macros
+	Store basis function data
 
+## src_cpp
 
-## Math
-
-	- fact.hpp : calculation of factorial
-	- erfc.hpp : evaluations of real and complex error functions
-	- lgamma.hpp : Lower Gamma function
+	c++ source files. Main calculation code.
 
 
-## Linear Space
-
-	-linspace.hpp
-	-func.hpp
+## src_py
 	
-	- exp_func.hpp : STO and GTO
-	- cut_exp.hpp : finite ranged STO/GTO
-	- delta.hpp   : dirac delta function
-	- lin_func.hpp : linear combination of same type functions
-
-	- op.hpp: linear operator object	
-
-	- cip.hpp  : complex symmetric inner product
-
-
-## hydrogen
-
-	- hatom.hpp : hydrogen atom eigen solutions
-	- hatom_h.hpp: header version of hatom.hpp
+	Python source code. Bidings for c++ code with Boost/Python.
 
 
 
