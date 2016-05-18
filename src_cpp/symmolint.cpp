@@ -13,6 +13,7 @@ namespace l2func {
   typedef vector<Reduction>::iterator RdsIt;
   typedef vector<SubSymGTOs>::const_iterator cSubIt;
   typedef vector<Reduction>::const_iterator cRdsIt;
+  typedef MultArray<dcomplex, 1> A1dc;
   typedef MultArray<dcomplex, 2> A2dc;
   typedef MultArray<dcomplex, 3> A3dc;
   typedef MultArray<dcomplex, 4> A4dc;
@@ -633,6 +634,68 @@ namespace l2func {
 	mat_map.SelfAdd("v", isym, jsym, i, j, cumsum_v);
 	mat_map.SelfAdd("z", isym, jsym, i, j, cumsum_z);
       }
+    }
+  }
+
+  void CalcPrim(const SymGTOs gtos,
+		SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
+		int iz, int jz, int kz, int lz,
+		A3dc& dxmap, A3dc& dymap, A3dc& dzmap, A2dc& Djs_iat, A1dc& prim) {
+    SubIt ijkl_sub[4] = {isub, jsub, ksub, lsub};
+    dcomplex zetas[4]; 
+    int      nats[4];
+    int      npns[4];
+
+    zetas[0] = isub->zeta_iz[iz]; zetas[1] = jsub->zeta_iz[jz];
+    zetas[2] = isub->zeta_iz[kz]; zetas[3] = jsub->zeta_iz[lz];
+    
+    dcomplex zetaP = zetas[0] + zetas[1];
+    dcomplex zetaPp= zetas[2] + zetas[3];
+
+    nats[0] = isub->size_at(); nats[1] = jsub->size_at(); 
+    nats[2] = ksub->size_at(); nats[3] = lsub->size_at(); 
+
+    npns[0] = isub->size_pn(); npns[1] = jsub->size_pn(); 
+    npns[2] = ksub->size_pn(); npns[3] = lsub->size_pn(); 
+
+    prim.SetRange(0, nats[0]*npns[0]*nats[1]*npns[1]*nats[2]*npns[2]*nats[3]*npns[3]);
+    int ms[4];
+    ms[0]= isub->maxn; ms[1]= jsub->maxn; ms[2]= ksub->maxn; ms[3]= lsub->maxn; 
+
+    int idx(0);
+    
+    for(int iat = 0; iat < nats[0]; iat++) 
+    for(int jat = 0; jat < nats[1]; jat++) 
+    for(int kat = 0; kat < nats[2]; kat++) 
+    for(int lat = 0; lat < nats[3]; lat++) 
+    for(int ipn = 0; ipn < npns[0]; ipn++) 
+    for(int jpn = 0; jpn < npns[1]; jpn++) 
+    for(int kpn = 0; kpn < npns[2]; kpn++) 
+    for(int lpn = 0; lpn < npns[3]; lpn++) {
+      int ijkl_at[4] = {iat, jat, kat, lat};
+      int ijkl_pn[4] = {ipn, jpn, kpn, lpn};
+      dcomplex xs[4], ys[4], zs[4];
+      for(int ijkl = 0; ijkl < 4; ijkl++) {
+	xs[ijkl] = ijkl_sub[ijkl]->x(ijkl_at[ijkl]);
+	ys[ijkl] = ijkl_sub[ijkl]->y(ijkl_at[ijkl]);
+	ys[ijkl] = ijkl_sub[ijkl]->z(ijkl_at[ijkl]);
+      }
+      dcomplex wPx, wPy, wPz, wPpx, wPpy, wPpz;
+      wPx =  (zetas[0]*xs[0]+zetas[1]*xs[1])/zetaP;
+      wPy =  (zetas[0]*ys[0]+zetas[1]*ys[1])/zetaP;
+      wPz =  (zetas[0]*zs[0]+zetas[1]*zs[1])/zetaP;
+      wPpx = (zetas[2]*xs[2]+zetas[3]*xs[3])/zetaPp;
+      wPpy = (zetas[2]*ys[2]+zetas[3]*ys[3])/zetaPp;
+      wPpz = (zetas[2]*zs[2]+zetas[3]*zs[3])/zetaPp;      
+      calc_d_coef(ms[0]+ms[1], ms[2]+ms[3], ms[0]+ms[1]+ms[2]+ms[3],
+		  zetaP, wPx, xs[0], xs[1], dxmap);
+      calc_d_coef(ms[0]+ms[1], ms[2]+ms[3], ms[0]+ms[1]+ms[2]+ms[3],
+		  zetaP, wPx, xs[0], xs[1], dymap);
+      calc_d_coef(ms[0]+ms[1], ms[2]+ms[3], ms[0]+ms[1]+ms[2]+ms[3],
+		  zetaP, wPx, xs[0], xs[1], dzmap);
+      //calc_R_coef(zetaP, wPx, wPy, wPz, 1.0,)
+      prim(idx) = 1.1;
+      ++idx;
     }
   }
 
