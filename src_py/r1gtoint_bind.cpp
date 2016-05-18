@@ -116,16 +116,25 @@ void BindOpt() {
   class_<OpCoulombShort, bases<IOp> >("OpCoulombShort", init<int, dcomplex, const R1STOs&>());
 
 
+  // ==== Optimization Result ====
+  class_<OptResult>("OptRes", no_init)
+    .def_readwrite("conv_q", &OptResult::conv_q)
+    .def_readwrite("zs",     &OptResult::zs)
+    .def_readwrite("val",    &OptResult::val)
+    .def_readwrite("dz",     &OptResult::dz)
+    .def_readwrite("grad",   &OptResult::grad)
+    .def_readwrite("hess",   &OptResult::hess)
+    .def(self_ns::str(self))
+    .def(self_ns::repr(self));
+    
   // ==== Optimizer ====
   class_<IOptimizer, boost::noncopyable>("IOptimizer", no_init)
-    .def("optimize", (void(IOptimizer::*)(dcomplex))&IOptimizer::Optimize)
-    .def("optimize", (void(IOptimizer::*)(const VectorXcd&))&IOptimizer::Optimize)
-    .def_readwrite("conv_q", &IOptimizer::conv_q)
-    .def_readwrite("zs", &IOptimizer::zs)
-    .def_readwrite("val", &IOptimizer::val)
-    .def_readwrite("dz", &IOptimizer::dz)
-    .def_readwrite("grad", &IOptimizer::grad)
-    .def_readwrite("hess", &IOptimizer::hess);
+    .def("optimize",
+	 (OptResult*(IOptimizer::*)(dcomplex))&IOptimizer::Optimize,
+	 return_value_policy<manage_new_object>())
+    .def("optimize",
+	 (OptResult*(IOptimizer::*)(const VectorXcd&))&IOptimizer::Optimize,
+	 return_value_policy<manage_new_object>());
   
   class_<OptNewton, bases<IOptimizer> >("OptNewton",
 					init<int, double, IOptTarget*, int>());
@@ -135,6 +144,7 @@ void BindOpt() {
   class_<OptAlpha, bases<IOptTarget> >("OptAlpha", init<IDriv*,IOp*,R1GTOs&>());
   class_<OptAlphaShift, bases<IOptTarget> >("OptAlphaShift", init<IDriv*,IOp*,R1GTOs&,
  			const VectorXi&>());
+  class_<OptAlphaPartial, bases<IOptTarget> >("OptAlphaPartial", init<IDriv*, IOp*, R1GTOs&, const VectorXi&>());
 
   def("calc_alpha", CalcAlpha);
   def("solve_alpha", SolveAlpha);
@@ -180,6 +190,10 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
        	 (VectorXcd*(R1GTOs::*)
 	  (const VectorXcd&, const VectorXcd&) const)&R1GTOs::DerivAtR,
 	 return_value_policy<manage_new_object>())
+    .def("deriv_2_at_r_cpp",
+	 (VectorXcd*(R1GTOs::*)
+	  (const VectorXcd&, const VectorXcd&) const)&R1GTOs::Deriv2AtR,
+	 return_value_policy<manage_new_object>())
     .def(self_ns::str(self))
     .def(self_ns::repr(self));
 
@@ -188,6 +202,8 @@ BOOST_PYTHON_MODULE(r1gtoint_bind) {
     .def("add",  (void(R1STOs::*)(int,dcomplex))&R1STOs::Add)
     .def("basis",  &R1STOs::basis,
 	 return_internal_reference<>())
+    .def("at_r_cpp", (VectorXcd*(R1STOs::*)(const VectorXcd&) const)&R1STOs::AtR,
+	 return_value_policy<manage_new_object>())
     .def(self_ns::str(self))
     .def(self_ns::repr(self));
 

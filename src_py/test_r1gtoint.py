@@ -15,6 +15,18 @@ class Test_Eigen(unittest.TestCase):
         print_vectorxi(ivec)
         print_vectorxi([4, 3, 3])
 
+
+class Test_r1stos(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_at_r(self):
+        fs = R1STOs()
+        c = 1.1; n = 2; z = 0.3; r = 1.4
+        fs.add(c, n, z)
+        ys = fs.at_r([r])
+        self.assertAlmostEqual(c*r*r*np.exp(-z*r), ys[0])
+        
 class Test_r1gtos(unittest.TestCase):
     def setUp(self):
         self.gtos = R1GTOs()
@@ -70,8 +82,9 @@ class Test_r1gtos(unittest.TestCase):
         gs = R1GTOs()
         gs.add(2, 1.2)
         gs.normalize()
-        ys = gs.at_r([1.3], [1.1])[0]
-        print ys
+        print gs.at_r([1.3], [1.1])[0]
+        print gs.deriv_at_r([1.3], [1.1])[0]
+        print gs.deriv_2_at_r([1.3], [1.1])[0]
 
 
 class Test_Opt(unittest.TestCase):
@@ -93,9 +106,23 @@ class Test_Opt(unittest.TestCase):
         target = OptAlpha(driv, op, gs)
 
         optimizer = OptNewton(100, 10.0**(-5), target, 0)
-        optimizer.optimize(zs)
+        res = optimizer.optimize(zs)
         
-        self.assertTrue(optimizer.conv_q)
+        self.assertTrue(res.conv_q)
+
+    def test_opt_partial(self):
+        sto = R1STOs(); sto.add(2, 1.0)
+        driv = DrivSTO(sto);
+        op   = OpCoulomb(1, 0.5)
+
+        zs = [0.2-0.1j, 0.8-0.5j]
+        gs = R1GTOs(); gs.add(2, zs); gs.normalize()
+        target = OptAlphaPartial(driv, op, gs, [1])
+        
+        optimizer = OptNewton(100, 10.0**(-5), target, 0)
+        res = optimizer.optimize([zs[1]])
+        
+        self.assertTrue(res.conv_q)
 
     def test_opt_alpha_shift(self):
         gs = R1GTOs()
@@ -126,13 +153,14 @@ class Test_Opt(unittest.TestCase):
         opt_idx = [7, 8, 9, 10, 11, 12, 13, 14];
         target = OptAlphaShift(driv, op, gs, opt_idx)
         optimizer = OptNewton(100, 10**(-5), target, 0)
-        optimizer.optimize(-0.02j)
+        res = optimizer.optimize(-0.02j)
         
-        self.assertTrue(optimizer.conv_q)
+        self.assertTrue(res.conv_q)
         shift_ref = -0.00293368-0.0204361j
-        self.assertAlmostEqual(shift_ref, optimizer.zs[0], places=4);
+        self.assertAlmostEqual(shift_ref, res.zs[0], places=4);
         alpha_ref = -5.6568937518988989+1.0882823480377297j
-        self.assertAlmostEqual(alpha_ref, optimizer.val)
+        self.assertAlmostEqual(alpha_ref, res.val)
+
  
 if __name__ == '__main__':
     unittest.main()

@@ -250,10 +250,7 @@ TEST_F(TestR1GTOs, matrix_sto) {
 				 gs[i].n()+gs[j].n()+1);
       EXPECT_C_EQ(nconst*(1.1*val1+1.2*val2), res.mat("vexp")(i, j))
 	<< i << j;
-
     }
-  
-
 }
 TEST_F(TestR1GTOs, matrix_h) {
 
@@ -290,6 +287,42 @@ TEST_F(TestR1GTOs, vector_sto) {
     EXPECT_C_EQ(ref, res.vec("m")(i));
   }
   
+}
+TEST_F(TestR1GTOs, at_r) {
+
+  VectorXcd rs(1); rs << 1.1;
+  VectorXcd ys(1);
+  gtos.AtR(rs, &ys);
+  dcomplex ref(0);
+  for(int i = 0; i < 4; i++) {
+    ref += 1.0/CNorm(gs[i]) * gs[i].at(1.1);
+  }
+
+  EXPECT_C_EQ(ref, ys[0]);
+  
+}
+TEST_F(TestR1GTOs, deriv_at_r) {
+
+  R1GTOs gtos; 
+  dcomplex c(1.1);
+  MatrixXcd cs(1, 1); cs << c;
+  int n(2);
+  dcomplex z(1.3);
+  VectorXcd zs(1);    zs << z;
+  gtos.Add(n, zs, cs);
+  gtos.SetUp();
+  
+  dcomplex r(1.5);
+  VectorXcd rs(1); rs << r;
+  VectorXcd dys(1);  gtos.DerivAtR(rs,  &dys);
+  VectorXcd ddys(1); gtos.Deriv2AtR(rs, &ddys);
+
+  dcomplex dy0  = (2.0*r -2.0*z*r*r*r)*c*exp(-z*r*r);
+  dcomplex ddy0 = dy0 * (-2.0*z*r) + (2.0 -6.0*z*r*r)*c*exp(-z*r*r);
+  EXPECT_C_EQ(dy0,  dys[0]);
+  EXPECT_C_EQ(ddy0, ddys[0]);
+	      
+
 }
 TEST(OpDriv, driv_sto) {
   R1STOs stos; stos.Add(2, 1.1);

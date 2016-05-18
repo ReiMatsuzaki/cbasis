@@ -961,10 +961,18 @@ namespace l2func {
     ys->swap(res);
 
   }
+  void R1GTOs::AtR(const VectorXcd& rs, VectorXcd* ys) {
+    VectorXcd cs = VectorXcd::Ones(this->size_basis());
+    this->AtR(cs, rs, ys);
+  }  
   VectorXcd* R1GTOs::AtR(const VectorXcd& cs, const VectorXcd& rs) {
     VectorXcd* ys = new VectorXcd();
     this->AtR(cs, rs, ys);
     return ys;
+  }
+  VectorXcd* R1GTOs::AtR(const VectorXcd& rs) {
+    VectorXcd cs = VectorXcd::Ones(this->size_basis());
+    return this->AtR(cs, rs);
   }
   void R1GTOs::DerivAtR(const VectorXcd& cs, const VectorXcd& rs,
 			VectorXcd* ys) const {
@@ -999,10 +1007,67 @@ namespace l2func {
     }
     ys->swap(res);
   }
+  void R1GTOs::DerivAtR(const VectorXcd& rs, VectorXcd* ys) const {
+    VectorXcd cs = VectorXcd::Ones(this->size_basis());
+    this->DerivAtR(cs, rs, ys);
+  } 
   VectorXcd* R1GTOs::DerivAtR(const VectorXcd& cs, const VectorXcd& rs) const {
     VectorXcd* ys = new VectorXcd();
     this->DerivAtR(cs, rs, ys);
     return ys;
+  }
+  VectorXcd* R1GTOs::DerivAtR(const VectorXcd& rs) const {
+    VectorXcd cs = VectorXcd::Ones(this->size_basis());
+    return this->DerivAtR(cs, rs);
+  }
+  void R1GTOs::Deriv2AtR(const VectorXcd& cs, const VectorXcd& rs, VectorXcd* ys) const {
+    if(!this->setup_q()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": this object is not set up";
+      throw runtime_error(msg);
+    }
+    if(cs.size() != this->size_basis()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": size mismatch";
+      throw runtime_error(msg);
+    }
+
+    VectorXcd res = VectorXcd::Zero(rs.size());
+    for(int i = 0; i < rs.size(); i++) {
+      dcomplex r(rs[i]);
+      dcomplex cumsum(0);
+      for(cItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
+	for(int ib = 0; ib < it->size_basis(); ib++) {
+	  for(int ip = 0; ip < it->size_prim(); ip++) {
+	    dcomplex c(it->coef(ib, ip));
+	    int      n(it->prim[ip].n);
+	    dcomplex z(it->prim[ip].z);
+	    dcomplex tmp(0);
+	    tmp += 4.0 * z * z               * pow(r, n+2);
+	    tmp += -2.0 * z * dcomplex(2*n+1) * pow(r, n  );
+	    if(n > 1)
+	      tmp += dcomplex(n*n-n) * pow(r, n-2);
+	    tmp *= cs[it->offset+ib] * c * exp(-z*r*r);
+	    cumsum += tmp;
+	  }
+	}
+      }
+      res(i) = cumsum;
+    }
+    ys->swap(res);
+  }
+  void R1GTOs::Deriv2AtR(const VectorXcd& rs, VectorXcd* ys) const {
+    VectorXcd cs = VectorXcd::Ones(this->size_basis());
+    this->Deriv2AtR(cs, rs, ys);
+  }
+  VectorXcd* R1GTOs::Deriv2AtR(const VectorXcd& cs, const VectorXcd& rs) const {
+    VectorXcd* ys = new VectorXcd();
+    this->Deriv2AtR(cs, rs, ys);
+    return ys;
+  }
+  VectorXcd* R1GTOs::Deriv2AtR(const VectorXcd& rs) const {
+    VectorXcd cs = VectorXcd::Ones(this->size_basis());
+    return this->Deriv2AtR(cs, rs);
   }
   void R1GTOs::swap(R1GTOs& o) {
     
@@ -1016,6 +1081,27 @@ namespace l2func {
   }
   void R1STOs::Add(int n, dcomplex zeta) {
     stos_.push_back(R1STO(1, n, zeta));
+  }
+  void R1STOs::AtR(const Eigen::VectorXcd& rs, Eigen::VectorXcd* ys) const {
+
+    int num = rs.size();
+
+    typedef vector<R1STO>::const_iterator cIt;
+    VectorXcd res(num);
+    for(int i = 0; i < num; i++) {
+      dcomplex r(rs[i]);
+      dcomplex cumsum(0);
+      for(cIt it = stos_.begin(), end = stos_.end(); it != end; ++it) {
+	cumsum += it->c * pow(r, it->n) * exp(-it->z * r);
+      }
+      res[i] = cumsum;
+    }
+    ys->swap(res);
+  }
+  Eigen::VectorXcd* R1STOs::AtR(const Eigen::VectorXcd& rs)       const {
+    VectorXcd* ys = new VectorXcd();
+    this->AtR(rs, ys);
+    return ys;
   }
 
   ostream& operator<<(ostream& out, const R1GTOs& us) {

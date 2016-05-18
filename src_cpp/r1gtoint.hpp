@@ -148,12 +148,24 @@ namespace l2func {
     void Normalize();
     void AtR(const Eigen::VectorXcd&,
 	     const Eigen::VectorXcd&, Eigen::VectorXcd*);
+    void AtR(const Eigen::VectorXcd&, Eigen::VectorXcd*);
     Eigen::VectorXcd* AtR(const Eigen::VectorXcd&,
 			  const Eigen::VectorXcd&);
+    Eigen::VectorXcd* AtR(const Eigen::VectorXcd&);
     void DerivAtR(const Eigen::VectorXcd&,
 		  const Eigen::VectorXcd&, Eigen::VectorXcd*) const;
+    void DerivAtR(const Eigen::VectorXcd&, Eigen::VectorXcd*) const;
     Eigen::VectorXcd* DerivAtR(const Eigen::VectorXcd&,
 			       const Eigen::VectorXcd&) const;    
+    Eigen::VectorXcd* DerivAtR(const Eigen::VectorXcd&) const;
+    void Deriv2AtR(const Eigen::VectorXcd&,
+		  const Eigen::VectorXcd&, Eigen::VectorXcd*) const;
+    void Deriv2AtR(const Eigen::VectorXcd&, Eigen::VectorXcd*) const;
+
+    Eigen::VectorXcd* Deriv2AtR(const Eigen::VectorXcd&,
+			       const Eigen::VectorXcd&) const;    
+    Eigen::VectorXcd* Deriv2AtR(const Eigen::VectorXcd&) const;
+			   
   };
   class R1STOs {
   public:
@@ -166,6 +178,9 @@ namespace l2func {
     bool normalized_q() const { return normalized_q_; }
     void Add(dcomplex c, int n, dcomplex zeta);
     void Add(int n, dcomplex zeta);
+    void AtR(const Eigen::VectorXcd&, Eigen::VectorXcd*) const;
+    Eigen::VectorXcd* AtR(const Eigen::VectorXcd&)       const;
+
   };
 
   std::ostream& operator<<(std::ostream& out, const R1GTOs& basis);

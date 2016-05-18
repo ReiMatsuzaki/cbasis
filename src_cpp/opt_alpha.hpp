@@ -73,6 +73,19 @@ namespace l2func {
   bool CheckOptTarget(IOptTarget* target, dcomplex z, double h, double eps);
 		      
 
+  // ==== Optimization result ====
+  class OptResult {
+  public:
+    bool conv_q;
+    Eigen::VectorXcd zs;
+    dcomplex val;
+    Eigen::VectorXcd dz;
+    Eigen::VectorXcd grad;
+    Eigen::MatrixXcd hess;
+    OptResult(int n);
+  };
+  std::ostream& operator<<(std::ostream& out, const OptResult&);
+
   // ==== Optimizer ====
   // 
   // max_iter : maximum iteration for optimization. (max_iter > 0)
@@ -87,17 +100,19 @@ namespace l2func {
     IOptTarget* target;
     int debug_lvl;
     // -- results --
+    /*
     bool conv_q;
     Eigen::VectorXcd zs;
     dcomplex val;
     Eigen::VectorXcd dz;
     Eigen::VectorXcd grad;
     Eigen::MatrixXcd hess;
+    */
   public:
     IOptimizer(int _max_iter, double _eps, IOptTarget* _target, int lvl);
     virtual ~IOptimizer();
-    void Optimize(const Eigen::VectorXcd& z0s);
-    void Optimize(dcomplex);
+    OptResult* Optimize(const Eigen::VectorXcd& z0s);
+    OptResult* Optimize(dcomplex);
     virtual void OneStep(const Eigen::VectorXcd& _grad, const Eigen::MatrixXcd& _hess,
 			 Eigen::VectorXcd& _dz) = 0;
   };

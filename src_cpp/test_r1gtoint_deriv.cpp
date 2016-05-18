@@ -270,13 +270,14 @@ TEST(Optimization, model) {
   IOptimizer* optimizer = new OptNewton(100, pow(10.0, -5.0), target, 0);
 
   VectorXcd z(1); z << 0.1;
-  optimizer->Optimize(z);
-  EXPECT_TRUE(optimizer->conv_q);
-  EXPECT_C_EQ(0.0, optimizer->zs[0]);
-  EXPECT_C_EQ(1.0, optimizer->val);
+  OptResult* res = optimizer->Optimize(z);
+  EXPECT_TRUE(res->conv_q);
+  EXPECT_C_EQ(0.0, res->zs[0]);
+  EXPECT_C_EQ(1.0, res->val);
 
   delete target;
   delete optimizer;
+  delete res;
 
 }
 TEST(OptAlphaInd, grad_hess) {
@@ -419,20 +420,22 @@ TEST(OptAlphaInd, opt_one) {
   
   IOptTarget* target = new OptAlpha(p_driv, p_op, gs);
   IOptimizer* optimizer = new OptNewton(100, pow(10.0, -5.0), target);
+  OptResult* res = NULL;
   try {
-    optimizer->Optimize(zs);
+    res = optimizer->Optimize(zs);
   } catch(const exception& e) {
-  cout << "exception in optimization:" << endl << e.what() << endl;
+    cout << "exception in optimization:" << endl << e.what() << endl;
   }
 
-  EXPECT_TRUE(optimizer->conv_q);
-  cout << optimizer->zs << endl;
-  cout << optimizer->val << endl;
+  EXPECT_TRUE(res->conv_q);
+  cout << res->zs << endl;
+  cout << res->val << endl;
 
   delete p_driv;
   delete p_op;
   delete target;
   delete optimizer;
+  delete res;
 }
 TEST(OptAlphaInd, opt_two) {
   
@@ -448,18 +451,15 @@ TEST(OptAlphaInd, opt_two) {
   
   IOptTarget* target = new OptAlpha(p_driv, p_op, gs);
   IOptimizer* optimizer = new OptNewton(100, pow(10.0, -5.0), target);
+  OptResult* res = NULL;
   try {
-    optimizer->Optimize(zs);
+    res = optimizer->Optimize(zs);
   } catch(const exception& e) {
   cout << "exception in optimization:" << endl << e.what() << endl;
   }
 
-  EXPECT_TRUE(optimizer->conv_q);
-  cout << optimizer->zs << endl;
-  //  cout << optimizer->val << endl;
-
-  //  EXPECT_C_NEAR(optimizer->zs[0], dcomplex(0.964095, -0.0600633), eps);
-  //  EXPECT_C_NEAR(optimizer->zs[1], dcomplex(0.664185, -1.11116), eps);
+  EXPECT_TRUE(res->conv_q);
+  cout << res->zs << endl;
 
   CheckOptTarget(target, zs, 0.0001, 2.0*pow(10.0, -5.0));
 
@@ -467,6 +467,7 @@ TEST(OptAlphaInd, opt_two) {
   delete p_op;
   delete target;
   delete optimizer;
+  delete res;
 }
 TEST(OptAlphaInd, shift) {
 
@@ -501,19 +502,20 @@ TEST(OptAlphaInd, shift) {
   double shift0(0.02);
   CheckOptTarget(target, dcomplex(0.0, -shift0), shift0/300.0, 1.0);
   
-  optimizer->Optimize(dcomplex(0.0, -shift0));
-  EXPECT_TRUE(optimizer->conv_q);
+  OptResult* res = optimizer->Optimize(dcomplex(0.0, -shift0));
+  EXPECT_TRUE(res->conv_q);
 
   double eps(0.000003);
   dcomplex ref(-0.00293368, -0.0204361);
-  EXPECT_C_NEAR(ref, optimizer->zs[0], eps*10);
+  EXPECT_C_NEAR(ref, res->zs[0], eps*10);
   dcomplex ref_alpha(dcomplex(-5.6568937518988989, 1.0882823480377297));
-  EXPECT_C_NEAR(ref_alpha, optimizer->val, pow(10.0, -9.0));  
+  EXPECT_C_NEAR(ref_alpha, res->val, pow(10.0, -9.0));  
 
   delete p_driv;
   delete p_op;
   delete target;
   delete optimizer;
+  delete res;
 }
 TEST(OptAlphaInd, part) {
 
@@ -534,16 +536,17 @@ TEST(OptAlphaInd, part) {
   VectorXcd z0(2); z0 << dcomplex(0.8, -0.6), dcomplex(2.9, -3.2);
   CheckOptTarget(target, z0, 0.001, pow(10.0, -5.0));
 
-  optimizer->Optimize(z0);
-  EXPECT_TRUE(optimizer->conv_q);
-  EXPECT_C_EQ(optimizer->zs[0], gtos.prim(1).z);
-  EXPECT_C_EQ(optimizer->zs[1], gtos.prim(2).z);
-  cout << optimizer->zs << endl;
+  OptResult* res = optimizer->Optimize(z0);
+  EXPECT_TRUE(res->conv_q);
+  EXPECT_C_EQ(res->zs[0], gtos.prim(1).z);
+  EXPECT_C_EQ(res->zs[1], gtos.prim(2).z);
+  cout << res->zs << endl;
 
   delete driv;
   delete op;
   delete target;
   delete optimizer;
+  delete res;
 }
  
 TEST(OptAlpha, WithContraction) {

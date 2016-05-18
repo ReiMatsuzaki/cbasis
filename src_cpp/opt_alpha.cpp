@@ -36,12 +36,27 @@ namespace l2func {
     
   }
   
+  // ==== optimization result ====
+  OptResult::OptResult(int n):
+    conv_q(false),zs(n), val(0.0), dz(n), grad(n), hess(n, n) {}  
+  ostream& operator<<(ostream& out, const OptResult& a) {
+    out << "conv_q: " << (a.conv_q ? "Yes" : "No") << endl;
+    if(a.zs.size() < 3) {
+      out << "zs    : ";
+      for(int i = 0; i < a.zs.size(); i++)
+	out << a.zs[i] << " ";
+      out << endl;
+    } else {
+      out << "zs   : " << a.zs[0] << " " << a.zs[1] << " ... " << a.zs[a.zs.size()-1];
+      out << endl;
+    }
+    return out;
+  }
+
   // ==== optimizer ====
   // ---- Interface ----
   IOptimizer::IOptimizer(int _max_iter, double _eps, IOptTarget* _target, int lvl):
-    max_iter(_max_iter), eps(_eps), target(_target), debug_lvl(lvl), conv_q(false),
-    zs(_target->dim()), val(0.0), dz(_target->dim()), grad(_target->dim()),
-    hess(_target->dim(), _target->dim()) {
+    max_iter(_max_iter), eps(_eps), target(_target), debug_lvl(lvl) {
 
     if(max_iter <= 0) {
       string msg; SUB_LOCATION(msg);
@@ -63,29 +78,31 @@ namespace l2func {
 
   }
   IOptimizer::~IOptimizer() {}
-  void IOptimizer::Optimize(const Eigen::VectorXcd& z0s) {
+  OptResult* IOptimizer::Optimize(const Eigen::VectorXcd& z0s) {
 
-    conv_q = false;
-    zs = z0s;
+    // -- Prepare results object --
+    OptResult* p_res = new OptResult(target->dim());
+    p_res->zs = z0s;
 
     for(int i = 0; i < max_iter; i++) {
-      target->ValGradHess(zs, &val, grad, hess);
-      this->OneStep(grad, hess, dz);
+      target->ValGradHess(p_res->zs, &p_res->val, p_res->grad, p_res->hess);
+      this->OneStep(p_res->grad, p_res->hess, p_res->dz);
       if(debug_lvl > 0) {
 	cout << "i: " << i << endl;
-	cout << "zs: " << zs << endl;
-	cout << "dz: " << dz << endl;
-	cout << "grad: " << grad << endl;
-	cout << "hess: " << hess << endl;
+	cout << "zs: " << p_res->zs << endl;
+	cout << "dz: " << p_res->dz << endl;
+	cout << "grad: " << p_res->grad << endl;
+	cout << "hess: " << p_res->hess << endl;
       }
-      if(dz.array().abs().matrix().maxCoeff() < eps) {
-	conv_q = true;
+      if(p_res->dz.array().abs().matrix().maxCoeff() < eps) {
+	p_res->conv_q = true;
 	break;
       }
-      zs += dz;
+      p_res->zs += p_res->dz;
     }
+    return p_res;
   }
-  void IOptimizer::Optimize(dcomplex z0) {
+  OptResult* IOptimizer::Optimize(dcomplex z0) {
     
     if(target->dim() != 1) {
       string msg; SUB_LOCATION(msg);
@@ -94,7 +111,8 @@ namespace l2func {
     }
     VectorXcd zs(1);
     zs << z0;
-    this->Optimize(zs);
+    OptResult* p_res = this->Optimize(zs);
+    return p_res;
   }
 
   // ---- External ----
