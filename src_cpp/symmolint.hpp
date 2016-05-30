@@ -6,6 +6,8 @@
 #include <Eigen/Core>
 #include "typedef.hpp"
 #include "bmatset.hpp"
+//#include "mult_array.hpp"
+#include "b2eint.hpp"
 
 namespace l2func {
 
@@ -160,6 +162,7 @@ namespace l2func {
     // -- matrix calculation --
     void CalcMatOther(SymGTOs& o, bool calc_coulomb, BMatSet*);
     void CalcMat(BMatSet* res);
+    void CalcERI(IB2EInt* eri);
     // -- Radial wave function --
     void AtR_Ylm(int L, int M,  int irrep,
 		 const Eigen::VectorXcd& cs_ibasis,
@@ -170,6 +173,22 @@ namespace l2func {
     void CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs);
 
   };
+
+  // ==== Calculation of ERI ====
+/*
+  typedef std::vector<SubSymGTOs>::iterator SubIt;
+  typedef std::vector<Reduction>::iterator RdsIt;
+  typedef MultArray<dcomplex, 1> A1dc;
+  typedef MultArray<dcomplex, 2> A2dc;
+  typedef MultArray<dcomplex, 3> A3dc;
+  typedef MultArray<dcomplex, 4> A4dc;
+  void CalcPrimERI(const SymGTOs gtos,
+		   SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
+		   int iz, int jz, int kz, int lz,
+		   A3dc& dxmap, A3dc& dymap, A3dc& dzmap,
+		   A3dc& dxmap_p, A3dc& dymap_p, A3dc& dzmap_p,
+		   A1dc& prim);
+*/
 }
 
 #endif

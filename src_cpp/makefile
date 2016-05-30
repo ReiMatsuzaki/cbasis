@@ -49,6 +49,15 @@ ${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
 check_symmolint: ${BINDIR}/test_symmolint
 	${VALGRIND} ./$<
 
+# -- test 2e int --
+TWOINT_OBJS = test_2eint.o b2eint.o symmolint.o bmatset.o angmoment.o \
+	eigen_plus.o fact.o mol_func.o
+${BINDIR}/test_2eint:  $(foreach o, ${TWOINT_OBJS}, ${BINDIR}/$o)
+	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
+.PHONY: check_2eint
+check_2eint: ${BINDIR}/test_2eint
+	${VALGRIND} ./$<
+
 # -- test L2(R1) --
 L2OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o exp_int.o delta.o
 ${BINDIR}/l2.a: $(foreach o, ${L2OBJS}, ${BINDIR}/$o)

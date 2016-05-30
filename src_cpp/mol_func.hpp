@@ -27,6 +27,7 @@ namespace l2func {
 		  dcomplex wPk, dcomplex wAk, dcomplex wBk,
 		  int nAk, int nBk, int Nk);
 
+  
   dcomplex coef_R(dcomplex zetaP,
 		  dcomplex wPx, dcomplex wPy, dcomplex wPz,
 		  dcomplex cx,  dcomplex cy,  dcomplex cz,

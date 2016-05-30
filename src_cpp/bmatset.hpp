@@ -19,6 +19,7 @@ namespace l2func {
   private:
     int     block_num_;
     BMatMap mat_map_;
+    Eigen::VectorXcd eri_;
   public:
     BMatSet();
     BMatSet(int _block_num);

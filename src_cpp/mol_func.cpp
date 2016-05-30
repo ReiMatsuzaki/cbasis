@@ -238,6 +238,12 @@ namespace l2func {
 		  dcomplex wPx, dcomplex wPy, dcomplex wPz,
 		  dcomplex cx,  dcomplex cy,  dcomplex cz,
 		  int mx, int my, int mz, int j, dcomplex* Fjs) {
+    /* Compute function R_{mx,my,mz,j}(zetaP, Wp, C) where
+       wP = (wPx, wPy, wPz)
+       C  = (Cx,  Cy,  Cz).
+       by recursion formula. The last term can be obtained by 
+       R_{0,0,0,j} = (-2zetaP)^j * Fj(zetaP(wP-C)^2).
+     */
 
     if(mx == 0 && my == 0 && mz == 0) {
       //      dcomplex arg = zetaP * dist2(wPx-cx, wPy-cy, wPz-cz);

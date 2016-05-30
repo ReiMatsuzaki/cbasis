@@ -433,7 +433,7 @@ TEST(SymGTOs, CalcMatOther) {
 
 
   // -- calculate matrix --
-  BMatSet mat_full, mat_12;
+  BMatSet mat_full(2), mat_12(2);
   gtos_full.SetUp();
   gtos_1.SetUp();
   gtos_2.SetUp();
