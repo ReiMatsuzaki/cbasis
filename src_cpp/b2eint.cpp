@@ -4,9 +4,25 @@ namespace l2func {
 
   // ==== Interface ====
   IB2EInt::~IB2EInt() {}
+  dcomplex IB2EInt::At(int ib, int jb, int kb, int lb,
+		       int i, int j, int k, int l) {
+    
+    int xib,xjb,xkb,xlb,xi,xj,xk,xl,xt;
+    dcomplex xv;
+    this->Reset();
+    while(this->Get(&xib,&xjb,&xkb,&xlb,&xi,&xj,&xk,&xl,&xt, &xv)) {
+      if(ib == xib && jb == xjb && kb == xkb && lb == xlb &&
+	 i == xi   && j == xj   && k == xk   && l == xl) {
+	return xv;
+      }
+    }
+    string msg; SUB_LOCATION(msg); 
+    msg += ": failed to find given index list.";
+    throw runtime_error(msg);
+  }  
 
 
-  // ==== Mem ====
+  // ==== Mem version ====
   // ---- Constructors ----
   B2EIntMem::B2EIntMem(int n):
     capacity_(n), size_(0), idx_(0),
@@ -54,6 +70,11 @@ namespace l2func {
   void B2EIntMem::Reset() {
     idx_ = 0;
   }
-  
+  int B2EIntMem::size() const {
+    return this->size_;
+  }
+  int B2EIntMem::capacity() const {
+    return this->capacity_;
+  }
 
 }

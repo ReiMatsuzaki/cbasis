@@ -643,8 +643,8 @@ namespace l2func {
 		   A3dc& dxmap_p, A3dc& dymap_p, A3dc& dzmap_p,
 		   VectorXcd& prim) {
     dcomplex zetai, zetaj, zetak, zetal, zetaP, zetaPp;
-    zetai = isub->zeta_iz[iz]; zetaj = isub->zeta_iz[jz];
-    zetak = isub->zeta_iz[kz]; zetal = isub->zeta_iz[lz];
+    zetai = isub->zeta_iz[iz]; zetaj = jsub->zeta_iz[jz];
+    zetak = ksub->zeta_iz[kz]; zetal = lsub->zeta_iz[lz];
     zetaP = zetai + zetaj;     zetaPp= zetak + zetal;
 
     int nati, natj, natk, natl;
@@ -691,12 +691,12 @@ namespace l2func {
       eij = exp(-zetai * zetaj / zetaP * ((xi-xj)*(xi-xj) + (yi-yj)*(yi-yj) + (zi-zj)*(zi-zj)));
       ekl = exp(-zetak * zetal / zetaPp * ((xk-xl)*(xk-xl) + (yk-yl)*(yk-yl) + (zk-zl)*(zk-zl)));
 
-      calc_d_coef(nxi, nxj, nxi+nxj, zetaP, wPx, xi, xj, dxmap);
-      calc_d_coef(nyi, nyj, nyi+nyj, zetaP, wPy, yi, yj, dymap);
-      calc_d_coef(nzi, nzj, nzi+nzj, zetaP, wPz, zi, zj, dzmap);
-      calc_d_coef(nxk, nxl, nxk+nxl, zetaP, wPpx, xk, xl, dxmap_p);
-      calc_d_coef(nyk, nyl, nyk+nyl, zetaP, wPpy, yk, yl, dymap_p);
-      calc_d_coef(nzk, nzl, nzk+nzl, zetaP, wPpz, zk, zl, dzmap_p);
+      calc_d_coef(nxi, nxj, nxi+nxj, zetaP,  wPx,  xi, xj, dxmap);
+      calc_d_coef(nyi, nyj, nyi+nyj, zetaP,  wPy,  yi, yj, dymap);
+      calc_d_coef(nzi, nzj, nzi+nzj, zetaP,  wPz,  zi, zj, dzmap);
+      calc_d_coef(nxk, nxl, nxk+nxl, zetaPp, wPpx, xk, xl, dxmap_p);
+      calc_d_coef(nyk, nyl, nyk+nyl, zetaPp, wPpy, yk, yl, dymap_p);
+      calc_d_coef(nzk, nzl, nzk+nzl, zetaPp, wPpz, zk, zl, dzmap_p);
 
       dcomplex zarg = zetaP * zetaPp / (zetaP + zetaPp);
       dcomplex argIncGamma = zarg * ((wPx - wPpx)*(wPx - wPpx) + 
@@ -713,18 +713,25 @@ namespace l2func {
       for(int Nzp = 0; Nzp <= nzk + nzl; Nzp++) {
 	dcomplex r0 = coef_R(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz,
 			     Nx+Nxp, Ny+Nyp, Nz+Nzp, 0, Fjs);
-	cout << "d/r: " <<
-	  dxmap(nxi, nxj, Nx)  <<
-	  dxmap(nxk, nxl, Nxp) <<
-	  dxmap(nyi, nyj, Ny)  <<
-	  dxmap(nyk, nyl, Nyp) <<
-	  dxmap(nzi, nzj, Nz)  <<
-	  dxmap(nzk, nzl, Nzp) <<
-	  r0 << endl;
-	cumsum += (dxmap(nxi, nxj, Nx) * dxmap(nxk, nxl, Nxp) *
-		   dxmap(nyi, nyj, Ny) * dxmap(nyk, nyl, Nyp) *
-		   dxmap(nzi, nzj, Nz) * dxmap(nzk, nzl, Nzp) *
+
+	/*
+	cout << Nx << Nxp << Ny << Nyp << Nz << Nzp << endl;
+	cout << nxi <<  nxj << Nx << endl;
+	cout << dxmap(nxi, nxj, Nx)  << endl;
+	cout << nxk << nxl << Nxp << endl;
+	cout << dxmap_p(nxk, nxl, Nxp) << endl;
+	cout << "nyi, nyj, Ny: " << nyi << nyj << Ny << endl;
+	cout << "nyi, nyj Ny:" << dymap(nyi, nyj, Ny)  << endl;
+	cout << "nyk, nyl, Nyp" << dymap_p(nyk, nyl, Nyp) << endl;
+	cout << "nzi, nzj, Nz" << dzmap(nzi, nzj, Nz)  << endl;
+	cout << "nzk, nzl, Nzp" << dzmap_p(nzk, nzl, Nzp) << endl;
+	cout << r0 << endl;
+	*/
+	cumsum += (dxmap(nxi, nxj, Nx) * dxmap_p(nxk, nxl, Nxp) *
+		   dymap(nyi, nyj, Ny) * dymap_p(nyk, nyl, Nyp) *
+		   dzmap(nzi, nzj, Nz) * dzmap_p(nzk, nzl, Nzp) *
 		   r0 * pow(-1.0, Nxp+Nyp+Nzp));
+		   
       }
       prim(idx) = eij * ekl * lambda * cumsum;
       ++idx;
@@ -970,20 +977,37 @@ namespace l2func {
     */
   }
   void SymGTOs::CalcERI(IB2EInt* eri) {
-    int n(10);
+    int n(1000);
     A3dc dxmap(n),  dymap(n),  dzmap(n), dxmap_p(n),  dymap_p(n),  dzmap_p(n);
-    VectorXcd res = VectorXcd::Zero(n*n*n*n);
-    SubIt isub = this->subs.begin();
-    SubIt jsub = this->subs.begin();
-    SubIt ksub = this->subs.begin();
-    SubIt lsub = this->subs.begin();
-    VectorXcd prim(100);
-    cout << isub->size_pn() << ", " << jsub->size_at() << endl;
-    CalcPrimERI(isub, jsub, ksub, lsub,
-		0, 0, 0, 0,
-		dxmap, dymap, dzmap, dxmap_p, dymap_p, dzmap_p,
-		prim);
-    CalcTransERI(isub, jsub, ksub, lsub, 0, 0, 0, 0, prim, eri);
+    //    VectorXcd res = VectorXcd::Zero(n*n*n*n);
+
+    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
+    for(SubIt jsub = subs.begin(); jsub != subs.end(); ++jsub) {
+    for(SubIt ksub = subs.begin(); ksub != subs.end(); ++ksub) {
+    for(SubIt lsub = subs.begin(); lsub != subs.end(); ++lsub) {
+      
+      for(int iz = 0; iz < isub->size_zeta(); ++iz)
+      for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+      for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+      for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+/*
+	cout
+	  << distance(subs.begin(), isub)
+	  << distance(subs.begin(), jsub)
+	  << distance(subs.begin(), ksub)
+	  << distance(subs.begin(), lsub)
+	  << iz << jz << kz << lz << endl;
+*/	  
+	VectorXcd prim(1000);
+	CalcPrimERI(isub, jsub, ksub, lsub, iz,   jz,   kz,   lz,
+		    dxmap, dymap, dzmap, dxmap_p, dymap_p, dzmap_p,
+		    prim);
+	CalcTransERI(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
+      }
+    }
+    }
+    }
+    }
   }
   // ---- AtR ----
   bool IsCenter(SubIt isub, int iat, double eps) {
