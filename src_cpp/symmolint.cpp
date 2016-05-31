@@ -29,7 +29,7 @@ namespace l2func {
     for(int nx = 0; nx <= mx; nx++)
       for(int ny = 0; ny <= my; ny++)
 	for(int nz = 0; nz <= mz; nz++)
-	  for(int kat = 0; kat < mat; kat++) {
+	  for(int kat = 0; kat < mat; kat++) {	    
 	    dcomplex v = coef_R(zetaP,
 				wPx, wPy, wPz,
 				xyzq_kat(0, kat),
@@ -39,6 +39,24 @@ namespace l2func {
 	    res(nx, ny, nz, kat) = v;
 	  }
 
+  }
+  void calc_R_coef_eri(dcomplex zarg,
+		       dcomplex wPx,  dcomplex wPy,  dcomplex wPz,
+		       dcomplex wPpx, dcomplex wPpy, dcomplex wPpz,
+		       int max_n, dcomplex *Fjs,
+		       A3dc& res) {
+    res.SetRange(0, max_n, 0, max_n, 0, max_n);
+    for(int nx = 0; nx <= max_n; nx++)
+      for(int ny = 0; ny <= max_n; ny++)
+	for(int nz = 0; nz <= max_n; nz++) {
+	  if(nx + ny + nz <= max_n) {
+	    dcomplex v = coef_R(zarg,
+			      wPx, wPy, wPz,
+			      wPpx, wPpy, wPpz,
+			      nx, ny, nz, 0, Fjs);
+	    res(nx, ny, nz) = v;
+	  }
+	}
   }
 
   // ==== SymmetryGroup ====
@@ -191,8 +209,6 @@ namespace l2func {
       it->set_zs_size(zeta_iz.size());
     }
 
-    
-
     setupq = true;
   }
   void SubSymGTOs::AddXyz(Vector3cd xyz) {
@@ -264,6 +280,7 @@ namespace l2func {
     oss << "xyz : " << endl <<  xyz_iat << endl;
     oss << "ns  : " << endl <<  ns_ipn << endl;
     oss << "zeta: " << endl <<  zeta_iz << endl;
+    oss << "maxn: " << maxn << endl;
     for(cRdsIt it = rds.begin(); it != rds.end(); ++it)
       oss << it->str();
     return oss.str();
@@ -415,7 +432,7 @@ namespace l2func {
     
     for(SubIt it = subs.begin(); it != subs.end(); ++it) {
       // -- check each sub --
-      if(it->sym_irrep_iatpn.cols() != sym_group.order()) {
+      if(it->sym_irrep_iatpn.rows() != sym_group.order()) {
 	string msg; SUB_LOCATION(msg); 
 	msg += ": size of symmetry transformation matrix and order of symmetry group is not matched.";
 	throw runtime_error(msg);
@@ -722,64 +739,70 @@ namespace l2func {
 
     dcomplex lambda = 2.0*pow(M_PI, 2.5)/(zetaP * zetaPp * sqrt(zetaP + zetaPp));
 
-    dcomplex Fjs[20];
+    static dcomplex Fjs[100];
+    static A3dc Rrs(100);
     int idx(0);
     for(int iat = 0; iat < nati; iat++) 
     for(int jat = 0; jat < natj; jat++) 
     for(int kat = 0; kat < natk; kat++) 
-    for(int lat = 0; lat < natl; lat++) 
-    for(int ipn = 0; ipn < npni; ipn++) 
-    for(int jpn = 0; jpn < npnj; jpn++) 
-    for(int kpn = 0; kpn < npnk; kpn++) 
-    for(int lpn = 0; lpn < npnl; lpn++) {
+    for(int lat = 0; lat < natl; lat++) {
 
-      // -- determine 4 primitive GTOs for integration (ij|kl) --
       dcomplex xi, xj, xk, xl, yi, yj, yl, yk, zi, zj, zk, zl;
       xi = isub->x(iat); yi = isub->y(iat); zi = isub->z(iat);
       xj = jsub->x(jat); yj = jsub->y(jat); zj = jsub->z(jat);
       xk = ksub->x(kat); yk = ksub->y(kat); zk = ksub->z(kat);
-      xl = lsub->x(lat); yl = lsub->y(lat); zl = lsub->z(lat);
-      int nxi, nxj, nxk, nxl, nyi, nyj, nyk, nyl, nzi, nzj, nzk, nzl;
-      nxi = isub->nx(ipn); nyi = isub->ny(ipn); nzi = isub->nz(ipn);
-      nxj = jsub->nx(jpn); nyj = jsub->ny(jpn); nzj = jsub->nz(jpn);
-      nxk = ksub->nx(kpn); nyk = ksub->ny(kpn); nzk = ksub->nz(kpn);
-      nxl = lsub->nx(lpn); nyl = lsub->ny(lpn); nzl = lsub->nz(lpn);	
+      xl = lsub->x(lat); yl = lsub->y(lat); zl = lsub->z(lat);      
 
-      dcomplex wPx, wPy, wPz, wPpx, wPpy, wPpz, eij, ekl;
+      dcomplex wPx, wPy, wPz, wPpx, wPpy, wPpz, eij, ekl, d2;
       wPx =  (zetai*xi + zetaj*xj)/zetaP;
       wPy =  (zetai*yi + zetaj*yj)/zetaP;
       wPz =  (zetai*zi + zetaj*zj)/zetaP;
       wPpx =  (zetak*xk + zetal*xl)/zetaPp;
       wPpy =  (zetak*yk + zetal*yl)/zetaPp;
       wPpz =  (zetak*zk + zetal*zl)/zetaPp;
-      
-      eij = exp(-zetai * zetaj / zetaP * ((xi-xj)*(xi-xj) + (yi-yj)*(yi-yj) + (zi-zj)*(zi-zj)));
-      ekl = exp(-zetak * zetal / zetaPp * ((xk-xl)*(xk-xl) + (yk-yl)*(yk-yl) + (zk-zl)*(zk-zl)));
+      eij = exp(-zetai * zetaj / zetaP *  dist2(xi-xj, yi-yj, zi-zj));
+      ekl = exp(-zetak * zetal / zetaPp * dist2(xk-xl, yk-yl, zk-zl));
 
-      calc_d_coef(nxi, nxj, nxi+nxj, zetaP,  wPx,  xi, xj, dxmap);
-      calc_d_coef(nyi, nyj, nyi+nyj, zetaP,  wPy,  yi, yj, dymap);
-      calc_d_coef(nzi, nzj, nzi+nzj, zetaP,  wPz,  zi, zj, dzmap);
-      calc_d_coef(nxk, nxl, nxk+nxl, zetaPp, wPpx, xk, xl, dxmap_p);
-      calc_d_coef(nyk, nyl, nyk+nyl, zetaPp, wPpy, yk, yl, dymap_p);
-      calc_d_coef(nzk, nzl, nzk+nzl, zetaPp, wPpz, zk, zl, dzmap_p);
+      int mi, mj, mk, ml;
+      mi = isub->maxn; mj = jsub->maxn; mk = ksub->maxn; ml = lsub->maxn;
+      calc_d_coef(mi, mj, mi+mj, zetaP,  wPx,  xi, xj, dxmap);
+      calc_d_coef(mi, mj, mi+mj, zetaP,  wPy,  yi, yj, dymap);
+      calc_d_coef(mi, mj, mi+mj, zetaP,  wPz,  zi, zj, dzmap);
+      calc_d_coef(mk, ml, mk+ml, zetaPp, wPpx, xk, xl, dxmap_p);
+      calc_d_coef(mk, ml, mk+ml, zetaPp, wPpy, yk, yl, dymap_p);
+      calc_d_coef(mk, ml, mk+ml, zetaPp, wPpz, zk, zl, dzmap_p);
 
       dcomplex zarg = zetaP * zetaPp / (zetaP + zetaPp);
-      dcomplex argIncGamma = zarg * ((wPx - wPpx)*(wPx - wPpx) + 
-				     (wPy - wPpy)*(wPy - wPpy) + 
-				     (wPz - wPpz)*(wPz - wPpz));
-      IncompleteGamma(nxi+nxj+nxk+nxl + nyi+nyj+nyk+nyl + nzi+nzj+nzk+nzl,
-		      argIncGamma, Fjs);
-      dcomplex cumsum(0);
-      for(int Nx  = 0; Nx  <= nxi + nxj; Nx++)
-      for(int Nxp = 0; Nxp <= nxk + nxl; Nxp++)
-      for(int Ny  = 0; Ny  <= nyi + nyj; Ny++)
-      for(int Nyp = 0; Nyp <= nyk + nyl; Nyp++)
-      for(int Nz  = 0; Nz  <= nzi + nzj; Nz++)
-      for(int Nzp = 0; Nzp <= nzk + nzl; Nzp++) {
-	dcomplex r0 = coef_R(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz,
-			     Nx+Nxp, Ny+Nyp, Nz+Nzp, 0, Fjs);
+      dcomplex argIncGamma = zarg * dist2(wPx-wPpx, wPy-wPpy, wPz-wPpz);
+      IncompleteGamma(mi+mj+mk+ml, argIncGamma, Fjs);      
 
-	/*
+      int mm = mi + mj + mk + ml;
+      calc_R_coef_eri(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz, mm, Fjs, Rrs);
+      
+      for(int ipn = 0; ipn < npni; ipn++) 
+      for(int jpn = 0; jpn < npnj; jpn++) 
+      for(int kpn = 0; kpn < npnk; kpn++) 
+      for(int lpn = 0; lpn < npnl; lpn++) {
+
+	// -- determine 4 primitive GTOs for integration (ij|kl) --
+	int nxi, nxj, nxk, nxl, nyi, nyj, nyk, nyl, nzi, nzj, nzk, nzl;
+	nxi = isub->nx(ipn); nyi = isub->ny(ipn); nzi = isub->nz(ipn);
+	nxj = jsub->nx(jpn); nyj = jsub->ny(jpn); nzj = jsub->nz(jpn);
+	nxk = ksub->nx(kpn); nyk = ksub->ny(kpn); nzk = ksub->nz(kpn);
+	nxl = lsub->nx(lpn); nyl = lsub->ny(lpn); nzl = lsub->nz(lpn);		     	
+
+	dcomplex cumsum(0);
+	for(int Nx  = 0; Nx  <= nxi + nxj; Nx++)
+	for(int Nxp = 0; Nxp <= nxk + nxl; Nxp++)
+	for(int Ny  = 0; Ny  <= nyi + nyj; Ny++)
+	for(int Nyp = 0; Nyp <= nyk + nyl; Nyp++)
+	for(int Nz  = 0; Nz  <= nzi + nzj; Nz++)
+	for(int Nzp = 0; Nzp <= nzk + nzl; Nzp++) {
+	  dcomplex r0;
+	  r0 = Rrs(Nx+Nxp, Ny+Nyp, Nz+Nzp);
+	  //	  r0 = coef_R(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz,
+	  //	      Nx+Nxp, Ny+Nyp, Nz+Nzp, 0, Fjs);
+	  /*
 	cout << Nx << Nxp << Ny << Nyp << Nz << Nzp << endl;
 	cout << nxi <<  nxj << Nx << endl;
 	cout << dxmap(nxi, nxj, Nx)  << endl;
@@ -797,9 +820,10 @@ namespace l2func {
 		   dzmap(nzi, nzj, Nz) * dzmap_p(nzk, nzl, Nzp) *
 		   r0 * pow(-1.0, Nxp+Nyp+Nzp));
 		   
+	}
+	prim(idx) = eij * ekl * lambda * cumsum;
+	++idx;
       }
-      prim(idx) = eij * ekl * lambda * cumsum;
-      ++idx;
     }
   }
   void CalcTransERI(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
@@ -1046,6 +1070,12 @@ namespace l2func {
     A3dc dxmap(n),  dymap(n),  dzmap(n), dxmap_p(n),  dymap_p(n),  dzmap_p(n);
     //    VectorXcd res = VectorXcd::Zero(n*n*n*n);
 
+    int max_num_prim(0);
+    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
+      max_num_prim = std::max(max_num_prim, isub->size_prim());
+    }
+    VectorXcd prim(pow(max_num_prim, 4));
+
     for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
     for(SubIt jsub = subs.begin(); jsub != subs.end(); ++jsub) {
     for(SubIt ksub = subs.begin(); ksub != subs.end(); ++ksub) {
@@ -1063,7 +1093,7 @@ namespace l2func {
 	  << distance(subs.begin(), lsub)
 	  << iz << jz << kz << lz << endl;
 */	  
-	VectorXcd prim(1000);
+	
 	CalcPrimERI(isub, jsub, ksub, lsub, iz,   jz,   kz,   lz,
 		    dxmap, dymap, dzmap, dxmap_p, dymap_p, dzmap_p,
 		    prim);

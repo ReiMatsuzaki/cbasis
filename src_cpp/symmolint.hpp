@@ -79,6 +79,7 @@ namespace l2func {
     
     bool setupq;
     int maxn;
+    //    int maxnx;
 
     // ---- Constructors ----
     SubSymGTOs();
@@ -103,6 +104,7 @@ namespace l2func {
     void SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym);
     inline int size_at() const { return xyz_iat.cols();}
     inline int size_pn() const { return ns_ipn.cols(); }
+    inline int size_prim() const { return this->size_at() * this->size_pn(); }
     inline int size_zeta() const { return zeta_iz.rows(); }
 
     // ---- SetUp ----

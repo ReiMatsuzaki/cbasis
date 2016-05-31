@@ -75,6 +75,7 @@ VectorXcd OneVec(dcomplex z) {
   return zs;
 }
 TEST(SymGTOs, CalcERI) {
+
   SymGTOs gtos(SymmetryGroup_C1());
 
   // -- A --
@@ -98,7 +99,6 @@ TEST(SymGTOs, CalcERI) {
   // -- Calculation --
   IB2EInt *eri = new B2EIntMem(pow(4, 4));
   gtos.CalcERI(eri);
-
   // -- size check --
   EXPECT_EQ(pow(4, 4), eri->size());
 
@@ -130,8 +130,8 @@ TEST(SymGTOs, CalcERI) {
   EXPECT_C_NEAR(ref0011, eri->At(0, 0, 0, 0, 0, 1, 0, 1), eps);
   EXPECT_C_NEAR(ref0001, eri->At(0, 0, 0, 0, 0, 0, 0, 1), eps);
   EXPECT_C_NEAR(ref0012, eri->At(0, 0, 0, 0, 0, 1, 0, 2), eps);
-  
   delete eri;
+
 }
 SubSymGTOs SubC1(Vector3i ns, Vector3cd xyz, dcomplex z) {
 
@@ -145,9 +145,8 @@ SubSymGTOs SubC1(Vector3i ns, Vector3cd xyz, dcomplex z) {
   return sub;
 }
 TEST(SymGTOs, CalcERI2) {
-
+/*
   SymGTOs gtos(SymmetryGroup_C1());
-  cout << 1 << endl;
   gtos.AddSub(SubC1(Vector3i(0, 1, 0), Vector3cd(0.0, 0.0, 0.4), 1.2));
   gtos.AddSub(SubC1(Vector3i(1, 1, 0), Vector3cd(0.0, 0.0, 0.0), 1.4));
   gtos.AddSub(SubC1(Vector3i(1, 1, 1), Vector3cd(0.0,-0.2, 0.0), 1.1));
@@ -160,9 +159,7 @@ TEST(SymGTOs, CalcERI2) {
   gtos.SetUp();
 
   // -- Calculation --
-  cout << 1 << endl;
   IB2EInt *eri = new B2EIntMem(pow(4, 4));
-  cout << 0.5 << endl;
   gtos.CalcERI(eri);
 
   // -- size check --
@@ -183,6 +180,66 @@ TEST(SymGTOs, CalcERI2) {
   EXPECT_C_NEAR(0.0481552620386253, eri->At(0, 0, 0, 0, 0, 1, 0, 2), eps);
   EXPECT_C_NEAR(0.0240232215271162, eri->At(0, 0, 0, 0, 0, 2, 1, 3), eps);
 
+  delete eri;
+*/
+
+}
+TEST(SymGTOs, CalcERI_time) {
+
+  SymGTOs gtos(SymmetryGroup_C1());
+
+  Vector3cd xyz1(0.0, 0.0, 0.0);
+  Vector3cd xyz2(0.0, 0.4, 0.0);
+
+  SubSymGTOs sub1;
+  sub1.AddXyz(Vector3cd(0.0, 0.4, 0.0));
+  sub1.AddXyz(Vector3cd(0.0, 0.0, 0.5));
+
+  int  num_ns(3);
+  sub1.AddNs(Vector3i(1, 0, 0));
+  sub1.AddNs(Vector3i(0, 1, 0));
+  sub1.AddNs(Vector3i(0, 0, 1));
+
+  /*
+  int  num_ns(6);
+  sub1.AddNs(Vector3i(2, 0, 0));
+  sub1.AddNs(Vector3i(0, 2, 0));
+  sub1.AddNs(Vector3i(0, 0, 2));
+  sub1.AddNs(Vector3i(1, 1, 0));
+  sub1.AddNs(Vector3i(0, 1, 1));
+  sub1.AddNs(Vector3i(1, 0, 1));
+*/
+  /*
+  sub1.AddNs(Vector3i(3, 0, 0));
+  sub1.AddNs(Vector3i(0, 3, 0));
+  sub1.AddNs(Vector3i(0, 0, 3));
+  sub1.AddNs(Vector3i(2, 1, 0));
+  sub1.AddNs(Vector3i(2, 0, 1));
+  sub1.AddNs(Vector3i(1, 2, 0));
+  sub1.AddNs(Vector3i(0, 2, 1));
+  sub1.AddNs(Vector3i(1, 0, 2));
+  sub1.AddNs(Vector3i(0, 1, 2));
+  */
+  //  VectorXcd zs(4); zs << 1.1, 1.2, 1.3, 1.4;
+  int num_z(2);
+  VectorXcd zs(num_z); zs << 1.1, 1.2;
+  sub1.AddZeta(zs);
+  MatrixXcd cs = MatrixXcd::Ones(2, num_ns);
+  sub1.AddRds(Reduction(0, cs));
+  sub1.SetSym(MatrixXi::Ones(1, 2*num_ns),
+	      MatrixXi::Ones(1, 2*num_ns));
+  sub1.SetUp();
+  
+  gtos.AddSub(sub1);
+  gtos.SetUp();
+
+  // -- potential --
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+
+  IB2EInt *eri = new B2EIntMem(pow(4, 4));
+  gtos.CalcERI(eri);
   delete eri;
 }
 
