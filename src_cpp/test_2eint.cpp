@@ -75,20 +75,25 @@ VectorXcd OneVec(dcomplex z) {
   return zs;
 }
 TEST(SymGTOs, CalcERI) {
-  Irrep Ap = Cs_Ap();
-  SymGTOs gtos(SymmetryGroup_Cs());
+  SymGTOs gtos(SymmetryGroup_C1());
 
-  // -- A' --
-  gtos.AddSub(Sub_s(Ap, Vector3cd(0.0, 0.0,  0.4), OneVec(1.2)));
-  gtos.AddSub(Sub_s(Ap, Vector3cd(0.0, 0.0,  0.0), OneVec(1.4)));
-  gtos.AddSub(Sub_s(Ap, Vector3cd(0.0, -0.2, 0.0), OneVec(1.1)));
-  gtos.AddSub(Sub_s(Ap, Vector3cd(0.2, 0.0,  0.1), OneVec(1.0)));
+  // -- A --
+  gtos.AddSub(Sub_s(0, Vector3cd(0.0, 0.0,  0.4), OneVec(1.2)));
+  gtos.AddSub(Sub_s(0, Vector3cd(0.0, 0.0,  0.0), OneVec(1.4)));
+  gtos.AddSub(Sub_s(0, Vector3cd(0.0, -0.2, 0.0), OneVec(1.1)));
+  gtos.AddSub(Sub_s(0, Vector3cd(0.2, 0.0,  0.1), OneVec(1.0)));
   
 
   // -- potential --
   MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
   gtos.SetAtoms(xyzq);
-  gtos.SetUp();
+  try {
+    gtos.SetUp();
+  } catch(exception& e) {
+    cout << "in setup" << endl;
+    cout << e.what() << endl;
+    throw e;
+  }
 
   // -- Calculation --
   IB2EInt *eri = new B2EIntMem(pow(4, 4));
@@ -129,18 +134,19 @@ TEST(SymGTOs, CalcERI) {
   delete eri;
 }
 SubSymGTOs SubC1(Vector3i ns, Vector3cd xyz, dcomplex z) {
-  MatrixXcd xyz_in(3, 1); xyz_in << xyz[0], xyz[1], xyz[2];
-  MatrixXi  ns_in(3, 1);  ns_in << ns[0], ns[1], ns[2];
-  MatrixXcd cs = MatrixXcd::Ones(1, 1);
-  Reduction rds(0, cs);
-  vector<Reduction> rds_list; rds_list.push_back(rds);
-  VectorXcd zs(1); zs << z;
-  SubSymGTOs sub(xyz_in, ns, rds_list, zs);
+
+  SubSymGTOs sub;
+  sub.AddNs(ns);
+  sub.AddXyz(xyz);
+  sub.AddRds(Reduction(0, MatrixXcd::Ones(1, 1)));
+  sub.SetSym(MatrixXi::Ones(1, 1), MatrixXi::Ones(1, 1));
+  VectorXcd zeta(1); zeta << z;
+  sub.AddZeta(zeta);
   return sub;
 }
 TEST(SymGTOs, CalcERI2) {
 
-  SymGTOs gtos(SymmetryGroup_Cs());
+  SymGTOs gtos(SymmetryGroup_C1());
   cout << 1 << endl;
   gtos.AddSub(SubC1(Vector3i(0, 1, 0), Vector3cd(0.0, 0.0, 0.4), 1.2));
   gtos.AddSub(SubC1(Vector3i(1, 1, 0), Vector3cd(0.0, 0.0, 0.0), 1.4));

@@ -37,7 +37,7 @@ namespace l2func {
   Irrep Cs_App();
   SymmetryGroup SymmetryGroup_C1();
 
-  // ==== AO Reduction Sets ====
+  // ==== AO Reduction ====
   struct Reduction {
     Irrep irrep;
     Eigen::MatrixXcd coef_iat_ipn;
@@ -71,8 +71,12 @@ namespace l2func {
     Eigen::MatrixXi  ns_ipn;
     Eigen::VectorXcd zeta_iz;
     std::vector<Reduction> rds;
+    Eigen::MatrixXi sym_irrep_iatpn;
+    Eigen::MatrixXi sign_sym_irrep_iatpn;
 
     // ---- for calculation  ----
+    Eigen::MatrixXi ip_iat_ipn;
+    
     bool setupq;
     int maxn;
 
@@ -96,6 +100,7 @@ namespace l2func {
     void AddNs(Eigen::Vector3i ns);
     void AddZeta(const Eigen::VectorXcd& zs);
     void AddRds(const Reduction& rds);
+    void SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym);
     inline int size_at() const { return xyz_iat.cols();}
     inline int size_pn() const { return ns_ipn.cols(); }
     inline int size_zeta() const { return zeta_iz.rows(); }

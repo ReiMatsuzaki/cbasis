@@ -127,6 +127,33 @@ namespace l2func {
   void SubSymGTOs::SetUp() {
 
     // ---- check values ----
+    if(this->size_at() * this->size_pn() == 0) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": primitive GTO is not set.";
+      throw runtime_error(msg);
+    }
+    if(this->zeta_iz.size() == 0) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": zeta is not set.";
+      throw runtime_error(msg);
+    }
+    if(this->rds.size() == 0) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": ReductionSet is not set.";
+      throw runtime_error(msg);
+    }
+    if(sym_irrep_iatpn.cols() != this->size_at() * this->size_pn() ||
+       sign_sym_irrep_iatpn.cols() != this->size_at() * this->size_pn()) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": invalid size for symmetry transformation matrix";
+      throw runtime_error(msg);
+    }
+    if(sym_irrep_iatpn.rows() != sign_sym_irrep_iatpn.rows()) {
+      string msg; SUB_LOCATION(msg); 
+      msg += ": sym_irrep_iatpn and sign_sym_irrep_iatpn are different size.";
+      throw runtime_error(msg);
+    }
+
     for(RdsIt it = rds.begin(); it != rds.end(); ++it) {
       if(it->size_at() != this->size_at() |
 	 it->size_pn() != this->size_pn()) {
@@ -147,6 +174,14 @@ namespace l2func {
     }
 
     // ---- compute internal values ----
+    ip_iat_ipn = MatrixXi::Zero(this->size_at(), this->size_pn());
+    int ip(0);
+    for(int iat = 0; iat < this->size_at(); ++iat)
+      for(int ipn = 0; ipn <  this->size_pn(); ++ipn) {
+	ip_iat_ipn(iat, ipn) = ip;
+	ip++;
+      }
+    
     maxn = 0;
     for(int ipn = 0; ipn < ns_ipn.cols(); ipn++) {
       if(maxn < ns_ipn(0, ipn) + ns_ipn(1, ipn) + ns_ipn(2, ipn))
@@ -156,7 +191,7 @@ namespace l2func {
       it->set_zs_size(zeta_iz.size());
     }
 
-
+    
 
     setupq = true;
   }
@@ -208,6 +243,12 @@ namespace l2func {
     setupq = false;
     rds.push_back(_rds);
   }
+  void SubSymGTOs::SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym) {
+    setupq = false;
+    sym_irrep_iatpn = sym;
+    sign_sym_irrep_iatpn = sign_sym;
+
+  }
   SubSymGTOs::SubSymGTOs(MatrixXcd xyz, MatrixXi ns,
 			 vector<Reduction> ao, VectorXcd zs) :
     xyz_iat(xyz), ns_ipn(ns), zeta_iz(zs), rds(ao) {
@@ -232,44 +273,61 @@ namespace l2func {
   }
   SubSymGTOs Sub_s(Irrep sym, Vector3cd xyz, VectorXcd zs) {
 
-    MatrixXcd xyz_in(3, 1);  xyz_in << xyz[0] , xyz[1] , xyz[2];
-    MatrixXi ns  = MatrixXi::Zero(3, 1);
     MatrixXcd cs = MatrixXcd::Ones(1,1);
     Reduction rds(sym, cs);
-    vector<Reduction> rds_list; rds_list.push_back(rds);
+    MatrixXi symmat = MatrixXi::Ones(1, 1);
+    MatrixXi signmat= MatrixXi::Ones(1, 1);
 
-    SubSymGTOs sub(xyz_in, ns, rds_list, zs);
+    SubSymGTOs sub;
+    sub.AddXyz(xyz);
+    sub.AddNs(Vector3i(0, 0, 0));
+    sub.AddZeta(zs);
+    sub.AddRds(rds);
+    sub.SetSym(symmat, signmat);
     return sub;
   }
   SubSymGTOs Sub_pz(Irrep sym, Vector3cd xyz, VectorXcd zs) {
 
-    MatrixXcd xyz_in(3, 1);  xyz_in << xyz[0] , xyz[1] , xyz[2];
-    MatrixXi ns(3, 1); ns << 0, 0, 1;
     MatrixXcd cs = MatrixXcd::Ones(1,1);
     Reduction rds(sym, cs);
-    vector<Reduction> rds_list; rds_list.push_back(rds);
 
-    SubSymGTOs sub(xyz_in, ns, rds_list, zs);
+    SubSymGTOs sub;
+    sub.AddXyz(xyz);
+    sub.AddNs(Vector3i(0, 0, 1));
+    sub.AddRds(rds);
+    sub.AddZeta(zs);
+    sub.SetSym(MatrixXi::Ones(1, 1), MatrixXi::Ones(1, 1));
     return sub;    
   }
   SubSymGTOs Sub_TwoSGTO(SymmetryGroup sym, Irrep irrep,
 			 Vector3cd xyz, VectorXcd zs) {
 
     sym.CheckIrrep(irrep);
+    SubSymGTOs sub;
+    
 
-    MatrixXi ns_in   = MatrixXi::Zero(3, 1);
     if(sym.name() == "Cs") {
-      MatrixXcd xyz_in(3, 2) ;
-      xyz_in << xyz(0), xyz(0), xyz(1), xyz(1), xyz(2), -xyz(2);
+      sub.AddXyz(xyz); sub.AddXyz(-xyz);
+      sub.AddNs(Vector3i(0, 0, 0));
+      sub.AddZeta(zs);
+      MatrixXi sym_irrep_ip(2, 2), sign_irrep_ip(2, 2);
+      sym_irrep_ip <<
+	1, 2,
+	2, 1;
+      sign_irrep_ip <<
+	1, 1,
+	1, 1;
+      sub.SetSym(sym_irrep_ip, sign_irrep_ip);
+
       MatrixXcd cs(2, 1);
       if(irrep == Cs_Ap()) {
 	cs << 1.0, 1.0;
       } else if (irrep == Cs_App()){
 	cs << 1.0, -1.0;
       }
-      vector<Reduction> rds;
-      rds.push_back(Reduction(irrep, cs));
-      SubSymGTOs sub(xyz_in, ns_in, rds, zs);
+      Reduction rds(irrep, cs);
+      sub.AddRds(rds);
+      
       return sub;
 
     } else {
@@ -356,6 +414,13 @@ namespace l2func {
   void SymGTOs::SetUp() {
     
     for(SubIt it = subs.begin(); it != subs.end(); ++it) {
+      // -- check each sub --
+      if(it->sym_irrep_iatpn.cols() != sym_group.order()) {
+	string msg; SUB_LOCATION(msg); 
+	msg += ": size of symmetry transformation matrix and order of symmetry group is not matched.";
+	throw runtime_error(msg);
+      }
+      
       // -- setup sub --
       if(it->setupq == false)
 	it->SetUp();
