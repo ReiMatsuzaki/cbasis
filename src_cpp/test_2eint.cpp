@@ -192,6 +192,8 @@ TEST(SymGTOs, CalcERI_time) {
   Vector3cd xyz2(0.0, 0.4, 0.0);
 
   SubSymGTOs sub1;
+  
+  int num_at(2);
   sub1.AddXyz(Vector3cd(0.0, 0.4, 0.0));
   sub1.AddXyz(Vector3cd(0.0, 0.0, 0.5));
 
@@ -220,11 +222,19 @@ TEST(SymGTOs, CalcERI_time) {
   sub1.AddNs(Vector3i(1, 0, 2));
   sub1.AddNs(Vector3i(0, 1, 2));
   */
-  //  VectorXcd zs(4); zs << 1.1, 1.2, 1.3, 1.4;
+  //
+  int num_z(5);
+  VectorXcd zs(num_z); zs << 1.1, 1.2, 1.3, 1.4, 1.5;
+  /*
+    int num_z(10);
+  VectorXcd zs(num_z); zs << 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0;
+  */
+  /*
   int num_z(2);
   VectorXcd zs(num_z); zs << 1.1, 1.2;
+  */
   sub1.AddZeta(zs);
-  MatrixXcd cs = MatrixXcd::Ones(2, num_ns);
+  MatrixXcd cs = MatrixXcd::Ones(num_at, num_ns);
   sub1.AddRds(Reduction(0, cs));
   sub1.SetSym(MatrixXi::Ones(1, 2*num_ns),
 	      MatrixXi::Ones(1, 2*num_ns));
@@ -238,7 +248,7 @@ TEST(SymGTOs, CalcERI_time) {
   gtos.SetAtoms(xyzq);
   gtos.SetUp();
 
-  IB2EInt *eri = new B2EIntMem(pow(4, 4));
+  IB2EInt *eri = new B2EIntMem(pow(num_z, 4));
   gtos.CalcERI(eri);
   delete eri;
 }

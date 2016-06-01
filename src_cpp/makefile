@@ -18,6 +18,11 @@ ifeq (${ARCH},mem)
   CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline -DARG_NO_CHECK -DEIGEN_NO_DEBUG
   RUN=VALGRIND
 endif
+ifeq (${ARCH},time)
+  # for time profile
+  CXXFLAGS=${INC_PATH} -Wall -pg -g -DARG_NO_CHECK -DEIGEN_NO_DEBUG
+  RUN=iprofiler -timeprofiler -T 30
+endif
 BINDIR=bin/${ARCH}
 
 
@@ -37,7 +42,7 @@ ${BINDIR}/test_math: $(foreach o, ${MATH_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
 .PHONY: check_math
 check_math: ${BINDIR}/test_math
-	${VALGRIND} ./$<
+	${RUN} ./$<
 
 # -- test symmolint --
 SYMMOLINT_OBJS = \
@@ -47,7 +52,7 @@ ${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_symmolint
 check_symmolint: ${BINDIR}/test_symmolint
-	${VALGRIND} ./$<
+	${RUN} ./$<
 
 # -- test 2e int --
 TWOINT_OBJS = test_2eint.o b2eint.o symmolint.o bmatset.o angmoment.o \
@@ -56,7 +61,9 @@ ${BINDIR}/test_2eint:  $(foreach o, ${TWOINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_2eint
 check_2eint: ${BINDIR}/test_2eint
-	${VALGRIND} ./$<
+	${RUN} ./$<
+time_2eint: ${BINDIR}/test_2eint
+	iprofiler -timeprofiler ./$<
 
 # -- test L2(R1) --
 L2OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o exp_int.o delta.o
