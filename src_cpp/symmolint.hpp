@@ -36,6 +36,8 @@ namespace l2func {
   Irrep Cs_Ap();
   Irrep Cs_App();
   SymmetryGroup SymmetryGroup_C1();
+  SymmetryGroup SymmetryGroup_SO3(int maxl);
+  Irrep SO3_LM(int L, int M);
 
   // ==== AO Reduction ====
   struct Reduction {
@@ -142,6 +144,7 @@ namespace l2func {
 
     // ---- Accessors ----    
     int size_atom() const;
+    int size_basis() const;
     int size_basis_isym(Irrep isym) const;
     std::string str() const;    
     inline dcomplex x_at(int i) const { return xyzq_iat(0, i); }
@@ -169,7 +172,7 @@ namespace l2func {
     // -- matrix calculation --
     void CalcMatOther(SymGTOs& o, bool calc_coulomb, BMatSet*);
     void CalcMat(BMatSet* res);
-    void CalcERI(IB2EInt* eri);
+    void CalcERI(IB2EInt* eri, int method=0);
     // -- Radial wave function --
     void AtR_Ylm(int L, int M,  int irrep,
 		 const Eigen::VectorXcd& cs_ibasis,

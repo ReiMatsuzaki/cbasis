@@ -185,7 +185,7 @@ TEST(SymGTOs, CalcERI2) {
 
 }
 TEST(SymGTOs, CalcERI_time) {
-
+/*
   SymGTOs gtos(SymmetryGroup_C1());
 
   Vector3cd xyz1(0.0, 0.0, 0.0);
@@ -202,37 +202,9 @@ TEST(SymGTOs, CalcERI_time) {
   sub1.AddNs(Vector3i(0, 1, 0));
   sub1.AddNs(Vector3i(0, 0, 1));
 
-  /*
-  int  num_ns(6);
-  sub1.AddNs(Vector3i(2, 0, 0));
-  sub1.AddNs(Vector3i(0, 2, 0));
-  sub1.AddNs(Vector3i(0, 0, 2));
-  sub1.AddNs(Vector3i(1, 1, 0));
-  sub1.AddNs(Vector3i(0, 1, 1));
-  sub1.AddNs(Vector3i(1, 0, 1));
-*/
-  /*
-  sub1.AddNs(Vector3i(3, 0, 0));
-  sub1.AddNs(Vector3i(0, 3, 0));
-  sub1.AddNs(Vector3i(0, 0, 3));
-  sub1.AddNs(Vector3i(2, 1, 0));
-  sub1.AddNs(Vector3i(2, 0, 1));
-  sub1.AddNs(Vector3i(1, 2, 0));
-  sub1.AddNs(Vector3i(0, 2, 1));
-  sub1.AddNs(Vector3i(1, 0, 2));
-  sub1.AddNs(Vector3i(0, 1, 2));
-  */
-  //
+
   int num_z(5);
   VectorXcd zs(num_z); zs << 1.1, 1.2, 1.3, 1.4, 1.5;
-  /*
-    int num_z(10);
-  VectorXcd zs(num_z); zs << 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0;
-  */
-  /*
-  int num_z(2);
-  VectorXcd zs(num_z); zs << 1.1, 1.2;
-  */
   sub1.AddZeta(zs);
   MatrixXcd cs = MatrixXcd::Ones(num_at, num_ns);
   sub1.AddRds(Reduction(0, cs));
@@ -251,6 +223,211 @@ TEST(SymGTOs, CalcERI_time) {
   IB2EInt *eri = new B2EIntMem(pow(num_z, 4));
   gtos.CalcERI(eri);
   delete eri;
+*/
+}
+TEST(SymGTOs, CalcERI_sym_p) {
+
+  SymGTOs gtos(SymmetryGroup(2, "2d_rot"));
+
+  Vector3cd xyz0(0.0, 0.0, 0.0);
+
+  // ---- p orbital ----
+  SubSymGTOs sub_p;
+  sub_p.AddXyz(Vector3cd(0, 0, 0));
+  sub_p.AddNs( Vector3i( 1, 0, 0));
+  sub_p.AddNs( Vector3i( 0, 1, 0));
+  MatrixXi sym_p(2, 2); sym_p <<
+			  0, 1,  // E
+			  1, 0;  // C4(z)
+  MatrixXi sign_p(2, 2); sign_p <<
+			   +1, +1,
+			   +1, -1;
+  sub_p.SetSym(sym_p, sign_p);
+  int num_z_p(1);
+  VectorXcd zs_p(num_z_p); zs_p << 1.1;
+  sub_p.AddZeta(zs_p);
+  MatrixXcd c(1, 2);
+  c(0, 0) = 1.0; c(0, 1) = 0.0;
+  sub_p.AddRds(Reduction(0, c));
+  c(0, 0) = 0.0; c(0, 1) = 1.0;
+  sub_p.AddRds(Reduction(1, c));
+
+  sub_p.SetUp();
+  gtos.AddSub(sub_p);
+
+  // -- potential --
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+  //  cout << gtos.str() << endl;
+
+  IB2EInt *eri1 = new B2EIntMem(pow(3*num_z_p, 4));
+  IB2EInt *eri2 = new B2EIntMem(pow(3*num_z_p, 4));
+  gtos.CalcERI(eri1, 1);
+  gtos.CalcERI(eri2, 2);
+
+  int ib,jb,kb,lb,i,j,k,l,t;
+  dcomplex v;
+  eri1->Reset();
+  while(eri2->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+    if(abs(v) > 0.000001)
+      EXPECT_C_EQ(v, eri1->At(ib, jb, kb, lb, i, j, k, l)) <<
+	ib << jb << kb << lb << i << j << k << l;
+  }
+
+  delete eri1;
+  delete eri2;
+
+}
+TEST(SymGTOs, CalcERI_sym) {
+
+  SymGTOs gtos(SymmetryGroup_SO3(1));
+
+  Vector3cd xyz0(0.0, 0.0, 0.0);
+
+  // ---- s orbital ----
+  SubSymGTOs sub_s;
+  sub_s.AddXyz(Vector3cd(0, 0, 0));
+  sub_s.AddNs( Vector3i( 0, 0, 0));
+  int num_z(1);
+  VectorXcd zs(num_z); zs << 1.1;
+  sub_s.AddZeta(zs);
+  sub_s.AddRds(Reduction(0, MatrixXcd::Ones(1, 1)));
+  MatrixXi sym_s = MatrixXi::Zero(4, 1);
+  MatrixXi sign_s = MatrixXi::Ones(4, 1);
+  sub_s.SetSym(sym_s, sign_s);
+  cout << "s" << endl;
+  sub_s.SetUp();
+  gtos.AddSub(sub_s);
+
+  // ---- p orbital ----
+  SubSymGTOs sub_p;
+  sub_p.AddXyz(Vector3cd(0, 0, 0));
+  sub_p.AddNs( Vector3i( 1, 0, 0));
+  sub_p.AddNs( Vector3i( 0, 1, 0));
+  sub_p.AddNs( Vector3i( 0, 0, 1));
+  MatrixXi sym_p(4, 3); sym_p <<
+			  0, 1, 2,
+			  0, 2, 1,
+			  2, 1, 0,
+			  1, 0, 2;
+  MatrixXi sign_p(4, 3); sign_p <<
+			   +1, +1, +1,
+			   +1, +1, -1,
+			   -1, +1, +1,
+			   +1, -1, +1;
+  int num_z_p(1);
+  VectorXcd zs_p(num_z_p); zs_p << 1.1;
+  sub_p.AddZeta(zs_p);
+  MatrixXcd c(1, 3);
+  c(0, 0) = 1.0; c(0, 1) = 0.0; c(0, 2) = 0.0; 
+  sub_p.AddRds(Reduction(1, c));
+  c(0, 0) = 0.0; c(0, 1) = 1.0; c(0, 2) = 0.0; 
+  sub_p.AddRds(Reduction(2, c));
+  c(0, 0) = 0.0; c(0, 1) = 0.0; c(0, 2) = 1.0; 
+  sub_p.AddRds(Reduction(3, c));
+  sub_p.SetSym(sym_p, sign_p);
+  sub_p.SetUp();
+  gtos.AddSub(sub_p);
+
+  // -- potential --
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+  //  cout << gtos.str() << endl;
+
+  IB2EInt *eri1 = new B2EIntMem(pow(num_z+3*num_z_p, 4));
+  IB2EInt *eri2 = new B2EIntMem(pow(num_z+3*num_z_p, 4));
+  gtos.CalcERI(eri1, 1);
+  gtos.CalcERI(eri2, 2);
+
+  int ib,jb,kb,lb,i,j,k,l,t;
+  dcomplex v;
+  eri1->Reset();
+  while(eri2->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+    if(abs(v) > 0.000001)
+      EXPECT_C_EQ(v, eri1->At(ib, jb, kb, lb, i, j, k, l)) <<
+	ib << jb << kb << lb << i << j << k << l;
+  }
+
+  delete eri1;
+  delete eri2;
+}
+
+TEST(SymGTOs, CalcERI_time2) {
+
+  SymGTOs gtos(SymmetryGroup_SO3(1));
+
+  Vector3cd xyz0(0.0, 0.0, 0.0);
+
+  // ---- s orbital ----
+  SubSymGTOs sub_s;
+  sub_s.AddXyz(Vector3cd(0, 0, 0));
+  sub_s.AddNs( Vector3i( 0, 0, 0));
+
+  int num_z(10);
+  VectorXcd zs(num_z); zs << 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0;
+  /*
+  int num_z(1);
+  VectorXcd zs(num_z); zs << 1.1;
+  */
+  sub_s.AddZeta(zs);
+  sub_s.AddRds(Reduction(SO3_LM(0, 0), MatrixXcd::Ones(1, 1)));
+  MatrixXi sym_s = MatrixXi::Ones(4, 1);
+  MatrixXi sign_s = MatrixXi::Ones(4, 1);
+  sub_s.SetSym(sym_s, sign_s);
+  cout << "s" << endl;
+  sub_s.SetUp();
+  gtos.AddSub(sub_s);
+
+  // ---- p orbital ----
+  SubSymGTOs sub_p;
+  sub_p.AddXyz(Vector3cd(0, 0, 0));
+  sub_p.AddNs( Vector3i( 1, 0, 0));
+  sub_p.AddNs( Vector3i( 0, 1, 0));
+  sub_p.AddNs( Vector3i( 0, 0, 1));
+  int num_z_p(8);
+  VectorXcd zs_p(num_z_p); zs_p << 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8;
+  /*
+  int num_z_p(1);
+  VectorXcd zs_p(num_z_p); zs_p << 1.1;
+  */
+  sub_p.AddZeta(zs_p);
+  MatrixXcd c(1, 3);
+  c(0, 0) = 1.0; c(0, 1) = 0.0; c(0, 2) = 0.0; 
+  sub_p.AddRds(Reduction(SO3_LM(1, -1), c));
+  c(0, 0) = 0.0; c(0, 1) = 1.0; c(0, 2) = 0.0; 
+  sub_p.AddRds(Reduction(SO3_LM(1, +1), c));
+  c(0, 0) = 0.0; c(0, 1) = 0.0; c(0, 2) = 1.0; 
+  sub_p.AddRds(Reduction(SO3_LM(1, 0), c));
+  MatrixXi sym_p(4, 3); sym_p <<
+			  0, 1, 2,
+			  0, 2, 1,
+			  2, 1, 0,
+			  1, 0, 2;
+  MatrixXi sign_p(4, 3); sign_p <<
+			   +1, +1, +1,
+			   +1, +1, -1,
+			   -1, +1, +1,
+			   +1, -1, +1;
+  sub_p.SetSym(sym_p, sign_p);
+  cout << "p" << endl;
+  sub_p.SetUp();
+  gtos.AddSub(sub_p);
+
+  // -- potential --
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+
+  IB2EInt *eri1 = new B2EIntMem(pow(num_z+3*num_z_p, 4));
+  IB2EInt *eri2 = new B2EIntMem(pow(num_z+3*num_z_p, 4));
+  gtos.CalcERI(eri1, 1);
+  gtos.CalcERI(eri2, 2);
+  EXPECT_C_EQ(eri1->At(0, 0, 0, 0, 2, 1, 5, 0),
+	      eri2->At(0, 0, 0, 0, 2, 1, 5, 0));
+  delete eri1;
+  delete eri2;
 }
 
 int main (int argc, char **args) {
