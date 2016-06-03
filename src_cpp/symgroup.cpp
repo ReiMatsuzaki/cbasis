@@ -49,12 +49,19 @@ namespace l2func {
 
   // ---- Mult ----
   SymOpMult::SymOpMult(ISymOp *_sym_op, int _mult) {
-    sym_op = _sym_op;
+    sym_op = _sym_op->Clone();
     mult = _mult;
     if(mult < 2) {
       string msg; SUB_LOCATION(msg);
       msg += ": mult must be bigger than 1";
     }
+  }
+  SymOpMult::~SymOpMult() {
+    delete sym_op;
+  }
+  ISymOp* SymOpMult::Clone() const {
+    ISymOp *ptr = new SymOpMult(*this);
+    return ptr;
   }
   void SymOpMult::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
     PrimGTO tmp0(a);
@@ -81,6 +88,10 @@ namespace l2func {
   }
 
   // ---- Id ----  
+  ISymOp* SymOpId::Clone() const {
+    ISymOp *ptr = new SymOpId(*this);
+    return ptr;
+  }
   void SymOpId::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
     *b = a;
     *sig = 1;    
@@ -97,6 +108,10 @@ namespace l2func {
       msg += ": n must be positive integer greater than 1";
       throw runtime_error(msg);
     }
+  }
+  ISymOp* SymOpCyclic::Clone() const {
+    ISymOp *ptr = new SymOpCyclic(*this);
+    return ptr;
   }
   void SymOpCyclic::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
 

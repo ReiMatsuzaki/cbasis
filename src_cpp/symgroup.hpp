@@ -30,6 +30,7 @@ namespace l2func {
        0    (otherwise)
     */
     virtual ~ISymOp() {}
+    virtual ISymOp* Clone() const = 0;
     int Op(const PrimGTO& a, const PrimGTO& b) const;
     /**
        a :  operated GTO
@@ -47,6 +48,8 @@ namespace l2func {
     ISymOp *sym_op;
   public:
     SymOpMult(ISymOp *sym_op, int mult);
+    ~SymOpMult();
+    ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO *b, int *sig, bool *is_prim) const ;
     std::string str() const;
   };
@@ -54,6 +57,7 @@ namespace l2func {
   // ---- Identity ----
   class SymOpId : public ISymOp {
   public:
+    ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO *b, int *sig, bool *is_prim) const ;
     std::string str() const;
   };
@@ -69,6 +73,7 @@ namespace l2func {
     Axis axis;
     int n;
     SymOpCyclic(Axis _axis, int _n);
+    ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *is_prim) const;
     std::string str() const;
   };
