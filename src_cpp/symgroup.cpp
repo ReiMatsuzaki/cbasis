@@ -18,6 +18,16 @@ namespace l2func {
   PrimGTO::PrimGTO(int _nx, int _ny, int _nz,
 		   dcomplex _ax, dcomplex _ay, dcomplex _az):
     nx(_nx), ny(_ny), nz(_nz), x(_ax), y(_ay), z(_az) {}
+  string PrimGTO::str() const {
+    ostringstream oss;
+    oss << *this;
+    return oss.str();
+  }
+  ostream& operator<< (std::ostream& oss, const PrimGTO& o) {
+    oss << "GTO(" << o.nx << o.ny << o.nz << ": " <<
+      o.x << ", " << o.y << ", " << o.z << ")";
+    return oss;
+  }
   bool IsNear(const PrimGTO& a, const PrimGTO& b) {
     return (a.nx == b.nx &&
 	    a.ny == b.ny &&
@@ -145,7 +155,7 @@ namespace l2func {
   }
 
   // ---- Cyclic ---- 
-  Cyclic::Cyclic(Axis _axis, int _n): axis(_axis), n(_n) {
+  Cyclic::Cyclic(Coord _coord, int _n): coord(_coord), n(_n) {
     if(n < 2) {
       string msg; SUB_LOCATION(msg);
       msg += ": n must be positive integer greater than 1";
@@ -158,25 +168,25 @@ namespace l2func {
   }
   void Cyclic::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
 
-    if(axis == AxisX && n == 2) {
+    if(coord == CoordX && n == 2) {
       *b = a;
       b->y = -a.y;
       b->z = -a.z;
       *sig = pow(-1, a.ny + a.nz);
       *prim = true;
-    } else if(axis == AxisY && n == 2) {
+    } else if(coord == CoordY && n == 2) {
       *b = a;
       b->x = -a.x;
       b->z = -a.z;
       *sig = pow(-1, a.nx + a.nz);
       *prim = true;
-    } else if(axis == AxisZ && n == 2) {
+    } else if(coord == CoordZ && n == 2) {
       *b = a;
       b->x = -a.x;
       b->y = -a.y;
       *sig = pow(-1, a.nx + a.ny);
       *prim = true;
-    } else if(axis == AxisX && n == 4) {
+    } else if(coord == CoordX && n == 4) {
       *b = a;
       b->y = -a.z;
       b->z = +a.y;
@@ -184,7 +194,7 @@ namespace l2func {
       b->nz = a.ny;
       *sig = pow(-1, a.nz);
       *prim = true;      
-    } else if(axis == AxisY && n == 4) {
+    } else if(coord == CoordY && n == 4) {
       *b = a;
       b->z = -a.x;
       b->x = +a.z;
@@ -192,7 +202,7 @@ namespace l2func {
       b->nx = a.nz;
       *sig = pow(-1, a.nx);
       *prim = true;
-    } else if(axis == AxisZ && n == 4) {
+    } else if(coord == CoordZ && n == 4) {
       *b = a;
       b->x = -a.y;
       b->y = +a.x;
@@ -209,14 +219,66 @@ namespace l2func {
   string Cyclic::str() const {
     ostringstream oss;
     oss << "C";
-    if(this->axis == AxisX)
+    if(this->coord == CoordX)
       oss << "x";
-    if(this->axis == AxisY)
+    if(this->coord == CoordY)
       oss << "y";
-    if(this->axis == AxisZ)
+    if(this->coord == CoordZ)
       oss << "z";
     oss << "(" << this->n << ")";
     return oss.str();    
   }
 
+  // ---- Reflection ----
+  Reflect::Reflect(Coord _coord): coord(_coord) {}
+  ISymOp* Reflect::Clone() const {
+    ISymOp* ptr = new Reflect(*this);
+    return ptr;
+  }
+  void Reflect::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
+
+    *b = a;
+    *prim = true;
+
+    if(coord == CoordX) {
+      b->x = -a.x;
+      *sig = pow(-1, a.nx);
+    } 
+    else if(coord == CoordY) {
+      b->y = -a.y;
+      *sig = pow(-1, a.ny);
+    } else if(coord == CoordZ) {
+      b->z = -a.z;
+      *sig = pow(-1, a.nz);
+    }
+    
+  }
+  string Reflect::str() const {
+    ostringstream oss;
+    oss << "SIG" ;
+    if(this->coord == CoordX)
+      oss << "x";
+    if(this->coord == CoordY)
+      oss << "y";
+    if(this->coord == CoordZ)
+      oss << "z";
+    return oss.str();
+  }
+
+  // ---- Inversion Center ----
+  ISymOp* InvCent::Clone() const {
+    ISymOp *ptr = new InvCent(*this);
+    return ptr;
+  }
+  void InvCent::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
+    *b = a;
+    b->x = -a.x;
+    b->y = -a.y;
+    b->z = -a.z;
+    *sig = pow(-1, a.nx + a.ny + a.nz);
+    *prim = true;    
+  }
+  string InvCent::str() const {
+    return "i";
+  }
 }

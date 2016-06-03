@@ -16,8 +16,9 @@ namespace l2func {
     dcomplex x, y, z;
     PrimGTO();
     PrimGTO(int _nx, int _ny, int _nz, dcomplex _ax, dcomplex _ay, dcomplex _az);
-    
+    std::string str() const;
   };
+  std::ostream& operator<< (std::ostream& oss, const PrimGTO& o);
   bool IsNear(const PrimGTO& a, const PrimGTO& b);
 
   // ==== Symmetry operation ====
@@ -76,20 +77,50 @@ namespace l2func {
   };
 
   // ---- Cyclic ----
-  enum Axis {
-    AxisX,
-    AxisY,
-    AxisZ
+  enum Coord {
+    CoordX,
+    CoordY,
+    CoordZ
   };
   class Cyclic : public ISymOp {
   public:
-    Axis axis;
+    Coord coord;
     int n;
-    Cyclic(Axis _axis, int _n);
+    Cyclic(Coord _axis, int _n);
     ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *is_prim) const;
     std::string str() const;
   };
+
+  // ---- Reflection ----
+  class Reflect : public ISymOp {
+  public:
+    Coord coord;
+    Reflect(Coord _axis);
+    ISymOp* Clone() const;
+    void getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *is_prim) const;
+    std::string str() const;
+  };
+
+  // ---- Inversion Center ----
+  class InvCent : public ISymOp {
+  public:
+    ISymOp* Clone() const;
+    void getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *is_prim) const;
+    std::string str() const;
+  };
+
+  // ---- Symmetry operations --
+  /*
+  class SymOp {
+  public:
+    static ISymOp *Id() {
+      ISymOp* ptr = new Id();
+    }
+  };
+  */  
+
+
   
   // ==== Symmetry Group ====
   // ---- Class ----
