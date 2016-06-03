@@ -14,6 +14,7 @@ namespace l2func {
   public:
     int nx, ny, nz;
     dcomplex x, y, z;
+    PrimGTO();
     PrimGTO(int _nx, int _ny, int _nz, dcomplex _ax, dcomplex _ay, dcomplex _az);
     
   };
@@ -43,31 +44,31 @@ namespace l2func {
   };
 
   // ---- multiple ----
-  class SymOpMult : public ISymOp {
+  class Mult : public ISymOp {
     int mult;
     ISymOp *sym_op;
   public:
-    SymOpMult(ISymOp *sym_op, int mult);
-    ~SymOpMult();
+    Mult(ISymOp *sym_op, int mult);
+    ~Mult();
     ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO *b, int *sig, bool *is_prim) const ;
     std::string str() const;
   };
 
   // ---- product ----
-  class SymOpProduct : public ISymOp {
+  class Prod : public ISymOp {
     ISymOp *a;
     ISymOp *b;
   public:
-    SymOpProduct(ISymOp* _a, ISymOp* _b);
-    ~SymOpProduct();
+    Prod(ISymOp* _a, ISymOp* _b);
+    ~Prod();
     ISymOp* Clone() const;
     void getOp(const PrimGTO& x, PrimGTO *y, int *sig, bool *prim) const;
     std::string str() const;
   };
   
   // ---- Identity ----
-  class SymOpId : public ISymOp {
+  class Id : public ISymOp {
   public:
     ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO *b, int *sig, bool *is_prim) const ;
@@ -80,11 +81,11 @@ namespace l2func {
     AxisY,
     AxisZ
   };
-  class SymOpCyclic : public ISymOp {
+  class Cyclic : public ISymOp {
   public:
     Axis axis;
     int n;
-    SymOpCyclic(Axis _axis, int _n);
+    Cyclic(Axis _axis, int _n);
     ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *is_prim) const;
     std::string str() const;
@@ -118,13 +119,4 @@ namespace l2func {
 
 
 }
-#ifdef __cplusplus
-
-
-extern "C" {
-#endif 
-
-#ifdef __cplusplus
-}
-#endif
 #endif

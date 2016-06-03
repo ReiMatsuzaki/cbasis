@@ -13,6 +13,8 @@ namespace l2func {
   }
   
   // ==== primitive GTO ====
+  PrimGTO::PrimGTO():
+    nx(0), ny(0), nz(0), x(0), y(0), z(0) {}
   PrimGTO::PrimGTO(int _nx, int _ny, int _nz,
 		   dcomplex _ax, dcomplex _ay, dcomplex _az):
     nx(_nx), ny(_ny), nz(_nz), x(_ax), y(_ay), z(_az) {}
@@ -48,7 +50,7 @@ namespace l2func {
   }
 
   // ---- Mult ----
-  SymOpMult::SymOpMult(ISymOp *_sym_op, int _mult) {
+  Mult::Mult(ISymOp *_sym_op, int _mult) {
     sym_op = _sym_op->Clone();
     mult = _mult;
     if(mult < 2) {
@@ -56,14 +58,14 @@ namespace l2func {
       msg += ": mult must be bigger than 1";
     }
   }
-  SymOpMult::~SymOpMult() {
+  Mult::~Mult() {
     delete sym_op;
   }
-  ISymOp* SymOpMult::Clone() const {
-    ISymOp *ptr = new SymOpMult(*this);
+  ISymOp* Mult::Clone() const {
+    ISymOp *ptr = new Mult(*this);
     return ptr;
   }
-  void SymOpMult::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
+  void Mult::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
     PrimGTO tmp0(a);
     PrimGTO tmp1(a);
     *sig = 1;
@@ -81,26 +83,26 @@ namespace l2func {
     *b = tmp1;
     *prim = true;
   }
-  string SymOpMult::str() const {
+  string Mult::str() const {
     ostringstream oss;
     oss << this->mult << sym_op->str();
     return oss.str();
   }
 
   // ---- Product ----
-  SymOpProduct::SymOpProduct(ISymOp* _a, ISymOp* _b) {
+  Prod::Prod(ISymOp* _a, ISymOp* _b) {
     a = _a->Clone();
     b = _b->Clone();
   }
-  SymOpProduct::~SymOpProduct() {
+  Prod::~Prod() {
     delete a;
     delete b;
   }
-  ISymOp* SymOpProduct::Clone() const {
-    ISymOp* ptr = new SymOpProduct(this->a, this->b);
+  ISymOp* Prod::Clone() const {
+    ISymOp* ptr = new Prod(this->a, this->b);
     return ptr;
   }
-  void SymOpProduct::getOp(const PrimGTO& x, PrimGTO *y, int *sig, bool *prim) const {
+  void Prod::getOp(const PrimGTO& x, PrimGTO *y, int *sig, bool *prim) const {
     PrimGTO bx(x);
     int sig_bx;
     bool prim_bx;
@@ -122,39 +124,39 @@ namespace l2func {
     *sig = sig_a * sig_bx;
     *prim = true;
   }
-  std::string SymOpProduct::str() const {
+  std::string Prod::str() const {
     ostringstream oss;
     oss << "prod(" << a->str() << ", " << b->str() << ")";
     return oss.str();
   }
 
   // ---- Id ----  
-  ISymOp* SymOpId::Clone() const {
-    ISymOp *ptr = new SymOpId(*this);
+  ISymOp* Id::Clone() const {
+    ISymOp *ptr = new Id(*this);
     return ptr;
   }
-  void SymOpId::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
+  void Id::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
     *b = a;
     *sig = 1;    
     *prim = true;
   }
-  string SymOpId::str() const {
+  string Id::str() const {
     return "E";
   }
 
   // ---- Cyclic ---- 
-  SymOpCyclic::SymOpCyclic(Axis _axis, int _n): axis(_axis), n(_n) {
+  Cyclic::Cyclic(Axis _axis, int _n): axis(_axis), n(_n) {
     if(n < 2) {
       string msg; SUB_LOCATION(msg);
       msg += ": n must be positive integer greater than 1";
       throw runtime_error(msg);
     }
   }
-  ISymOp* SymOpCyclic::Clone() const {
-    ISymOp *ptr = new SymOpCyclic(*this);
+  ISymOp* Cyclic::Clone() const {
+    ISymOp *ptr = new Cyclic(*this);
     return ptr;
   }
-  void SymOpCyclic::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
+  void Cyclic::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
 
     if(axis == AxisX && n == 2) {
       *b = a;
@@ -204,7 +206,7 @@ namespace l2func {
       throw runtime_error(msg);
     }
   }
-  string SymOpCyclic::str() const {
+  string Cyclic::str() const {
     ostringstream oss;
     oss << "C";
     if(this->axis == AxisX)
