@@ -53,6 +53,18 @@ namespace l2func {
     void getOp(const PrimGTO& a, PrimGTO *b, int *sig, bool *is_prim) const ;
     std::string str() const;
   };
+
+  // ---- product ----
+  class SymOpProduct : public ISymOp {
+    ISymOp *a;
+    ISymOp *b;
+  public:
+    SymOpProduct(ISymOp* _a, ISymOp* _b);
+    ~SymOpProduct();
+    ISymOp* Clone() const;
+    void getOp(const PrimGTO& x, PrimGTO *y, int *sig, bool *prim) const;
+    std::string str() const;
+  };
   
   // ---- Identity ----
   class SymOpId : public ISymOp {

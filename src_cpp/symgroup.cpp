@@ -87,6 +87,47 @@ namespace l2func {
     return oss.str();
   }
 
+  // ---- Product ----
+  SymOpProduct::SymOpProduct(ISymOp* _a, ISymOp* _b) {
+    a = _a->Clone();
+    b = _b->Clone();
+  }
+  SymOpProduct::~SymOpProduct() {
+    delete a;
+    delete b;
+  }
+  ISymOp* SymOpProduct::Clone() const {
+    ISymOp* ptr = new SymOpProduct(this->a, this->b);
+    return ptr;
+  }
+  void SymOpProduct::getOp(const PrimGTO& x, PrimGTO *y, int *sig, bool *prim) const {
+    PrimGTO bx(x);
+    int sig_bx;
+    bool prim_bx;
+    b->getOp(x, &bx, &sig_bx, &prim_bx);
+    if(!prim_bx) {
+      *prim = false;
+      return;
+    }
+
+    int sig_a;
+    bool prim_a;
+    a->getOp(bx, y, &sig_a, &prim_a);
+
+    if(!prim_a) {
+      *prim = false;
+      return;
+    }
+
+    *sig = sig_a * sig_bx;
+    *prim = true;
+  }
+  std::string SymOpProduct::str() const {
+    ostringstream oss;
+    oss << "prod(" << a->str() << ", " << b->str() << ")";
+    return oss.str();
+  }
+
   // ---- Id ----  
   ISymOp* SymOpId::Clone() const {
     ISymOp *ptr = new SymOpId(*this);
