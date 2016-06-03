@@ -6,38 +6,10 @@
 #include <Eigen/Core>
 #include "typedef.hpp"
 #include "bmatset.hpp"
-//#include "mult_array.hpp"
+#include "symgroup.hpp"
 #include "b2eint.hpp"
 
 namespace l2func {
-
-  // ==== Type def ====
-  typedef int Irrep;
-  
-  // ==== Symmetry Group ====
-  // ---- Class ----
-  class SymmetryGroup {
-  private:
-    int order_;
-    std::string name_;
-  public:
-    SymmetryGroup(int order, std::string name);
-    int order()  const { return order_; }
-    std::string name() const { return name_; }
-    std::string str() const;
-    void Display() const;
-    void CheckIrrep(Irrep a) const;
-    // Irrep GetIrrep(int n) const;
-    bool IncludeScalar_2(Irrep a, Irrep b) const;
-    // bool IncludeScalar_3(const Irrep& a, const Irrep& b, const Irrep& c) const;
-    bool IncludeZ_2(Irrep a, Irrep b) const;
-  };
-  SymmetryGroup SymmetryGroup_Cs();
-  Irrep Cs_Ap();
-  Irrep Cs_App();
-  SymmetryGroup SymmetryGroup_C1();
-  SymmetryGroup SymmetryGroup_SO3(int maxl);
-  Irrep SO3_LM(int L, int M);
 
   // ==== AO Reduction ====
   struct Reduction {

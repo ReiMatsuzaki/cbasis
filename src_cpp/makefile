@@ -44,6 +44,14 @@ ${BINDIR}/test_math: $(foreach o, ${MATH_OBJS}, ${BINDIR}/$o)
 check_math: ${BINDIR}/test_math
 	${RUN} ./$<
 
+# -- test symgroup --
+SYMGROUP_OBJS=test_symgroup.o symgroup.o
+${BINDIR}/test_symgroup: $(foreach o, ${SYMGROUP_OBJS}, ${BINDIR}/$o)
+	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest
+.PHONY: check_symgroup
+check_symgroup: ${BINDIR}/test_symgroup
+	${RUN} ./$<
+
 # -- test symmolint --
 SYMMOLINT_OBJS = \
 	test_symmolint.o symmolint.o bmatset.o angmoment.o \
