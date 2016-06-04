@@ -24,7 +24,7 @@ void RandomPrim(PrimGTO* g) {
   g->y = random_complex();
   g->z = random_complex();
 }
-void ExpectOpEq(ISymOp* a, ISymOp* b, int num = 5) {
+void ExpectOpEq(SymOp a, SymOp b, int num = 5) {
   
   PrimGTO x0, ay, by;
   for(int i = 0; i < num; i++) {
@@ -98,40 +98,23 @@ TEST(SymOp, C2_C4) {
 
   for(int i = 0; i < 3; i++) {
     Coord axis = axis_list[i];
-    ISymOp *id   = new Id();
-    ISymOp *C2   = new Cyclic(axis, 2);
-    ISymOp *C2_2 = new Mult(C2, 2);
-    ISymOp *C2_C2= new Prod(C2, C2);
+    SymOp C2 = cyclic(axis, 2);
+    SymOp C4 = cyclic(axis, 4);
 
-    ISymOp *C4   = new Cyclic(axis, 4);
-    ISymOp *C4_C4 = new Prod(C4, C4);
-    ISymOp *C4_2 = new Mult(C4, 2);
-    ISymOp *C4_4 = new Mult(C4, 4);
+    ExpectOpEq(id(), mult(C2, 2));
+    ExpectOpEq(id(), prod(C2, C2));
+    ExpectOpEq(id(), mult(C4, 4));
+    ExpectOpEq(C2, mult(C4, 2));
+    ExpectOpEq(C2, prod(C4, C4));
 
-    ExpectOpEq(id, C2_2);
-    ExpectOpEq(id, C2_C2);
-    ExpectOpEq(id, C4_4);
-    ExpectOpEq(C2, C4_2);
-    ExpectOpEq(C2, C4_C4);
-
-    delete id;
-    delete C2;
-    delete C2_2;
-    delete C2_C2;
-    delete C4;
-    delete C4_C4;
-    delete C4_2;    
-    delete C4_4;
   }
-}  
+}
 TEST(SymOp, Sig) {
   Coord axis_list[3] = {CoordX, CoordY, CoordZ};
   for(int i = 0; i < 3; i++) {
     Coord coord = axis_list[i];
-    ISymOp *id   = new Id();
-    ISymOp *SIG  = new Reflect(coord);
-    ISymOp *SIG2  = new Prod(SIG, SIG);
-    ExpectOpEq(id, SIG2, 1);
+    SymOp SIG  = reflect(coord);
+    ExpectOpEq(id(), prod(SIG, SIG));
   }
 }
 TEST(SymOp, SigC2) {
@@ -139,62 +122,27 @@ TEST(SymOp, SigC2) {
   Coord axis_list[3] = {CoordX, CoordY, CoordZ};
   for(int i = 0; i < 3; i++) {
     Coord axis = axis_list[i];
-    ISymOp *inv   = new InvCent();
-    ISymOp *C2   = new Cyclic(axis, 2);
-    ISymOp *SIG  = new Reflect(axis);
-    ISymOp *C2_SIG = new Prod(C2, SIG);
-    ISymOp *SIG_C2 = new Prod(SIG, C2);
-    
-    ExpectOpEq(inv, C2_SIG);
-    ExpectOpEq(inv, SIG_C2);
-
-    delete inv;
-    delete C2;
-    delete SIG;
-    delete C2_SIG;
-    delete SIG_C2;
+    SymOp C2   = cyclic(axis, 2);
+    SymOp SIG  = reflect(axis);
+    ExpectOpEq(inv(), prod(C2, SIG));
+    ExpectOpEq(inv(), prod(SIG, C2));
   }  
 }
 TEST(SymOp, D2h) {
-  ISymOp *C2z = new Cyclic(CoordZ, 2);
-  ISymOp *C2x = new Cyclic(CoordX, 2);
-  ISymOp *C2y = new Cyclic(CoordY, 2);
-  ISymOp *SIGxy = new Reflect(CoordZ);
-  ISymOp *SIGzx = new Reflect(CoordY);
-  ISymOp *SIGyz = new Reflect(CoordX);
-  ISymOp *Inv = new InvCent();
+  SymOp C2z = cyclic(CoordZ, 2);
+  SymOp C2x = cyclic(CoordX, 2);
+  SymOp C2y = cyclic(CoordY, 2);
+  SymOp SIGxy = reflect(CoordZ);
+  SymOp SIGzx = reflect(CoordY);
+  SymOp SIGyz = reflect(CoordX);
 
-  ISymOp *t = new Prod(C2z, C2x);
-  ExpectOpEq(C2y, t);
-  delete t;
-  
-  t = new Prod(C2z, C2y);
-  ExpectOpEq(C2x, t);
-  delete t;
+  ExpectOpEq(C2y, prod(C2z, C2x));
+  ExpectOpEq(C2x, prod(C2z, C2y));
+  ExpectOpEq(inv(), prod(C2z, SIGxy));
+  ExpectOpEq(C2z, prod(C2x, C2y));
+  ExpectOpEq(SIGzx, prod(C2x, SIGxy));
+  ExpectOpEq(SIGyz, prod(C2y, SIGxy));
 
-  t = new Prod(C2z, SIGxy);
-  ExpectOpEq(Inv, t);
-  delete t;
-
-  t = new Prod(C2x, C2y);
-  ExpectOpEq(C2z, t);
-  delete t;
-
-  t = new Prod(C2x, SIGxy);
-  ExpectOpEq(SIGzx, t);
-  delete t;
-
-  t = new Prod(C2y, SIGxy);
-  ExpectOpEq(SIGyz, t);
-  delete t;
-
-  delete C2z; 
-  delete C2x;
-  delete C2y;
-  delete SIGxy;
-  delete SIGzx;
-  delete SIGyz; 
-  delete Inv;
 }
 
 int main (int argc, char **args) {

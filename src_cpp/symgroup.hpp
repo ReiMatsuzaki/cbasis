@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <boost/shared_ptr.hpp>
 #include "typedef.hpp"
 
 namespace l2func {
@@ -21,6 +22,12 @@ namespace l2func {
   std::ostream& operator<< (std::ostream& oss, const PrimGTO& o);
   bool IsNear(const PrimGTO& a, const PrimGTO& b);
 
+  enum Coord {
+    CoordX,
+    CoordY,
+    CoordZ
+  };
+
   // ==== Symmetry operation ====
   // ---- Interface ----
   class ISymOp {
@@ -32,7 +39,6 @@ namespace l2func {
        0    (otherwise)
     */
     virtual ~ISymOp() {}
-    virtual ISymOp* Clone() const = 0;
     int Op(const PrimGTO& a, const PrimGTO& b) const;
     /**
        a :  operated GTO
@@ -43,72 +49,69 @@ namespace l2func {
     virtual void getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *is_prim) const = 0;
     virtual std::string str() const = 0;
   };
+  typedef boost::shared_ptr<ISymOp> SymOp;
 
   // ---- multiple ----
   class Mult : public ISymOp {
     int mult;
-    ISymOp *sym_op;
+    SymOp sym_op;
   public:
-    Mult(ISymOp *sym_op, int mult);
+    Mult(SymOp sym_op, int mult);
     ~Mult();
-    ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO *b, int *sig, bool *is_prim) const ;
     std::string str() const;
   };
-
+  SymOp mult(SymOp a, int n);
+  
   // ---- product ----
   class Prod : public ISymOp {
-    ISymOp *a;
-    ISymOp *b;
+    SymOp a;
+    SymOp b;
   public:
-    Prod(ISymOp* _a, ISymOp* _b);
+    Prod(SymOp _a, SymOp _b);
     ~Prod();
-    ISymOp* Clone() const;
     void getOp(const PrimGTO& x, PrimGTO *y, int *sig, bool *prim) const;
     std::string str() const;
   };
+  SymOp prod(SymOp a, SymOp b);
   
   // ---- Identity ----
   class Id : public ISymOp {
   public:
-    ISymOp* Clone() const;
+    ~Id();
     void getOp(const PrimGTO& a, PrimGTO *b, int *sig, bool *is_prim) const ;
     std::string str() const;
   };
+  SymOp id();
 
-  // ---- Cyclic ----
-  enum Coord {
-    CoordX,
-    CoordY,
-    CoordZ
-  };
+  // ---- Cyclic ----  
   class Cyclic : public ISymOp {
   public:
     Coord coord;
     int n;
     Cyclic(Coord _axis, int _n);
-    ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *is_prim) const;
     std::string str() const;
   };
+  SymOp cyclic(Coord coord, int n);
 
   // ---- Reflection ----
   class Reflect : public ISymOp {
   public:
     Coord coord;
     Reflect(Coord _axis);
-    ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *is_prim) const;
     std::string str() const;
   };
+  SymOp reflect(Coord coord);
 
   // ---- Inversion Center ----
   class InvCent : public ISymOp {
   public:
-    ISymOp* Clone() const;
     void getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *is_prim) const;
     std::string str() const;
   };
+  SymOp inv();
 
   // ---- Symmetry operations --
   /*

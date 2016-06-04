@@ -60,21 +60,15 @@ namespace l2func {
   }
 
   // ---- Mult ----
-  Mult::Mult(ISymOp *_sym_op, int _mult) {
-    sym_op = _sym_op->Clone();
+  Mult::Mult(SymOp _sym_op, int _mult) {
+    sym_op = _sym_op;
     mult = _mult;
     if(mult < 2) {
       string msg; SUB_LOCATION(msg);
       msg += ": mult must be bigger than 1";
     }
   }
-  Mult::~Mult() {
-    delete sym_op;
-  }
-  ISymOp* Mult::Clone() const {
-    ISymOp *ptr = new Mult(*this);
-    return ptr;
-  }
+  Mult::~Mult() {}
   void Mult::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
     PrimGTO tmp0(a);
     PrimGTO tmp1(a);
@@ -98,20 +92,17 @@ namespace l2func {
     oss << this->mult << sym_op->str();
     return oss.str();
   }
+  SymOp mult(SymOp a, int _mult) {
+    Mult *ptr = new Mult(a, _mult);
+    return SymOp(ptr);
+  }
 
   // ---- Product ----
-  Prod::Prod(ISymOp* _a, ISymOp* _b) {
-    a = _a->Clone();
-    b = _b->Clone();
+  Prod::Prod(SymOp _a, SymOp _b) {
+    a = _a;
+    b = _b;
   }
-  Prod::~Prod() {
-    delete a;
-    delete b;
-  }
-  ISymOp* Prod::Clone() const {
-    ISymOp* ptr = new Prod(this->a, this->b);
-    return ptr;
-  }
+  Prod::~Prod() {}
   void Prod::getOp(const PrimGTO& x, PrimGTO *y, int *sig, bool *prim) const {
     PrimGTO bx(x);
     int sig_bx;
@@ -139,12 +130,13 @@ namespace l2func {
     oss << "prod(" << a->str() << ", " << b->str() << ")";
     return oss.str();
   }
+  SymOp prod(SymOp a, SymOp b) {
+    Prod *ptr = new Prod(a, b);
+    return SymOp(ptr);
+  }
 
   // ---- Id ----  
-  ISymOp* Id::Clone() const {
-    ISymOp *ptr = new Id(*this);
-    return ptr;
-  }
+  Id::~Id() {}
   void Id::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
     *b = a;
     *sig = 1;    
@@ -152,6 +144,10 @@ namespace l2func {
   }
   string Id::str() const {
     return "E";
+  }
+  SymOp id() {
+    Id *ptr = new Id();
+    return SymOp(ptr);
   }
 
   // ---- Cyclic ---- 
@@ -161,10 +157,6 @@ namespace l2func {
       msg += ": n must be positive integer greater than 1";
       throw runtime_error(msg);
     }
-  }
-  ISymOp* Cyclic::Clone() const {
-    ISymOp *ptr = new Cyclic(*this);
-    return ptr;
   }
   void Cyclic::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
 
@@ -228,13 +220,13 @@ namespace l2func {
     oss << "(" << this->n << ")";
     return oss.str();    
   }
+  SymOp cyclic(Coord coord, int n) {
+    Cyclic *ptr = new Cyclic(coord, n);
+    return SymOp(ptr);
+  }
 
   // ---- Reflection ----
   Reflect::Reflect(Coord _coord): coord(_coord) {}
-  ISymOp* Reflect::Clone() const {
-    ISymOp* ptr = new Reflect(*this);
-    return ptr;
-  }
   void Reflect::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
 
     *b = a;
@@ -264,12 +256,12 @@ namespace l2func {
       oss << "z";
     return oss.str();
   }
+  SymOp reflect(Coord coord) {
+    Reflect *ptr = new Reflect(coord);
+    return SymOp(ptr);
+  }
 
   // ---- Inversion Center ----
-  ISymOp* InvCent::Clone() const {
-    ISymOp *ptr = new InvCent(*this);
-    return ptr;
-  }
   void InvCent::getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *prim) const {
     *b = a;
     b->x = -a.x;
@@ -280,5 +272,9 @@ namespace l2func {
   }
   string InvCent::str() const {
     return "i";
+  }
+  SymOp inv() {
+    InvCent *ptr = new InvCent();
+    return SymOp(ptr);
   }
 }
