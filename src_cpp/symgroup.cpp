@@ -284,9 +284,9 @@ namespace l2func {
   SymmetryGroup::SymmetryGroup(int order, string name):
     order_(order),
     name_(name),
-    character_table_(order*order),
+    character_table_(order, order),
     prod_table_(order * order * order) {
-    character_table_.SetRange(0, order-1, 0, order-1);
+    character_table_ = MatrixXi::Zero(order, order);
     prod_table_.SetRange(0, order-1, 0, order-1, 0, order-1);
 
     int num(order);;
@@ -346,7 +346,33 @@ namespace l2func {
       }
     }
   }
+  void SymmetryGroup::setProdTable() {
+    int n(this->order());
 
+    // -- set default value --
+    for(Irrep irrep = 0; irrep < n; irrep++) {
+      for(Irrep jrrep = 0; jrrep < n; jrrep++) {
+	for(Irrep krrep = 0; krrep < n; krrep++) {
+	  this->prod_table_(irrep, jrrep, krrep) = false;
+	}
+      }
+    }
+
+    // -- search product matching --
+    for(Irrep irrep = 0; irrep < n; irrep++) {
+      for(Irrep jrrep = 0; jrrep < n; jrrep++) {
+	VectorXi veci(this->character_table_.row(irrep));
+	VectorXi vecj(this->character_table_.row(jrrep));
+	VectorXi vec_ij = veci.array() * vecj.array();
+	for(Irrep krrep = 0; krrep < n; krrep++) {
+	  VectorXi veck(this->character_table_.row(krrep));
+	  if(vec_ij == veck) {
+	    this->prod_table_(irrep, jrrep, krrep) = true;
+	  }
+	}
+      }
+    }
+  }
   string SymmetryGroup::str() const {
     ostringstream oss; 
     oss << "==== SymmetryGroup ====" << endl;
@@ -362,7 +388,9 @@ namespace l2func {
     g.sym_op_.push_back(id());
     g.irrep_name_.push_back("A");
     g.character_table_(0, 0) = 1;
-    g.prod_table_(0, 0, 0) = true;
+    //    g.prod_table_(0, 0, 0) = true;
+    g.setProdTable();
+
     g.irrep_s = 0;
     g.irrep_x = 0;
     g.irrep_y = 0;
@@ -378,15 +406,20 @@ namespace l2func {
     g.irrep_name_.push_back("A'");
     g.irrep_name_.push_back("A''");
 
-    g.character_table_(1, 1) =-1;
+    g.character_table_<<
+      1, 1,
+      1, -1;
+    g.setProdTable();
 
-    Irrep Ap = 0;
-    Irrep App= 1;
+    /*
     g.prod_table_(Ap, Ap, Ap) = true;
     g.prod_table_(Ap, App, App) = true;
     g.prod_table_(App, Ap, App) = true;
     g.prod_table_(App, App, Ap) = true;
+    */
 
+    Irrep Ap = 0;
+    Irrep App= 1;
     g.irrep_s = Ap;
     g.irrep_x = Ap;
     g.irrep_y = Ap;
@@ -405,15 +438,15 @@ namespace l2func {
     g.irrep_name_.push_back("Bg"); int Bg = 1;
     g.irrep_name_.push_back("Au"); int Au = 2;
     g.irrep_name_.push_back("Bu"); int Bu = 3;
-
-    g.character_table_(1, 1) =-1;
-    g.character_table_(1, 3) =-1;
-    g.character_table_(2, 2) =-1;
-    g.character_table_(2, 3) =-1;    
-    g.character_table_(3, 1) =-1;
-    g.character_table_(3, 2) =-1;
-
     
+    g.character_table_ <<
+      1, 1, 1, 1,
+      1,-1, 1,-1,
+      1, 1,-1,-1,
+      1,-1,-1, 1;
+    g.setProdTable();
+
+    /*
     g.prod_table_(Ag, Ag, Ag) = true;
     g.prod_table_(Ag, Bg, Bg) = true;
     g.prod_table_(Ag, Au, Bu) = true;
@@ -433,7 +466,7 @@ namespace l2func {
     g.prod_table_(Bu, Bg, Au) = true;
     g.prod_table_(Bu, Au, Bg) = true;
     g.prod_table_(Bu, Bu, Ag) = true;
-
+    */
 
     g.irrep_s = Ag;
     g.irrep_x = Bu;
@@ -441,6 +474,48 @@ namespace l2func {
     g.irrep_z = Au;
 
     return g;
+  }
+  SymmetryGroup SymmetryGroup::D2h() {
+    SymmetryGroup g(8, "D2h");
+
+    g.sym_op_.push_back(id());
+    g.sym_op_.push_back(cyclic(CoordZ, 2));
+    g.sym_op_.push_back(cyclic(CoordY, 2));
+    g.sym_op_.push_back(cyclic(CoordX, 2));
+    g.sym_op_.push_back(inv());
+    g.sym_op_.push_back(reflect(CoordZ));
+    g.sym_op_.push_back(reflect(CoordY));
+    g.sym_op_.push_back(reflect(CoordX));
+
+    g.irrep_name_.push_back("Ag");  int Ag = 0;
+    g.irrep_name_.push_back("B1g"); // int B1g = 1;
+    g.irrep_name_.push_back("B2g"); // int B2g = 2;
+    g.irrep_name_.push_back("B3g"); // int B3g = 3;
+    g.irrep_name_.push_back("Au");  // int Au = 4;
+    g.irrep_name_.push_back("B1u"); int B1u = 5;
+    g.irrep_name_.push_back("B2u"); int B2u = 6;
+    g.irrep_name_.push_back("B3u"); int B3u = 7;
+    
+    g.character_table_ <<
+      1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1,-1,-1, 1, 1,-1,-1,
+      1,-1, 1,-1, 1,-1, 1,-1,
+      1,-1,-1, 1, 1,-1,-1, 1,
+      1, 1, 1, 1,-1,-1,-1,-1,
+      1, 1,-1,-1,-1,-1,+1,+1,
+      1,-1, 1,-1,-1,+1,-1,+1,
+      1,-1,-1,+1,-1,+1,+1,-1;
+    g.setProdTable();
+
+    g.irrep_s = Ag;
+    g.irrep_x = B1u;
+    g.irrep_y = B2u;
+    g.irrep_z = B3u;
+
+    return g;
+  }
+  SymmetryGroup SymmetryGroup::C4() {
+    
   }
 
   SymmetryGroup SymmetryGroup_Cs() {

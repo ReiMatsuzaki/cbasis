@@ -121,7 +121,7 @@ namespace l2func {
     std::string name_;
     std::vector<SymOp> sym_op_;    
     std::vector<std::string> irrep_name_;
-    MultArray<int, 2> character_table_;
+    Eigen::MatrixXi character_table_;
     MultArray<bool, 3> prod_table_;
     Irrep irrep_s;
     Irrep irrep_x;
@@ -141,6 +141,7 @@ namespace l2func {
     void Display() const;
     
     // ---- Calculation ----
+    void setProdTable();
     void CheckIrrep(Irrep a);
     bool Non0_Scalar(Irrep a, Irrep b);
     bool Non0_Z(Irrep a, Irrep b);
@@ -157,6 +158,7 @@ namespace l2func {
     static SymmetryGroup Cs();
     static SymmetryGroup C2h();
     static SymmetryGroup D2h();
+    static SymmetryGroup C4();
   };
   SymmetryGroup SymmetryGroup_Cs();
   Irrep Cs_Ap();

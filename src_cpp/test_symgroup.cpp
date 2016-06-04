@@ -214,8 +214,52 @@ TEST(SymGroup, C2h) {
   SymmetryGroup C2h = SymmetryGroup::C2h();
   ExpectSymmetryGroup(C2h);  
 
-}
+  int Ag = 0;   
+  int Bg = 1; 
+  int Au = 2; 
+  int Bu = 3; 
 
+  EXPECT_TRUE(C2h.prod_table_(Ag, Ag, Ag));
+  EXPECT_TRUE(C2h.prod_table_(Ag, Bg, Bg));
+  EXPECT_TRUE(C2h.prod_table_(Ag, Au, Au));
+  EXPECT_TRUE(C2h.prod_table_(Ag, Bu, Bu));
+			                  
+  EXPECT_TRUE(C2h.prod_table_(Bg, Ag, Bg));
+  EXPECT_TRUE(C2h.prod_table_(Bg, Bg, Ag));
+  EXPECT_TRUE(C2h.prod_table_(Bg, Au, Bu));
+  EXPECT_TRUE(C2h.prod_table_(Bg, Bu, Au));
+			                  
+  EXPECT_TRUE(C2h.prod_table_(Au, Ag, Au));
+  EXPECT_TRUE(C2h.prod_table_(Au, Bg, Bu));
+  EXPECT_TRUE(C2h.prod_table_(Au, Au, Ag));
+  EXPECT_TRUE(C2h.prod_table_(Au, Bu, Bg));
+			                  
+  EXPECT_TRUE(C2h.prod_table_(Bu, Ag, Bu));
+  EXPECT_TRUE(C2h.prod_table_(Bu, Bg, Au));
+  EXPECT_TRUE(C2h.prod_table_(Bu, Au, Bg));
+  EXPECT_TRUE(C2h.prod_table_(Bu, Bu, Ag));
+}
+TEST(SymGroup, D2h) {
+  
+  SymmetryGroup D2h = SymmetryGroup::D2h();
+  ExpectSymmetryGroup(D2h);
+  int Ag = 0;    
+  int B1g = 1;
+  int B2g = 2;  
+  int B3g = 3;
+  int Au = 4; 
+  int B1u = 5;   
+  int B2u = 6;   
+  int B3u = 7;   
+  
+  EXPECT_TRUE(D2h.prod_table_(Ag, Au, Au));
+  EXPECT_TRUE(D2h.prod_table_(B2g, B3g, B1g));
+  EXPECT_TRUE(D2h.prod_table_(Au, B2u, B2g));
+  EXPECT_TRUE(D2h.prod_table_(B1u, B1g, Au));
+  EXPECT_TRUE(D2h.prod_table_(B3u, B2u, B1g));
+  
+  EXPECT_FALSE(D2h.prod_table_(Au, B2u, B3g));
+}
 
 int main (int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
