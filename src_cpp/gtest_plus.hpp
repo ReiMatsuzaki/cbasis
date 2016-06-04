@@ -87,4 +87,31 @@ bool complex_is_near(std::complex<double> a, std::complex<double> b) {
 }
 #define EXPECT_MATXCD_EQ(a, b) EXPECT_PRED_FORMAT2(AssertMatrixXcdEq, a, b)
 
+::testing::AssertionResult AssertMatrixXiEq(const char* a_expr,
+					    const char* b_expr,
+					    const Eigen::MatrixXi& a,
+					    const Eigen::MatrixXi& b) {
+  
+  if(a.cols() != b.cols() || a.rows() != b.rows()) {
+
+    return ::testing::AssertionFailure()
+      << a_expr << " and " << b_expr << " are not same size." << std::endl
+      << a_expr << " : (" << a.rows() << ", " << a.cols() << ")" << std::endl 
+      << b_expr << " : (" << b.rows() << ", " << b.cols() << ")" << std::endl;
+
+  }
+  
+  for(int i = 0; i < a.rows(); i++)
+    for(int j = 0; j < a.cols(); j++) 
+      if(!(a.coeff(i, j) == b.coeff(i, j)))
+	return ::testing::AssertionFailure()
+	  << a_expr << " and " << b_expr << " are not near." << std::endl
+	  << "at " << i << ", " << j << std::endl
+	  << a_expr << " : " << a.coeff(i, j) << std::endl
+	  << b_expr << " : " << b.coeff(i, j) << std::endl;
+
+  return ::testing::AssertionSuccess();
+}
+#define EXPECT_MATXI_EQ(a, b) EXPECT_PRED_FORMAT2(AssertMatrixXiEq, a, b)
+
 #endif

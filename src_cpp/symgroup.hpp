@@ -6,6 +6,7 @@
 #include <boost/shared_ptr.hpp>
 #include "typedef.hpp"
 #include "mult_array.hpp"
+#include <Eigen/Core>
 
 namespace l2func {
   // ==== primitive GTO ====
@@ -144,6 +145,12 @@ namespace l2func {
     bool Non0_Scalar(Irrep a, Irrep b);
     bool Non0_Z(Irrep a, Irrep b);
     bool Non0_4(Irrep a, Irrep b, Irrep c, Irrep d);
+    /**
+       Build matrix representing symmetry operation for gtos.
+       a(I, i) = j  : Ith symmetry operation for ith GTO  is equal to jth GTO
+     */
+    void CalcSymMatrix(const std::vector<PrimGTO>& gtos,
+		       Eigen::MatrixXi& a, Eigen::MatrixXi& sig);
 
     // ---- Specific symmetry group ----
     static SymmetryGroup C1();

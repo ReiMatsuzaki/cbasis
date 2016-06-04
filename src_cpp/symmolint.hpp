@@ -75,6 +75,7 @@ namespace l2func {
     void AddNs(Eigen::Vector3i ns);
     void AddZeta(const Eigen::VectorXcd& zs);
     void AddRds(const Reduction& rds);
+    void SetSym(SymmetryGroup&);
     void SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym);
     inline int size_at() const { return xyz_iat.cols();}
     inline int size_pn() const { return ns_ipn.cols(); }
@@ -84,8 +85,7 @@ namespace l2func {
     // ---- SetUp ----
     // -- calculate inner information and check values.
     void SetUp();
-    
-    
+
     // ---- old ----
     SubSymGTOs(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
 	       std::vector<Reduction> cs, Eigen::VectorXcd zs);

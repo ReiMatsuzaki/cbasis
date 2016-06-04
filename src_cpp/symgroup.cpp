@@ -3,6 +3,7 @@
 #include "macros.hpp"
 
 using namespace std;
+using namespace Eigen;
 
 namespace l2func {
 
@@ -326,6 +327,26 @@ namespace l2func {
     }
     return find_non0;
   }
+  void SymmetryGroup::CalcSymMatrix(const vector<PrimGTO>& gtos,
+				    MatrixXi& a_Ii, MatrixXi& sig_Ii) {
+    int n(gtos.size());
+    a_Ii   = MatrixXi::Zero(this->order(), n);
+    sig_Ii = MatrixXi::Zero(n, n);
+
+    for(int I = 0; I < this->order(); I++) {
+      for(int i = 0; i < n; i++) {
+	for(int j = 0; j < n; j++) {
+	  int sig = this->sym_op_[I]->Op(gtos[i], gtos[j]);
+	  if(sig != 0) {
+	    a_Ii(I, i) = j;
+	    sig_Ii(I, i) = sig;
+	    break;
+	  }
+	}
+      }
+    }
+  }
+
   string SymmetryGroup::str() const {
     ostringstream oss; 
     oss << "==== SymmetryGroup ====" << endl;

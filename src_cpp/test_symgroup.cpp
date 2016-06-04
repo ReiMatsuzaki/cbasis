@@ -194,6 +194,20 @@ TEST(SymGroup, Cs) {
 
   EXPECT_TRUE( Cs.Non0_4(1, 0, 1, 0));
 
+  vector<PrimGTO> gs(2);
+  gs[0] = PrimGTO(0, 0, 1, 0.0, 0.0, +0.2);
+  gs[1] = PrimGTO(0, 0, 1, 0.0, 0.0, -0.2);
+  
+  MatrixXi sym_Ii;
+  MatrixXi sig_Ii;
+  Cs.CalcSymMatrix(gs, sym_Ii, sig_Ii);
+  
+  MatrixXi ref_sym_Ii(2, 2), ref_sig_Ii(2, 2);
+  ref_sym_Ii << 0, 1, 1, 0;
+  ref_sig_Ii << 1, 1,-1, -1;
+  EXPECT_MATXI_EQ(ref_sym_Ii, sym_Ii);
+  EXPECT_MATXI_EQ(ref_sig_Ii, sig_Ii);
+
 }
 TEST(SymGroup, C2h) {
 
