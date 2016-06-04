@@ -277,4 +277,166 @@ namespace l2func {
     InvCent *ptr = new InvCent();
     return SymOp(ptr);
   }
+
+
+  // ==== Symmmetry Group ====
+  SymmetryGroup::SymmetryGroup(int order, string name):
+    order_(order),
+    name_(name),
+    character_table_(order*order),
+    prod_table_(order * order * order) {
+    character_table_.SetRange(0, order-1, 0, order-1);
+    prod_table_.SetRange(0, order-1, 0, order-1, 0, order-1);
+
+    int num(order);;
+    for(int i = 0; i < num; i++)
+      for(int j = 0; j < num; j++) {
+	character_table_(i, j) = 1;
+	for(int k = 0; k < num; k++)
+	  prod_table_(i, j, k) = false;    
+      }
+    
+  }
+  void SymmetryGroup::CheckIrrep(Irrep a) {
+    if(a < 0 || this->order() <= a) {
+      std::string msg; SUB_LOCATION(msg);
+      throw runtime_error(msg);
+    }
+  }
+  bool SymmetryGroup::Non0_Scalar(Irrep a, Irrep b) {
+    this->CheckIrrep(a);
+    this->CheckIrrep(b);
+    return this->prod_table_(a, b, this->irrep_s);
+  }
+  bool SymmetryGroup::Non0_Z(Irrep a, Irrep b) {
+    this->CheckIrrep(a);
+    this->CheckIrrep(b);
+    return this->prod_table_(a, b, this->irrep_z);
+  }
+  bool SymmetryGroup::Non0_4(Irrep a, Irrep b, Irrep c, Irrep d) {
+    this->CheckIrrep(a);
+    this->CheckIrrep(b);
+    this->CheckIrrep(c);
+    this->CheckIrrep(d);
+
+    bool find_non0(false);
+    for(Irrep i = 0; i < this->order(); i++) {
+      if(this->prod_table_(a, b, i) && this->prod_table_(c, d, i))
+	find_non0 = true;
+    }
+    return find_non0;
+  }
+  string SymmetryGroup::str() const {
+    ostringstream oss; 
+    oss << "==== SymmetryGroup ====" << endl;
+    oss << "name : " << name_ << endl;
+    oss << "order: " << order_ << endl;
+    return oss.str();
+  }
+  void SymmetryGroup::Display() const {
+    cout << this->str(); 
+  }
+  SymmetryGroup SymmetryGroup::C1() {
+    SymmetryGroup g(1, "C1");
+    g.sym_op_.push_back(id());
+    g.irrep_name_.push_back("A");
+    g.character_table_(0, 0) = 1;
+    g.prod_table_(0, 0, 0) = true;
+    g.irrep_s = 0;
+    g.irrep_x = 0;
+    g.irrep_y = 0;
+    g.irrep_z = 0;
+    return g;
+  }
+  SymmetryGroup SymmetryGroup::Cs() {
+    SymmetryGroup g(2, "Cs");
+
+    g.sym_op_.push_back(id());
+    g.sym_op_.push_back(reflect(CoordZ));
+
+    g.irrep_name_.push_back("A'");
+    g.irrep_name_.push_back("A''");
+
+    g.character_table_(1, 1) =-1;
+
+    Irrep Ap = 0;
+    Irrep App= 1;
+    g.prod_table_(Ap, Ap, Ap) = true;
+    g.prod_table_(Ap, App, App) = true;
+    g.prod_table_(App, Ap, App) = true;
+    g.prod_table_(App, App, Ap) = true;
+
+    g.irrep_s = Ap;
+    g.irrep_x = Ap;
+    g.irrep_y = Ap;
+    g.irrep_z = App;
+    return g;
+  }
+  SymmetryGroup SymmetryGroup::C2h() {
+    SymmetryGroup g(4, "C2h");
+
+    g.sym_op_.push_back(id());
+    g.sym_op_.push_back(cyclic(CoordZ, 2));
+    g.sym_op_.push_back(inv());
+    g.sym_op_.push_back(reflect(CoordZ));
+
+    g.irrep_name_.push_back("Ag"); int Ag = 0;
+    g.irrep_name_.push_back("Bg"); int Bg = 1;
+    g.irrep_name_.push_back("Au"); int Au = 2;
+    g.irrep_name_.push_back("Bu"); int Bu = 3;
+
+    g.character_table_(1, 1) =-1;
+    g.character_table_(1, 3) =-1;
+    g.character_table_(2, 2) =-1;
+    g.character_table_(2, 3) =-1;    
+    g.character_table_(3, 1) =-1;
+    g.character_table_(3, 2) =-1;
+
+    
+    g.prod_table_(Ag, Ag, Ag) = true;
+    g.prod_table_(Ag, Bg, Bg) = true;
+    g.prod_table_(Ag, Au, Bu) = true;
+    g.prod_table_(Ag, Bu, Bu) = true;
+
+    g.prod_table_(Bg, Ag, Bg) = true;
+    g.prod_table_(Bg, Bg, Ag) = true;
+    g.prod_table_(Bg, Au, Bu) = true;
+    g.prod_table_(Bg, Bu, Au) = true;
+
+    g.prod_table_(Au, Ag, Au) = true;
+    g.prod_table_(Au, Bg, Bu) = true;
+    g.prod_table_(Au, Au, Ag) = true;
+    g.prod_table_(Au, Bu, Bg) = true;
+
+    g.prod_table_(Bu, Ag, Bu) = true;
+    g.prod_table_(Bu, Bg, Au) = true;
+    g.prod_table_(Bu, Au, Bg) = true;
+    g.prod_table_(Bu, Bu, Ag) = true;
+
+
+    g.irrep_s = Ag;
+    g.irrep_x = Bu;
+    g.irrep_y = Bu;
+    g.irrep_z = Au;
+
+    return g;
+  }
+
+  SymmetryGroup SymmetryGroup_Cs() {
+    SymmetryGroup cs(2, "Cs");
+    return cs;
+  }
+  Irrep Cs_Ap() { return 0;}
+  Irrep Cs_App() { return 1; }
+  SymmetryGroup SymmetryGroup_C1() {
+    SymmetryGroup c1(1, "C1");
+    return c1;
+  }
+  SymmetryGroup SymmetryGroup_SO3(int maxl) {
+    SymmetryGroup c1((maxl+1)*(maxl+1), "SO(3)");
+    return c1;
+  }
+  Irrep SO3_LM(int L, int M) {
+    return L*L + (M+L);
+  }
 }

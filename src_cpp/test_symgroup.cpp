@@ -24,8 +24,8 @@ void RandomPrim(PrimGTO* g) {
   g->y = random_complex();
   g->z = random_complex();
 }
-void ExpectOpEq(SymOp a, SymOp b, int num = 5) {
-  
+bool IsSameOp(SymOp a, SymOp b, int num = 5) {
+
   PrimGTO x0, ay, by;
   for(int i = 0; i < num; i++) {
     RandomPrim(&x0);
@@ -39,14 +39,37 @@ void ExpectOpEq(SymOp a, SymOp b, int num = 5) {
       msg += "result is not primitive";
       throw runtime_error(msg);
     }
-    EXPECT_TRUE(IsNear(ay, by))
-      << a->str() << endl
-      << b->str() << endl
-      << ": " << x0.str() << endl << ay.str() << endl << by.str();
-    EXPECT_EQ(sig_a, sig_b)
-      << a->str() << endl
-      << b->str() << endl
-      << ": " << x0.str() << endl << ay.str() << endl << by.str();
+
+    if(!IsNear(ay, by))
+      return false;
+    if(sig_a != sig_b)
+      return false;
+  }
+  return true;
+}
+void ExpectOpEq(SymOp a, SymOp b, int num = 5) {
+  EXPECT_TRUE(IsSameOp(a, b, num))
+    << a->str() << endl
+    << b->str() << endl;
+}
+void ExpectSymmetryGroup(const SymmetryGroup& g) {
+
+  typedef SymmetryGroup::ItSymOp It;
+  It i0 = g.sym_op_.begin();
+  It end = g.sym_op_.end();
+  for(It it = i0; it != end; ++it) {
+    for(It jt = i0; jt != end; ++jt) {
+      SymOp ij = prod(*it, *jt);
+      
+      bool res(false);
+      for(It kt = i0; kt != end; ++kt) {
+	if(IsSameOp(ij, *kt)) {
+	  res = true;
+	  break;
+	}
+      }
+      EXPECT_TRUE(res);
+    }
   }
 }
 
@@ -144,6 +167,41 @@ TEST(SymOp, D2h) {
   ExpectOpEq(SIGyz, prod(C2y, SIGxy));
 
 }
+
+TEST(SymGroup, C1) {
+
+  SymmetryGroup C1 = SymmetryGroup::C1();
+  ExpectSymmetryGroup(C1);
+    
+  EXPECT_TRUE(C1.Non0_Scalar(0, 0));
+  EXPECT_TRUE(C1.Non0_Z(0, 0));
+  EXPECT_TRUE(C1.Non0_4(0, 0, 0, 0));
+}
+TEST(SymGroup, Cs) {
+
+  SymmetryGroup Cs = SymmetryGroup::Cs();
+  ExpectSymmetryGroup(Cs);  
+
+  EXPECT_TRUE(Cs.Non0_Scalar(0, 0));
+  EXPECT_TRUE(Cs.Non0_Scalar(1, 1));
+  EXPECT_FALSE(Cs.Non0_Scalar(0, 1));
+  EXPECT_FALSE(Cs.Non0_Scalar(1, 0));
+
+  EXPECT_TRUE(!Cs.Non0_Z(0, 0));
+  EXPECT_TRUE(!Cs.Non0_Z(1, 1));
+  EXPECT_TRUE( Cs.Non0_Z(0, 1));
+  EXPECT_TRUE( Cs.Non0_Z(1, 0));
+
+  EXPECT_TRUE( Cs.Non0_4(1, 0, 1, 0));
+
+}
+TEST(SymGroup, C2h) {
+
+  SymmetryGroup C2h = SymmetryGroup::C2h();
+  ExpectSymmetryGroup(C2h);  
+
+}
+
 
 int main (int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
