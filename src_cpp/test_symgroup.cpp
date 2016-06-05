@@ -60,7 +60,6 @@ void ExpectSymmetryGroup(const SymmetryGroup& g) {
   for(It it = i0; it != end; ++it) {
     for(It jt = i0; jt != end; ++jt) {
       SymOp ij = prod(*it, *jt);
-      
       bool res(false);
       for(It kt = i0; kt != end; ++kt) {
 	if(IsSameOp(ij, *kt)) {
@@ -171,7 +170,7 @@ TEST(SymOp, D2h) {
 TEST(SymGroup, C1) {
 
   SymmetryGroup C1 = SymmetryGroup::C1();
-  ExpectSymmetryGroup(C1);
+  ExpectSymmetryGroup(C1);  
     
   EXPECT_TRUE(C1.Non0_Scalar(0, 0));
   EXPECT_TRUE(C1.Non0_Z(0, 0));
@@ -243,6 +242,7 @@ TEST(SymGroup, D2h) {
   
   SymmetryGroup D2h = SymmetryGroup::D2h();
   ExpectSymmetryGroup(D2h);
+  //  cout << D2h.str() << endl;
   int Ag = 0;    
   int B1g = 1;
   int B2g = 2;  
@@ -259,6 +259,31 @@ TEST(SymGroup, D2h) {
   EXPECT_TRUE(D2h.prod_table_(B3u, B2u, B1g));
   
   EXPECT_FALSE(D2h.prod_table_(Au, B2u, B3g));
+}
+TEST(SymGroup, C4) {
+  SymmetryGroup C4 = SymmetryGroup::C4();
+  cout << C4.str() << endl;
+  ExpectSymmetryGroup(C4);
+
+  Irrep A(0);
+  Irrep B(1);
+  Irrep E(2);
+
+  EXPECT_TRUE(C4.prod_table_(A, A, A));
+  EXPECT_TRUE(C4.prod_table_(A, B, B));
+  EXPECT_TRUE(C4.prod_table_(A, E, E));
+
+  EXPECT_TRUE(C4.prod_table_(B, A, B));
+  EXPECT_TRUE(C4.prod_table_(B, B, A));
+  EXPECT_TRUE(C4.prod_table_(B, E, E));
+
+  EXPECT_TRUE(C4.prod_table_(E, A, E));
+  EXPECT_TRUE(C4.prod_table_(E, B, E));
+  EXPECT_TRUE(C4.prod_table_(E, E, A));
+  EXPECT_TRUE(C4.prod_table_(E, E, B));
+
+  EXPECT_TRUE(!C4.prod_table_(E, E, E));
+  
 }
 
 int main (int argc, char **args) {

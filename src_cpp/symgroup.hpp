@@ -113,7 +113,8 @@ namespace l2func {
   SymOp inv();
   
   // ==== Symmetry operation class ====
-  typedef std::vector<SymOp> SymOpClass ;
+  typedef std::vector<SymOp> SymOpClass;
+  SymOpClass ClassMono(SymOp o);
 
   // ==== Symmetry Group ====
   typedef int Irrep;
@@ -122,9 +123,9 @@ namespace l2func {
 
   class SymmetryGroup {
   public:
-    int order_;
     std::string name_;
     std::vector<SymOp> sym_op_;    
+    std::vector<SymOpClass> sym_op_class_;    
     std::vector<std::string> irrep_name_;
     Eigen::MatrixXi character_table_;
     MultArray<bool, 3> prod_table_;
@@ -137,16 +138,18 @@ namespace l2func {
     typedef std::vector<SymOp>::const_iterator ItSymOp;
 
     // ---- Constructors ----
-    SymmetryGroup(int order, std::string name);
+    SymmetryGroup(int order, int num_class, std::string name);
 
     // ---- Accessor ----
-    int order()  const { return order_; }
+    int order()  const { return sym_op_.size(); }
+    int num_class()  const { return sym_op_class_.size(); }
     std::string name() const { return name_; }
     std::string str() const;
     void Display() const;
     
     // ---- Calculation ----
     void setProdTable();
+    void setSymOp();
     void CheckIrrep(Irrep a);
     bool Non0_Scalar(Irrep a, Irrep b);
     bool Non0_Z(Irrep a, Irrep b);
@@ -164,6 +167,7 @@ namespace l2func {
     static SymmetryGroup C2h();
     static SymmetryGroup D2h();
     static SymmetryGroup C4();
+    //    static SymmetryGroup C4v();
   };
   SymmetryGroup SymmetryGroup_Cs();
   Irrep Cs_Ap();

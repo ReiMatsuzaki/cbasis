@@ -280,16 +280,24 @@ namespace l2func {
   }
 
 
-  // ==== Symmmetry Group ====
-  SymmetryGroup::SymmetryGroup(int order, string name):
-    order_(order),
-    name_(name),
-    character_table_(order, order),
-    prod_table_(order * order * order) {
-    character_table_ = MatrixXi::Zero(order, order);
-    prod_table_.SetRange(0, order-1, 0, order-1, 0, order-1);
+  // ==== Symmetry operation class ====
+  SymOpClass ClassMono(SymOp o) {
+    SymOpClass x;
+    x.push_back(o);
+    return x;
+  }
 
-    int num(order);;
+  // ==== Symmmetry Group ====
+  SymmetryGroup::SymmetryGroup(int order, int num_class, string name):
+    name_(name),
+    prod_table_(num_class * num_class * num_class) {
+
+    character_table_ = MatrixXi::Zero(num_class, num_class);
+    prod_table_.SetRange(0, num_class-1,
+			 0, num_class-1,
+			 0, num_class-1);
+
+    int num(num_class);;
     for(int i = 0; i < num; i++)
       for(int j = 0; j < num; j++) {
 	character_table_(i, j) = 1;
@@ -330,10 +338,11 @@ namespace l2func {
   void SymmetryGroup::CalcSymMatrix(const vector<PrimGTO>& gtos,
 				    MatrixXi& a_Ii, MatrixXi& sig_Ii) {
     int n(gtos.size());
-    a_Ii   = MatrixXi::Zero(this->order(), n);
-    sig_Ii = MatrixXi::Zero(n, n);
+    int n_g(this->num_class());
+    a_Ii   = MatrixXi::Zero(n_g, n);
+    sig_Ii = MatrixXi::Zero(n_g, n);
 
-    for(int I = 0; I < this->order(); I++) {
+    for(int I = 0; I < n_g; I++) {
       for(int i = 0; i < n; i++) {
 	for(int j = 0; j < n; j++) {
 	  int sig = this->sym_op_[I]->Op(gtos[i], gtos[j]);
@@ -347,7 +356,7 @@ namespace l2func {
     }
   }
   void SymmetryGroup::setProdTable() {
-    int n(this->order());
+    int n(this->num_class());
 
     // -- set default value --
     for(Irrep irrep = 0; irrep < n; irrep++) {
@@ -366,29 +375,49 @@ namespace l2func {
 	VectorXi vec_ij = veci.array() * vecj.array();
 	for(Irrep krrep = 0; krrep < n; krrep++) {
 	  VectorXi veck(this->character_table_.row(krrep));
-	  if(vec_ij == veck) {
+	  if(vec_ij.dot(veck) != 0) {
 	    this->prod_table_(irrep, jrrep, krrep) = true;
 	  }
 	}
       }
     }
   }
+  void SymmetryGroup::setSymOp() {
+    typedef std::vector<SymOpClass>::iterator It;
+    typedef std::vector<SymOp>::iterator ItOp;
+    for(It it = sym_op_class_.begin(); it != sym_op_class_.end(); ++it) 
+      for(ItOp itop = it->begin(); itop != it->end(); ++itop)
+	sym_op_.push_back(*itop);
+  }
   string SymmetryGroup::str() const {
     ostringstream oss; 
+    typedef std::vector<SymOpClass>::const_iterator It;
+    typedef std::vector<SymOp>::const_iterator ItOp;
     oss << "==== SymmetryGroup ====" << endl;
     oss << "name : " << name_ << endl;
-    oss << "order: " << order_ << endl;
+    oss << "order: " << this->order() << endl;
+    oss << "num_class: " << this->num_class() << endl;
+    oss << "operators: " << endl;
+    for(ItOp it = sym_op_.begin(); it != sym_op_.end(); ++it) {
+      oss << (*it)->str() << endl;
+    }
+    oss << "operator class:" << endl;
+    for(It it = sym_op_class_.begin(); it != sym_op_class_.end(); ++it) {
+      oss << int(it->size()) << (*it)[0]->str() << endl;
+    }
+
     return oss.str();
   }
   void SymmetryGroup::Display() const {
     cout << this->str(); 
   }
   SymmetryGroup SymmetryGroup::C1() {
-    SymmetryGroup g(1, "C1");
-    g.sym_op_.push_back(id());
+    SymmetryGroup g(1, 1, "C1");
+    g.sym_op_class_.push_back(ClassMono(id()));
     g.irrep_name_.push_back("A");
     g.character_table_(0, 0) = 1;
-    //    g.prod_table_(0, 0, 0) = true;
+
+    g.setSymOp();
     g.setProdTable();
 
     g.irrep_s = 0;
@@ -398,10 +427,10 @@ namespace l2func {
     return g;
   }
   SymmetryGroup SymmetryGroup::Cs() {
-    SymmetryGroup g(2, "Cs");
+    SymmetryGroup g(2, 2, "Cs");
 
-    g.sym_op_.push_back(id());
-    g.sym_op_.push_back(reflect(CoordZ));
+    g.sym_op_class_.push_back(ClassMono(id()));
+    g.sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
 
     g.irrep_name_.push_back("A'");
     g.irrep_name_.push_back("A''");
@@ -409,6 +438,8 @@ namespace l2func {
     g.character_table_<<
       1, 1,
       1, -1;
+
+    g.setSymOp();
     g.setProdTable();
 
     /*
@@ -427,15 +458,15 @@ namespace l2func {
     return g;
   }
   SymmetryGroup SymmetryGroup::C2h() {
-    SymmetryGroup g(4, "C2h");
+    SymmetryGroup g(4, 4, "C2h");
 
-    g.sym_op_.push_back(id());
-    g.sym_op_.push_back(cyclic(CoordZ, 2));
-    g.sym_op_.push_back(inv());
-    g.sym_op_.push_back(reflect(CoordZ));
+    g.sym_op_class_.push_back(ClassMono(id()));
+    g.sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
+    g.sym_op_class_.push_back(ClassMono(inv()));
+    g.sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
 
     g.irrep_name_.push_back("Ag"); int Ag = 0;
-    g.irrep_name_.push_back("Bg"); int Bg = 1;
+    g.irrep_name_.push_back("Bg"); //int Bg = 1;
     g.irrep_name_.push_back("Au"); int Au = 2;
     g.irrep_name_.push_back("Bu"); int Bu = 3;
     
@@ -444,6 +475,8 @@ namespace l2func {
       1,-1, 1,-1,
       1, 1,-1,-1,
       1,-1,-1, 1;
+
+    g.setSymOp();
     g.setProdTable();
 
     /*
@@ -476,16 +509,16 @@ namespace l2func {
     return g;
   }
   SymmetryGroup SymmetryGroup::D2h() {
-    SymmetryGroup g(8, "D2h");
-
-    g.sym_op_.push_back(id());
-    g.sym_op_.push_back(cyclic(CoordZ, 2));
-    g.sym_op_.push_back(cyclic(CoordY, 2));
-    g.sym_op_.push_back(cyclic(CoordX, 2));
-    g.sym_op_.push_back(inv());
-    g.sym_op_.push_back(reflect(CoordZ));
-    g.sym_op_.push_back(reflect(CoordY));
-    g.sym_op_.push_back(reflect(CoordX));
+    SymmetryGroup g(8, 8, "D2h");
+    
+    g.sym_op_class_.push_back(ClassMono(id()));
+    g.sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
+    g.sym_op_class_.push_back(ClassMono(cyclic(CoordY, 2)));
+    g.sym_op_class_.push_back(ClassMono(cyclic(CoordX, 2)));
+    g.sym_op_class_.push_back(ClassMono(inv()));
+    g.sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
+    g.sym_op_class_.push_back(ClassMono(reflect(CoordY)));
+    g.sym_op_class_.push_back(ClassMono(reflect(CoordX)));
 
     g.irrep_name_.push_back("Ag");  int Ag = 0;
     g.irrep_name_.push_back("B1g"); // int B1g = 1;
@@ -505,6 +538,8 @@ namespace l2func {
       1, 1,-1,-1,-1,-1,+1,+1,
       1,-1, 1,-1,-1,+1,-1,+1,
       1,-1,-1,+1,-1,+1,+1,-1;
+
+    g.setSymOp();
     g.setProdTable();
 
     g.irrep_s = Ag;
@@ -515,28 +550,55 @@ namespace l2func {
     return g;
   }
   SymmetryGroup SymmetryGroup::C4() {
-    SymmetryGroup g(4, "C4");
+    SymmetryGroup g(4, 3, "C4");
     
-    g.sym_op_.push_back(id());
-    g.sym_op_.push_back(cyclic(CoordZ, 4));
-    g.sym_op_.push_back(cyclic(CoordZ, 2));
-    g.sym_op_.push_back(mult(cyclic(CoordZ, 4), 3));
+    g.sym_op_class_.push_back(ClassMono(id()));
+    g.sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
+
+    SymOpClass C4;
+    C4.push_back(cyclic(CoordZ, 4));
+    C4.push_back(mult(cyclic(CoordZ, 4), 3));
+    g.sym_op_class_.push_back(C4);
 
     g.irrep_name_.push_back("A");
     g.irrep_name_.push_back("B");
-    g.irrep_name_.push_back("Ex");
-    g.irrep_name_.push_back("Ey");
+    g.irrep_name_.push_back("E");
 
     g.character_table_ <<
-      1, 1, 1, 1,
-      1,-1, 1,-1,
-      1, 0,-1, 0,
-      0, 1, 0,-1;
-    
-  }
+      1, 1, 1,
+      1,-1, 1,
+      2, 0,-2;
 
+    g.setSymOp();
+    g.setProdTable();
+
+    g.irrep_s = 0;
+    g.irrep_x = 2;
+    g.irrep_y = 2;
+    g.irrep_z = 0;
+    return g;
+  }
+  /*
+  SymmetryGroup SymmetryGroup::C4v() {
+    SymmetryGroup g(8, 5, "C4v");
+
+    g.sym_op_class_.push_back(ClassMono(id()));
+    SymOpClass C4; 
+    C4.push_back(cyclic(CoordZ, 4));
+    C4.push_back(mult(cyclic(CoordZ, 4), 3));
+    g.sym_op_class_.push_back(C4);
+    SymOpClass C2;
+    C2.push_back(cyclic(CoordZ, 2));
+    g.sym_op_class_.push_back(C2);
+    SymOpClass sigv;
+    sigv.push_back(reflect(CoordX));
+    sigv.push_back(reflect(CoordY));
+    g.sym_op_class_.push_back(sigv);
+  }
+  */
+  /*
   SymmetryGroup SymmetryGroup_Cs() {
-    SymmetryGroup cs(2, "Cs");
+    SymmetryGroup cs(2, 2, "Cs");
     return cs;
   }
   Irrep Cs_Ap() { return 0;}
@@ -552,4 +614,5 @@ namespace l2func {
   Irrep SO3_LM(int L, int M) {
     return L*L + (M+L);
   }
+  */
 }
