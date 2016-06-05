@@ -515,6 +515,23 @@ namespace l2func {
     return g;
   }
   SymmetryGroup SymmetryGroup::C4() {
+    SymmetryGroup g(4, "C4");
+    
+    g.sym_op_.push_back(id());
+    g.sym_op_.push_back(cyclic(CoordZ, 4));
+    g.sym_op_.push_back(cyclic(CoordZ, 2));
+    g.sym_op_.push_back(mult(cyclic(CoordZ, 4), 3));
+
+    g.irrep_name_.push_back("A");
+    g.irrep_name_.push_back("B");
+    g.irrep_name_.push_back("Ex");
+    g.irrep_name_.push_back("Ey");
+
+    g.character_table_ <<
+      1, 1, 1, 1,
+      1,-1, 1,-1,
+      1, 0,-1, 0,
+      0, 1, 0,-1;
     
   }
 

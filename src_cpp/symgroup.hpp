@@ -112,8 +112,13 @@ namespace l2func {
   };
   SymOp inv();
   
+  // ==== Symmetry operation class ====
+  typedef std::vector<SymOp> SymOpClass ;
+
   // ==== Symmetry Group ====
   typedef int Irrep;
+  //typedef Eigen::Matrix<std::complex<int>, Eigen::Dynamic, Eigen::Dynamic> MatrixXci;
+  //typedef Eigen::Matrix<std::complex<int>, 1, Eigen::Dynamic> VectorXci;
 
   class SymmetryGroup {
   public:
