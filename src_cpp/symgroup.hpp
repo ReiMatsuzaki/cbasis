@@ -146,6 +146,7 @@ namespace l2func {
     std::string name() const { return name_; }
     std::string str() const;
     void Display() const;
+    Irrep GetIrrep(std::string name) const;
     
     // ---- Calculation ----
     void setProdTable();
@@ -169,13 +170,5 @@ namespace l2func {
     static SymmetryGroup C4();
     //    static SymmetryGroup C4v();
   };
-  SymmetryGroup SymmetryGroup_Cs();
-  Irrep Cs_Ap();
-  Irrep Cs_App();
-  SymmetryGroup SymmetryGroup_C1();
-  SymmetryGroup SymmetryGroup_SO3(int maxl);
-  Irrep SO3_LM(int L, int M);
-
-
 }
 #endif

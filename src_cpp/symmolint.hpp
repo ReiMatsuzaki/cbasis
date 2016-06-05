@@ -45,11 +45,11 @@ namespace l2func {
     Eigen::MatrixXi  ns_ipn;
     Eigen::VectorXcd zeta_iz;
     std::vector<Reduction> rds;
-    Eigen::MatrixXi sym_irrep_iatpn;
-    Eigen::MatrixXi sign_sym_irrep_iatpn;
 
     // ---- for calculation  ----
     Eigen::MatrixXi ip_iat_ipn;
+    Eigen::MatrixXi sym_irrep_iatpn;
+    Eigen::MatrixXi sign_sym_irrep_iatpn;
     
     bool setupq;
     int maxn;
@@ -74,15 +74,16 @@ namespace l2func {
     void AddXyz(Eigen::Vector3cd xyz);
     void AddNs(Eigen::Vector3i ns);
     void AddZeta(const Eigen::VectorXcd& zs);
-    void AddRds(const Reduction& rds);
-    void SetSym(SymmetryGroup&);
-    void SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym);
+    void AddRds(const Reduction& rds);   
     inline int size_at() const { return xyz_iat.cols();}
     inline int size_pn() const { return ns_ipn.cols(); }
     inline int size_prim() const { return this->size_at() * this->size_pn(); }
     inline int size_zeta() const { return zeta_iz.rows(); }
 
     // ---- SetUp ----
+    // -- set symmetry information --
+    void SetSym(SymmetryGroup&);
+    void SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym);
     // -- calculate inner information and check values.
     void SetUp();
 
@@ -155,22 +156,6 @@ namespace l2func {
     void CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs);
 
   };
-
-  // ==== Calculation of ERI ====
-/*
-  typedef std::vector<SubSymGTOs>::iterator SubIt;
-  typedef std::vector<Reduction>::iterator RdsIt;
-  typedef MultArray<dcomplex, 1> A1dc;
-  typedef MultArray<dcomplex, 2> A2dc;
-  typedef MultArray<dcomplex, 3> A3dc;
-  typedef MultArray<dcomplex, 4> A4dc;
-  void CalcPrimERI(const SymGTOs gtos,
-		   SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
-		   int iz, int jz, int kz, int lz,
-		   A3dc& dxmap, A3dc& dymap, A3dc& dzmap,
-		   A3dc& dxmap_p, A3dc& dymap_p, A3dc& dzmap_p,
-		   A1dc& prim);
-*/
 }
 
 #endif

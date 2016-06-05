@@ -206,6 +206,10 @@ TEST(SymGroup, Cs) {
   ref_sig_Ii << 1, 1,-1, -1;
   EXPECT_MATXI_EQ(ref_sym_Ii, sym_Ii);
   EXPECT_MATXI_EQ(ref_sig_Ii, sig_Ii);
+  
+  EXPECT_EQ(0, Cs.GetIrrep("A'"));
+  EXPECT_EQ(1, Cs.GetIrrep("A''"));
+  EXPECT_ANY_THROW(Cs.GetIrrep("A''''"));
 
 }
 TEST(SymGroup, C2h) {
@@ -262,7 +266,7 @@ TEST(SymGroup, D2h) {
 }
 TEST(SymGroup, C4) {
   SymmetryGroup C4 = SymmetryGroup::C4();
-  cout << C4.str() << endl;
+  //  cout << C4.str() << endl;
   ExpectSymmetryGroup(C4);
 
   Irrep A(0);

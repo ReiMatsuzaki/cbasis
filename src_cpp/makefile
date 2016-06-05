@@ -54,7 +54,7 @@ check_symgroup: ${BINDIR}/test_symgroup
 
 # -- test symmolint --
 SYMMOLINT_OBJS = \
-	test_symmolint.o symmolint.o bmatset.o angmoment.o \
+	test_symmolint.o symmolint.o symgroup.o bmatset.o angmoment.o \
 	eigen_plus.o fact.o mol_func.o
 ${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl

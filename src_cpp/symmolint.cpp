@@ -200,6 +200,7 @@ namespace l2func {
   }
   void SubSymGTOs::SetSym(SymmetryGroup& g) {
 
+    // -- build PrimGTO set.
     int nat(this->size_at());
     int npn(this->size_pn());
     vector<PrimGTO> gtos(nat * npn);
@@ -213,24 +214,8 @@ namespace l2func {
 			   this->y(iat),
 			   this->z(iat));
       }
-
-    for(int iat = 0; iat < nat; iat++) {
-      for(int ipn = 0; ipn < npn; ipn++) {
-	int ip(this->ip_iat_ipn(iat, ipn));
-	PrimGTO& gtoi = gtos[ip];
-
-	// -- search gtoj == Gamma(I, gtoi) --
-	for(int I = 0; I < g.order(); I++) {
-	  SymOp op = g.sym_op_[I];
-	  for(int jat = 0; jat < nat; jat++) {
-	    for(int jpn = 0; jpn < npn; jpn++)  {
-	      int jp(this->ip_iat_ipn(jat, jpn));
-	      
-	    }
-	  }
-	}
-      }
-    }
+    g.CalcSymMatrix(gtos, this->sym_irrep_iatpn, this->sign_sym_irrep_iatpn);
+    
   }
   void SubSymGTOs::SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym) {
     setupq = false;
@@ -294,12 +279,12 @@ namespace l2func {
 
     sym.CheckIrrep(irrep);
     SubSymGTOs sub;
-    
 
     if(sym.name() == "Cs") {
       sub.AddXyz(xyz); sub.AddXyz(-xyz);
       sub.AddNs(Vector3i(0, 0, 0));
       sub.AddZeta(zs);
+      /*
       MatrixXi sym_irrep_ip(2, 2), sign_irrep_ip(2, 2);
       sym_irrep_ip <<
 	1, 2,
@@ -308,11 +293,13 @@ namespace l2func {
 	1, 1,
 	1, 1;
       sub.SetSym(sym_irrep_ip, sign_irrep_ip);
+      */
+      sub.SetSym(sym);
 
       MatrixXcd cs(2, 1);
-      if(irrep == Cs_Ap()) {
+      if(irrep == sym.GetIrrep("A'")) {
 	cs << 1.0, 1.0;
-      } else if (irrep == Cs_App()){
+      } else if (irrep == sym.GetIrrep("A''")){
 	cs << 1.0, -1.0;
       }
       Reduction rds(irrep, cs);

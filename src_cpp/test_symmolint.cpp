@@ -49,109 +49,6 @@ void SymGTOs_AtR_Ylm_NDeriv(SymGTOs* gtos, int L, int M, int irrep,
   *res_dv_nd = (vp0 + iv0m - vm0 - iv0p) / (4.0 * h);
   
 }
-
-TEST(SymmetryGroup, C1) {
-
-  /*
-    C1 Symmetry
-    +--------+
-    | C1 | E |
-    +--------+
-    | A  |+1 |
-    +--------+
-   */
-
-  SymmetryGroup C1(SymmetryGroup_C1());
-  Irrep A = 0; 
-  
-  EXPECT_EQ(1, C1.order());
-  EXPECT_TRUE( C1.IncludeScalar_2(A, A));
-  
-  EXPECT_TRUE( C1.IncludeZ_2(A, A));
-
-  EXPECT_ANY_THROW(C1.IncludeScalar_2(0, 1));
-  EXPECT_ANY_THROW(C1.IncludeScalar_2(1, 0));
-  EXPECT_ANY_THROW(C1.IncludeScalar_2(-1, 0));
-
-}
-TEST(SymmetryGroup, Cs) {
-
-  /*
-    Cs Symmetry
-    +---------------+
-    | Cs |  E | C_2 |
-    +----+----+-----+----------+
-    | A' | +1 | +1  | x,y,Rz   |
-    +----+----+-----+----------+
-    | A''| +1 | -1  | z,Rx,Rz  |
-    +----+----+-----+----------+
-   */
-
-  SymmetryGroup Cs(SymmetryGroup_Cs());
-  Irrep Ap = 0;   //Cs.GetIrrep(0);
-  Irrep App = 1; //Cs.GetIrrep(1);
-  
-  EXPECT_EQ(2, Cs.order());
-  EXPECT_TRUE( Cs.IncludeScalar_2(Ap, Ap));
-  EXPECT_FALSE(Cs.IncludeScalar_2(Ap, App));
-  EXPECT_FALSE(Cs.IncludeScalar_2(App, Ap));
-  EXPECT_TRUE( Cs.IncludeScalar_2(App, App));
-
-  EXPECT_FALSE( Cs.IncludeZ_2(Ap, Ap));
-  EXPECT_TRUE(Cs.IncludeZ_2(Ap, App));
-  EXPECT_TRUE(Cs.IncludeZ_2(App, Ap));
-  EXPECT_FALSE( Cs.IncludeZ_2(App, App));
-
-  EXPECT_ANY_THROW(Cs.IncludeScalar_2(0, 3));
-  EXPECT_ANY_THROW(Cs.IncludeScalar_2(2, 0));
-  EXPECT_ANY_THROW(Cs.IncludeScalar_2(-1, 0));
-}
-TEST(SymmetryGroup, C2h) {
-
-  /*
-    C2h Symmetry
-    +---------------+----+----+
-    |    |  E | C_2 | i  | sh |      
-    +----+----+-----+----+----+----------+
-    | Ag | +1 | +1  | +1 | +1 |   Rz     |
-    +----+----+-----+----+----+----------+
-    | Bg | +1 | -1  | +1 | -1 |  Rx, Rz  |
-    +----+----+-----+---------+----------+
-    | Au | +1 | +1  | -1 | -1 |    z     |
-    +----+----+-----+---------+----------+
-    | Bu | +1 | -1  | -1 | +1 |   x, y   |
-    +----+----+-----+---------+----------+
-
-    
-    |    | Ag | Bg | Au | Bu |
-    --------------------------
-    | Ag | Ag | Bg | Au | Bu |
-    | Bg | Bg | Ag | Bu | Au |
-    | Au | Au | Bu | Ag | Bg |
-    | Bu | Bu | Au | Bg | Ag | 
-   */
-/*
-  SymmetryGroup Cs(SymmetryGroup_C2h());
-  Irrep Ap = 0;   //Cs.GetIrrep(0);
-  Irrep App = 1; //Cs.GetIrrep(1);
-  
-  EXPECT_EQ(2, Cs.order());
-  EXPECT_TRUE( Cs.IncludeScalar_2(Ap, Ap));
-  EXPECT_FALSE(Cs.IncludeScalar_2(Ap, App));
-  EXPECT_FALSE(Cs.IncludeScalar_2(App, Ap));
-  EXPECT_TRUE( Cs.IncludeScalar_2(App, App));
-
-  EXPECT_FALSE( Cs.IncludeZ_2(Ap, Ap));
-  EXPECT_TRUE(Cs.IncludeZ_2(Ap, App));
-  EXPECT_TRUE(Cs.IncludeZ_2(App, Ap));
-  EXPECT_FALSE( Cs.IncludeZ_2(App, App));
-
-  EXPECT_ANY_THROW(Cs.IncludeScalar_2(0, 3));
-  EXPECT_ANY_THROW(Cs.IncludeScalar_2(2, 0));
-  EXPECT_ANY_THROW(Cs.IncludeScalar_2(-1, 0));
-*/
-}
-
 TEST(SubSymGTOs, AddZeta) {
 
   SubSymGTOs sub;
@@ -169,7 +66,8 @@ TEST(SubSymGTOs, AddZeta) {
 }
 TEST(SymGTOs, at_r_ylm_lin) {
 
-  SymGTOs gtos(SymmetryGroup_C1());
+  SymmetryGroup C1(SymmetryGroup::C1());
+  SymGTOs gtos(C1);
   VectorXcd zeta(1); zeta << 1.1;
   gtos.AddSub(Sub_s(0, Vector3cd(0, 0, 2), zeta));
   gtos.SetUp();
@@ -204,7 +102,7 @@ void test_SymGTOs_at_r_ylm_nd(SymGTOs& gtos, dcomplex r, VectorXcd& cs, string l
 }
 TEST(SymGTOs, at_r_ylm_nd_s) {
 
-  SymGTOs gtos(SymmetryGroup_C1());
+  SymGTOs gtos(SymmetryGroup::C1());
 
   /*
   VectorXcd zeta(1); zeta << 1.2;
@@ -222,7 +120,7 @@ TEST(SymGTOs, at_r_ylm_nd_s) {
 }
 TEST(SymGTOs, at_r_ylm_nd) {
 
-  SymGTOs gtos(SymmetryGroup_C1());
+  SymGTOs gtos(SymmetryGroup::C1());
   // VectorXcd zeta(2); zeta << 1.2, 1.1;
   // gtos.AddSub(Sub_s(0, Vector3cd(0.1, 0.2, 0.3), zeta));
   // VectorXcd cs(2); cs << 0.2, 0.4;
@@ -237,12 +135,12 @@ TEST(SymGTOs, at_r_ylm_nd) {
 }
 TEST(SymGTOs, Create) {
 
-  SymmetryGroup sym_group(SymmetryGroup_Cs());
+  SymmetryGroup sym_group(SymmetryGroup::Cs());
   SymGTOs gtos(sym_group);
 
   // -- Symmetries
-  Irrep lm00(0);
-  Irrep lm10(1);
+  Irrep lm00 = sym_group.GetIrrep("A'");
+  Irrep lm10 = sym_group.GetIrrep("A''");
 
   // -- s-GTO at Center, Sym = (0, 0)
   SubSymGTOs sgto_cen;
@@ -289,7 +187,7 @@ TEST(SymGTOs, one_center_S_gto) {
   dcomplex zeta1(1.1, -0.2);
   dcomplex zeta2(0.3, -0.01);
 
-  SymGTOs gtos(SymmetryGroup_C1()); 
+  SymGTOs gtos(SymmetryGroup::C1()); 
   VectorXcd zetas(2); zetas << zeta1, zeta2;
   gtos.AddSub(Sub_s(0, Vector3cd(0, 0, 0), zetas));
   gtos.AddAtom(Vector3cd(0, 0, 0), 1.0);
@@ -344,7 +242,7 @@ TEST(SymGTOs, two_center_SP) {
   dcomplex zeta2(0.3, -0.01);
   dcomplex x2(1.1), y2(1.2), z2(1.3);
 
-  SymGTOs gtos(SymmetryGroup_C1()); 
+  SymGTOs gtos(SymmetryGroup::C1()); 
 
   VectorXcd zeta_cen(1); zeta_cen << zeta1;
   gtos.AddSub(Sub_pz(0, Vector3cd(x1, y1, z1), zeta_cen));
@@ -383,7 +281,7 @@ TEST(SymGTOs, two_center_SP) {
 }
 TEST(SymGTOs, add_atom) {
 
-  SymGTOs gtos(SymmetryGroup_C1()); 
+  SymGTOs gtos(SymmetryGroup::C1()); 
   gtos.AddAtom(Vector3cd(1.2, 1.3, 1.4), 1.5);
   gtos.AddAtom(Vector3cd(2.2, 2.3, 2.4), 2.5);
   
@@ -400,11 +298,12 @@ TEST(SymGTOs, add_atom) {
 }
 TEST(SymGTOs, CalcMatOther) {
 
-  SymGTOs gtos_full(SymmetryGroup_Cs());
-  SymGTOs gtos_1(   SymmetryGroup_Cs());
-  SymGTOs gtos_2(   SymmetryGroup_Cs());
-  Irrep Ap = Cs_Ap();
-  Irrep App= Cs_App();
+  SymmetryGroup Cs(SymmetryGroup::Cs());
+  SymGTOs gtos_full(Cs);
+  SymGTOs gtos_1(   Cs);
+  SymGTOs gtos_2(   Cs);
+  Irrep Ap = Cs.GetIrrep("A'");
+  Irrep App= Cs.GetIrrep("A''");
   dcomplex z_gh(1.1);
 
   // -- A' symmetry --
@@ -415,12 +314,12 @@ TEST(SymGTOs, CalcMatOther) {
 
   // -- A'' symmetry, Center --
   VectorXcd zeta_gh = VectorXcd::Zero(3); zeta_gh << 0.6, 1.2, 2.2;
-  gtos_full.AddSub(Sub_TwoSGTO(SymmetryGroup_Cs(), App,
+  gtos_full.AddSub(Sub_TwoSGTO(SymmetryGroup::Cs(), App,
 			   Vector3cd(0.0, 0.0, z_gh), zeta_gh));
   VectorXcd zeta_cen(2); zeta_cen << 0.2, 1.2;
   gtos_full.AddSub(Sub_pz(App, Vector3cd(0, 0, 0), zeta_cen));
   
-  gtos_2.AddSub(Sub_TwoSGTO(SymmetryGroup_Cs(), App,
+  gtos_2.AddSub(Sub_TwoSGTO(SymmetryGroup::Cs(), App,
 			    Vector3cd(0.0, 0.0, z_gh), zeta_gh));
   gtos_2.AddSub(Sub_pz(App, Vector3cd(0, 0, 0), zeta_cen));
 
@@ -459,22 +358,25 @@ protected:
 
 public:
   SP_GTO() {
-    gtos = new SymGTOs(SymmetryGroup_Cs());
+    gtos = new SymGTOs(SymmetryGroup::Cs());
     zeta1 = dcomplex(1.1, -0.2);
     zeta2 = dcomplex(0.3, -0.01);
 
+    int Ap = 0;
+    int App= 1;
+
     // -- A' symmetry --
     zeta_h = VectorXcd::Zero(3); zeta_h << 0.4, 1.0, 2.0;
-    gtos->AddSub(Sub_s(Cs_Ap(), Vector3cd(0, 0, 0), zeta_h));
+    gtos->AddSub(Sub_s(Ap, Vector3cd(0, 0, 0), zeta_h));
 
     // -- A'' symmetry, Center --
     VectorXcd zeta_cen(1); zeta_cen << zeta1;
-    gtos->AddSub(Sub_pz(Cs_App(), Vector3cd(0, 0, 0), zeta_cen));
+    gtos->AddSub(Sub_pz(App, Vector3cd(0, 0, 0), zeta_cen));
 
     // -- A'' symmetry, Ghost --
     z_gh = dcomplex(0.8);
     VectorXcd zeta_gh(1); zeta_gh << zeta2;
-    gtos->AddSub(Sub_TwoSGTO(SymmetryGroup_Cs(), Cs_App(),
+    gtos->AddSub(Sub_TwoSGTO(SymmetryGroup::Cs(), App,
 			     Vector3cd(0.0, 0.0, z_gh), zeta_gh));
 
     // -- potential --
@@ -584,7 +486,11 @@ TEST_F(SP_GTO, at_r_0) {
 }
 
 TEST(H2Plus, energy) {
-  SymGTOs gtos(SymmetryGroup_Cs());
+  SymmetryGroup Cs(SymmetryGroup::Cs());
+  SymGTOs gtos(Cs);
+  int Ap = Cs.GetIrrep("A'");
+  //  int App= 1;
+
   int num_zeta(10);
   Vector3cd pos1(0, 0, +0.7);
   Vector3cd pos2(0, 0, -0.7);
@@ -596,7 +502,7 @@ TEST(H2Plus, energy) {
   sub.AddXyz( pos2);
   sub.AddNs(  Vector3i(0, 0, 0));
   sub.AddZeta(zeta);  
-  sub.AddRds( Reduction(Cs_Ap(), MatrixXcd::Ones(2, 1)));
+  sub.AddRds( Reduction(Ap, MatrixXcd::Ones(2, 1)));
   gtos.AddSub(sub);
   gtos.AddAtom(pos1, 1.0);
   gtos.AddAtom(pos2, 1.0);
@@ -605,7 +511,6 @@ TEST(H2Plus, energy) {
 
   BMatSet mat;
   gtos.CalcMat(&mat);
-  Irrep Ap = Cs_Ap();
   const MatrixXcd& t = mat.GetMatrix("t", Ap, Ap);
   const MatrixXcd& v = mat.GetMatrix("v", Ap, Ap);
   const MatrixXcd& s = mat.GetMatrix("s", Ap, Ap);

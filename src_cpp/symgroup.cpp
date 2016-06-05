@@ -411,6 +411,18 @@ namespace l2func {
   void SymmetryGroup::Display() const {
     cout << this->str(); 
   }
+  Irrep SymmetryGroup::GetIrrep(std::string name) const {
+    typedef vector<string>::const_iterator It;
+    for(It it = irrep_name_.begin(); it != irrep_name_.end(); ++it) {
+      if(*it == name)
+	return distance(irrep_name_.begin(), it);
+    }
+    string msg; SUB_LOCATION(msg);
+    msg += ": fail to find name. Input name is " + name;
+    throw runtime_error(msg);
+  }
+
+  // ---- Specific symmetry group ----
   SymmetryGroup SymmetryGroup::C1() {
     SymmetryGroup g(1, 1, "C1");
     g.sym_op_class_.push_back(ClassMono(id()));
