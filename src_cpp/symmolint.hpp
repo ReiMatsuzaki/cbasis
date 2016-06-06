@@ -49,8 +49,8 @@ namespace l2func {
 
     // ---- for calculation  ----
     Eigen::MatrixXi ip_iat_ipn;
-    Eigen::MatrixXi sym_irrep_iatpn;
-    Eigen::MatrixXi sign_sym_irrep_iatpn;
+    Eigen::MatrixXi ip_jg_kp;       // GTO[j] = G[i][GTO[k]]
+    Eigen::MatrixXi sign_ip_jg_kp; // sign of above relation
     
     bool setupq;
     int maxn;
@@ -82,9 +82,6 @@ namespace l2func {
     inline int size_zeta() const { return zeta_iz.rows(); }
 
     // ---- SetUp ----
-    // -- set symmetry information --
-    void _SetSym(pSymmetryGroup sym);
-    void _SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym);
     // -- calculate inner information and check values.
     void SetUp();
 

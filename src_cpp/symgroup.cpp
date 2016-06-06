@@ -338,7 +338,7 @@ namespace l2func {
   void SymmetryGroup::CalcSymMatrix(const vector<PrimGTO>& gtos,
 				    MatrixXi& a_Ii, MatrixXi& sig_Ii) {
     int n(gtos.size());
-    int n_g(this->num_class());
+    int n_g(this->order());
     a_Ii   = MatrixXi::Zero(n_g, n);
     sig_Ii = MatrixXi::Zero(n_g, n);
 

@@ -39,6 +39,8 @@ namespace l2func {
      */    
     dcomplex At(int ib, int jb, int kb, int lb,
 		int i, int j, int k, int l);
+    bool Exist(int ib, int jb, int kb, int lb,
+	       int i, int j, int k, int l);
 
     /*
       Accessor for size and capacity
@@ -64,9 +66,9 @@ namespace l2func {
 	     int *i, int *j, int *k, int *l, int *type, dcomplex *val);
     bool Set(int ib, int jb, int kb, int lb,
 	     int i, int j, int k, int l, dcomplex val);
-    void Reset();
     dcomplex At(int ib, int jb, int kb, int lb,
-		int i, int j, int k, int l);
+		int i, int j, int k, int l);    
+    void Reset();
     int size() const;
     int capacity() const;
 

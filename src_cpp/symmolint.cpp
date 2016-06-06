@@ -100,21 +100,6 @@ namespace l2func {
       msg += ": ReductionSet is not set.";
       throw runtime_error(msg);
     }
-    /*
-    if(sym_irrep_iatpn.cols() != this->size_at() * this->size_pn() ||
-       sign_sym_irrep_iatpn.cols() != this->size_at() * this->size_pn()) {
-      string msg; SUB_LOCATION(msg); 
-      msg += ": invalid size for symmetry transformation matrix";
-      throw runtime_error(msg);
-    }
-    
-    if(sym_irrep_iatpn.rows() != sign_sym_irrep_iatpn.rows()) {
-      string msg; SUB_LOCATION(msg); 
-      msg += ": sym_irrep_iatpn and sign_sym_irrep_iatpn are different size.";
-      throw runtime_error(msg);
-    }
-    */
-
     for(RdsIt it = rds.begin(); it != rds.end(); ++it) {
       if(it->size_at() != this->size_at() |
 	 it->size_pn() != this->size_pn()) {
@@ -167,7 +152,7 @@ namespace l2func {
 			   this->z(iat));
       }
     // -- compute symmetry operation and primitive GTO relations --
-    sym_group->CalcSymMatrix(gtos, this->sym_irrep_iatpn, this->sign_sym_irrep_iatpn);
+    sym_group->CalcSymMatrix(gtos, this->ip_jg_kp, this->sign_ip_jg_kp);
 
     // -- set flag --
     setupq = true;
@@ -220,31 +205,6 @@ namespace l2func {
     setupq = false;
     rds.push_back(_rds);
   }
-  void SubSymGTOs::_SetSym(pSymmetryGroup g) {
-
-    // -- build PrimGTO set.
-    int nat(this->size_at());
-    int npn(this->size_pn());
-    vector<PrimGTO> gtos(nat * npn);
-    for(int iat = 0; iat < nat; iat++) 
-      for(int ipn = 0; ipn < npn; ipn++)  {
-	int ip = this->ip_iat_ipn(iat, ipn);
-	gtos[ip] = PrimGTO(this->nx(ipn),
-			   this->ny(ipn),
-			   this->nz(ipn),
-			   this->x(iat),
-			   this->y(iat),
-			   this->z(iat));
-      }
-    g->CalcSymMatrix(gtos, this->sym_irrep_iatpn, this->sign_sym_irrep_iatpn);
-    
-  }
-  void SubSymGTOs::_SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym) {
-    setupq = false;
-    sym_irrep_iatpn = sym;
-    sign_sym_irrep_iatpn = sign_sym;
-
-  }
   SubSymGTOs::SubSymGTOs(MatrixXcd xyz, MatrixXi ns,
 			 vector<Reduction> ao, VectorXcd zs) :
     xyz_iat(xyz), ns_ipn(ns), zeta_iz(zs), rds(ao) {
@@ -257,7 +217,7 @@ namespace l2func {
   string SubSymGTOs::str() const {
     ostringstream oss;
     oss << "==== SubSymGTOs ====" << endl;
-    oss << "sym : " << sym_group->str() << endl;
+    //oss << "sym : " << sym_group->str() << endl;
     oss << "xyz : " << endl <<  xyz_iat << endl;
     oss << "ns  : " << endl <<  ns_ipn << endl;
     oss << "zeta: " << endl <<  zeta_iz << endl;
@@ -265,8 +225,8 @@ namespace l2func {
     for(cRdsIt it = rds.begin(); it != rds.end(); ++it)
       oss << it->str();
     oss << "ip_iat_ipn: " << endl << ip_iat_ipn << endl;
-    oss << "sym_irrep_iatpn: " << endl << sym_irrep_iatpn << endl;
-    oss << "sign_sym_irrep_iatpn: " << endl << sign_sym_irrep_iatpn << endl;
+    oss << "ip_jg_kp: " << endl << ip_jg_kp << endl;
+    oss << "sign_ip_jg_kp: " << endl << sign_ip_jg_kp << endl;
     return oss.str();
   }
   void SubSymGTOs::Display() const {
@@ -427,11 +387,11 @@ namespace l2func {
     
     for(SubIt it = subs.begin(); it != subs.end(); ++it) {
       // -- check each sub --
-      if(it->sym_irrep_iatpn.rows() != sym_group->num_class()) {
+      if(it->ip_jg_kp.rows() != sym_group->order()) {
 	string msg; SUB_LOCATION(msg); 
 	msg += ": size of symmetry transformation matrix and num_class of symmetry group is not matched.";
-	cout << "sym_irrep_iatpn:" << endl;
-	cout << it->sym_irrep_iatpn << endl;
+	cout << "ip_jg_kp:" << endl;
+	cout << it->ip_jg_kp << endl;
 	throw runtime_error(msg);
       }
       
@@ -792,14 +752,14 @@ namespace l2func {
     *is_youngest = true;;
     mark_I[0] = 1;
     for(int I = 1; I < gtos.sym_group->num_class(); I++) {
-      int ipt = isub->sym_irrep_iatpn(I, ip);
-      int jpt = jsub->sym_irrep_iatpn(I, jp);
-      int kpt = ksub->sym_irrep_iatpn(I, kp);
-      int lpt = lsub->sym_irrep_iatpn(I, lp);
-      int sig_ipt = isub->sign_sym_irrep_iatpn(I, ip);
-      int sig_jpt = jsub->sign_sym_irrep_iatpn(I, jp);
-      int sig_kpt = ksub->sign_sym_irrep_iatpn(I, kp);
-      int sig_lpt = lsub->sign_sym_irrep_iatpn(I, lp);
+      int ipt = isub->ip_jg_kp(I, ip);
+      int jpt = jsub->ip_jg_kp(I, jp);
+      int kpt = ksub->ip_jg_kp(I, kp);
+      int lpt = lsub->ip_jg_kp(I, lp);
+      int sig_ipt = isub->sign_ip_jg_kp(I, ip);
+      int sig_jpt = jsub->sign_ip_jg_kp(I, jp);
+      int sig_kpt = ksub->sign_ip_jg_kp(I, kp);
+      int sig_lpt = lsub->sign_ip_jg_kp(I, lp);
       int sig = sig_ipt * sig_jpt * sig_kpt * sig_lpt;
 
       if(sig == 0) {
@@ -822,6 +782,18 @@ namespace l2func {
 	mark_I[I] = sig;
       }
     }
+  }
+  bool ExistNon0(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub) {
+    pSymmetryGroup sym = isub->sym_group;
+    bool non0(false);
+    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds)
+    for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds)
+    for(RdsIt krds = ksub->rds.begin(); krds != ksub->rds.end(); ++krds)
+    for(RdsIt lrds = lsub->rds.begin(); lrds != lsub->rds.end(); ++lrds) {
+      if(sym->Non0_4(irds->irrep, jrds->irrep, krds->irrep, lrds->irrep))
+	non0 = true;
+    }
+    return non0;
   }
   
   struct ERI_buf {
@@ -933,14 +905,14 @@ namespace l2func {
       
       mark_I[0] = 1;
       for(int I = 1; I < numI; I++) {
-	int ipt = isub->sym_irrep_iatpn(I, ip);
-	int jpt = jsub->sym_irrep_iatpn(I, jp);
-	int kpt = ksub->sym_irrep_iatpn(I, kp);
-	int lpt = lsub->sym_irrep_iatpn(I, lp);
-	int sig_ipt = isub->sign_sym_irrep_iatpn(I, ip);
-	int sig_jpt = jsub->sign_sym_irrep_iatpn(I, jp);
-	int sig_kpt = ksub->sign_sym_irrep_iatpn(I, kp);
-	int sig_lpt = lsub->sign_sym_irrep_iatpn(I, lp);
+	int ipt = isub->ip_jg_kp(I, ip);
+	int jpt = jsub->ip_jg_kp(I, jp);
+	int kpt = ksub->ip_jg_kp(I, kp);
+	int lpt = lsub->ip_jg_kp(I, lp);
+	int sig_ipt = isub->sign_ip_jg_kp(I, ip);
+	int sig_jpt = jsub->sign_ip_jg_kp(I, jp);
+	int sig_kpt = ksub->sign_ip_jg_kp(I, kp);
+	int sig_lpt = lsub->sign_ip_jg_kp(I, lp);
 	int sig = sig_ipt * sig_jpt * sig_kpt * sig_lpt;
 	if(sig == 0) {
 	  mark_I[I] = 0;
@@ -977,10 +949,10 @@ namespace l2func {
 		   lsub->nx(lpn), lsub->ny(lpn), lsub->nz(lpn), zetal);
 	  for(int I = 0; I < numI; I++) {
 	    if(mark_I[I] != 0) {
-	      int ipt = isub->sym_irrep_iatpn(I, ip);
-	      int jpt = jsub->sym_irrep_iatpn(I, jp);
-	      int kpt = ksub->sym_irrep_iatpn(I, kp);
-	      int lpt = lsub->sym_irrep_iatpn(I, lp);
+	      int ipt = isub->ip_jg_kp(I, ip);
+	      int jpt = jsub->ip_jg_kp(I, jp);
+	      int kpt = ksub->ip_jg_kp(I, kp);
+	      int lpt = lsub->ip_jg_kp(I, lp);
 	      prim(ipt, jpt, kpt, lpt) = dcomplex(mark_I[I]) * v;
 	    }
 	  }
@@ -1010,7 +982,9 @@ namespace l2func {
     mi = isub->maxn; mj = jsub->maxn; mk = ksub->maxn; ml = lsub->maxn;
     buf.lambda = 2.0*pow(M_PI, 2.5)/(zetaP * zetaPp * sqrt(zetaP + zetaPp));    
 
-    int numI(gtos.sym_group->num_class());
+    int numI(gtos.sym_group->order());
+
+    prim.SetValue(0.0);
 
     for(int iat = 0; iat < nati; iat++) 
     for(int jat = 0; jat < natj; jat++)       
@@ -1032,9 +1006,9 @@ namespace l2func {
 	  find_non0 = true;
       }
       
-      if(!find_non0) {
-	cout << "int is 0" << endl;
-      }
+      //if(!find_non0) {
+      //cout << "int is 0" << endl;
+      //}
 
       // -- compute if found non0 --
       if(find_non0) {
@@ -1051,6 +1025,14 @@ namespace l2func {
 	  int ip = isub->ip_iat_ipn(iat, ipn); int jp = jsub->ip_iat_ipn(jat, jpn);
 	  int kp = ksub->ip_iat_ipn(kat, kpn); int lp = lsub->ip_iat_ipn(lat, lpn);
 
+	  /*
+	  dcomplex v = CalcPrimOne(isub->nx(ipn), isub->ny(ipn), isub->nz(ipn),
+			    jsub->nx(jpn), jsub->ny(jpn), jsub->nz(jpn),
+			    ksub->nx(kpn), ksub->ny(kpn), ksub->nz(kpn),
+			    lsub->nx(lpn), lsub->ny(lpn), lsub->nz(lpn), buf);
+	  prim(ip, jp, kp, lp) = v;
+	  */
+
 	  int mark_I[10]; bool is_zero, is_youngest;
 	  CheckEqERI(gtos, isub, jsub, ksub, lsub, ip, jp, kp, lp,
 		     nati*npni, natj*npnj, natk*npnk, mark_I, &is_zero, &is_youngest);
@@ -1060,14 +1042,12 @@ namespace l2func {
 			    jsub->nx(jpn), jsub->ny(jpn), jsub->nz(jpn),
 			    ksub->nx(kpn), ksub->ny(kpn), ksub->nz(kpn),
 			    lsub->nx(lpn), lsub->ny(lpn), lsub->nz(lpn), buf);
-
-	    //cout << "CalcPrimOne = " << v << endl;
 	    for(int I = 0; I < numI; I++) {
 	      if(mark_I[I] != 0) {
-		int ipt = isub->sym_irrep_iatpn(I, ip);
-		int jpt = jsub->sym_irrep_iatpn(I, jp);
-		int kpt = ksub->sym_irrep_iatpn(I, kp);
-		int lpt = lsub->sym_irrep_iatpn(I, lp);
+		int ipt = isub->ip_jg_kp(I, ip);
+		int jpt = jsub->ip_jg_kp(I, jp);
+		int kpt = ksub->ip_jg_kp(I, kp);
+		int lpt = lsub->ip_jg_kp(I, lp);
 		prim(ipt, jpt, kpt, lpt) = dcomplex(mark_I[I]) * v;
 	      }
 	    }
@@ -1313,37 +1293,43 @@ namespace l2func {
     }
     A4dc prim(pow(max_num_prim, 4));
 
-    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
-    for(SubIt jsub = subs.begin(); jsub != subs.end(); ++jsub) {
-    for(SubIt ksub = subs.begin(); ksub != subs.end(); ++ksub) {
+    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) 
+    for(SubIt jsub = subs.begin(); jsub != subs.end(); ++jsub) 
+    for(SubIt ksub = subs.begin(); ksub != subs.end(); ++ksub) 
     for(SubIt lsub = subs.begin(); lsub != subs.end(); ++lsub) {
       
-      for(int iz = 0; iz < isub->size_zeta(); ++iz)
-      for(int jz = 0; jz < jsub->size_zeta(); ++jz)
-      for(int kz = 0; kz < ksub->size_zeta(); ++kz)
-      for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
-	
-	if(method == 0) {
-	  CalcPrimERI0(*this, isub, jsub, ksub, lsub, iz,   jz,   kz,   lz,
-		      prim);
+      if(method == 0) {
+	for(int iz = 0; iz < isub->size_zeta(); ++iz)
+        for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+        for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+        for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+	  CalcPrimERI0(*this, isub, jsub, ksub, lsub, iz, jz, kz, lz, prim);
 	  CalcTransERI(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
-	} else if (method == 1){
-	  CalcPrimERI1(*this, isub, jsub, ksub, lsub,
-		       isub->zeta_iz[iz], jsub->zeta_iz[jz],
-		       ksub->zeta_iz[kz], lsub->zeta_iz[lz],
-		       prim);
-	  CalcTransERI(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
-	} else if (method == 2){
-	  CalcPrimERI2(*this, isub, jsub, ksub, lsub, iz,   jz,   kz,   lz,
-			    prim);
+	}}
+      if(method == 1) {
+	if(ExistNon0(isub, jsub, ksub, lsub)) {
+	  for(int iz = 0; iz < isub->size_zeta(); ++iz)
+	  for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+	  for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+	  for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+	    CalcPrimERI1(*this, isub, jsub, ksub, lsub,
+			 isub->zeta_iz[iz], jsub->zeta_iz[jz],
+			 ksub->zeta_iz[kz], lsub->zeta_iz[lz],
+			 prim);
+	    CalcTransERI(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
+	  }}}
+      if(method == 2) {
+	for(int iz = 0; iz < isub->size_zeta(); ++iz)
+        for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+        for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+        for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+	  CalcPrimERI2(*this, isub, jsub, ksub, lsub, iz, jz, kz, lz, prim);
 	  CalcTransERI(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
 	}
       }
     }
-    }
-    }
-    }
   }
+  
   // ---- AtR ----
   bool IsCenter(SubIt isub, int iat, double eps) {
     dcomplex x  = isub->xyz_iat(0, iat);

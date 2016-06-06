@@ -194,6 +194,10 @@ namespace l2func {
 	data_ = new F[num_];
       }
     }
+    void SetValue(F val) {
+      for(int i = 0; i < data_num_; i++)
+	data_[i] = val;
+    }
     F& operator()(int nx, int ny, int nz, int nw) {
 
       int num1 = n1_[1] - n0_[1] + 1;

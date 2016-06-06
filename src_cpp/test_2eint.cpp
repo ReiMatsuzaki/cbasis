@@ -278,7 +278,20 @@ TEST(SymGTOs, CalcERI_sym_p) {
 }
 TEST(SymGTOs, CalcERI_sym) {
 
-  pSymmetryGroup sym = SymmetryGroup::C4();
+  pSymmetryGroup sym = SymmetryGroup::D2h();
+  Irrep irrep_s  = sym->GetIrrep("Ag");
+  Irrep irrep_x = sym->GetIrrep("B1u");
+  Irrep irrep_y = sym->GetIrrep("B2u");
+  Irrep irrep_z = sym->GetIrrep("B3u");
+
+  /*
+  pSymmetryGroup sym = SymmetryGroup::Cs();
+  Irrep irrep_s  = sym->GetIrrep("A'");
+  Irrep irrep_x = sym->GetIrrep("A'");
+  Irrep irrep_y = sym->GetIrrep("A'");
+  Irrep irrep_z = sym->GetIrrep("A''");
+  */
+
   SymGTOs gtos(sym);
 
   Vector3cd xyz0(0.0, 0.0, 0.0);
@@ -290,7 +303,7 @@ TEST(SymGTOs, CalcERI_sym) {
   int num_z(1);
   VectorXcd zs(num_z); zs << 1.1;
   sub_s.AddZeta(zs);
-  sub_s.AddRds(Reduction(0, MatrixXcd::Ones(1, 1)));
+  sub_s.AddRds(Reduction(irrep_s, MatrixXcd::Ones(1, 1)));
   sub_s.SetUp();
   gtos.AddSub(sub_s);
 
@@ -299,17 +312,18 @@ TEST(SymGTOs, CalcERI_sym) {
   sub_p.AddXyz(Vector3cd(0, 0, 0));
   sub_p.AddNs( Vector3i( 1, 0, 0));
   sub_p.AddNs( Vector3i( 0, 1, 0));
+  sub_p.AddNs( Vector3i( 0, 0, 1));
   VectorXcd zs_p(1); zs_p << 1.1; sub_p.AddZeta(zs_p);
-  MatrixXcd c1(1, 2); c1 << 1.0, 0.0; sub_p.AddRds(Reduction(1, c1));
-  MatrixXcd c2(1, 2); c2 << 0.0, 1.0; sub_p.AddRds(Reduction(2, c2));
+  MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(irrep_x, c1));
+  MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(irrep_y, c2));
+  MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(irrep_z, c3));
   sub_p.SetUp();
   gtos.AddSub(sub_p);
 
   // -- potential --
   MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
   gtos.SetAtoms(xyzq);
-  gtos.SetUp();
-  //  cout << gtos.str() << endl;
+  gtos.SetUp();  
 
   int n(gtos.size_basis());
   IB2EInt *eri1 = new B2EIntMem(pow(n, 4));
@@ -321,29 +335,44 @@ TEST(SymGTOs, CalcERI_sym) {
   dcomplex v;
   eri1->Reset();
   while(eri2->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
-    if(abs(v) > 0.000001)
+    if(eri1->Exist(ib, jb, kb, lb, i, j, k, l)) {
       EXPECT_C_EQ(v, eri1->At(ib, jb, kb, lb, i, j, k, l)) <<
-	ib << jb << kb << lb << i << j << k << l;
+	ib << jb << kb << lb << " : " << i << j << k << l;
+    } else {
+      EXPECT_TRUE(abs(v) < 0.000001) <<
+	v << " : " <<
+	ib << jb << kb << lb << " : " <<
+	i << j << k << l;
+    }
+
   }
 
   delete eri1;
   delete eri2;
 }
-
 TEST(SymGTOs, CalcERI_time2) {
 
   Timer timer;
 
-  pSymmetryGroup C4 = SymmetryGroup::C4();
-  Irrep A = C4->GetIrrep("A");
-  Irrep B = C4->GetIrrep("B");
-  Irrep E = C4->GetIrrep("E");
-  SymGTOs gtos(C4);
+  pSymmetryGroup sym = SymmetryGroup::D2h();
+  Irrep irrep_s  = sym->GetIrrep("Ag");
+  Irrep irrep_x = sym->GetIrrep("B1u");
+  Irrep irrep_y = sym->GetIrrep("B2u");
+  Irrep irrep_z = sym->GetIrrep("B3u");
+  /*
+  pSymmetryGroup sym = SymmetryGroup::Cs();
+  Irrep irrep_s  = sym->GetIrrep("A'");
+  Irrep irrep_x = sym->GetIrrep("A'");
+  Irrep irrep_y = sym->GetIrrep("A'");
+  Irrep irrep_z = sym->GetIrrep("A''");
+  */
+
+  SymGTOs gtos(sym);
 
   Vector3cd xyz0(0.0, 0.0, 0.0);
 
   // ---- s orbital ----
-  SubSymGTOs sub_s(C4);
+  SubSymGTOs sub_s(sym);
   sub_s.AddXyz(Vector3cd(0, 0, 0));
   sub_s.AddNs( Vector3i( 0, 0, 0));
 
@@ -351,12 +380,12 @@ TEST(SymGTOs, CalcERI_time2) {
   VectorXcd zs(num_z); zs << 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0;
 
   sub_s.AddZeta(zs);
-  sub_s.AddRds(Reduction(A, MatrixXcd::Ones(1, 1)));
+  sub_s.AddRds(Reduction(irrep_s, MatrixXcd::Ones(1, 1)));
   sub_s.SetUp();
   gtos.AddSub(sub_s);
 
   // ---- p orbital ----
-  SubSymGTOs sub_p(C4);
+  SubSymGTOs sub_p(sym);
   sub_p.AddXyz(Vector3cd(0, 0, 0));
   sub_p.AddNs( Vector3i( 1, 0, 0));
   sub_p.AddNs( Vector3i( 0, 1, 0));
@@ -364,9 +393,9 @@ TEST(SymGTOs, CalcERI_time2) {
   int num_z_p(8);
   VectorXcd zs_p(num_z_p); zs_p << 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8;
   sub_p.AddZeta(zs_p);
-  MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(E, c1));
-  MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(E, c2));
-  MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(A, c3));
+  MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(irrep_x, c1));
+  MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(irrep_y, c2));
+  MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(irrep_z, c3));
   sub_p.SetUp();
   gtos.AddSub(sub_p);
 
@@ -375,18 +404,85 @@ TEST(SymGTOs, CalcERI_time2) {
   gtos.SetAtoms(xyzq);
   gtos.SetUp();
 
-  IB2EInt *eri1 = new B2EIntMem(pow(num_z+3*num_z_p, 4));
-  IB2EInt *eri2 = new B2EIntMem(pow(num_z+3*num_z_p, 4));
+  IB2EInt *eri1 = new B2EIntMem(pow(num_z+3*num_z_p, 4)); 
+  IB2EInt *eri2 = new B2EIntMem(pow(num_z+3*num_z_p, 4)); 
 
   timer.Start("method1"); gtos.CalcERI(eri1, 1); timer.End("method1");
   timer.Start("method2"); gtos.CalcERI(eri2, 2); timer.End("method2");
-  
+    
   EXPECT_C_EQ(eri1->At(0, 0, 0, 0, 2, 1, 5, 0),
 	      eri2->At(0, 0, 0, 0, 2, 1, 5, 0));
 
   timer.Display();
   delete eri1;
   delete eri2;
+}
+TEST(Time, MatrixAccess) {
+  int n(1000);
+  MatrixXcd a(n, n);
+  dcomplex *b = new dcomplex[n*n];
+  
+  
+  Timer timer;
+
+  timer.Start("Eigen");
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++)
+      a(i, j) = 1.2;
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++)
+      dcomplex x = a(i, j);
+  timer.End("Eigen");
+
+  timer.Start("Array");
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++)
+      b[i+n*j] = 1.2;
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++)
+      dcomplex x = b[i+n*j];
+  timer.End("Array");
+
+  timer.Start("Array2");
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++)
+      b[j+n*i] = 1.2;
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++)
+      dcomplex x = b[j+n*i];
+  timer.End("Array2");
+
+
+  MatrixXcd xyz(3, 2);
+  timer.Start("MatrixXyz");
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++) {
+      xyz(0, 0) = 1.0;
+      xyz(0, 1) = 1.2;
+    }
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++) {
+      dcomplex x= xyz(0, 0);
+      x =  xyz(0, 1);
+    }
+  timer.End("MatrixXyz");
+
+  dcomplex xs[2];
+  timer.Start("ArrayXyz");
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++) {
+      xs[0]= 1.0*i*j;
+      xs[1] = 1.2*i*j;
+    }
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++) {
+      dcomplex x= xs[0];
+      x =  xs[1];
+    }
+  timer.End("ArrayXyz");
+
+  timer.Display();
+
 }
 
 int main (int argc, char **args) {

@@ -20,7 +20,15 @@ namespace l2func {
     msg += ": failed to find given index list.";
     throw runtime_error(msg);
   }  
-
+  bool IB2EInt::Exist(int ib, int jb, int kb, int lb,
+		      int i, int j, int k, int l) {
+    try {
+      this->At(ib, jb, kb, lb, i, j, k, l);
+    } catch(exception& e) {
+      return false;
+    }
+    return true;
+  }
 
   // ==== Mem version ====
   // ---- Constructors ----
