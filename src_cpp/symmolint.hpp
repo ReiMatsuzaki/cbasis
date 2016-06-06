@@ -41,6 +41,7 @@ namespace l2func {
     typedef std::vector<Reduction>::iterator RdsIt;
 
     // ---- Calculation data ----
+    pSymmetryGroup sym_group;
     Eigen::MatrixXcd xyz_iat;
     Eigen::MatrixXi  ns_ipn;
     Eigen::VectorXcd zeta_iz;
@@ -56,7 +57,7 @@ namespace l2func {
     //    int maxnx;
 
     // ---- Constructors ----
-    SubSymGTOs();
+    SubSymGTOs(pSymmetryGroup);
 
     // ---- Accessors ----
     std::string str() const;
@@ -82,8 +83,8 @@ namespace l2func {
 
     // ---- SetUp ----
     // -- set symmetry information --
-    void SetSym(SymmetryGroup&);
-    void SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym);
+    void _SetSym(pSymmetryGroup sym);
+    void _SetSym(Eigen::MatrixXi sym, Eigen::MatrixXi sign_sym);
     // -- calculate inner information and check values.
     void SetUp();
 
@@ -99,21 +100,23 @@ namespace l2func {
   };
 
   // ---- Helper ----
-  SubSymGTOs Sub_s(Irrep sym, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_pz(Irrep sym, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_TwoSGTO(SymmetryGroup sym, Irrep irrep,
+  SubSymGTOs Sub_s(pSymmetryGroup sym, Irrep irrep,
+		   Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
+  SubSymGTOs Sub_pz(pSymmetryGroup sym, Irrep irrep,
+		    Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
+  SubSymGTOs Sub_TwoSGTO(pSymmetryGroup sym, Irrep irrep,
 			 Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
 
   // ==== SymGTOs ====
   class SymGTOs {
   public:
-    SymmetryGroup sym_group;
+    pSymmetryGroup sym_group;
     std::vector<SubSymGTOs> subs;
     Eigen::MatrixXcd xyzq_iat;
     bool setupq;
   public:
     // ---- Constructors ----
-    SymGTOs(SymmetryGroup _sym_group);
+    SymGTOs(pSymmetryGroup _sym_group);
 
     // ---- Accessors ----    
     int size_atom() const;

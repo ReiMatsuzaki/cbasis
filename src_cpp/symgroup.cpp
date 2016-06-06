@@ -288,7 +288,7 @@ namespace l2func {
   }
 
   // ==== Symmmetry Group ====
-  SymmetryGroup::SymmetryGroup(int order, int num_class, string name):
+  SymmetryGroup::SymmetryGroup(int num_class, string name):
     name_(name),
     prod_table_(num_class * num_class * num_class) {
 
@@ -423,125 +423,125 @@ namespace l2func {
   }
 
   // ---- Specific symmetry group ----
-  SymmetryGroup SymmetryGroup::C1() {
-    SymmetryGroup g(1, 1, "C1");
-    g.sym_op_class_.push_back(ClassMono(id()));
-    g.irrep_name_.push_back("A");
-    g.character_table_(0, 0) = 1;
+  pSymmetryGroup SymmetryGroup::C1() {
+    pSymmetryGroup g(new SymmetryGroup(1, "C1"));
+    g->sym_op_class_.push_back(ClassMono(id()));
+    g->irrep_name_.push_back("A");
+    g->character_table_(0, 0) = 1;
 
-    g.setSymOp();
-    g.setProdTable();
+    g->setSymOp();
+    g->setProdTable();
 
-    g.irrep_s = 0;
-    g.irrep_x = 0;
-    g.irrep_y = 0;
-    g.irrep_z = 0;
+    g->irrep_s = 0;
+    g->irrep_x = 0;
+    g->irrep_y = 0;
+    g->irrep_z = 0;
     return g;
   }
-  SymmetryGroup SymmetryGroup::Cs() {
-    SymmetryGroup g(2, 2, "Cs");
+  pSymmetryGroup SymmetryGroup::Cs() {
+    pSymmetryGroup g(new SymmetryGroup(2, "Cs"));
 
-    g.sym_op_class_.push_back(ClassMono(id()));
-    g.sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
+    g->sym_op_class_.push_back(ClassMono(id()));
+    g->sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
 
-    g.irrep_name_.push_back("A'");
-    g.irrep_name_.push_back("A''");
+    g->irrep_name_.push_back("A'");
+    g->irrep_name_.push_back("A''");
 
-    g.character_table_<<
+    g->character_table_<<
       1, 1,
       1, -1;
 
-    g.setSymOp();
-    g.setProdTable();
+    g->setSymOp();
+    g->setProdTable();
 
     /*
-    g.prod_table_(Ap, Ap, Ap) = true;
-    g.prod_table_(Ap, App, App) = true;
-    g.prod_table_(App, Ap, App) = true;
-    g.prod_table_(App, App, Ap) = true;
+    g->prod_table_(Ap, Ap, Ap) = true;
+    g->prod_table_(Ap, App, App) = true;
+    g->prod_table_(App, Ap, App) = true;
+    g->prod_table_(App, App, Ap) = true;
     */
 
     Irrep Ap = 0;
     Irrep App= 1;
-    g.irrep_s = Ap;
-    g.irrep_x = Ap;
-    g.irrep_y = Ap;
-    g.irrep_z = App;
+    g->irrep_s = Ap;
+    g->irrep_x = Ap;
+    g->irrep_y = Ap;
+    g->irrep_z = App;
     return g;
   }
-  SymmetryGroup SymmetryGroup::C2h() {
-    SymmetryGroup g(4, 4, "C2h");
+  pSymmetryGroup SymmetryGroup::C2h() {
+    pSymmetryGroup g(new SymmetryGroup(4, "C2h"));
 
-    g.sym_op_class_.push_back(ClassMono(id()));
-    g.sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
-    g.sym_op_class_.push_back(ClassMono(inv()));
-    g.sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
+    g->sym_op_class_.push_back(ClassMono(id()));
+    g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
+    g->sym_op_class_.push_back(ClassMono(inv()));
+    g->sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
 
-    g.irrep_name_.push_back("Ag"); int Ag = 0;
-    g.irrep_name_.push_back("Bg"); //int Bg = 1;
-    g.irrep_name_.push_back("Au"); int Au = 2;
-    g.irrep_name_.push_back("Bu"); int Bu = 3;
+    g->irrep_name_.push_back("Ag"); int Ag = 0;
+    g->irrep_name_.push_back("Bg"); //int Bg = 1;
+    g->irrep_name_.push_back("Au"); int Au = 2;
+    g->irrep_name_.push_back("Bu"); int Bu = 3;
     
-    g.character_table_ <<
+    g->character_table_ <<
       1, 1, 1, 1,
       1,-1, 1,-1,
       1, 1,-1,-1,
       1,-1,-1, 1;
 
-    g.setSymOp();
-    g.setProdTable();
+    g->setSymOp();
+    g->setProdTable();
 
     /*
-    g.prod_table_(Ag, Ag, Ag) = true;
-    g.prod_table_(Ag, Bg, Bg) = true;
-    g.prod_table_(Ag, Au, Bu) = true;
-    g.prod_table_(Ag, Bu, Bu) = true;
+    g->prod_table_(Ag, Ag, Ag) = true;
+    g->prod_table_(Ag, Bg, Bg) = true;
+    g->prod_table_(Ag, Au, Bu) = true;
+    g->prod_table_(Ag, Bu, Bu) = true;
 
-    g.prod_table_(Bg, Ag, Bg) = true;
-    g.prod_table_(Bg, Bg, Ag) = true;
-    g.prod_table_(Bg, Au, Bu) = true;
-    g.prod_table_(Bg, Bu, Au) = true;
+    g->prod_table_(Bg, Ag, Bg) = true;
+    g->prod_table_(Bg, Bg, Ag) = true;
+    g->prod_table_(Bg, Au, Bu) = true;
+    g->prod_table_(Bg, Bu, Au) = true;
 
-    g.prod_table_(Au, Ag, Au) = true;
-    g.prod_table_(Au, Bg, Bu) = true;
-    g.prod_table_(Au, Au, Ag) = true;
-    g.prod_table_(Au, Bu, Bg) = true;
+    g->prod_table_(Au, Ag, Au) = true;
+    g->prod_table_(Au, Bg, Bu) = true;
+    g->prod_table_(Au, Au, Ag) = true;
+    g->prod_table_(Au, Bu, Bg) = true;
 
-    g.prod_table_(Bu, Ag, Bu) = true;
-    g.prod_table_(Bu, Bg, Au) = true;
-    g.prod_table_(Bu, Au, Bg) = true;
-    g.prod_table_(Bu, Bu, Ag) = true;
+    g->prod_table_(Bu, Ag, Bu) = true;
+    g->prod_table_(Bu, Bg, Au) = true;
+    g->prod_table_(Bu, Au, Bg) = true;
+    g->prod_table_(Bu, Bu, Ag) = true;
     */
 
-    g.irrep_s = Ag;
-    g.irrep_x = Bu;
-    g.irrep_y = Bu;
-    g.irrep_z = Au;
+    g->irrep_s = Ag;
+    g->irrep_x = Bu;
+    g->irrep_y = Bu;
+    g->irrep_z = Au;
 
     return g;
   }
-  SymmetryGroup SymmetryGroup::D2h() {
-    SymmetryGroup g(8, 8, "D2h");
+  pSymmetryGroup SymmetryGroup::D2h() {
+    pSymmetryGroup g(new SymmetryGroup(8, "D2h"));
     
-    g.sym_op_class_.push_back(ClassMono(id()));
-    g.sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
-    g.sym_op_class_.push_back(ClassMono(cyclic(CoordY, 2)));
-    g.sym_op_class_.push_back(ClassMono(cyclic(CoordX, 2)));
-    g.sym_op_class_.push_back(ClassMono(inv()));
-    g.sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
-    g.sym_op_class_.push_back(ClassMono(reflect(CoordY)));
-    g.sym_op_class_.push_back(ClassMono(reflect(CoordX)));
+    g->sym_op_class_.push_back(ClassMono(id()));
+    g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
+    g->sym_op_class_.push_back(ClassMono(cyclic(CoordY, 2)));
+    g->sym_op_class_.push_back(ClassMono(cyclic(CoordX, 2)));
+    g->sym_op_class_.push_back(ClassMono(inv()));
+    g->sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
+    g->sym_op_class_.push_back(ClassMono(reflect(CoordY)));
+    g->sym_op_class_.push_back(ClassMono(reflect(CoordX)));
 
-    g.irrep_name_.push_back("Ag");  int Ag = 0;
-    g.irrep_name_.push_back("B1g"); // int B1g = 1;
-    g.irrep_name_.push_back("B2g"); // int B2g = 2;
-    g.irrep_name_.push_back("B3g"); // int B3g = 3;
-    g.irrep_name_.push_back("Au");  // int Au = 4;
-    g.irrep_name_.push_back("B1u"); int B1u = 5;
-    g.irrep_name_.push_back("B2u"); int B2u = 6;
-    g.irrep_name_.push_back("B3u"); int B3u = 7;
+    g->irrep_name_.push_back("Ag");  int Ag = 0;
+    g->irrep_name_.push_back("B1g"); // int B1g = 1;
+    g->irrep_name_.push_back("B2g"); // int B2g = 2;
+    g->irrep_name_.push_back("B3g"); // int B3g = 3;
+    g->irrep_name_.push_back("Au");  // int Au = 4;
+    g->irrep_name_.push_back("B1u"); int B1u = 5;
+    g->irrep_name_.push_back("B2u"); int B2u = 6;
+    g->irrep_name_.push_back("B3u"); int B3u = 7;
     
-    g.character_table_ <<
+    g->character_table_ <<
       1, 1, 1, 1, 1, 1, 1, 1,
       1, 1,-1,-1, 1, 1,-1,-1,
       1,-1, 1,-1, 1,-1, 1,-1,
@@ -551,80 +551,43 @@ namespace l2func {
       1,-1, 1,-1,-1,+1,-1,+1,
       1,-1,-1,+1,-1,+1,+1,-1;
 
-    g.setSymOp();
-    g.setProdTable();
+    g->setSymOp();
+    g->setProdTable();
 
-    g.irrep_s = Ag;
-    g.irrep_x = B1u;
-    g.irrep_y = B2u;
-    g.irrep_z = B3u;
+    g->irrep_s = Ag;
+    g->irrep_x = B1u;
+    g->irrep_y = B2u;
+    g->irrep_z = B3u;
 
     return g;
   }
-  SymmetryGroup SymmetryGroup::C4() {
-    SymmetryGroup g(4, 3, "C4");
+  pSymmetryGroup SymmetryGroup::C4() {
+    pSymmetryGroup g(new SymmetryGroup(3, "C4"));
     
-    g.sym_op_class_.push_back(ClassMono(id()));
-    g.sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
+    g->sym_op_class_.push_back(ClassMono(id()));
+    g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
 
     SymOpClass C4;
     C4.push_back(cyclic(CoordZ, 4));
     C4.push_back(mult(cyclic(CoordZ, 4), 3));
-    g.sym_op_class_.push_back(C4);
+    g->sym_op_class_.push_back(C4);
 
-    g.irrep_name_.push_back("A");
-    g.irrep_name_.push_back("B");
-    g.irrep_name_.push_back("E");
+    g->irrep_name_.push_back("A");
+    g->irrep_name_.push_back("B");
+    g->irrep_name_.push_back("E");
 
-    g.character_table_ <<
+    g->character_table_ <<
       1, 1, 1,
       1,-1, 1,
       2, 0,-2;
 
-    g.setSymOp();
-    g.setProdTable();
+    g->setSymOp();
+    g->setProdTable();
 
-    g.irrep_s = 0;
-    g.irrep_x = 2;
-    g.irrep_y = 2;
-    g.irrep_z = 0;
+    g->irrep_s = 0;
+    g->irrep_x = 2;
+    g->irrep_y = 2;
+    g->irrep_z = 0;
     return g;
   }
-  /*
-  SymmetryGroup SymmetryGroup::C4v() {
-    SymmetryGroup g(8, 5, "C4v");
-
-    g.sym_op_class_.push_back(ClassMono(id()));
-    SymOpClass C4; 
-    C4.push_back(cyclic(CoordZ, 4));
-    C4.push_back(mult(cyclic(CoordZ, 4), 3));
-    g.sym_op_class_.push_back(C4);
-    SymOpClass C2;
-    C2.push_back(cyclic(CoordZ, 2));
-    g.sym_op_class_.push_back(C2);
-    SymOpClass sigv;
-    sigv.push_back(reflect(CoordX));
-    sigv.push_back(reflect(CoordY));
-    g.sym_op_class_.push_back(sigv);
-  }
-  */
-  /*
-  SymmetryGroup SymmetryGroup_Cs() {
-    SymmetryGroup cs(2, 2, "Cs");
-    return cs;
-  }
-  Irrep Cs_Ap() { return 0;}
-  Irrep Cs_App() { return 1; }
-  SymmetryGroup SymmetryGroup_C1() {
-    SymmetryGroup c1(1, "C1");
-    return c1;
-  }
-  SymmetryGroup SymmetryGroup_SO3(int maxl) {
-    SymmetryGroup c1((maxl+1)*(maxl+1), "SO(3)");
-    return c1;
-  }
-  Irrep SO3_LM(int L, int M) {
-    return L*L + (M+L);
-  }
-  */
 }

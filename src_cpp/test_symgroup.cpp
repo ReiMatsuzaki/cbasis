@@ -52,11 +52,11 @@ void ExpectOpEq(SymOp a, SymOp b, int num = 5) {
     << a->str() << endl
     << b->str() << endl;
 }
-void ExpectSymmetryGroup(const SymmetryGroup& g) {
+void ExpectSymmetryGroup(pSymmetryGroup g) {
 
   typedef SymmetryGroup::ItSymOp It;
-  It i0 = g.sym_op_.begin();
-  It end = g.sym_op_.end();
+  It i0 = g->sym_op_.begin();
+  It end = g->sym_op_.end();
   for(It it = i0; it != end; ++it) {
     for(It jt = i0; jt != end; ++jt) {
       SymOp ij = prod(*it, *jt);
@@ -169,29 +169,29 @@ TEST(SymOp, D2h) {
 
 TEST(SymGroup, C1) {
 
-  SymmetryGroup C1 = SymmetryGroup::C1();
+  pSymmetryGroup C1 = SymmetryGroup::C1();
   ExpectSymmetryGroup(C1);  
     
-  EXPECT_TRUE(C1.Non0_Scalar(0, 0));
-  EXPECT_TRUE(C1.Non0_Z(0, 0));
-  EXPECT_TRUE(C1.Non0_4(0, 0, 0, 0));
+  EXPECT_TRUE(C1->Non0_Scalar(0, 0));
+  EXPECT_TRUE(C1->Non0_Z(0, 0));
+  EXPECT_TRUE(C1->Non0_4(0, 0, 0, 0));
 }
 TEST(SymGroup, Cs) {
 
-  SymmetryGroup Cs = SymmetryGroup::Cs();
+  pSymmetryGroup Cs = SymmetryGroup::Cs();
   ExpectSymmetryGroup(Cs);  
 
-  EXPECT_TRUE(Cs.Non0_Scalar(0, 0));
-  EXPECT_TRUE(Cs.Non0_Scalar(1, 1));
-  EXPECT_FALSE(Cs.Non0_Scalar(0, 1));
-  EXPECT_FALSE(Cs.Non0_Scalar(1, 0));
+  EXPECT_TRUE(Cs->Non0_Scalar(0, 0));
+  EXPECT_TRUE(Cs->Non0_Scalar(1, 1));
+  EXPECT_FALSE(Cs->Non0_Scalar(0, 1));
+  EXPECT_FALSE(Cs->Non0_Scalar(1, 0));
 
-  EXPECT_TRUE(!Cs.Non0_Z(0, 0));
-  EXPECT_TRUE(!Cs.Non0_Z(1, 1));
-  EXPECT_TRUE( Cs.Non0_Z(0, 1));
-  EXPECT_TRUE( Cs.Non0_Z(1, 0));
+  EXPECT_TRUE(!Cs->Non0_Z(0, 0));
+  EXPECT_TRUE(!Cs->Non0_Z(1, 1));
+  EXPECT_TRUE( Cs->Non0_Z(0, 1));
+  EXPECT_TRUE( Cs->Non0_Z(1, 0));
 
-  EXPECT_TRUE( Cs.Non0_4(1, 0, 1, 0));
+  EXPECT_TRUE( Cs->Non0_4(1, 0, 1, 0));
 
   vector<PrimGTO> gs(2);
   gs[0] = PrimGTO(0, 0, 1, 0.0, 0.0, +0.2);
@@ -199,7 +199,7 @@ TEST(SymGroup, Cs) {
   
   MatrixXi sym_Ii;
   MatrixXi sig_Ii;
-  Cs.CalcSymMatrix(gs, sym_Ii, sig_Ii);
+  Cs->CalcSymMatrix(gs, sym_Ii, sig_Ii);
   
   MatrixXi ref_sym_Ii(2, 2), ref_sig_Ii(2, 2);
   ref_sym_Ii << 0, 1, 1, 0;
@@ -207,14 +207,14 @@ TEST(SymGroup, Cs) {
   EXPECT_MATXI_EQ(ref_sym_Ii, sym_Ii);
   EXPECT_MATXI_EQ(ref_sig_Ii, sig_Ii);
   
-  EXPECT_EQ(0, Cs.GetIrrep("A'"));
-  EXPECT_EQ(1, Cs.GetIrrep("A''"));
-  EXPECT_ANY_THROW(Cs.GetIrrep("A''''"));
+  EXPECT_EQ(0, Cs->GetIrrep("A'"));
+  EXPECT_EQ(1, Cs->GetIrrep("A''"));
+  EXPECT_ANY_THROW(Cs->GetIrrep("A''''"));
 
 }
 TEST(SymGroup, C2h) {
 
-  SymmetryGroup C2h = SymmetryGroup::C2h();
+  pSymmetryGroup C2h = SymmetryGroup::C2h();
   ExpectSymmetryGroup(C2h);  
 
   int Ag = 0;   
@@ -222,50 +222,50 @@ TEST(SymGroup, C2h) {
   int Au = 2; 
   int Bu = 3; 
 
-  EXPECT_TRUE(C2h.prod_table_(Ag, Ag, Ag));
-  EXPECT_TRUE(C2h.prod_table_(Ag, Bg, Bg));
-  EXPECT_TRUE(C2h.prod_table_(Ag, Au, Au));
-  EXPECT_TRUE(C2h.prod_table_(Ag, Bu, Bu));
+  EXPECT_TRUE(C2h->prod_table_(Ag, Ag, Ag));
+  EXPECT_TRUE(C2h->prod_table_(Ag, Bg, Bg));
+  EXPECT_TRUE(C2h->prod_table_(Ag, Au, Au));
+  EXPECT_TRUE(C2h->prod_table_(Ag, Bu, Bu));
 			                  
-  EXPECT_TRUE(C2h.prod_table_(Bg, Ag, Bg));
-  EXPECT_TRUE(C2h.prod_table_(Bg, Bg, Ag));
-  EXPECT_TRUE(C2h.prod_table_(Bg, Au, Bu));
-  EXPECT_TRUE(C2h.prod_table_(Bg, Bu, Au));
+  EXPECT_TRUE(C2h->prod_table_(Bg, Ag, Bg));
+  EXPECT_TRUE(C2h->prod_table_(Bg, Bg, Ag));
+  EXPECT_TRUE(C2h->prod_table_(Bg, Au, Bu));
+  EXPECT_TRUE(C2h->prod_table_(Bg, Bu, Au));
 			                  
-  EXPECT_TRUE(C2h.prod_table_(Au, Ag, Au));
-  EXPECT_TRUE(C2h.prod_table_(Au, Bg, Bu));
-  EXPECT_TRUE(C2h.prod_table_(Au, Au, Ag));
-  EXPECT_TRUE(C2h.prod_table_(Au, Bu, Bg));
+  EXPECT_TRUE(C2h->prod_table_(Au, Ag, Au));
+  EXPECT_TRUE(C2h->prod_table_(Au, Bg, Bu));
+  EXPECT_TRUE(C2h->prod_table_(Au, Au, Ag));
+  EXPECT_TRUE(C2h->prod_table_(Au, Bu, Bg));
 			                  
-  EXPECT_TRUE(C2h.prod_table_(Bu, Ag, Bu));
-  EXPECT_TRUE(C2h.prod_table_(Bu, Bg, Au));
-  EXPECT_TRUE(C2h.prod_table_(Bu, Au, Bg));
-  EXPECT_TRUE(C2h.prod_table_(Bu, Bu, Ag));
+  EXPECT_TRUE(C2h->prod_table_(Bu, Ag, Bu));
+  EXPECT_TRUE(C2h->prod_table_(Bu, Bg, Au));
+  EXPECT_TRUE(C2h->prod_table_(Bu, Au, Bg));
+  EXPECT_TRUE(C2h->prod_table_(Bu, Bu, Ag));
 }
 TEST(SymGroup, D2h) {
   
-  SymmetryGroup D2h = SymmetryGroup::D2h();
+  pSymmetryGroup D2h = SymmetryGroup::D2h();
   ExpectSymmetryGroup(D2h);
   //  cout << D2h.str() << endl;
   int Ag = 0;    
   int B1g = 1;
   int B2g = 2;  
   int B3g = 3;
-  int Au = 4; 
+  int Au = 4;
   int B1u = 5;   
   int B2u = 6;   
   int B3u = 7;   
   
-  EXPECT_TRUE(D2h.prod_table_(Ag, Au, Au));
-  EXPECT_TRUE(D2h.prod_table_(B2g, B3g, B1g));
-  EXPECT_TRUE(D2h.prod_table_(Au, B2u, B2g));
-  EXPECT_TRUE(D2h.prod_table_(B1u, B1g, Au));
-  EXPECT_TRUE(D2h.prod_table_(B3u, B2u, B1g));
+  EXPECT_TRUE(D2h->prod_table_(Ag, Au, Au));
+  EXPECT_TRUE(D2h->prod_table_(B2g, B3g, B1g));
+  EXPECT_TRUE(D2h->prod_table_(Au, B2u, B2g));
+  EXPECT_TRUE(D2h->prod_table_(B1u, B1g, Au));
+  EXPECT_TRUE(D2h->prod_table_(B3u, B2u, B1g));
   
-  EXPECT_FALSE(D2h.prod_table_(Au, B2u, B3g));
+  EXPECT_FALSE(D2h->prod_table_(Au, B2u, B3g));
 }
 TEST(SymGroup, C4) {
-  SymmetryGroup C4 = SymmetryGroup::C4();
+  pSymmetryGroup C4 = SymmetryGroup::C4();
   //  cout << C4.str() << endl;
   ExpectSymmetryGroup(C4);
 
@@ -273,20 +273,20 @@ TEST(SymGroup, C4) {
   Irrep B(1);
   Irrep E(2);
 
-  EXPECT_TRUE(C4.prod_table_(A, A, A));
-  EXPECT_TRUE(C4.prod_table_(A, B, B));
-  EXPECT_TRUE(C4.prod_table_(A, E, E));
+  EXPECT_TRUE(C4->prod_table_(A, A, A));
+  EXPECT_TRUE(C4->prod_table_(A, B, B));
+  EXPECT_TRUE(C4->prod_table_(A, E, E));
 
-  EXPECT_TRUE(C4.prod_table_(B, A, B));
-  EXPECT_TRUE(C4.prod_table_(B, B, A));
-  EXPECT_TRUE(C4.prod_table_(B, E, E));
+  EXPECT_TRUE(C4->prod_table_(B, A, B));
+  EXPECT_TRUE(C4->prod_table_(B, B, A));
+  EXPECT_TRUE(C4->prod_table_(B, E, E));
 
-  EXPECT_TRUE(C4.prod_table_(E, A, E));
-  EXPECT_TRUE(C4.prod_table_(E, B, E));
-  EXPECT_TRUE(C4.prod_table_(E, E, A));
-  EXPECT_TRUE(C4.prod_table_(E, E, B));
+  EXPECT_TRUE(C4->prod_table_(E, A, E));
+  EXPECT_TRUE(C4->prod_table_(E, B, E));
+  EXPECT_TRUE(C4->prod_table_(E, E, A));
+  EXPECT_TRUE(C4->prod_table_(E, E, B));
 
-  EXPECT_TRUE(!C4.prod_table_(E, E, E));
+  EXPECT_TRUE(!C4->prod_table_(E, E, E));
   
 }
 

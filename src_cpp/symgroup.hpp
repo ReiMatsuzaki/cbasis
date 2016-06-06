@@ -121,6 +121,8 @@ namespace l2func {
   //typedef Eigen::Matrix<std::complex<int>, Eigen::Dynamic, Eigen::Dynamic> MatrixXci;
   //typedef Eigen::Matrix<std::complex<int>, 1, Eigen::Dynamic> VectorXci;
 
+  class SymmetryGroup;
+  typedef boost::shared_ptr<SymmetryGroup> pSymmetryGroup;
   class SymmetryGroup {
   public:
     std::string name_;
@@ -138,7 +140,7 @@ namespace l2func {
     typedef std::vector<SymOp>::const_iterator ItSymOp;
 
     // ---- Constructors ----
-    SymmetryGroup(int order, int num_class, std::string name);
+    SymmetryGroup(int num_class, std::string name);
 
     // ---- Accessor ----
     int order()  const { return sym_op_.size(); }
@@ -163,11 +165,12 @@ namespace l2func {
 		       Eigen::MatrixXi& a, Eigen::MatrixXi& sig);
 
     // ---- Specific symmetry group ----
-    static SymmetryGroup C1();
-    static SymmetryGroup Cs();
-    static SymmetryGroup C2h();
-    static SymmetryGroup D2h();
-    static SymmetryGroup C4();
+    
+    static pSymmetryGroup C1();
+    static pSymmetryGroup Cs();
+    static pSymmetryGroup C2h();
+    static pSymmetryGroup D2h();
+    static pSymmetryGroup C4();
     //    static SymmetryGroup C4v();
   };
 }
