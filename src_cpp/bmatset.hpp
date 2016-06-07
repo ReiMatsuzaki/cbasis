@@ -12,6 +12,7 @@
 
 namespace l2func {
 
+  typedef std::map<int, Eigen::VectorXcd> BVec;
   typedef std::map<std::pair<int, int>, Eigen::MatrixXcd> BMat;
   typedef std::map<std::string, BMat> BMatMap;
 
@@ -24,6 +25,7 @@ namespace l2func {
     BMatSet();
     BMatSet(int _block_num);
     void SetMatrix(std::string name, int i, int j, Eigen::MatrixXcd& a);
+    bool Exist(std::string, int i, int j);
     const Eigen::MatrixXcd& GetMatrix(std::string name, int i, int j);
     void SelfAdd(std::string name, int ib, int jb, int i, int j, dcomplex v);
     dcomplex GetValue(std::string name, int ib, int jb, int i, int j);
@@ -32,8 +34,7 @@ namespace l2func {
   };  
   
   void swap(BMat& a, BMat& b);
-  void swap(BMatSet& a, BMatSet& b);
-
+  void swap(BMatSet& a, BMatSet& b);  
 }
 
 #endif

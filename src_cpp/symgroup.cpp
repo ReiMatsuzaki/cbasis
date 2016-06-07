@@ -279,7 +279,6 @@ namespace l2func {
     return SymOp(ptr);
   }
 
-
   // ==== Symmetry operation class ====
   SymOpClass ClassMono(SymOp o) {
     SymOpClass x;
@@ -420,6 +419,9 @@ namespace l2func {
     string msg; SUB_LOCATION(msg);
     msg += ": fail to find name. Input name is " + name;
     throw runtime_error(msg);
+  }
+  string SymmetryGroup::GetIrrepName(Irrep irrep) const {
+    return irrep_name_[irrep];
   }
 
   // ---- Specific symmetry group ----

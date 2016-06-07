@@ -353,7 +353,6 @@ TEST(SymGTOs, CalcERI_sym) {
 TEST(SymGTOs, CalcERI_time2) {
 
   Timer timer;
-
   pSymmetryGroup sym = SymmetryGroup::D2h();
   Irrep irrep_s  = sym->GetIrrep("Ag");
   Irrep irrep_x = sym->GetIrrep("B1u");
@@ -365,6 +364,13 @@ TEST(SymGTOs, CalcERI_time2) {
   Irrep irrep_x = sym->GetIrrep("A'");
   Irrep irrep_y = sym->GetIrrep("A'");
   Irrep irrep_z = sym->GetIrrep("A''");
+  */
+  /*
+  pSymmetryGroup sym = SymmetryGroup::C4();
+  Irrep irrep_s  = sym->GetIrrep("A");
+  Irrep irrep_x = sym->GetIrrep("E");
+  Irrep irrep_y = sym->GetIrrep("E");
+  Irrep irrep_z = sym->GetIrrep("A");
   */
 
   SymGTOs gtos(sym);
@@ -414,6 +420,8 @@ TEST(SymGTOs, CalcERI_time2) {
 	      eri2->At(0, 0, 0, 0, 2, 1, 5, 0));
 
   timer.Display();
+  cout << "size(eri1): " << eri1->size() << endl;
+  cout << "size(eri2): " << eri2->size() << endl;
   delete eri1;
   delete eri2;
 }
@@ -451,10 +459,11 @@ TEST(Time, MatrixAccess) {
     for(int j = 0; j < n; j++)
       dcomplex x = b[j+n*i];
   timer.End("Array2");
+  timer.Display();
 
-
+  Timer timer1;
   MatrixXcd xyz(3, 2);
-  timer.Start("MatrixXyz");
+  timer1.Start("MatrixXyz");
   for(int i = 0; i < n; i++)
     for(int j = 0; j < n; j++) {
       xyz(0, 0) = 1.0;
@@ -465,10 +474,10 @@ TEST(Time, MatrixAccess) {
       dcomplex x= xyz(0, 0);
       x =  xyz(0, 1);
     }
-  timer.End("MatrixXyz");
+  timer1.End("MatrixXyz");
 
   dcomplex xs[2];
-  timer.Start("ArrayXyz");
+  timer1.Start("ArrayXyz");
   for(int i = 0; i < n; i++)
     for(int j = 0; j < n; j++) {
       xs[0]= 1.0*i*j;
@@ -479,9 +488,23 @@ TEST(Time, MatrixAccess) {
       dcomplex x= xs[0];
       x =  xs[1];
     }
-  timer.End("ArrayXyz");
+  timer1.End("ArrayXyz");
 
-  timer.Display();
+  vector<dcomplex> cs(2);
+  timer1.Start("VectorXyz");
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++) {
+      cs[0]= 1.0*i*j;
+      cs[1] = 1.2*i*j;
+    }
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++) {
+      dcomplex x= cs[0];
+      x =  cs[1];
+    }
+  timer1.End("VectorXyz");  
+  
+  timer1.Display();
 
 }
 

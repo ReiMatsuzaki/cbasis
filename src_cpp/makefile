@@ -73,6 +73,15 @@ check_2eint: ${BINDIR}/test_2eint
 time_2eint: ${BINDIR}/test_2eint
 	iprofiler -timeprofiler ./$<
 
+# -- test hf --
+HF_OBJS = test_hf.o b2eint.o symmolint.o symgroup.o bmatset.o angmoment.o eigen_plus.o \
+	fact.o mol_func.o
+${BINDIR}/test_hf: $(foreach o, ${HF_OBJS}, ${BINDIR}/$o)
+	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
+.PHONY: check_hf
+check_hf: ${BINDIR}/test_hf
+	${RUNE} ./$<
+
 # -- test L2(R1) --
 L2OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o exp_int.o delta.o
 ${BINDIR}/l2.a: $(foreach o, ${L2OBJS}, ${BINDIR}/$o)

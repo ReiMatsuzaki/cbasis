@@ -149,6 +149,7 @@ namespace l2func {
     std::string str() const;
     void Display() const;
     Irrep GetIrrep(std::string name) const;
+    std::string GetIrrepName(Irrep irrep) const;
     
     // ---- Calculation ----
     void setProdTable();

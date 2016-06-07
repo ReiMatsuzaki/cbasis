@@ -19,9 +19,8 @@ namespace l2func {
     mat_map_[name][make_pair(i, j)].swap(mat);
 
   }
-  const MatrixXcd& BMatSet::GetMatrix(string name, int i, int j) {
-    
-#ifndef ARG_NO_CHECK
+  bool BMatSet::Exist(string name, int i, int j) {
+
     if(i < 0 || block_num_ <= i ||
        j < 0 || block_num_ <= j) {
       string msg; SUB_LOCATION(msg);
@@ -29,20 +28,19 @@ namespace l2func {
       throw runtime_error(msg);
     }
 
-    if(mat_map_.find(name) == mat_map_.end()) {
-      string msg; SUB_LOCATION(msg);
-      msg += " : key not found.\n" ;
-      msg += "name : " + name;
-      throw runtime_error(msg);
-    }
+    if(mat_map_.find(name) == mat_map_.end()) 
+      return false;
 
-    if(mat_map_[name].find(make_pair(i, j)) == mat_map_[name].end()) {
-      string msg; SUB_LOCATION(msg);
-      msg += " : matrix (i,j) is not found.\n";
-      throw runtime_error(msg);
-    }
-#endif
+    if(mat_map_[name].find(make_pair(i, j)) == mat_map_[name].end()) 
+      return false;
 
+    MatrixXcd& mat = mat_map_[name][make_pair(i, j)];
+    if(mat.rows() == 0 || mat.cols() == 0)
+      return false;
+    
+    return true;
+  }
+  const MatrixXcd& BMatSet::GetMatrix(string name, int i, int j) {
     return mat_map_[name][make_pair(i, j)];
   }
   void BMatSet::SelfAdd(string name, int i, int j, int a, int b, dcomplex v) {

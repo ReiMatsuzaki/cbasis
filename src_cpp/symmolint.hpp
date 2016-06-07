@@ -42,8 +42,12 @@ namespace l2func {
 
     // ---- Calculation data ----
     pSymmetryGroup sym_group;
-    Eigen::MatrixXcd xyz_iat;
-    Eigen::MatrixXi  ns_ipn;
+    std::vector<dcomplex> x_iat;
+    std::vector<dcomplex> y_iat;
+    std::vector<dcomplex> z_iat;
+    std::vector<int> nx_ipn;
+    std::vector<int> ny_ipn;
+    std::vector<int> nz_ipn;
     Eigen::VectorXcd zeta_iz;
     std::vector<Reduction> rds;
 
@@ -61,12 +65,12 @@ namespace l2func {
 
     // ---- Accessors ----
     std::string str() const;
-    inline int nx(int ipn) const { return ns_ipn(0, ipn); }
-    inline int ny(int ipn) const { return ns_ipn(1, ipn); }
-    inline int nz(int ipn) const { return ns_ipn(2, ipn); }
-    inline dcomplex x(int iat) const { return xyz_iat(0, iat); }
-    inline dcomplex y(int iat) const { return xyz_iat(1, iat); }
-    inline dcomplex z(int iat) const { return xyz_iat(2, iat); }
+    inline int nx(int ipn) const { return nx_ipn[ipn]; }
+    inline int ny(int ipn) const { return ny_ipn[ipn]; }
+    inline int nz(int ipn) const { return nz_ipn[ipn]; }
+    inline dcomplex x(int iat) const { return x_iat[iat]; }
+    inline dcomplex y(int iat) const { return y_iat[iat]; }
+    inline dcomplex z(int iat) const { return z_iat[iat]; }
     inline dcomplex zeta(int iz) const { return zeta_iz[iz]; }
     inline cRdsIt begin_rds() const { return rds.begin(); }
     inline cRdsIt end_rds() const { return rds.end(); }
@@ -76,8 +80,8 @@ namespace l2func {
     void AddNs(Eigen::Vector3i ns);
     void AddZeta(const Eigen::VectorXcd& zs);
     void AddRds(const Reduction& rds);   
-    inline int size_at() const { return xyz_iat.cols();}
-    inline int size_pn() const { return ns_ipn.cols(); }
+    inline int size_at() const { return x_iat.size();}
+    inline int size_pn() const { return nx_ipn.size(); }
     inline int size_prim() const { return this->size_at() * this->size_pn(); }
     inline int size_zeta() const { return zeta_iz.rows(); }
 
@@ -86,11 +90,11 @@ namespace l2func {
     void SetUp();
 
     // ---- old ----
-    SubSymGTOs(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
-	       std::vector<Reduction> cs, Eigen::VectorXcd zs);
+    //    SubSymGTOs(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
+    //	       std::vector<Reduction> cs, Eigen::VectorXcd zs);
     int size_cont() const { return rds.size(); }
-    const Eigen::MatrixXcd& get_xyz_iat() { return xyz_iat; }
-    const Eigen::MatrixXi&  get_ns_ipn() const { return  ns_ipn; }
+    //    const Eigen::MatrixXcd& get_xyz_iat() { return xyz_iat; }
+    //    const Eigen::MatrixXi&  get_ns_ipn() const { return  ns_ipn; }
     const Reduction&  get_rds(int i) const { return  rds[i]; }
     const Eigen::VectorXcd& get_zeta_iz() const { return  zeta_iz; }    
     void Display() const;

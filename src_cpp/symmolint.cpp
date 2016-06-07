@@ -19,7 +19,7 @@ namespace l2func {
   typedef MultArray<dcomplex, 4> A4dc;
 
   // ==== coef R ====
-  // -- more efficient code can be used!
+  // -- more efficient code can be used! --
   void calc_R_coef(dcomplex zetaP,
 		   dcomplex wPx, dcomplex wPy, dcomplex wPz,		   
 		   const MatrixXcd& xyzq_kat, A2dc& Fjs_kat,
@@ -72,13 +72,10 @@ namespace l2func {
   void Reduction::Display() const {
     cout << this->str() ;
   }
-
   
   // ==== Sub ====
   SubSymGTOs::SubSymGTOs(pSymmetryGroup g) {
     sym_group = g;
-    xyz_iat = MatrixXcd::Zero(3, 0);
-    ns_ipn = MatrixXi::Zero(3, 0);
     zeta_iz = VectorXcd::Zero(0);
     setupq = false;
   }
@@ -114,11 +111,6 @@ namespace l2func {
       }
     }
 
-    if(xyz_iat.rows() != 3 || ns_ipn.rows() != 3) {
-      string msg; SUB_LOCATION(msg);
-      throw runtime_error(msg);
-    }
-
     // ---- compute internal values ----
     ip_iat_ipn = MatrixXi::Zero(this->size_at(), this->size_pn());
     int ip(0);
@@ -129,9 +121,9 @@ namespace l2func {
       }
     
     maxn = 0;
-    for(int ipn = 0; ipn < ns_ipn.cols(); ipn++) {
-      if(maxn < ns_ipn(0, ipn) + ns_ipn(1, ipn) + ns_ipn(2, ipn))
-	maxn = ns_ipn(0, ipn) + ns_ipn(1, ipn) + ns_ipn(2, ipn);
+    for(int ipn = 0; ipn < size_pn(); ipn++) {
+      if(maxn < nx(ipn) + ny(ipn) + nz(ipn))
+	maxn = nx(ipn) + ny(ipn) + nz(ipn);
     }
     for(RdsIt it = rds.begin(); it != rds.end(); ++it) {
       it->set_zs_size(zeta_iz.size());
@@ -160,37 +152,16 @@ namespace l2func {
   void SubSymGTOs::AddXyz(Vector3cd xyz) {
 
     setupq = false;
-    int num_atom = xyz_iat.cols();
-    MatrixXcd res(3, num_atom + 1);
+    this->x_iat.push_back(xyz[0]);
+    this->y_iat.push_back(xyz[1]);
+    this->z_iat.push_back(xyz[2]);
 
-    for(int i = 0; i < num_atom; i++) {
-      for(int j = 0; j < 3; j++)
-	res(j, i) = xyz_iat(j, i);
-    }
-
-    res(0, num_atom) = xyz(0);
-    res(1, num_atom) = xyz(1);
-    res(2, num_atom) = xyz(2);
-
-    xyz_iat.swap(res);    
   }
   void SubSymGTOs::AddNs(Vector3i ns) {
-
     setupq = false;
-
-    int num = ns_ipn.cols();
-    MatrixXi res(3, num+ 1);
-
-    for(int i = 0; i < num; i++) {
-      for(int j = 0; j < 3; j++)
-	res(j, i) = ns_ipn(j, i);
-    }
-
-    res(0, num) =ns(0);
-    res(1, num) =ns(1);
-    res(2, num) =ns(2);
-
-    ns_ipn.swap(res);    
+    this->nx_ipn.push_back(ns[0]);
+    this->ny_ipn.push_back(ns[1]);
+    this->nz_ipn.push_back(ns[2]);
   }
   void SubSymGTOs::AddZeta(const VectorXcd& zs) {
     setupq = false;
@@ -205,21 +176,16 @@ namespace l2func {
     setupq = false;
     rds.push_back(_rds);
   }
-  SubSymGTOs::SubSymGTOs(MatrixXcd xyz, MatrixXi ns,
-			 vector<Reduction> ao, VectorXcd zs) :
-    xyz_iat(xyz), ns_ipn(ns), zeta_iz(zs), rds(ao) {
-
-    setupq = false;
-
-    this->SetUp();
-
-  }
   string SubSymGTOs::str() const {
     ostringstream oss;
     oss << "==== SubSymGTOs ====" << endl;
     //oss << "sym : " << sym_group->str() << endl;
-    oss << "xyz : " << endl <<  xyz_iat << endl;
-    oss << "ns  : " << endl <<  ns_ipn << endl;
+    oss << "xyz : " << endl;
+    for(int iat = 0; iat < size_at(); iat++)
+      cout <<  x(iat) << y(iat) << z(iat) << endl;
+    oss << "ns  : " << endl;
+    for(int ipn = 0; ipn < size_pn(); ipn++) 
+      cout <<  nx(ipn) << ny(ipn) << nz(ipn) << endl;
     oss << "zeta: " << endl <<  zeta_iz << endl;
     oss << "maxn: " << maxn << endl;
     for(cRdsIt it = rds.begin(); it != rds.end(); ++it)
@@ -302,7 +268,6 @@ namespace l2func {
     }
   }
   
- 
   // ==== SymGTOs ====
   // ---- Constructors ----
   SymGTOs::SymGTOs(pSymmetryGroup _sym_group):
@@ -441,36 +406,36 @@ namespace l2func {
 	  for(int iat = 0; iat < niat; iat++) {
 	    for(int jat = 0; jat < niat; jat++) {
 	      dcomplex xi, xj, yi, yj, zi, zj, wPx, wPy, wPz;
-		xi = isub->xyz_iat(0, iat); xj = isub->xyz_iat(0, jat);
-		yi = isub->xyz_iat(1, iat); yj = isub->xyz_iat(1, jat);
-		zi = isub->xyz_iat(2, iat); zj = isub->xyz_iat(2, jat);
-		wPx = (zetai*xi+zetai*xj)/zetaP;
-		wPy = (zetai*yi+zetai*yj)/zetaP;
-		wPz = (zetai*zi+zetai*zj)/zetaP;
-		dcomplex d2 = pow(xi-xj,2) + pow(yi-yj,2) + pow(zi-zj,2);	
-		dcomplex eAB = exp(-zetai*zetai/zetaP*d2);
-		dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
-		int mi = isub->maxn;
-		calc_d_coef(mi,mi,0, zetaP,wPx,xi,xj,dxmap);
-		calc_d_coef(mi,mi,0, zetaP,wPy,yi,yj,dymap);
-		calc_d_coef(mi,mi,0, zetaP,wPz,zi,zj,dzmap);
-		
-		for(int ipn = 0; ipn < nipn; ipn++) {
-		  for(int jpn = 0; jpn < nipn; jpn++) {		    
-		    int nxi, nxj, nyi, nyj, nzi, nzj;
-		    nxi = isub->ns_ipn(0, ipn); nxj = isub->ns_ipn(0, jpn);
-		    nyi = isub->ns_ipn(1, ipn); nyj = isub->ns_ipn(1, jpn);
-		    nzi = isub->ns_ipn(2, ipn); nzj = isub->ns_ipn(2, jpn);
-		    dcomplex dx00, dy00, dz00;
-		    dx00 = dxmap(nxi, nxj ,0);
-		    dy00 = dymap(nyi, nyj ,0);
-		    dz00 = dzmap(nzi, nzj ,0);
-		    dcomplex s_ele = dx00 * dy00 * dz00;
-		    norm2 += ce * s_ele *
-		      irds->coef_iat_ipn(iat, ipn) *
-		      irds->coef_iat_ipn(jat, jpn);
-		  }
+	      xi = isub->x(iat); xj = isub->x(jat);
+	      yi = isub->y(iat); yj = isub->y(jat);
+	      zi = isub->z(iat); zj = isub->z(jat);
+	      wPx = (zetai*xi+zetai*xj)/zetaP;
+	      wPy = (zetai*yi+zetai*yj)/zetaP;
+	      wPz = (zetai*zi+zetai*zj)/zetaP;
+	      dcomplex d2 = pow(xi-xj,2) + pow(yi-yj,2) + pow(zi-zj,2);	
+	      dcomplex eAB = exp(-zetai*zetai/zetaP*d2);
+	      dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
+	      int mi = isub->maxn;
+	      calc_d_coef(mi,mi,0, zetaP,wPx,xi,xj,dxmap);
+	      calc_d_coef(mi,mi,0, zetaP,wPy,yi,yj,dymap);
+	      calc_d_coef(mi,mi,0, zetaP,wPz,zi,zj,dzmap);
+	      
+	      for(int ipn = 0; ipn < nipn; ipn++) {
+		for(int jpn = 0; jpn < nipn; jpn++) {		    
+		  int nxi, nxj, nyi, nyj, nzi, nzj;
+		  nxi = isub->nx(ipn); nxj = isub->nx(jpn);
+		  nyi = isub->ny(ipn); nyj = isub->ny(jpn);
+		  nzi = isub->nz(ipn); nzj = isub->nz(jpn);
+		  dcomplex dx00, dy00, dz00;
+		  dx00 = dxmap(nxi, nxj ,0);
+		  dy00 = dymap(nyi, nyj ,0);
+		  dz00 = dzmap(nzi, nzj ,0);
+		  dcomplex s_ele = dx00 * dy00 * dz00;
+		  norm2 += ce * s_ele *
+		    irds->coef_iat_ipn(iat, ipn) *
+		    irds->coef_iat_ipn(jat, jpn);
 		}
+	      }
 	    }
 	  }
 
@@ -498,10 +463,17 @@ namespace l2func {
   int SymGTOs::max_n() const {
     int max_n(0);
     for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
-      for(int ipn = 0; ipn < isub->ns_ipn.cols(); ipn++)
-	for(int i = 0; i < 3; i++)
-	  if(max_n < isub->ns_ipn(i, ipn))
-	    max_n = isub->ns_ipn(i, ipn);
+      for(int ipn = 0; ipn < isub->size_pn(); ipn++) {
+	int nx(isub->nx(ipn));
+	int ny(isub->ny(ipn));
+	int nz(isub->nz(ipn));
+	if(max_n < nx)
+	  max_n = nx;
+	if(max_n < ny)
+	  max_n = ny;
+	if(max_n < nz)
+	  max_n = nz;
+      }
     }    
     return max_n;
   }
@@ -621,9 +593,9 @@ namespace l2func {
 	for(int ipn = 0; ipn < nipn; ipn++) {
 	  for(int jpn = 0; jpn < njpn; jpn++) {
 	    int nxi, nxj, nyi, nyj, nzi, nzj;
-	    nxi = isub->ns_ipn(0, ipn); nxj = jsub->ns_ipn(0, jpn);
-	    nyi = isub->ns_ipn(1, ipn); nyj = jsub->ns_ipn(1, jpn);
-	    nzi = isub->ns_ipn(2, ipn); nzj = jsub->ns_ipn(2, jpn);
+	    nxi = isub->nx(ipn); nxj = jsub->nx(jpn);
+	    nyi = isub->ny(ipn); nyj = jsub->ny(jpn);
+	    nzi = isub->nz(ipn); nzj = jsub->nz(jpn);
 
 	    dcomplex s_ele = dxmap(nxi,nxj,0) * dymap(nyi,nyj,0) * dzmap(nzi,nzj,0);
 	    dcomplex z_ele = dxmap(nxi,nxj,0)*dymap(nyi,nyj,0)*
@@ -1005,10 +977,6 @@ namespace l2func {
 	if(!is_zero)
 	  find_non0 = true;
       }
-      
-      //if(!find_non0) {
-      //cout << "int is 0" << endl;
-      //}
 
       // -- compute if found non0 --
       if(find_non0) {
@@ -1024,14 +992,6 @@ namespace l2func {
 	for(int lpn = 0; lpn < npnl; lpn++) {
 	  int ip = isub->ip_iat_ipn(iat, ipn); int jp = jsub->ip_iat_ipn(jat, jpn);
 	  int kp = ksub->ip_iat_ipn(kat, kpn); int lp = lsub->ip_iat_ipn(lat, lpn);
-
-	  /*
-	  dcomplex v = CalcPrimOne(isub->nx(ipn), isub->ny(ipn), isub->nz(ipn),
-			    jsub->nx(jpn), jsub->ny(jpn), jsub->nz(jpn),
-			    ksub->nx(kpn), ksub->ny(kpn), ksub->nz(kpn),
-			    lsub->nx(lpn), lsub->ny(lpn), lsub->nz(lpn), buf);
-	  prim(ip, jp, kp, lp) = v;
-	  */
 
 	  int mark_I[10]; bool is_zero, is_youngest;
 	  CheckEqERI(gtos, isub, jsub, ksub, lsub, ip, jp, kp, lp,
@@ -1055,6 +1015,7 @@ namespace l2func {
 	}
       }
     }
+
   }
   // -- Simple --
   void CalcPrimERI2(SymGTOs gtos, SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
@@ -1160,7 +1121,7 @@ namespace l2func {
 
   void CalcTransERI(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
 		   int iz, int jz, int kz, int lz,
-		    A4dc& prim, IB2EInt* eri) {
+		    A4dc& prim, IB2EInt* eri, bool use_perm=false) {
 
     int nati, natj, natk, natl;
     nati = isub->size_at(); natj = jsub->size_at();
@@ -1169,44 +1130,153 @@ namespace l2func {
     int npni, npnj, npnk, npnl;
     npni = isub->size_pn(); npnj = jsub->size_pn();
     npnk = ksub->size_pn(); npnl = lsub->size_pn();
+    
 
     for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds)
     for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds)
     for(RdsIt krds = ksub->rds.begin(); krds != ksub->rds.end(); ++krds)
     for(RdsIt lrds = lsub->rds.begin(); lrds != lsub->rds.end(); ++lrds) {
 
+      if(isub->sym_group->Non0_4(irds->irrep, jrds->irrep, krds->irrep, lrds->irrep)) {
+	dcomplex cz(irds->coef_iz(iz) * 
+		    jrds->coef_iz(jz) * 
+		    krds->coef_iz(kz) * 
+		    lrds->coef_iz(lz));
+	dcomplex cumsum(0);
+	int idx(0);
+	for(int iat = 0; iat < nati; iat++) {
+	for(int ipn = 0; ipn < npni; ipn++) {
+        for(int jat = 0; jat < natj; jat++) {
+	for(int jpn = 0; jpn < npnj; jpn++) {
+        for(int kat = 0; kat < natk; kat++) {
+	for(int kpn = 0; kpn < npnk; kpn++) {
+        for(int lat = 0; lat < natl; lat++) {
+        for(int lpn = 0; lpn < npnl; lpn++) {
+	  int ip = isub->ip_iat_ipn(iat, ipn);
+	  dcomplex ci(irds->coef_iat_ipn(iat, ipn));
+	  int jp = jsub->ip_iat_ipn(jat, jpn);
+	  dcomplex cj(jrds->coef_iat_ipn(jat, jpn));
+	  int kp = ksub->ip_iat_ipn(kat, kpn);
+	  dcomplex ck(krds->coef_iat_ipn(kat, kpn));
+	  int lp = lsub->ip_iat_ipn(lat, lpn);
+	  dcomplex cc = ci * cj * ck * lrds->coef_iat_ipn(lat, lpn) * cz;
+	  cumsum += cc * prim(ip, jp, kp, lp); ++idx;
+	}}}}}}}}
+	eri->Set(irds->irrep, jrds->irrep, krds->irrep, lrds->irrep,
+		 irds->offset+iz, jrds->offset+jz, krds->offset+kz, lrds->offset+lz,
+		 cumsum);
+	if(use_perm)
+	  eri->Set(krds->irrep, lrds->irrep, irds->irrep, jrds->irrep,
+		   krds->offset+kz, lrds->offset+lz, irds->offset+iz, jrds->offset+jz,
+		   cumsum);
+      }
+    }
+
+  }
+  void CalcTransERI0(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
+		   int iz, int jz, int kz, int lz,
+		     A4dc& prim, IB2EInt* eri) {
+
+    int nati, natj, natk, natl;
+    nati = isub->size_at(); natj = jsub->size_at();
+    natk = ksub->size_at(); natl = lsub->size_at();
+
+    int npni, npnj, npnk, npnl;
+    npni = isub->size_pn(); npnj = jsub->size_pn();
+    npnk = ksub->size_pn(); npnl = lsub->size_pn();
+    
+
+    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds)
+    for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds)
+    for(RdsIt krds = ksub->rds.begin(); krds != ksub->rds.end(); ++krds)
+    for(RdsIt lrds = lsub->rds.begin(); lrds != lsub->rds.end(); ++lrds) {
+      
+      dcomplex cz(irds->coef_iz(iz) * 
+		  jrds->coef_iz(jz) * 
+		  krds->coef_iz(kz) * 
+		  lrds->coef_iz(lz));
       dcomplex cumsum(0);
       int idx(0);
-      for(int iat = 0; iat < nati; iat++) 
-      for(int jat = 0; jat < natj; jat++) 
-      for(int kat = 0; kat < natk; kat++) 
-      for(int lat = 0; lat < natl; lat++) 
-      for(int ipn = 0; ipn < npni; ipn++) 
-      for(int jpn = 0; jpn < npnj; jpn++) 
-      for(int kpn = 0; kpn < npnk; kpn++) 
+      for(int iat = 0; iat < nati; iat++) {
+      for(int ipn = 0; ipn < npni; ipn++) {
+      for(int jat = 0; jat < natj; jat++) {
+      for(int jpn = 0; jpn < npnj; jpn++) {
+      for(int kat = 0; kat < natk; kat++) {
+      for(int kpn = 0; kpn < npnk; kpn++) {
+      for(int lat = 0; lat < natl; lat++) {
       for(int lpn = 0; lpn < npnl; lpn++) {
-
 	int ip = isub->ip_iat_ipn(iat, ipn);
+	dcomplex ci(irds->coef_iat_ipn(iat, ipn));
 	int jp = jsub->ip_iat_ipn(jat, jpn);
+	dcomplex cj(jrds->coef_iat_ipn(jat, jpn));
 	int kp = ksub->ip_iat_ipn(kat, kpn);
+	dcomplex ck(krds->coef_iat_ipn(kat, kpn));
 	int lp = lsub->ip_iat_ipn(lat, lpn);
-	
-	dcomplex cc = (irds->coef_iat_ipn(iat, ipn) *
-		       jrds->coef_iat_ipn(jat, jpn) *
-		       krds->coef_iat_ipn(kat, kpn) *
-		       lrds->coef_iat_ipn(lat, lpn) *
-		       irds->coef_iz(iz) * 
-		       jrds->coef_iz(jz) * 
-		       krds->coef_iz(kz) * 
-		       lrds->coef_iz(lz));
+	dcomplex cc = ci * cj * ck * lrds->coef_iat_ipn(lat, lpn) * cz;
 	cumsum += cc * prim(ip, jp, kp, lp); ++idx;
-      }
+      }}}}}}}}
       eri->Set(irds->irrep, jrds->irrep, krds->irrep, lrds->irrep,
 	       irds->offset+iz, jrds->offset+jz, krds->offset+kz, lrds->offset+lz,
 	       cumsum);
     }
   }
 
+  // ---- summary for ERI ----
+  void CalcERI2(SymGTOs& gtos, SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
+		A4dc& prim, IB2EInt* eri) {
+    for(int iz = 0; iz < isub->size_zeta(); ++iz)
+    for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+    for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+    for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+      CalcPrimERI1(gtos, isub, jsub, ksub, lsub,
+		   isub->zeta_iz[iz], jsub->zeta_iz[jz],
+		   ksub->zeta_iz[kz], lsub->zeta_iz[lz],
+		   prim);
+      CalcTransERI0(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
+    }
+  }
+  void CalcERI1(SymGTOs& gi, SymGTOs& gj,SymGTOs& gk,SymGTOs& gl,
+		SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
+		A4dc& prim, IB2EInt* eri) {
+    if(!ExistNon0(isub, jsub, ksub, lsub))
+      return;
+
+    int n_ij = (distance(gi.subs.begin(), isub) +
+		distance(gj.subs.begin(), jsub) * gi.subs.size());
+    int n_kl = (distance(gk.subs.begin(), ksub) +
+		distance(gl.subs.begin(), lsub) * gk.subs.size());    
+
+    if(isub == ksub && jsub == lsub) {
+    for(int iz = 0; iz < isub->size_zeta(); ++iz)
+      for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+      for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+      for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+	int nnnij = iz + isub->size_zeta() * jz;
+	int nnnkl = kz + ksub->size_zeta() * lz;
+	if(nnnij >= nnnkl) {
+	  CalcPrimERI1(gi, isub, jsub, ksub, lsub,
+		       isub->zeta_iz[iz], jsub->zeta_iz[jz],
+		       ksub->zeta_iz[kz], lsub->zeta_iz[lz],
+		       prim);
+	  if(nnnij == nnnkl)
+	    CalcTransERI(isub, jsub, ksub, lsub, kz, lz, iz, jz, prim, eri, false);
+	  else
+	    CalcTransERI(isub, jsub, ksub, lsub, kz, lz, iz, jz, prim, eri, true);
+	}
+      }
+    } else if(n_ij > n_kl){
+      for(int iz = 0; iz < isub->size_zeta(); ++iz)
+      for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+      for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+      for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+	CalcPrimERI1(gi, isub, jsub, ksub, lsub,
+		     isub->zeta_iz[iz], jsub->zeta_iz[jz],
+		     ksub->zeta_iz[kz], lsub->zeta_iz[lz],
+		     prim);
+	CalcTransERI(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri, true);
+      }      
+    }
+  }
   void SymGTOs::loop() {
 
     for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
@@ -1299,42 +1369,22 @@ namespace l2func {
     for(SubIt lsub = subs.begin(); lsub != subs.end(); ++lsub) {
       
       if(method == 0) {
-	for(int iz = 0; iz < isub->size_zeta(); ++iz)
-        for(int jz = 0; jz < jsub->size_zeta(); ++jz)
-        for(int kz = 0; kz < ksub->size_zeta(); ++kz)
-        for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
-	  CalcPrimERI0(*this, isub, jsub, ksub, lsub, iz, jz, kz, lz, prim);
-	  CalcTransERI(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
-	}}
+	throw runtime_error("not implemented");
+      }
       if(method == 1) {
-	if(ExistNon0(isub, jsub, ksub, lsub)) {
-	  for(int iz = 0; iz < isub->size_zeta(); ++iz)
-	  for(int jz = 0; jz < jsub->size_zeta(); ++jz)
-	  for(int kz = 0; kz < ksub->size_zeta(); ++kz)
-	  for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
-	    CalcPrimERI1(*this, isub, jsub, ksub, lsub,
-			 isub->zeta_iz[iz], jsub->zeta_iz[jz],
-			 ksub->zeta_iz[kz], lsub->zeta_iz[lz],
-			 prim);
-	    CalcTransERI(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
-	  }}}
+	CalcERI1(*this, *this,*this,*this,isub, jsub, ksub, lsub, prim, eri);
+      }
       if(method == 2) {
-	for(int iz = 0; iz < isub->size_zeta(); ++iz)
-        for(int jz = 0; jz < jsub->size_zeta(); ++jz)
-        for(int kz = 0; kz < ksub->size_zeta(); ++kz)
-        for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
-	  CalcPrimERI2(*this, isub, jsub, ksub, lsub, iz, jz, kz, lz, prim);
-	  CalcTransERI(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
-	}
+	CalcERI2(*this, isub, jsub, ksub, lsub, prim, eri);
       }
     }
   }
   
   // ---- AtR ----
   bool IsCenter(SubIt isub, int iat, double eps) {
-    dcomplex x  = isub->xyz_iat(0, iat);
-    dcomplex y  = isub->xyz_iat(1, iat);
-    dcomplex z  = isub->xyz_iat(2, iat);
+    dcomplex x  = isub->x(iat);
+    dcomplex y  = isub->y(iat);
+    dcomplex z  = isub->z(iat);
     dcomplex a2 = x*x+y*y+z*z;
     dcomplex a = sqrt(a2);
     return (abs(a) < eps);
@@ -1342,9 +1392,9 @@ namespace l2func {
   void AtR_Ylm_cen(SubIt isub, int iz,
 		   int ipn, dcomplex r, int L, int M, dcomplex* v, dcomplex* dv) {
 
-    int nx = isub->ns_ipn(0, ipn);
-    int ny = isub->ns_ipn(1, ipn);
-    int nz = isub->ns_ipn(2, ipn);
+    int nx = isub->nx(ipn);
+    int ny = isub->ny(ipn);
+    int nz = isub->nz(ipn);
     int nn = nx + ny + nz;
     dcomplex zeta = isub->zeta_iz(iz);
     if(L == 0) {
@@ -1389,13 +1439,13 @@ namespace l2func {
 
     dcomplex res;
 
-    int nn = (isub->ns_ipn(0, ipn) +
-	      isub->ns_ipn(1, ipn) +
-	      isub->ns_ipn(2, ipn));
+    int nn = (isub->nx(ipn) +
+	      isub->ny(ipn) +
+	      isub->nz(ipn));
     dcomplex zeta = isub->zeta_iz(iz);
-    dcomplex x  = isub->xyz_iat(0, iat);
-    dcomplex y  = isub->xyz_iat(1, iat);
-    dcomplex z  = isub->xyz_iat(2, iat);
+    dcomplex x  = isub->x(iat);
+    dcomplex y  = isub->y(iat);
+    dcomplex z  = isub->z(iat);
     dcomplex xxyy = x*x+y*y;
     dcomplex a2 = xxyy+z*z;
     dcomplex a = sqrt(a2);
