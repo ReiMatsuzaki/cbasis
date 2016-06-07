@@ -325,6 +325,9 @@ TEST(SymGTOs, CalcERI_sym) {
   gtos.SetAtoms(xyzq);
   gtos.SetUp();  
 
+  BMatSet mat;
+  gtos.CalcMat(&mat);
+
   int n(gtos.size_basis());
   IB2EInt *eri1 = new B2EIntMem(pow(n, 4));
   IB2EInt *eri2 = new B2EIntMem(pow(n, 4));
@@ -409,6 +412,9 @@ TEST(SymGTOs, CalcERI_time2) {
   MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
   gtos.SetAtoms(xyzq);
   gtos.SetUp();
+
+  BMatSet mat;
+  gtos.CalcMat(&mat);
 
   IB2EInt *eri1 = new B2EIntMem(pow(num_z+3*num_z_p, 4)); 
   IB2EInt *eri2 = new B2EIntMem(pow(num_z+3*num_z_p, 4)); 

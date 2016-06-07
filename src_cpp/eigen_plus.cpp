@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include <Eigen/Eigenvalues>
 #include <Eigen/Core>
 
@@ -72,6 +74,15 @@ void SortEigs(VectorXcd& eigs, MatrixXcd& eigvecs) {
     
 }
 void generalizedComplexEigenSolve(const CM& f, const CM& s, CM* c, CV* eig){
+
+  if(f.rows() != s.rows() || f.rows() == 0) {
+    string msg; SUB_LOCATION(msg);
+    stringstream oss;
+    oss << msg << ": invalid matrix size for f and s." << endl
+	<< "s = " << s.rows() << s.cols() << endl
+	<< "f = " << f.rows() << f.cols() << endl;
+    throw runtime_error(oss.str());
+  }
 
   // s2inv means S^(-1/2)
   CM s2inv;

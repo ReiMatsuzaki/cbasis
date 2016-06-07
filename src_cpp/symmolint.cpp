@@ -182,10 +182,10 @@ namespace l2func {
     //oss << "sym : " << sym_group->str() << endl;
     oss << "xyz : " << endl;
     for(int iat = 0; iat < size_at(); iat++)
-      cout <<  x(iat) << y(iat) << z(iat) << endl;
+      oss <<  x(iat) << y(iat) << z(iat) << endl;
     oss << "ns  : " << endl;
     for(int ipn = 0; ipn < size_pn(); ipn++) 
-      cout <<  nx(ipn) << ny(ipn) << nz(ipn) << endl;
+      oss <<  nx(ipn) << ny(ipn) << nz(ipn) << endl;
     oss << "zeta: " << endl <<  zeta_iz << endl;
     oss << "maxn: " << maxn << endl;
     for(cRdsIt it = rds.begin(); it != rds.end(); ++it)
@@ -602,7 +602,6 @@ namespace l2func {
 	      (dzmap(nzi,nzj+1,0)+zj*dzmap(nzi,nzj,0));
 	    dcomplex t_ele = calc_tele(isub, jsub, zetaj, ipn, jpn,
 				       dxmap, dymap, dzmap);	    
-
 	    prim.s(iat, ipn, jat, jpn) =  ce * s_ele;
 	    prim.t(iat, ipn, jat, jpn) =  -0.5* ce * t_ele;
 	    prim.z(iat, ipn, jat, jpn) =  ce*z_ele;
@@ -615,19 +614,22 @@ namespace l2func {
 	      prim.v(iat, ipn, jat, jpn) =  -2.0*M_PI/zetaP*eAB * v_ele;
 	    }
 	  }}}}
-
   }
   void CalcTrans(SubIt isub, SubIt jsub, int iz, int jz,
 		 PrimBasis& prim, BMatSet& mat_map) {
+
+    int niat(isub->size_at()); int njat(jsub->size_at());
+    int nipn(isub->size_pn()); int njpn(jsub->size_pn());
+    //    cout << "tras before set : " << niat << nipn << njat << njpn << endl;
 
     for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
       for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
 	dcomplex cumsum_s(0.0), cumsum_t(0.0), cumsum_v(0.0);
 	dcomplex cumsum_z(0.0);
-	for(int iat = 0; iat < isub->size_at(); iat++) {
-	  for(int ipn = 0; ipn < isub->size_pn(); ipn++) {
-	    for(int jat = 0; jat < jsub->size_at(); jat++) { 
-	      for(int jpn = 0; jpn < jsub->size_pn(); jpn++) {
+	for(int iat = 0; iat < niat; iat++) {
+	  for(int ipn = 0; ipn < nipn; ipn++) {
+	    for(int jat = 0; jat < njat; jat++) { 
+	      for(int jpn = 0; jpn < njpn; jpn++) {
 		dcomplex cc = 
 		  irds->coef_iat_ipn(iat, ipn) *
 		  jrds->coef_iat_ipn(jat, jpn) * 
@@ -636,11 +638,11 @@ namespace l2func {
 		cumsum_s += cc*prim.s(iat, ipn, jat, jpn);
 		cumsum_t += cc*prim.t(iat, ipn, jat, jpn);
 		cumsum_v += cc*prim.v(iat, ipn, jat, jpn);
-		cumsum_z += cc*prim.z(iat, jpn, jat, jpn);
+		cumsum_z += cc*prim.z(iat, ipn, jat, jpn);
 	      }}}}
 	int i(irds->offset + iz); int j(jrds->offset + jz);
 	int isym(irds->irrep); int jsym(jrds->irrep);
-		
+	
 	mat_map.SelfAdd("s", isym, jsym, i, j, cumsum_s);
 	mat_map.SelfAdd("t", isym, jsym, i, j, cumsum_t);
 	mat_map.SelfAdd("v", isym, jsym, i, j, cumsum_v);

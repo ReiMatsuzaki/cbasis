@@ -74,7 +74,7 @@ time_2eint: ${BINDIR}/test_2eint
 	iprofiler -timeprofiler ./$<
 
 # -- test hf --
-HF_OBJS = test_hf.o b2eint.o symmolint.o symgroup.o bmatset.o angmoment.o eigen_plus.o \
+HF_OBJS = test_hf.o mo.o b2eint.o symmolint.o symgroup.o bmatset.o angmoment.o eigen_plus.o \
 	fact.o mol_func.o
 ${BINDIR}/test_hf: $(foreach o, ${HF_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
