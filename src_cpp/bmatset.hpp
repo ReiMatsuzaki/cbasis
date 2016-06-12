@@ -24,6 +24,7 @@ namespace l2func {
   public:
     BMatSet();
     BMatSet(int _block_num);
+    int block_num() const { return block_num_; }
     void SetMatrix(std::string name, int i, int j, Eigen::MatrixXcd& a);
     bool Exist(std::string, int i, int j);
     const Eigen::MatrixXcd& GetMatrix(std::string name, int i, int j);

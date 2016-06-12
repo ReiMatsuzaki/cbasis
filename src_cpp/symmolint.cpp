@@ -806,6 +806,11 @@ namespace l2func {
 
     dcomplex zarg(zetaP * zetaPp / (zetaP + zetaPp));
     dcomplex argIncGamma(zarg * dist2(wPx-wPpx, wPy-wPpy, wPz-wPpz));
+    cout << "zeta:" << zetai << zetaj << zetak << zetal << endl;
+    cout << "z:   " << zi    << zj    << zk    << zl    << endl;
+    cout << "zetaP: " << zetaP << zetaPp << endl;
+    cout << "wP:    " << wPx << wPy << wPz << wPpx << wPpy << wPpz << endl;
+    cout << "arg" << zarg << argIncGamma << endl;
     IncompleteGamma(mi+mj+mk+ml, argIncGamma, &buf.Fjs(0));      
     int mm = mi + mj + mk + ml;
     calc_R_coef_eri(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz, mm,

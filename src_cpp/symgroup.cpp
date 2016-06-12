@@ -522,6 +522,35 @@ namespace l2func {
 
     return g;
   }
+  pSymmetryGroup SymmetryGroup::C2v() {
+    pSymmetryGroup g(new SymmetryGroup(4, "C2v"));
+
+    g->sym_op_class_.push_back(ClassMono(id()));
+    g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
+    g->sym_op_class_.push_back(ClassMono(reflect(CoordY)));
+    g->sym_op_class_.push_back(ClassMono(reflect(CoordX)));
+
+    g->irrep_name_.push_back("A1"); int A1 = 0;
+    g->irrep_name_.push_back("A2"); //int Bg = 1;
+    g->irrep_name_.push_back("B1"); int B1 = 2;
+    g->irrep_name_.push_back("B2"); int B2 = 3;
+    
+    g->character_table_ <<
+      1, 1, 1, 1,
+      1, 1,-1,-1,
+      1,-1, 1,-1,
+      1,-1,-1, 1;
+
+    g->setSymOp();
+    g->setProdTable();
+
+    g->irrep_s = A1;
+    g->irrep_x = B1;
+    g->irrep_y = B2;
+    g->irrep_z = A1;
+
+    return g;
+  }
   pSymmetryGroup SymmetryGroup::D2h() {
     pSymmetryGroup g(new SymmetryGroup(8, "D2h"));
     

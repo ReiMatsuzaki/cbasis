@@ -6,6 +6,7 @@ namespace l2func {
   double DFactorial(int n);
   int DoubleFactorial(int n);
   double DDoubleFactorial(int n);
+  int Combination(int n, int k);
 }
 
 #endif

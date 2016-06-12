@@ -1,6 +1,7 @@
 #include <string>
 #include <sstream>
 #include "mol_func.hpp"
+#include "fact.hpp"
 
 using namespace std;
 
@@ -95,7 +96,6 @@ namespace l2func {
 
     delete anR; delete anI; delete fmR; delete fmI; delete bmR; delete bmI;
   }
-
   void IncompleteGamma_F2(int max_m, dcomplex z, dcomplex* res) {
 
     double x = real(z);
@@ -146,7 +146,7 @@ namespace l2func {
     }
     
   }
-
+    
   void IncompleteGamma(int max_m, dcomplex z, dcomplex* res_list) {
     
     double x = real(z);
@@ -156,7 +156,7 @@ namespace l2func {
     if(x < -eps) {
       std::string msg;
       SUB_LOCATION(msg);
-      msg += "negative Re[z] is not implemented yet.";
+      msg += "negative Re[z] is not supported. Use ExpIncompleteGamma with -z";
       throw std::runtime_error(msg);
     } 
     
@@ -171,6 +171,182 @@ namespace l2func {
 	res_list[m] = conj(res_list[m]);
     }
 
+  }
+
+  void ExpIncompleteGamma_G1(int max_m, dcomplex z, dcomplex *res_list) {
+    double x = real(z);
+    double y = imag(z);
+    double eps(pow(10.0, -10.0));
+    double delta(pow(10.0, -15.0));
+    static const int MAX_M(100);
+    if(max_m >= MAX_M) {
+      string msg; SUB_LOCATION(msg); msg += ": max_m must be lesser than 100";
+      throw runtime_error(msg);
+    }
+
+    if(x < +eps || y < -eps) {
+      std::string msg;
+      SUB_LOCATION(msg);
+      msg += "Re[z] and Im[z] must positive in F1 algorithms";
+      throw std::runtime_error(msg);
+    }
+    double xxyy(x*x + y*y);
+    double az(sqrt(xxyy));
+    double two_xxyy = 2.0 * xxyy;
+
+    double c(sqrt((M_PI * (az+x) / (8.0 * xxyy))));
+    double s(sqrt((M_PI * (az-x) / (8.0 * xxyy))));
+    double an_R(0), an_I(0), anm1_R(0), anm1_I(0);
+    bool conv(false);
+    int NF_max(50);
+    anm1_R = x /two_xxyy; anm1_I = -y / two_xxyy;
+    double Sn_R((c*exp(-x)*sin(y) + s*exp(-x)*cos(y)) + anm1_R);
+    double Sn_I((c*exp(-x)*cos(y) - s*exp(-x)*sin(y)) + anm1_I);
+    for(int n = 1; n < NF_max; n++) {      
+      an_R = (2 * n - 1) * ( x / two_xxyy * anm1_R + y / two_xxyy * anm1_I);
+      an_I = (2 * n - 1) * ( x / two_xxyy * anm1_I - y / two_xxyy * anm1_R);
+      Sn_R += an_R;
+      Sn_I += an_I;
+      anm1_R = an_R;
+      anm1_I = an_I;
+      if(delta > abs(an_R/Sn_R) && delta > abs(an_I/Sn_I)) {
+	conv = true;
+	break;
+      }
+    }
+    
+    if(!conv) {
+      string msg; SUB_LOCATION(msg);
+      ostringstream oss; 
+      oss << msg << ": not converged" << endl;
+      throw runtime_error(oss.str());
+    }
+
+    double g_R[MAX_M];
+    double g_I[MAX_M];
+    g_R[0] = Sn_R;
+    g_I[0] = Sn_I;
+    for(int m = 1; m <= max_m; m++) {
+      g_R[m] = -(2*m-1) * (x/two_xxyy * g_R[m-1] + y/two_xxyy * g_I[m-1]);
+      g_I[m] = +(2*m-1) * (y/two_xxyy * g_R[m-1] - x/two_xxyy * g_I[m-1]);
+    }
+
+    double b_R[MAX_M];
+    double b_I[MAX_M];
+    b_R[0] = 0.0; // b_R[1] = +x/two_xxyy;
+    b_I[0] = 0.0; // b_I[1] = -y/two_xxyy;
+    for(int m = 1; m <= max_m; m++) {
+      b_R[m] = +x/two_xxyy - (2*m-1)*(x/two_xxyy * b_R[m-1] + y/two_xxyy*b_I[m-1]);
+      b_I[m] = -y/two_xxyy + (2*m-1)*(y/two_xxyy * b_R[m-1] - x/two_xxyy*b_I[m-1]);
+    }
+    
+    for(int m = 0; m <= max_m; m++) {
+      res_list[m] = dcomplex(g_R[m] + b_R[m], g_I[m] + b_I[m]);
+    }
+
+  }
+  void ExpIncompleteGamma_G2(int max_m, dcomplex z, dcomplex *res_list) {
+
+    cout << "G2" << endl;
+    double x = real(z);
+    double y = imag(z);
+    cout << x << "+" << y << endl;
+    double delta(pow(10.0, -15.0));
+    /*
+    static const int MAX_M(100);
+    if(max_m >= MAX_M) {
+      string msg; SUB_LOCATION(msg); msg += ": max_m must be lesser than 100";
+      throw runtime_error(msg);
+    }
+    */
+    if(x < -delta) {
+      std::string msg;
+      SUB_LOCATION(msg);
+      msg += "Re[z] must positive in G2 algorithms";
+      throw std::runtime_error(msg);
+    }
+
+    for(int m = 0; m <= max_m; m++) {
+
+      bool conv(false);
+      int max_n(40);
+      double An_R(0), An_I(0), Bn_R(0), Bn_I(0);
+      double Anm1_R(0), Anm1_I(0), Bnm1_R(0), Bnm1_I(0);
+      double Anm2_R(0), Anm2_I(0), Bnm2_R(0), Bnm2_I(0);
+      Bnm2_R = 1;                      Bnm2_I = 0.0;
+      Bnm1_R = 1 + 2.0/(2.0*m+5.0)*x;  Bnm1_I = 2.0/(2.0*m+5.0)*y;
+      Anm2_R = 1;                      Anm2_I = 0; 
+      Anm1_R = Bnm1_R - 2.0*x/(2*m+3); Anm1_I = Bnm1_I - 2.0*y/(2*m+3); 
+      dcomplex Bn(0), An(0);
+
+      for(int n = 2; n < max_n; n++) {
+	double F1 = (double(2*(2*m+1)) /
+		     double((4*n+2*m+1)*(4*n+2*m-3)));
+	double F2 = (double(8*(n-1)*(2*n+2*m-1)) /
+		     double((4*n+2*m-1)*(4*n+2*m-3)*(4*n+2*m-3)*(4*n+2*m-5)));
+	An_R = (1+F1*x)*Anm1_R - F1*y*Anm1_I + (x*x-y*y)*F2*Anm2_R - 2*x*y*F2*Anm2_I;
+	An_I = (1+F1*x)*Anm1_I + F1*y*Anm1_R + (x*x-y*y)*F2*Anm2_I + 2*x*y*F2*Anm2_R;
+	Bn_R = (1+F1*x)*Bnm1_R - F1*y*Bnm1_I + (x*x-y*y)*F2*Bnm2_R - 2*x*y*F2*Bnm2_I;
+	Bn_I = (1+F1*x)*Bnm1_I + F1*y*Bnm1_R + (x*x-y*y)*F2*Bnm2_I + 2*x*y*F2*Bnm2_R;
+
+	Bn = 0.0;
+	for(int j = 0; j <= n; j++)
+	  Bn += (double(DoubleFactorial(2*n+2*m+2*j+1)) / 
+		 double(DoubleFactorial(4*n+2*m+1)) *
+		 Combination(n, j) *
+		 pow(2.0*z, n-j));
+	
+	dcomplex Gn(dcomplex(An_R, An_I) / dcomplex(Bn_R, Bn_I));
+	dcomplex Gnm1(dcomplex(Anm1_R, Anm1_I) / dcomplex(Bnm1_R, Bnm1_I));
+	if(abs((Gn-Gnm1)/Gn) < delta) {
+	  conv = true; break;
+	}
+	Anm2_R = Anm1_R; Anm2_I = Anm1_I; Anm1_R = An_R; Anm1_I = An_I; 
+	Bnm2_R = Bnm1_R; Bnm2_I = Bnm1_I; Bnm1_R = Bn_R; Bnm1_I = Bn_I; 
+      }
+
+      if(!conv) {
+	string msg; SUB_LOCATION(msg); msg += ": not converged.";
+	cout <<
+	  ((abs((Anm1_R-Anm2_R)/An_R) < delta) ? "Yes" : "No") << endl << 
+	  ((abs((Anm1_I-Anm2_I)/An_I) < delta) ? "Yes" : "No") << endl << 
+	  ((abs((Bnm1_R-Bnm2_R)/Bn_R) < delta) ? "Yes" : "No") << endl << 
+	  ((abs((Bnm1_I-Bnm2_I)/Bn_I) < delta) ? "Yes" : "No") << endl;
+	cout <<
+	  (Anm1_R-Anm2_R)/An_R << endl << 
+	  (Anm1_I-Anm2_I)/An_I << endl << 
+	  (Bnm1_R-Bnm2_R)/Bn_R << endl << 
+	  (Bnm1_I-Bnm2_I)/Bn_I << endl;
+	throw runtime_error(msg);
+      }
+
+      res_list[m] = 1.0/(2*m+1) * dcomplex(An_R, An_I) / dcomplex(Bn_R, Bn_I);
+    }
+  }
+  
+  void ExpIncompleteGamma(int max_m, dcomplex z, dcomplex* res_list) {
+    double x = real(z);
+    double y = imag(z);
+    double eps(pow(10.0, -10.0));
+
+    if(x < -eps) {
+      std::string msg;
+      SUB_LOCATION(msg);
+      msg += "negative Re[z] is not supported. use IncompleteGamma with -z.";
+      throw std::runtime_error(msg);
+    }
+ 
+    if(x > -eps && y > -eps) {
+      if( (x > 36.0 && y > 36) || x + y > 51) {
+	ExpIncompleteGamma_G1(max_m, z, res_list);
+      } else {
+	ExpIncompleteGamma_G2(max_m, z, res_list);
+      }
+    } else {
+      ExpIncompleteGamma(max_m, dcomplex(x, -y), res_list);
+      for(int m = 0; m <= max_m; m++)
+	res_list[m] = conj(res_list[m]);
+    }
   }
 
   dcomplex coef_d(dcomplex zetap,

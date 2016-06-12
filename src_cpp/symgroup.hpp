@@ -170,6 +170,7 @@ namespace l2func {
     static pSymmetryGroup C1();
     static pSymmetryGroup Cs();
     static pSymmetryGroup C2h();
+    static pSymmetryGroup C2v();
     static pSymmetryGroup D2h();
     static pSymmetryGroup C4();
     //    static SymmetryGroup C4v();

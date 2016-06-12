@@ -242,6 +242,36 @@ TEST(SymGroup, C2h) {
   EXPECT_TRUE(C2h->prod_table_(Bu, Au, Bg));
   EXPECT_TRUE(C2h->prod_table_(Bu, Bu, Ag));
 }
+TEST(SymGroup, C2v) {
+  pSymmetryGroup C2v = SymmetryGroup::C2v();
+  ExpectSymmetryGroup(C2v);
+
+  int A1 = C2v->GetIrrep("A1");
+  int A2 = C2v->GetIrrep("A2");
+  int B1 = C2v->GetIrrep("B1");
+  int B2 = C2v->GetIrrep("B2");
+
+  EXPECT_TRUE(C2v->prod_table_(A1, A1, A1));
+  EXPECT_TRUE(C2v->prod_table_(A1, A2, A2));
+  EXPECT_TRUE(C2v->prod_table_(A1, B1, B1));
+  EXPECT_TRUE(C2v->prod_table_(A1, B2, B2));
+
+  EXPECT_TRUE(C2v->prod_table_(A2, A1, A2));
+  EXPECT_TRUE(C2v->prod_table_(A2, A2, A1));
+  EXPECT_TRUE(C2v->prod_table_(A2, B1, B2));
+  EXPECT_TRUE(C2v->prod_table_(A2, B2, B1));
+
+  EXPECT_TRUE(C2v->prod_table_(B1, A1, B1));
+  EXPECT_TRUE(C2v->prod_table_(B1, A2, B2));
+  EXPECT_TRUE(C2v->prod_table_(B1, B1, A1));
+  EXPECT_TRUE(C2v->prod_table_(B1, B2, A2));
+
+  EXPECT_TRUE(C2v->prod_table_(B2, A1, B2));
+  EXPECT_TRUE(C2v->prod_table_(B2, A2, B1));
+  EXPECT_TRUE(C2v->prod_table_(B2, B1, A2));
+  EXPECT_TRUE(C2v->prod_table_(B2, B2, A1));
+
+}
 TEST(SymGroup, D2h) {
   
   pSymmetryGroup D2h = SymmetryGroup::D2h();

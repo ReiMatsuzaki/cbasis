@@ -131,6 +131,10 @@ TEST(Fact, Factorial) {
   EXPECT_EQ(105, DoubleFactorial(7));
    
 }
+TEST(Fact, Combination) {
+  EXPECT_EQ(10, Combination(5, 2));
+  EXPECT_EQ(1, Combination(4, 0));
+}
 
 TEST(Erfc, real_erfc) {
 
@@ -576,6 +580,40 @@ TEST(MolFunc, IncGamma) {
   EXPECT_C_EQ(1.0, us[0]);
   EXPECT_C_EQ(1.0/3.0, us[1]);
   EXPECT_C_EQ(1.0/5.0, us[2]);
+
+  delete us;
+
+}
+TEST(MolFunc, ExpIncGamma) {
+
+  /*
+    see ref_molfunc.py
+    python code :
+    from scipy.special import hyp1f1
+    def inc_gamma(m, z):
+        return 1.0/(2*m+1) * hyp1f1(1; m+1.5; z)
+    print inc_gamma(0, 50.0-5.50j)
+    print inc_gamma(1, 50.0-5.50j)
+    print inc_gamma(2, 50.0-5.50j)
+   */
+
+  dcomplex* us = new dcomplex[11];
+  dcomplex ref;
+  ExpIncompleteGamma(10, dcomplex(40.0, 40.0), us);
+  ref = dcomplex(0.00624843963457, -0.0063295853572);
+  EXPECT_C_EQ(ref, us[0]);
+  ref = dcomplex(0.00625050716077, -0.00617138734381);
+  EXPECT_C_EQ(ref, us[1]);
+  ref = dcomplex(0.00624851650343, -0.0060170894781);
+  EXPECT_C_EQ(ref, us[2]);
+
+  ExpIncompleteGamma(10, dcomplex(5.0, -4.3), us);
+  ref = dcomplex(0.0547155856638, 0.056197386053);
+  EXPECT_C_EQ(ref, us[0]);
+  ref = dcomplex(0.0571173928686, 0.0435012192617);
+  EXPECT_C_EQ(ref, us[1]);
+  ref = dcomplex(0.0540860523735, 0.0334636392627);
+  EXPECT_C_EQ(ref, us[2]);
 
   delete us;
 

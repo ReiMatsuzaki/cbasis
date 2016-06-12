@@ -34,4 +34,7 @@ namespace l2func {
   double DDoubleFactorial(int n) {
     return DoubleFactorial(n) * 1.0;
   }
+  int Combination(int n, int k) {
+    return Factorial(n) / (Factorial(k) * Factorial(n-k));
+  }
 }

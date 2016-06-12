@@ -14,6 +14,11 @@ namespace l2func {
   // Eq. (24)(25)(26) are incorrect.
   void IncompleteGamma(int max_m, dcomplex z, dcomplex* res);
 
+  // K.Ishida J.Comput.Chem. 25, (2004), 739
+  // G1 and G2 algorithms 
+  // Evaluate G(z) = Exp(-z)F(-z) for Re[z] > 0
+  void ExpIncompleteGamma(int max_m, dcomplex z, dcomplex* res_list);
+
   dcomplex coef_d(dcomplex zetap,
 		  dcomplex wPk, dcomplex wAk, dcomplex wBk,
 		  int nAk, int nBk, int Nk);

@@ -24,8 +24,13 @@ namespace l2func {
     if(i < 0 || block_num_ <= i ||
        j < 0 || block_num_ <= j) {
       string msg; SUB_LOCATION(msg);
-      msg += "Error for int i or j.";
-      throw runtime_error(msg);
+      stringstream ss;
+      ss << msg;
+      ss << ": Error for int i or j" << endl;
+      ss << "i: " << i << endl;
+      ss << "j: " << j << endl;
+      ss << "block_num: " << block_num_ << endl;
+      throw runtime_error(ss.str());
     }
 
     if(mat_map_.find(name) == mat_map_.end()) 

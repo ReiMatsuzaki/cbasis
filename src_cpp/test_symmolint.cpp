@@ -533,6 +533,90 @@ TEST(H2Plus, energy) {
   cout << eig << endl;
 
 }
+TEST(H2Plus, matrix) {
+  
+  // ==== Symmetry ====
+  pSymmetryGroup D2h = SymmetryGroup::D2h();
+
+  // ==== Sub ====
+  cout << 1 << endl;
+  SubSymGTOs sub1(D2h);
+  sub1.AddXyz(Vector3cd(0, 0, +0.7));
+  sub1.AddXyz(Vector3cd(0, 0, -0.7));
+  sub1.AddNs( Vector3i( 0, 0, 0));
+  VectorXcd z1(4); z1 << 2.013, 0.1233, 0.0411, 0.0137; sub1.AddZeta(z1);
+  MatrixXcd c1_1(2, 1); c1_1 <<+1.0,+1.0; sub1.AddRds(Reduction(0, c1_1));
+  MatrixXcd c1_2(2, 1); c1_2 <<+1.0,-1.0; sub1.AddRds(Reduction(1, c1_2));
+  sub1.SetUp();
+
+  cout << 2 << endl;
+  SubSymGTOs sub2(D2h);
+  sub2.AddXyz(Vector3cd(0, 0, +0.7));
+  sub2.AddXyz(Vector3cd(0, 0, -0.7));
+  sub2.AddNs( Vector3i( 0, 0, 1));
+  VectorXcd z2(1); z2 << 1.0; sub2.AddZeta(z2);
+  MatrixXcd C2_1(2, 1); C2_1 << +1,-1; sub2.AddRds(Reduction(0, C2_1));
+  MatrixXcd C2_2(2, 1); C2_2 << +1,+1; sub2.AddRds(Reduction(1, C2_2));
+  sub2.SetUp();
+
+  cout << 3 << endl;
+  SubSymGTOs sub3(D2h);
+  sub3.AddXyz(Vector3cd(0, 0, 0));
+  sub3.AddNs( Vector3i( 0, 0, 0));
+  VectorXcd z3(1); z3 << dcomplex(0.011389, -0.002197); sub3.AddZeta(z3); 
+  MatrixXcd C3_1(1, 1); C3_1 << 1; sub3.AddRds(Reduction(0, C3_1));
+  sub3.SetUp();
+  
+  cout << 4 << endl;
+  SubSymGTOs sub4(D2h);
+  sub4.AddXyz(Vector3cd(0, 0, 0));
+  sub4.AddNs( Vector3i( 2, 0, 0));
+  sub4.AddNs( Vector3i( 0, 2, 0));
+  sub4.AddNs( Vector3i( 0, 0, 2));
+  VectorXcd z4(1); z4 << dcomplex(5.063464, -0.024632); sub4.AddZeta(z4);
+  MatrixXcd C4_1(1, 3); C4_1 << -1,-1,+2; sub4.AddRds(Reduction(0, C4_1 ));
+  sub4.SetUp();
+
+  // ==== GTOs ====
+  cout << "GTOs" << endl;
+  SymGTOs gtos(D2h);
+  gtos.AddSub(sub1); gtos.AddSub(sub2); gtos.AddSub(sub3); gtos.AddSub(sub4);
+  MatrixXcd xyzq(4, 2); xyzq << 
+			  0,    0,
+			  0,    0,
+			  +0.7, -0.7,
+			  1.0,  1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+
+  // ==== matrix evaluation ====
+  BMatSet mat;
+  gtos.CalcMat(&mat);
+  //  IB2EInt *eri = new B2EIntMem(pow(gtos.size_basis(), 4));
+
+  // copied from ~/calc/ccolumbus
+  dcomplex s00(2.2781505348887450);
+  dcomplex s11(3.7723621068772371);
+  dcomplex s01(1.1443980248362513);
+  dcomplex s44(2.7205973097946861);
+  dcomplex s55(1);
+  dcomplex s54(-2.9723198989659500*0.001,  1.0081573799329419*0.001);
+  dcomplex s16(3.5564593409758150*0.001,  2.8861860781924722 * 0.00001);
+  dcomplex s66(11.999999999999995);
+  EXPECT_C_EQ(s01/(sqrt(s00)*sqrt(s11)), mat.GetMatrix("s", 0, 0)(0, 1));
+  EXPECT_C_EQ(s54/(sqrt(s55)*sqrt(s44)), mat.GetMatrix("s", 0, 0)(5, 4));
+  EXPECT_C_EQ(s16/(sqrt(s11)*sqrt(s66)), mat.GetMatrix("s", 0, 0)(1, 6));
+
+  s00 = 1.7218494651112561;
+  s11 = 0.22763789312276095;
+  s01 = 0.12974083877243192;
+  EXPECT_C_EQ(s01/sqrt(s11*s00), mat.GetMatrix("s", 1, 1)(0, 1));
+
+  dcomplex v01 = -0.28905219384317249;
+  EXPECT_C_EQ(v01/sqrt(s11*s00), mat.GetMatrix("v", 1, 1)(0, 1));
+  
+}
+
 
 int main(int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
