@@ -247,6 +247,8 @@ namespace l2func {
   }
   void ExpIncompleteGamma_G2(int max_m, dcomplex z, dcomplex *res_list) {
 
+    cout << "G2" << endl;
+
     double x = real(z);
     double y = imag(z);
     double delta(pow(10.0, -15.0));
