@@ -1,3 +1,5 @@
+#include <fstream>
+#include <iostream>
 #include "b2eint.hpp"
 
 namespace l2func {
@@ -32,14 +34,63 @@ namespace l2func {
 
   // ==== Mem version ====
   // ---- Constructors ----
-  B2EIntMem::B2EIntMem(int n):
-    capacity_(n), size_(0), idx_(0),
-    ibs(n), jbs(n), kbs(n), lbs(n),
-    is(n), js(n), ks(n), ls(n),
-    ts(n) , vs(n) {}
+  B2EIntMem::B2EIntMem(int n) {
+    this->Init(n);
+  }
+  B2EIntMem::B2EIntMem(string fn) {
+
+    ifstream f(fn, ios::in|ios::binary);
+    
+    if(!f) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": file not found";
+      throw runtime_error(msg);
+    }
+
+    int num;
+    f.read((char*)&num, sizeof(int));
+
+    this->Init(num);
+
+    for(int idx = 0; idx < num; idx++) {
+      int ib,jb,kb,lb,i,j,k,l,t;
+      dcomplex v;      
+      f.read((char*)&ib, sizeof(int));
+      f.read((char*)&jb, sizeof(int));
+      f.read((char*)&kb, sizeof(int));
+      f.read((char*)&lb, sizeof(int));
+
+      f.read((char*)&i, sizeof(int));
+      f.read((char*)&j, sizeof(int));
+      f.read((char*)&k, sizeof(int));
+      f.read((char*)&l, sizeof(int));
+
+      f.read((char*)&t, sizeof(int));
+      f.read((char*)&v, sizeof(dcomplex));
+      this->Set(ib, jb, kb, lb, i, j, k, l, v);
+    }
+
+  }  
   B2EIntMem::~B2EIntMem() {}
 
   // ---- Main ----
+  void B2EIntMem::Init(int num) {
+    capacity_ = num;
+    size_ = 0;
+    idx_ = 0;
+    ibs.reserve(num);
+    jbs.reserve(num);
+    kbs.reserve(num);
+    lbs.reserve(num);
+
+    is.reserve(num);
+    js.reserve(num);
+    ks.reserve(num);
+    ls.reserve(num);
+
+    ts.reserve(num);
+    vs.reserve(num);
+  }
   bool B2EIntMem::Get(int *ib, int *jb, int *kb, int *lb,
 		      int *i, int *j, int *k, int *l,
 		      int *type, dcomplex *val) {
@@ -77,6 +128,38 @@ namespace l2func {
   }
   void B2EIntMem::Reset() {
     idx_ = 0;
+  }
+  void B2EIntMem::Write(std::string fn) {
+
+    ofstream f;
+    f.open(fn, ios::out|ios::binary|ios::trunc);
+    
+    if(!f) {
+      string msg; SUB_LOCATION(msg); msg+=": file not found";
+      throw runtime_error(msg);
+    }
+
+    int num(this->size());
+    f.write((char*)&num, sizeof(int));
+
+    this->Reset();
+    int ib,jb,kb,lb,i,j,k,l,t;
+    dcomplex v;
+    this->Reset();
+    while(this->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+      f.write((char*)&ib, sizeof(int));
+      f.write((char*)&jb, sizeof(int));
+      f.write((char*)&kb, sizeof(int));
+      f.write((char*)&lb, sizeof(int));
+      f.write((char*)&i,  sizeof(int));
+      f.write((char*)&j,  sizeof(int));
+      f.write((char*)&k,  sizeof(int));
+      f.write((char*)&l,  sizeof(int));
+      f.write((char*)&t,  sizeof(int));
+      f.write((char*)&v,  sizeof(dcomplex));
+    }
+    f.close();
+
   }
   int B2EIntMem::size() const {
     return this->size_;

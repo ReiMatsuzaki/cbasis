@@ -71,6 +71,25 @@ TEST_F(TestB2EInt, size) {
   EXPECT_EQ(4, eri->size());
   EXPECT_EQ(100, eri->capacity());
 }
+TEST_F(TestB2EInt, IO) {
+
+  string fn("eri.bin");
+  eri->Write(fn);
+  
+  IB2EInt *eri2 = new B2EIntMem(fn);
+
+  EXPECT_C_EQ(eri->At( 1, 2, 3, 4, 5, 6, 7, 8),
+	      eri2->At(1, 2, 3, 4, 5, 6, 7, 8));
+  EXPECT_C_EQ(eri->At( 0, 0, 0, 1, 0, 0, 3, 0),
+	      eri2->At(0, 0, 0, 1, 0, 0, 3, 0));
+  EXPECT_C_EQ(eri->At( 0, 2, 0, 0, 0, 0, 1, 0),
+	      eri2->At(0, 2, 0, 0, 0, 0, 1, 0));
+  EXPECT_C_EQ(eri->At( 1, 0, 0, 0, 0, 1, 0, 0),
+	      eri2->At(1, 0, 0, 0, 0, 1, 0, 0));
+
+  delete eri2;
+  
+}
 VectorXcd OneVec(dcomplex z) {
   VectorXcd zs(1); zs << z;
   return zs;
@@ -100,7 +119,7 @@ TEST(SymGTOs, CalcERI) {
 
   // -- Calculation --
   IB2EInt *eri = new B2EIntMem(pow(4, 4));
-  gtos.CalcERI(eri);
+  gtos.CalcERI(eri, 1);
   // -- size check --
   EXPECT_EQ(pow(4, 4), eri->size());
 
@@ -147,6 +166,7 @@ SubSymGTOs SubC1(Vector3i ns, Vector3cd xyz, dcomplex z) {
   return sub;
 }
 TEST(SymGTOs, CalcERI2) {
+
 /*
   SymGTOs gtos(SymmetryGroup_C1());
   gtos.AddSub(SubC1(Vector3i(0, 1, 0), Vector3cd(0.0, 0.0, 0.4), 1.2));
@@ -513,6 +533,71 @@ TEST(Time, MatrixAccess) {
   timer1.Display();
 
 }
+  /*
+TEST(H2mole, element) {
+
+  // ==== Symmetry ====
+  pSymmetryGroup D2h = SymmetryGroup::D2h();
+
+  // ==== Sub ====
+  SubSymGTOs sub1(D2h);
+  sub1.AddXyz(Vector3cd(0, 0, +0.7));
+  sub1.AddXyz(Vector3cd(0, 0, -0.7));
+  sub1.AddNs( Vector3i( 0, 0, 0));
+  VectorXcd z1(4); z1 << 2.013, 0.1233, 0.0411, 0.0137; sub1.AddZeta(z1);
+  // VectorXcd z1(2); z1 << 0.1233, 0.0411; sub1.AddZeta(z1);
+  MatrixXcd c1_1(2, 1); c1_1 <<+1.0,+1.0; sub1.AddRds(Reduction(0, c1_1));
+  MatrixXcd c1_2(2, 1); c1_2 <<+1.0,-1.0; sub1.AddRds(Reduction(1, c1_2));
+  sub1.SetUp();
+
+  SubSymGTOs sub2(D2h);
+  sub2.AddXyz(Vector3cd(0, 0, +0.7));
+  sub2.AddXyz(Vector3cd(0, 0, -0.7));
+  sub2.AddNs( Vector3i( 0, 0, 1));
+  VectorXcd z2(1); z2 << 1.0; sub2.AddZeta(z2);
+  MatrixXcd C2_1(2, 1); C2_1 << +1,-1; sub2.AddRds(Reduction(0, C2_1));
+  MatrixXcd C2_2(2, 1); C2_2 << +1,+1; sub2.AddRds(Reduction(1, C2_2));
+  sub2.SetUp();
+
+  SubSymGTOs sub3(D2h);
+  sub3.AddXyz(Vector3cd(0, 0, 0));
+  sub3.AddNs( Vector3i( 0, 0, 0));
+  VectorXcd z3(1); z3 << dcomplex(0.011389, -0.002197); sub3.AddZeta(z3); 
+  MatrixXcd C3_1(1, 1); C3_1 << 1; sub3.AddRds(Reduction(0, C3_1));
+  sub3.SetUp();
+  
+  SubSymGTOs sub4(D2h);
+  sub4.AddXyz(Vector3cd(0, 0, 0));
+  sub4.AddNs( Vector3i( 2, 0, 0));
+  sub4.AddNs( Vector3i( 0, 2, 0));
+  sub4.AddNs( Vector3i( 0, 0, 2));
+  VectorXcd z4(1); z4 << dcomplex(5.063464, -0.024632); sub4.AddZeta(z4);
+  MatrixXcd C4_1(1, 3); C4_1 << -1,-1,+2; sub4.AddRds(Reduction(0, C4_1 ));
+  sub4.SetUp();
+
+  // ==== GTOs ====
+  SymGTOs gtos(D2h);
+  gtos.AddSub(sub1); gtos.AddSub(sub2); gtos.AddSub(sub3); gtos.AddSub(sub4);
+  MatrixXcd xyzq(4, 2); xyzq <<
+			  0,    0,
+			  0,    0,
+			  +0.7, -0.7,
+			  1.0,  1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+
+  // ==== matrix evaluation ====
+  //  BMatSet mat;
+  //  gtos.CalcMat(&mat);
+  IB2EInt *eri = new B2EIntMem(pow(gtos.size_basis(), 4));
+  gtos.CalcERI(eri, 1);
+
+  // copied from ~/calc/cCOLUMBUS
+  //1  1  1  1  6  2  3  1        0.18344       -0.02309
+  //  EXPECT_C_EQ(dcomplex(0.18344, -0.02309),
+  //	      eri->At(0, 0, 0, 0, 5, 1, 2, 0));
+}
+*/
 
 int main (int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);

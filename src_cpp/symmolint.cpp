@@ -23,6 +23,7 @@ namespace l2func {
   void calc_R_coef(dcomplex zetaP,
 		   dcomplex wPx, dcomplex wPy, dcomplex wPz,		   
 		   const MatrixXcd& xyzq_kat, A2dc& Fjs_kat,
+		   dcomplex mult_coef,
 		   int mx, int my, int mz, int mat, A4dc& res) {
     
     res.SetRange(0, mx, 0, my, 0, mz, 0, mat);
@@ -36,14 +37,14 @@ namespace l2func {
 				xyzq_kat(1, kat),
 				xyzq_kat(2, kat),
 				nx, ny, nz, 0, &Fjs_kat(kat, 0));
-	    res(nx, ny, nz, kat) = v;
+	    res(nx, ny, nz, kat) = mult_coef * v;
 	  }
 
   }
   void calc_R_coef_eri(dcomplex zarg,
 		       dcomplex wPx,  dcomplex wPy,  dcomplex wPz,
 		       dcomplex wPpx, dcomplex wPpy, dcomplex wPpz,
-		       int max_n, dcomplex *Fjs,
+		       int max_n, dcomplex *Fjs, dcomplex mult_coef,
 		       A3dc& res) {
     res.SetRange(0, max_n, 0, max_n, 0, max_n);
     for(int nx = 0; nx <= max_n; nx++)
@@ -54,7 +55,7 @@ namespace l2func {
 			      wPx, wPy, wPz,
 			      wPpx, wPpy, wPpz,
 			      nx, ny, nz, 0, Fjs);
-	    res(nx, ny, nz) = v;
+	    res(nx, ny, nz) = mult_coef * v;
 	  }
 	}
   }
@@ -608,6 +609,7 @@ namespace l2func {
 
 	    if(calc_coulomb) {
 	      calc_R_coef(zetaP, wPx, wPy, wPz, gtos.xyzq_iat, Fjs_iat,
+			  1.0, 
 			  nxi+nxj, nyi+nyj, nzi+nzj, gtos.size_atom(), rmap);
 	      dcomplex v_ele = calc_vele(gtos, isub, jsub, ipn, jpn,
 					 dxmap, dymap, dzmap, rmap);
@@ -693,7 +695,7 @@ namespace l2func {
     IncompleteGamma(mi+mj+mk+ml, argIncGamma, Fjs);      
 
     int mm = mi + mj + mk + ml;
-    calc_R_coef_eri(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz, mm, Fjs, Rrs);
+    calc_R_coef_eri(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz, mm, Fjs, 1.0, Rrs);
       
 
     // -- determine 4 primitive GTOs for integration (ij|kl) --
@@ -774,7 +776,8 @@ namespace l2func {
     A3dc dx, dy, dz, dxp, dyp, dzp;
     A1dc Fjs;
     A3dc Rrs;
-    dcomplex eij, ekl, lambda;
+    //    dcomplex eij, ekl, lambda;
+    dcomplex lambda;
     ERI_buf(int n) :
       dx(n), dy(n), dz(n), dxp(n), dyp(n), dzp(n), Fjs(n), Rrs(n) {}
   };
@@ -791,7 +794,7 @@ namespace l2func {
     dcomplex wPx((zetai*xi + zetaj*xj)/zetaP);
     dcomplex wPy((zetai*yi + zetaj*yj)/zetaP);
     dcomplex wPz((zetai*zi + zetaj*zj)/zetaP);
-    buf.eij = exp(-zetai * zetaj / zetaP *  dist2(xi-xj, yi-yj, zi-zj));
+    
     calc_d_coef(mi, mj, mi+mj, zetaP,  wPx,  xi, xj, buf.dx);
     calc_d_coef(mi, mj, mi+mj, zetaP,  wPy,  yi, yj, buf.dy);
     calc_d_coef(mi, mj, mi+mj, zetaP,  wPz,  zi, zj, buf.dz);
@@ -799,25 +802,32 @@ namespace l2func {
     dcomplex wPpx((zetak*xk + zetal*xl)/zetaPp);
     dcomplex wPpy((zetak*yk + zetal*yl)/zetaPp);
     dcomplex wPpz((zetak*zk + zetal*zl)/zetaPp);
-    buf.ekl = (exp(-zetak * zetal / zetaPp * dist2(xk-xl, yk-yl, zk-zl)));
+    
     calc_d_coef(mk, ml, mk+ml, zetaPp, wPpx, xk, xl, buf.dxp);
     calc_d_coef(mk, ml, mk+ml, zetaPp, wPpy, yk, yl, buf.dyp);
     calc_d_coef(mk, ml, mk+ml, zetaPp, wPpz, zk, zl, buf.dzp);
 
     dcomplex zarg(zetaP * zetaPp / (zetaP + zetaPp));
     dcomplex argIncGamma(zarg * dist2(wPx-wPpx, wPy-wPpy, wPz-wPpz));
-    cout << "zeta:" << zetai << zetaj << zetak << zetal << endl;
-    cout << "z:   " << zi    << zj    << zk    << zl    << endl;
-    cout << "zetaP: " << zetaP << zetaPp << endl;
-    cout << "wP:    " << wPx << wPy << wPz << wPpx << wPpy << wPpz << endl;
-    cout << "arg" << zarg << argIncGamma << endl;
-    IncompleteGamma(mi+mj+mk+ml, argIncGamma, &buf.Fjs(0));      
-    int mm = mi + mj + mk + ml;
-    calc_R_coef_eri(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz, mm,
-		    &buf.Fjs(0), buf.Rrs);
-
-    //    cout << "coef:" << endl;
-    //    cout << buf.dx(0, 0, 0) << buf.Fjs(0) << buf.Rrs(0, 0, 0) << endl;
+    double delta(0.0000000000001);
+    if(real(argIncGamma)+delta > 0.0) {
+      IncompleteGamma(mi+mj+mk+ml, argIncGamma, &buf.Fjs(0));      
+      int mm = mi + mj + mk + ml;
+      dcomplex eij = exp(-zetai * zetaj / zetaP *  dist2(xi-xj, yi-yj, zi-zj));
+      dcomplex ekl = (exp(-zetak * zetal / zetaPp * dist2(xk-xl, yk-yl, zk-zl)));
+      calc_R_coef_eri(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz, mm,
+		      &buf.Fjs(0), eij * ekl, buf.Rrs);
+    } else {
+      int mm = mi + mj + mk + ml;
+      // treat F as G[-z] = Exp[z]F[z]
+      ExpIncompleteGamma(mm, -argIncGamma, &buf.Fjs(0)); 
+      dcomplex arg_other = 
+	-zetai * zetaj / zetaP *  dist2(xi-xj, yi-yj, zi-zj)
+	-zetak * zetal / zetaPp * dist2(xk-xl, yk-yl, zk-zl)
+	-argIncGamma;
+      calc_R_coef_eri(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz, mm,
+		      &buf.Fjs(0), exp(arg_other), buf.Rrs);
+    }
 
   }
   dcomplex CalcPrimOne(int nxi, int nyi, int nzi,
@@ -838,11 +848,10 @@ namespace l2func {
 			   buf.dz(nzi, nzj, Nz) * buf.dzp(nzk, nzl, Nzp) *
 			   r0 * pow(-1.0, Nxp+Nyp+Nzp));
 	      }
-    return buf.eij * buf.ekl * buf.lambda * cumsum;;
+    return buf.lambda * cumsum;;
 	
   }
 
-  // 
   void CalcPrimERI0(SymGTOs gtos,
 		    SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
 		    int iz, int jz, int kz, int lz,
@@ -1086,7 +1095,7 @@ namespace l2func {
 	IncompleteGamma(mi+mj+mk+ml, argIncGamma, Fjs);      
 
 	int mm = mi + mj + mk + ml;
-	calc_R_coef_eri(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz, mm, Fjs, Rrs);
+	calc_R_coef_eri(zarg, wPx, wPy, wPz, wPpx, wPpy, wPpz, mm, Fjs, 1.0, Rrs);
 
 	for(int ipn = 0; ipn < npni; ipn++) 
 	for(int jpn = 0; jpn < npnj; jpn++) 

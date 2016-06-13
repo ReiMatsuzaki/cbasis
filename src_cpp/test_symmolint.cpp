@@ -593,6 +593,7 @@ TEST(H2Plus, matrix) {
   BMatSet mat;
   gtos.CalcMat(&mat);
   //  IB2EInt *eri = new B2EIntMem(pow(gtos.size_basis(), 4));
+  //  gtos.CalcERI(eri, 1);
 
   // copied from ~/calc/ccolumbus
   dcomplex s00(2.2781505348887450);

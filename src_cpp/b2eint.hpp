@@ -16,6 +16,7 @@ namespace l2func {
    */
   class IB2EInt {
   public:
+    IB2EInt(){};
     virtual ~IB2EInt();
 
     /*
@@ -41,6 +42,10 @@ namespace l2func {
 		int i, int j, int k, int l);
     bool Exist(int ib, int jb, int kb, int lb,
 	       int i, int j, int k, int l);
+    /*
+      Write to file
+     */
+    virtual void Write(std::string fn) = 0;
 
     /*
       Accessor for size and capacity
@@ -59,9 +64,11 @@ namespace l2func {
     std::vector<int> ts;
     std::vector<dcomplex> vs;
   public:
+    B2EIntMem(std::string fn);
     B2EIntMem(int num);
     ~B2EIntMem();
 
+    void Init(int num);
     bool Get(int *ib, int *jb, int *kb, int *lb,
 	     int *i, int *j, int *k, int *l, int *type, dcomplex *val);
     bool Set(int ib, int jb, int kb, int lb,
@@ -69,6 +76,7 @@ namespace l2func {
     dcomplex At(int ib, int jb, int kb, int lb,
 		int i, int j, int k, int l);    
     void Reset();
+    void Write(std::string fn);
     int size() const;
     int capacity() const;
 
