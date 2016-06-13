@@ -107,6 +107,8 @@ namespace l2func {
 		    Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
   SubSymGTOs Sub_TwoSGTO(pSymmetryGroup sym, Irrep irrep,
 			 Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
+  SubSymGTOs Sub_mono(pSymmetryGroup sym, Irrep irrep,
+		      Eigen::Vector3cd xyz, Eigen::Vector3i ns, Eigen::VectorXcd zs);
 
   // ==== SymGTOs ====
   class SymGTOs {

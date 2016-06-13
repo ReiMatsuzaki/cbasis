@@ -268,6 +268,19 @@ namespace l2func {
       throw runtime_error(msg);
     }
   }
+  SubSymGTOs Sub_mono(pSymmetryGroup sym, Irrep irrep,
+		      Vector3cd xyz, Vector3i ns, VectorXcd zs) {
+
+    sym->CheckIrrep(irrep);
+    SubSymGTOs sub(sym);
+
+    sub.AddXyz(xyz);
+    sub.AddNs(ns);
+    sub.AddZeta(zs);
+    sub.AddRds(Reduction(irrep, MatrixXcd::Ones(1, 1)));
+    sub.SetUp();
+    return sub;
+  }
   
   // ==== SymGTOs ====
   // ---- Constructors ----

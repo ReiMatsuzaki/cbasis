@@ -167,22 +167,31 @@ SubSymGTOs SubC1(Vector3i ns, Vector3cd xyz, dcomplex z) {
 }
 TEST(SymGTOs, CalcERI2) {
 
-/*
-  SymGTOs gtos(SymmetryGroup_C1());
-  gtos.AddSub(SubC1(Vector3i(0, 1, 0), Vector3cd(0.0, 0.0, 0.4), 1.2));
-  gtos.AddSub(SubC1(Vector3i(1, 1, 0), Vector3cd(0.0, 0.0, 0.0), 1.4));
-  gtos.AddSub(SubC1(Vector3i(1, 1, 1), Vector3cd(0.0,-0.2, 0.0), 1.1));
-  gtos.AddSub(SubC1(Vector3i(0, 3, 0), Vector3cd(0.2, 0.0, 0.1), 1.0));
+  pSymmetryGroup Cs = SymmetryGroup::Cs();
+  SymGTOs gtos(Cs);
+  SubSymGTOs s1(Cs);
+  s1.AddXyz(Vector3cd(0.0, 0.0, 0.4));
+  s1.AddNs( Vector3i( 0,   1,   0));
+  VectorXcd z1(1); z1 << 1.2; s1.AddZeta(z1);
+  s1.AddRds(Reduction(0, MatrixXcd::Ones(1, 1)));
+
+  gtos.AddSub(Sub_mono(Cs, 0, Vector3cd(0.0, 0.0,  0.4),
+		       Vector3i(0, 1, 0), OneVec(1.2)));
+  gtos.AddSub(Sub_mono(Cs, 0, Vector3cd(0.0, 0.0,  0.0),
+		       Vector3i(1, 1, 0), OneVec(1.4)));
+  gtos.AddSub(Sub_mono(Cs, 0, Vector3cd(0.0, -0.2, 0.0),
+		       Vector3i(1, 1, 1), OneVec(1.1)));
+  gtos.AddSub(Sub_mono(Cs, 0, Vector3cd(0.2, 0.0,  0.1),
+		       Vector3i(0, 3, 0), OneVec(1.0)));
 
   // -- potential --
-  cout << 1 << endl;
   MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
   gtos.SetAtoms(xyzq);
   gtos.SetUp();
 
   // -- Calculation --
   IB2EInt *eri = new B2EIntMem(pow(4, 4));
-  gtos.CalcERI(eri);
+  gtos.CalcERI(eri, 1);
 
   // -- size check --
   //  cout << 1 << endl;
@@ -203,7 +212,6 @@ TEST(SymGTOs, CalcERI2) {
   EXPECT_C_NEAR(0.0240232215271162, eri->At(0, 0, 0, 0, 0, 2, 1, 3), eps);
 
   delete eri;
-*/
 
 }
 TEST(SymGTOs, CalcERI_time) {
