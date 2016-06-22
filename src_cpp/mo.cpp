@@ -92,6 +92,33 @@ namespace l2func {
     }
     return mo;
   }
+  void AddJK(IB2EInt* eri, BMat& C, int I0, int i0,
+	     dcomplex coef_J, dcomplex coef_K, BMat& H) {
+
+    /*
+      Add coef_J J + coef_K K to matrix H.
+      J and K is build from I0 symmetry i0 th MO.
+    */
+    
+    int ib,jb,kb,lb,i,j,k,l,t;
+    dcomplex v;
+    eri->Reset();
+    const MatrixXcd& CC = C[make_pair(I0, I0)];
+    while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+      
+      if(ib == jb && kb == I0 && lb == I0) {
+	// Add J
+	pair<Irrep, Irrep> ij(ib, jb);
+	H[ij](i, j) += coef_J * CC(k, i0) * CC(l, i0) * v;
+      }
+	
+      if(ib == lb && jb == I0 && kb == I0) {
+	// Add K
+	pair<Irrep, Irrep> il(ib, lb);
+	H[il](i, l) += coef_K * CC(j, i0) * CC(k, i0) * v;
+      }
+    }      
+  }
   MO CalcRHF(SymGTOs& gtos, int nele, int max_iter, double eps,
 	     bool *is_conv, int debug_lvl) {
     int num_basis(gtos.size_basis());
@@ -238,7 +265,7 @@ namespace l2func {
     }
     return mo;
   }
-  void CalcSEHamiltonian(MO mo, IB2EInt* eri, Irrep I0, int i0, BMat* h_stex) {
+  void CalcSEHamiltonian(MO mo, IB2EInt* eri, Irrep I0, int i0, BMat* h_stex, int method) {
 
     typedef vector<Irrep>::iterator It;
     BMat res;
@@ -251,31 +278,117 @@ namespace l2func {
     }
 
     // loop ERI and add to J and K
-    int ib,jb,kb,lb,i,j,k,l,t;
-    dcomplex v;
-    eri->Reset();
-    while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
-      if(ib == jb && kb == I0 && lb == I0) {
-	// Add J
-	pair<Irrep, Irrep> ij(ib, jb), kl(I0, I0);
-	MatrixXcd& C = mo->C[kl];
-	res[ij](i, j) += C(k, i0) * C(l, i0) * v;
+    if(method == 0) {
+      int ib,jb,kb,lb,i,j,k,l,t;
+      dcomplex v;
+      eri->Reset();
+      while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+	if(ib == jb && kb == I0 && lb == I0) {
+	  // Add J
+	  pair<Irrep, Irrep> ij(ib, jb), kl(I0, I0);
+	  MatrixXcd& C = mo->C[kl];
+	  res[ij](i, j) += C(k, i0) * C(l, i0) * v;
+	}
+	
+	if(ib == lb && jb == I0 && kb == I0) {
+	  // Add K
+	  pair<Irrep, Irrep> il(ib, lb), jk(I0, I0);
+	  MatrixXcd& C = mo->C[jk];
+	  res[il](i, l) += C(j, i0) * C(k, i0) * v;
+	}
+      }  
+    } else if(method == 2) {
+      int ib,jb,kb,lb,i,j,k,l,t;
+      dcomplex v;
+      eri->Reset();
+      while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+	if(ib == jb && kb == I0 && lb == I0) {
+	  // Add J
+	  pair<Irrep, Irrep> ij(ib, jb), kl(I0, I0);
+	  MatrixXcd& C = mo->C[kl];
+	  res[ij](i, j) += C(k, i0) * C(l, i0) * v;
+	}
+	/*
+	if(ib == lb && jb == I0 && kb == I0) {
+	  // Add K
+	  pair<Irrep, Irrep> il(ib, lb), jk(I0, I0);
+	  MatrixXcd& C = mo->C[jk];
+	  res[il](i, l) += C(j, i0) * C(k, i0) * v;
+	}
+	*/
+      }  
+    } else if(method == 3) {
+      int ib,jb,kb,lb,i,j,k,l,t;
+      dcomplex v;
+      eri->Reset();
+      while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+	if(ib == jb && kb == I0 && lb == I0) {
+	  // Add J
+	  pair<Irrep, Irrep> ij(ib, jb), kl(I0, I0);
+	  MatrixXcd& C = mo->C[kl];
+	  res[ij](i, j) += C(k, i0) * C(l, i0) * v;
+	}
+	if(ib == lb && jb == I0 && kb == I0) {
+	  // Add K
+	  pair<Irrep, Irrep> il(ib, lb), jk(I0, I0);
+	  MatrixXcd& C = mo->C[jk];
+	  res[il](i, l) -= C(j, i0) * C(k, i0) * v;
+	}
+      }  
+    } else if(method == 1) {
+      vector<int> num_isym;
+      pSymmetryGroup sym = mo->sym;
+      BMat J0, K0;
+      for(int ib = 0; ib < sym->num_class(); ib++) {
+	int num = mo->H[make_pair(ib, ib)].rows();
+	J0[make_pair(ib ,ib)] = MatrixXcd::Zero(num, num);
+	K0[make_pair(ib ,ib)] = MatrixXcd::Zero(num, num);
+	num_isym.push_back(num);
       }
-      
-      if(ib == lb && jb == I0 && kb == I0) {
-	// Add K
-	pair<Irrep, Irrep> il(ib, lb), jk(I0, I0);
-	MatrixXcd& C = mo->C[jk];
-	res[il](i, l) += C(j, i0) * C(k, i0) * v;
+
+      for(int ijb = 0; ijb < sym->num_class(); ijb++)
+      for(int klb = 0; klb < sym->num_class(); klb++) {
+	if(klb == I0) {
+	  MatrixXcd& Jij = J0[make_pair(ijb, ijb)];
+	  MatrixXcd& Kij = K0[make_pair(ijb, ijb)];
+	  MatrixXcd& Ckl = mo->C[make_pair(klb, klb)];
+	  for(int i  = 0; i  < num_isym[ijb]; i++)
+	  for(int j  = 0; j  < num_isym[ijb]; j++) {
+	    dcomplex tmp_j(0), tmp_k(0);
+	    for(int k  = 0; k  < num_isym[klb]; k++)
+	    for(int l  = 0; l  < num_isym[klb]; l++) {
+	      tmp_j += Ckl(k, i0) * Ckl(l, i0) * eri->At(ijb, ijb, klb, klb,
+							 i,   j,   k,   l);
+	      tmp_k += Ckl(k, i0) * Ckl(l, i0) * eri->At(ijb, klb, klb, ijb,
+							 i,   l,   k,   j);
+	    }
+	    Jij(i, j) = tmp_j;
+	    Kij(i, j) = tmp_k;
+	  }
+	  res[make_pair(ijb, ijb)] += Jij + Kij;
+	}
       }
-    }  
+    }
+
+    // swap
     h_stex->swap(res);
   }
   dcomplex CalcAlpha(MO mo, BMatSet& mat_set, Irrep I0, int i0, BMat& h_stex,
-		     double w) {
+		     double w, int method) {
     dcomplex a(0);
     typedef vector<Irrep>::const_iterator It;
-    dcomplex ene = w + mo->eigs[I0](i0);
+    dcomplex ene;
+    if(method == 0) {
+      // -- Koopsman's theorem 
+      ene = w + mo->eigs[I0](i0);
+    } else if(method == 1){
+      // -- calulate ionization potential using HF energy
+      double E_ion = -2.0;
+      ene = w + mo->energy - E_ion;
+    } else if(method == 2) {
+      // -- experimental value from "McQuarrie and Simon" p.302
+      ene = w - 0.903724375;
+    }
     for(It it = mo->irrep_list.begin(); it != mo->irrep_list.end(); ++it) {      
       Irrep irrep = *it;
       if(mat_set.Exist("z", irrep, I0)) {
@@ -296,7 +409,7 @@ namespace l2func {
   }
   double PITotalCrossSection(dcomplex alpha, double w, int num_occ_ele) {
     double au2mb(pow(5.291772, 2));
-    double c(137.0);
+    double c(137.035999258);
     double c0 = -4.0 * M_PI * w / c * imag(alpha) * au2mb;
     if(num_occ_ele == 1)
       return c0;

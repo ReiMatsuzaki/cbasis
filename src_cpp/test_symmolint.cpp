@@ -305,7 +305,7 @@ TEST(SymGTOs, add_atom) {
  }
 TEST(SymGTOs, CalcMatOther) {
 
-   pSymmetryGroup Cs = SymmetryGroup::Cs();
+  pSymmetryGroup Cs = SymmetryGroup::Cs();
    SymGTOs gtos_full(Cs);
    SymGTOs gtos_1(   Cs);
    SymGTOs gtos_2(   Cs);
@@ -352,6 +352,39 @@ TEST(SymGTOs, CalcMatOther) {
 		   mat_12.GetMatrix(  "z", Ap, App));
 
  }
+TEST(SymGTOs, conjugate) {
+
+  pSymmetryGroup Cs = SymmetryGroup::Cs();
+  SymGTOs gtos_1(Cs);
+  SymGTOs gtos_3(Cs);
+  SymGTOs gtos_2(Cs);
+  Irrep Ap = Cs->GetIrrep("A'");
+  Irrep App= Cs->GetIrrep("A''");
+  dcomplex z_gh(1.1);
+  
+  // -- A' symmetry --
+  VectorXcd zeta_h(3);
+  zeta_h << dcomplex(0.4, 0.3), dcomplex(1.0, 0.4), dcomplex(2.0, 0.1);
+  gtos_1.AddSub(Sub_s(Cs, Ap, Vector3cd(0, 0, 0), zeta_h));
+  gtos_2.AddSub(Sub_s(Cs, Ap, Vector3cd(0, 0, 0), zeta_h.conjugate()));
+
+  // -- potential --
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
+  gtos_1.SetAtoms(xyzq);
+  gtos_2.SetAtoms(xyzq);
+  
+  gtos_1.SetUp();
+  gtos_2.SetUp();
+  gtos_3.SetComplexConj(gtos_1);
+  
+  BMatSet mat2, mat3;
+  gtos_2.CalcMat(&mat2);
+  gtos_3.CalcMat(&mat3);
+  
+  EXPECT_C_EQ(mat2.GetMatrix("t", 0, 0)(0, 1),
+	      mat3.GetMatrix("t", 0, 0)(0, 1));
+
+}
 
 class SP_GTO : public ::testing::Test {
  protected:

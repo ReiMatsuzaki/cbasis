@@ -46,9 +46,10 @@ class Test_BMatSet(unittest.TestCase):
         bmat = BMatSet(cs.order)
         s00 = me.MatrixXc.Zero(4, 4)
         s00[0, 1] = 1.1; s00[1, 0] = 1.2
-        bmat.set_matrix("s", Cs_Ap(), Cs_Ap(), s00)
-        s00_get1 = bmat["s", Cs_Ap(), Cs_Ap()]
-        s00_get2 = bmat["s", Cs_Ap(), Cs_Ap()]
+        Ap = cs.get_irrep("A'")
+        bmat.set_matrix("s", Ap, Ap, s00)
+        s00_get1 = bmat["s", Ap, Ap]
+        s00_get2 = bmat["s", Ap, Ap]
         s00_get1[0, 1] = 2.1
         self.assertAlmostEqual(1.2, s00_get2[1, 0])
         self.assertAlmostEqual(2.1, s00_get2[0, 1])
@@ -69,57 +70,72 @@ class Test_SymMolInt(unittest.TestCase):
         coef_iat_ipn[0, 1] = 1.1
         coef_iat_ipn[1, 0] = 1.2
         """
+        Ap = Cs().get_irrep("A'")
+        # App = Cs().get_irrep("A''")
         coef_iat_ipn = [[0.0, 1.1], [1.2, 0.0]]
-        rds1 = Reduction(Cs_Ap(), coef_iat_ipn)
-        self.assertEqual(Cs_Ap(), rds1.irrep)
+        rds1 = Reduction(Ap, coef_iat_ipn)
+        self.assertEqual(Ap, rds1.irrep)
         self.assertAlmostEqual(1.1, rds1.coef_iat_ipn()[0, 1])
         self.assertAlmostEqual(1.2, rds1.coef_iat_ipn()[1, 0])
 
     def test_sub(self):
-        sub = sub_two_sgto(Cs(), Cs_App(), [1,2,3], [2,4,5])
-        self.assertAlmostEqual(1.0, sub.get_xyz_iat()[0, 0])
-        self.assertAlmostEqual(1.0, sub.get_xyz_iat()[0, 1])
-        self.assertAlmostEqual(2.0, sub.get_xyz_iat()[1, 0])
-        self.assertAlmostEqual(2.0, sub.get_xyz_iat()[1, 1])
-        self.assertAlmostEqual(3.0, sub.get_xyz_iat()[2, 0])
-        self.assertAlmostEqual(-3.0, sub.get_xyz_iat()[2, 1])
+        sym = Cs()
+        App = sym.get_irrep("A''")
+        sub = sub_two_sgto(sym, App, (1,2,3), [2,4,5])
+        self.assertAlmostEqual(1.0, sub.x(0))
+        self.assertAlmostEqual(1.0, sub.x(1))
+        self.assertAlmostEqual(2.0, sub.y(0))
+        self.assertAlmostEqual(2.0, sub.y(1))
+        self.assertAlmostEqual(3.0, sub.z(0))
+        self.assertAlmostEqual(-3.0, sub.z(1))
 
-        self.assertAlmostEqual(2.0, sub.get_zeta_iz()[0])
-        self.assertAlmostEqual(4.0, sub.get_zeta_iz()[1])
-        self.assertAlmostEqual(5.0, sub.get_zeta_iz()[2])
+        self.assertAlmostEqual(2.0, sub.get_zeta(0))
+        self.assertAlmostEqual(4.0, sub.get_zeta(1))
+        self.assertAlmostEqual(5.0, sub.get_zeta(2))
 
     def test_sub2(self):
-        sub = (SubSymGTOs()
+        sym = Cs()
+        Ap = sym.get_irrep("A'")
+        App= sym.get_irrep("A''")
+        sub = (SubSymGTOs(sym)
                .xyz((0, 0.1, 0.2))
-               .ns((0, 1, 2))
                .xyz((2, 1, 0))
-               .rds(Reduction(Cs_Ap(),  [[+1, +1]]))
-               .rds(Reduction(Cs_App(), [[+1, -1]]))
+               .ns((0, 1, 2))
+               .rds(Reduction(Ap,  [[+1, +1]]))
+               .rds(Reduction(App, [[+1, -1]]))
                .zeta([1.1, 1.4, 2.1]))
 
-        self.assertAlmostEqual(0.1, sub.get_xyz_iat()[1, 0])
-        self.assertAlmostEqual(1.0, sub.get_xyz_iat()[1, 1])
+        self.assertAlmostEqual(0.1, sub.y(0))
+        self.assertAlmostEqual(1.0, sub.y(1))
         
     def test_s_center(self):
-        gtos = SymGTOs(Cs())
+        sym = Cs()
+        Ap = sym.get_irrep("A'")
+        
         zs = [2.0**n-0.1j for n in range(-2, 2)]
-        gtos.sub(sub_s(Cs_Ap(), (0, 0, 0), zs))
-        gtos.atom([0, 0, 0], 1.1)
-        gtos.setup()
+        gtos = (SymGTOs(sym)
+                .sub(SubSymGTOs(sym)
+                     .xyz((0, 0, 0))
+                     .ns( (0, 0, 0))
+                     .rds(Reduction(Ap, [[1]]))
+                     .zeta(zs))
+                .atom([0, 0, 0], 1.1)
+                .setup())
         mat_set = gtos.calc_mat()
 
         cs = [1.0, 1.1, 1.2, 1.3]
         rs = [1.0, 2.0]
-        ys = gtos.at_r_ylm(0, 0, Cs_Ap(), cs, rs)
+        ys = gtos.at_r_ylm(0, 0, Ap, cs, rs)
 
 
 class Test_H_atom(unittest.TestCase):
     def setUp(self):
         xatom = (0, 0, 0)
-        Ap = Cs_Ap()
-        App= Cs_App()
-        self.gtos = (SymGTOs(Cs())
-                     .sub(SubSymGTOs()
+        sym = Cs()
+        Ap = sym.get_irrep("A'")
+        App= sym.get_irrep("A''")
+        self.gtos = (SymGTOs(sym)
+                     .sub(SubSymGTOs(sym)
                           .xyz(xatom)
                           .ns((0, 0, 0))
                           .ns((0, 0, 1))
@@ -146,12 +162,13 @@ class Test_H_atom(unittest.TestCase):
         c = self.eigvecs.col(0)
         c = self.gtos.correct_sign(0, 0, 0, c)
         rs = [1.1]
-        (ys_calc, ds_calc) = self.gtos.at_r_ylm(0, 0, Cs_Ap(), c, rs)
+        Ap = 0
+        (ys_calc, ds_calc) = self.gtos.at_r_ylm(0, 0, Ap, c, rs)
         ys_refs = [2.0*r*np.exp(-r) for r in rs]
         self.assertTrue(abs(ys_calc[0] - ys_refs[0]) < 0.0001)
 
     def test_2p(self):
-        App= Cs_App()
+        App= Cs().get_irrep("A''")
         mat = self.gtos.calc_mat()
         s = mat["s", App, App]
         t = mat["t", App, App]
@@ -170,16 +187,18 @@ class Test_H_atom(unittest.TestCase):
 
 class Test_H2_plus(unittest.TestCase):
     def setUp(self):
-        self.gtos = (SymGTOs(Cs())
-                     .sub(SubSymGTOs()
+        self.sym = Cs()
+        Ap = self.sym.get_irrep("A'")
+        self.gtos = (SymGTOs(self.sym)
+                     .sub(SubSymGTOs(self.sym)
                           .xyz((0, 0, 0.7))
                           .xyz((0, 0,-0.7))
                           .ns((0, 0, 0))
                           .ns((0, 0, 1))
-                          .rds(Reduction(Cs_Ap(), [[1,0],
-                                                   [1,0]]))
-                          .rds(Reduction(Cs_Ap(), [[0,1],
-                                                   [0,-1]]))
+                          .rds(Reduction(Ap, [[+1,+0],
+                                              [+1,+0]]))
+                          .rds(Reduction(Ap, [[+0,+1],
+                                              [+0,-1]]))
                           .zeta([2.0**n for n in range(-10,10)]))
                      .atom((0, 0, 0.7), 1.0)
                      .atom((0, 0,-0.7), 1.0))
@@ -192,7 +211,7 @@ class Test_H2_plus(unittest.TestCase):
         """
         self.gtos.setup()
         mat = self.gtos.calc_mat()
-        Ap = Cs_Ap()
+        Ap = self.sym.get_irrep("A'")
         s = mat["s", Ap, Ap]
         t = mat["t", Ap, Ap]
         v = mat["v", Ap, Ap]
@@ -205,17 +224,18 @@ class Test_H2_plus(unittest.TestCase):
 class Test_H_photoionization(unittest.TestCase):
     def calc_full(self):
         xatom = (0, 0, 0)
-        Ap = Cs_Ap()
-        App= Cs_App()
+        sym = Cs()
+        Ap = sym.get_irrep("A'")
+        App= sym.get_irrep("A''")
         zeta0 = [2.0**n for n in range(-10, 10)]
         zeta1 = [2.0**n-0.02j for n in range(-15, 5)]
-        self.gtos = (SymGTOs(Cs())
-                     .sub(SubSymGTOs()
+        self.gtos = (SymGTOs(sym)
+                     .sub(SubSymGTOs(sym)
                           .xyz(xatom)
                           .ns((0, 0, 0))
                           .rds(Reduction(Ap,  [[1]]))
                           .zeta(zeta0))
-                     .sub(SubSymGTOs()
+                     .sub(SubSymGTOs(sym)
                           .xyz(xatom)
                           .ns((0, 0, 1))
                           .rds(Reduction(App, [[1]]))
@@ -241,15 +261,24 @@ class Test_H_photoionization(unittest.TestCase):
 
     def calc_part(self):
         xatom = (0, 0, 0)
-        Ap = Cs_Ap()
-        App= Cs_App()
+        sym = Cs()
+        Ap = sym.get_irrep("A'")
+        App= sym.get_irrep("A''")
         zeta0 = [2.0**n for n in range(-10, 10)]
         zeta1 = [2.0**n-0.02j for n in range(-15, 5)]
-        self.gtos0 = (SymGTOs(Cs())
-                      .sub(sub_s(Ap, xatom, zeta0))
+        self.gtos0 = (SymGTOs(sym)
+                      .sub(SubSymGTOs(sym)
+                           .xyz(xatom)
+                           .ns((0, 0, 0))
+                           .rds(Reduction(Ap, [[1]]))
+                           .zeta(zeta0))
                       .atom(xatom, 1.0))
         self.gtos1 = (SymGTOs(Cs())
-                      .sub(sub_pz(App, xatom, zeta1))
+                      .sub(SubSymGTOs(sym)
+                           .xyz(xatom)
+                           .ns((0, 0, 0))
+                           .rds(Reduction(App, [[1]]))
+                           .zeta(zeta1))
                       .atom(xatom, 1.0))
         mat0 = self.gtos0.calc_mat()
         mat1 = self.gtos1.calc_mat()
@@ -277,6 +306,49 @@ class Test_H_photoionization(unittest.TestCase):
         self.assertAlmostEqual(self.alpha_full, alpha_ref, places=3)
         self.assertAlmostEqual(self.alpha_part, self.alpha_part)
 
+
+class Test_He(unittest.TestCase):
+    def test_ERI(self):
+        print ""
+        print "Test He"
+        xatom = (0, 0, 0)
+        sym = Cs()
+        Ap = sym.get_irrep("A'")
+        App= sym.get_irrep("A''")
+        zeta0 = [0.107951, 0.240920, 0.552610, 1.352436, 3.522261, 9.789053, 30.17990, 108.7723, 488.8941, 3293.694]
+        zeta1 = zeta0
+
+        gtos = (SymGTOs(sym)
+                .sub(SubSymGTOs(sym)
+                     .xyz(xatom)
+                     .ns((0, 0, 0))
+                     .rds(Reduction(Ap,  [[1]]))
+                     .zeta(zeta0))
+                .sub(SubSymGTOs(sym)
+                     .xyz(xatom)
+                     .ns((0, 0, 1))
+                     .rds(Reduction(App, [[1]]))
+                     .zeta(zeta1))
+                .atom(xatom, 2.0)
+                .setup())
+        mat_set = gtos.calc_mat()
+        eri = gtos.calc_eri(1)
+        w = 1.0
+        mo = calc_RHF(sym, mat_set, eri, 2, 20, 0.00001,  0)
+        self.assertAlmostEqual(-2.8617, mo.energy, 4)
+        # h_se = calc_SEHamiltonian(mo, eri, 0, 0)
+        # alpha = calc_alpha(mo, mat_set, 0, 0, h_se, w)
+        # cs = pi_total_crosssection(alpha, w, 2)
+
+        eri.write("eri.bin")
+        eri2 = B2EIntMem()
+        eri2.read("eri.bin")
+        print mo.H[0, 0]
+        print mo.num_occ()
+        print mo.eigs[0]
+        
+        gtos_c = SymGTOs(sym)
+        gtos_c.set_cc(gtos)
         
 if __name__ == '__main__':
     unittest.main()

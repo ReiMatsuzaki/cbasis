@@ -90,6 +90,53 @@ TEST_F(TestB2EInt, IO) {
   delete eri2;
   
 }
+TEST(SymGTOs, CalcERI_differenct) {
+
+  pSymmetryGroup Cs = SymmetryGroup::Cs();
+  SymGTOs gtos_full(Cs);
+  SymGTOs gtos_1(   Cs);
+  SymGTOs gtos_2(   Cs);
+
+  Irrep Ap = Cs->GetIrrep("A'");
+  Irrep App= Cs->GetIrrep("A''");
+
+  // -- A' symmetry --
+  VectorXcd zeta_h = VectorXcd::Zero(2);
+  zeta_h << dcomplex(0.4, 0.1), dcomplex(1.4, 0.6);
+  SubSymGTOs sub_1(Sub_mono(Cs, Ap, Vector3cd(0, 0, 0),
+			    Vector3i(0, 0, 0), zeta_h));
+  gtos_full.AddSub(sub_1);
+  gtos_1.AddSub(   sub_1);
+
+   // -- A'' symmetry, Center --
+  VectorXcd zeta_gh = VectorXcd::Zero(3); zeta_gh << 0.6, 1.2, dcomplex(2.4, 1.0);
+  SubSymGTOs sub_2(Sub_mono(Cs, App, Vector3cd(0, 0, 0), Vector3i(0, 0, 0), zeta_gh));
+  gtos_full.AddSub(sub_2);
+  gtos_2.AddSub(   sub_2);
+
+  // -- potential --
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
+  gtos_full.SetAtoms(xyzq); gtos_full.SetUp();
+  gtos_1.SetAtoms(xyzq);    gtos_1.SetUp();
+  gtos_2.SetAtoms(xyzq);    gtos_2.SetUp();
+
+  // -- Compute ERI --
+  IB2EInt *eri_full = new B2EIntMem();
+  IB2EInt *eri_J = new B2EIntMem();
+
+  CalcERI(gtos_full, gtos_full, gtos_full, gtos_full, eri_full);
+  CalcERI(gtos_1, gtos_1, gtos_2, gtos_2, eri_J);
+
+  for(int i = 0; i < 2; i++)
+    for(int j = 0; j < 2; j++)
+      for(int k = 0; k < 3; k++)
+	for(int l = 0; l < 3; l++) {
+	  EXPECT_C_EQ(eri_full->At(0, 0, 1, 1, i, j, k, l),
+		      eri_J->At(   0, 0, 1, 1, i, j, k, l));
+	}
+
+}
+
 VectorXcd OneVec(dcomplex z) {
   VectorXcd zs(1); zs << z;
   return zs;
@@ -190,7 +237,8 @@ TEST(SymGTOs, CalcERI2) {
   gtos.SetUp();
 
   // -- Calculation --
-  IB2EInt *eri = new B2EIntMem(pow(4, 4));
+  //IB2EInt *eri = new B2EIntMem(pow(4, 4));
+  IB2EInt *eri = new B2EIntMem();
   gtos.CalcERI(eri, 1);
 
   // -- size check --
@@ -286,8 +334,9 @@ TEST(SymGTOs, CalcERI_sym_p) {
   gtos.SetUp();
   //  cout << gtos.str() << endl;
 
-  IB2EInt *eri1 = new B2EIntMem(pow(3*num_z_p, 4));
-  IB2EInt *eri2 = new B2EIntMem(pow(3*num_z_p, 4));
+  //IB2EInt *eri1 = new B2EIntMem(pow(3*num_z_p, 4));
+  IB2EInt *eri1 = new B2EIntMem();
+  IB2EInt *eri2 = new B2EIntMem();
   gtos.CalcERI(eri1, 1);
   gtos.CalcERI(eri2, 2);
 
@@ -356,9 +405,11 @@ TEST(SymGTOs, CalcERI_sym) {
   BMatSet mat;
   gtos.CalcMat(&mat);
 
-  int n(gtos.size_basis());
-  IB2EInt *eri1 = new B2EIntMem(pow(n, 4));
-  IB2EInt *eri2 = new B2EIntMem(pow(n, 4));
+  //int n(gtos.size_basis());
+  //IB2EInt *eri1 = new B2EIntMem(pow(n, 4));
+  IB2EInt *eri1 = new B2EIntMem();
+  //IB2EInt *eri2 = new B2EIntMem(pow(n, 4));
+  IB2EInt *eri2 = new B2EIntMem();
   gtos.CalcERI(eri1, 1);
   gtos.CalcERI(eri2, 2);
 

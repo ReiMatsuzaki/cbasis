@@ -325,9 +325,11 @@ namespace l2func {
   }
   
   void ExpIncompleteGamma(int max_m, dcomplex z, dcomplex* res_list) {
+    cout << "ExpIncGamma: " << z << endl;
     double x = real(z);
     double y = imag(z);
     double eps(pow(10.0, -10.0));
+    
 
     if(x < -eps) {
       std::string msg;

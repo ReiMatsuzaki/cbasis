@@ -33,6 +33,7 @@ namespace l2func {
       Reset internal index counter "idx_".
      */
     virtual void Reset() = 0;
+    virtual void Init(int num) = 0;
     /*
       Obtain value at given index list. This function is for debug and
       very slow for numerical calcualtion. 
@@ -45,6 +46,7 @@ namespace l2func {
     /*
       Write to file
      */
+    virtual void Read(std::string fn) = 0;
     virtual void Write(std::string fn) = 0;
 
     /*
@@ -64,8 +66,9 @@ namespace l2func {
     std::vector<int> ts;
     std::vector<dcomplex> vs;
   public:
-    B2EIntMem(std::string fn);
+    B2EIntMem();
     B2EIntMem(int num);
+    B2EIntMem(std::string fn);
     ~B2EIntMem();
 
     void Init(int num);
@@ -76,6 +79,7 @@ namespace l2func {
     dcomplex At(int ib, int jb, int kb, int lb,
 		int i, int j, int k, int l);    
     void Reset();
+    void Read(std::string fn);
     void Write(std::string fn);
     int size() const;
     int capacity() const;

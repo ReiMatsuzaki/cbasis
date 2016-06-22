@@ -43,10 +43,11 @@ install_l2: ${BINDIR}/l2func_bind.so
 	cp $< ~/local/Python
 
 # ==== SymMolInt ====
-SYMMOLINT_OBJS=symmolint.o fact.o mol_func.o bmatset.o angmoment.o eigen_plus.o 
+SYMMOLINT_OBJS=mo.o symmolint.o fact.o mol_func.o bmatset.o angmoment.o eigen_plus.o b2eint.o symgroup.o
 ${BINDIR}/symmolint_bind.so: symmolint_bind.cpp $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS} ${LDFLAGS}
 check_symmolint: ${BINDIR}/symmolint_bind.so
+	rm -f symmolint_bind.so
 	ln -s ${BINDIR}/symmolint_bind.so .
 	python test_symmolint.py
 	rm symmolint_bind.so

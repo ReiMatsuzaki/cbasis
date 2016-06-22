@@ -26,13 +26,9 @@ class TwoPotDrivEq():
 
     def amp_int_one(self):
         """
-        Compute transition amplitude of wave function by one particle operator form.
-        .    A = 2k^(-1)<F, s + v1psi> 
-        In this function, F is evaluated by TIWP method and CBF method.
-        TIWP is based on F is proportional to the solution of H0 driven equation.
-        We put driven term as s.
-        .    (E-H0)psi0 = s
-        .    F = Im[psi0]/Sqrt(k Im<s, psi0>)
+        Compute transition amplitude of wave function by one particle operator 
+        integration form. 
+        .    A = 2k^(-1) <F, [E-H0]\psi>
         """
         v1 = self.gtos.calc_mat_sto(self.v1)
         (s, t, v0)    = self.gtos.calc_mat_stv(1)
@@ -56,9 +52,13 @@ class TwoPotDrivEq():
 
     def amp_int_two(self):
         """
-        Compute transition amplitude of wave function by two particle operator 
-        integration form. 
-        .    A = 2k^(-1) <F, [E-H0]\psi>
+        Compute transition amplitude of wave function by two particle operator form.
+        .    A = 2k^(-1)<F, s + v1psi> 
+        In this function, F is evaluated by TIWP method and CBF method.
+        TIWP is based on F is proportional to the solution of H0 driven equation.
+        We put driven term as s.
+        .    (E-H0)psi0 = s
+        .    F = Im[psi0]/Sqrt(k Im<s, psi0>)
         """
         
         v1 = self.gtos.calc_mat_sto(self.v1)

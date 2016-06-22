@@ -130,11 +130,13 @@ namespace l2func {
     inline dcomplex y_at(int i) const { return xyzq_iat(1, i); }
     inline dcomplex z_at(int i) const { return xyzq_iat(2, i); }
     inline dcomplex q_at(int i) const { return xyzq_iat(3, i); }
+    int max_num_prim() const;
 
     // ---- Add information ----
     void SetAtoms(Eigen::MatrixXcd _xyzq_iat);
     void AddAtom(Eigen::Vector3cd _xyz, dcomplex q);
     void AddSub(SubSymGTOs);
+    void SetComplexConj(SymGTOs&);
 
     // ---- SetUp ----
     void SetUp();
@@ -160,8 +162,9 @@ namespace l2func {
 		 Eigen::VectorXcd* dvs);
     // -- Correction of wave function sign --
     void CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs);
-
   };
+  
+  void CalcERI(SymGTOs& gi, SymGTOs& gj,SymGTOs& gk,SymGTOs& gl, IB2EInt* eri);
 }
 
 #endif

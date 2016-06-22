@@ -1,13 +1,17 @@
 #include <iostream>
 #include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <boost/python/suite/indexing/map_indexing_suite.hpp>
 #include <boost/numpy.hpp>
 #include <Eigen/Core>
 
 #include "../src_cpp/macros.hpp"
 
-#include "../src_cpp/bmatset.hpp"
 #include "../src_cpp/eigen_plus.hpp"
+#include "../src_cpp/b2eint.hpp"
+#include "../src_cpp/bmatset.hpp"
 #include "../src_cpp/symmolint.hpp"
+#include "../src_cpp/mo.hpp"
 
 namespace {
   using namespace boost::python;
@@ -20,168 +24,50 @@ namespace {
   namespace np = boost::numpy;
 }
 
-// -- to be removed 
-void VectorNumPy2Eigen(np::ndarray& a, VectorXcd* b) {
-
-  if(a.get_nd() != 1) {
-    string msg; SUB_LOCATION(msg);
-    msg += "dimension of a must be 1";
-    throw runtime_error(msg);
+// ==== Boost/Python utilities ====
+// http://nonbiri-tereka.hatenablog.com/entry/2014/02/02/104717
+template<class T>
+boost::python::list PyListFromCppVector(vector<T>& cpp_vector) {
+  boost::python::list py_list;
+  typename vector<T>::const_iterator it;
+  for(it = cpp_vector.begin(); it != cpp_vector.end(); ++it) {
+    py_list.append(*it);
   }
-
-  if(a.get_dtype() != np::dtype::get_builtin<dcomplex>()) {
-    string msg; SUB_LOCATION(msg);
-    msg += "only complex type is supported";
-    throw runtime_error(msg);
-  }
-
-  int num = a.shape(0);
-
-  dcomplex* ptr = reinterpret_cast<dcomplex*>(a.get_data());
-  *b = Map<VectorXcd>(ptr, num);
-
+  return py_list;
 }
 
-
-// -- to be removed
-void VectorEigen2NumPy(VectorXcd& a, np::ndarray* b) {
-
-  int num = a.size();
-  dcomplex* ptr(NULL);
-  Map<VectorXcd>(ptr, num) = a;
-  *b = np::from_data(ptr,
-		     np::dtype::get_builtin<dcomplex>(),
-		     bp::make_tuple(num),
-		     bp::make_tuple(sizeof(dcomplex)),
-		     bp::object());
+MatrixXcd& BMat_get(BMat* bmat, tuple args) {
+  int i = extract<int>(args[0]);
+  int j = extract<int>(args[1]);
+  return (*bmat)[make_pair(i, j)];
 }
-// -- to be removed
-void MatrixEigen2NumPy(MatrixXcd& a, np::ndarray* b) {
-  int numi = a.rows();
-  int numj = a.cols();
-
-  dcomplex* ptr(NULL);
-  Map<MatrixXcd>(ptr, numi, numj) = a;
-
-  *b = np::from_data(ptr,
-		     np::dtype::get_builtin<dcomplex>(),
-		     bp::make_tuple(numi, numj),
-		     bp::make_tuple(sizeof(dcomplex), sizeof(dcomplex)*numi),
-		     bp::object());
-  
-}
-// -- to be removed
-void MatrixNumPy2Eigen(np::ndarray& a, MatrixXcd* b) {
-
-  if(a.get_nd() != 2){
-    string msg; SUB_LOCATION(msg);
-    msg += "dimension of a must be 2";
-    throw runtime_error(msg);
-  }
-
-  if(a.get_dtype() != np::dtype::get_builtin<dcomplex>()) {
-    string msg; SUB_LOCATION(msg);
-    msg += "only complex type is supported";
-    throw runtime_error(msg);
-  }
-  
-  int numi = a.shape(0);
-  int numj = a.shape(1);
-  
-  dcomplex* ptr = reinterpret_cast<dcomplex*>(a.get_data());
-  typedef Matrix<dcomplex, Dynamic, Dynamic, RowMajor> Mat;
-  *b = Map<Mat>(ptr, numi, numj);
-
-}
-// -- to be removed
-void VectorNumPy2Eigen_3(np::ndarray a, Vector3cd* b) {
-
-  if(a.shape(0) != 3) {
-    string msg; SUB_LOCATION(msg);
-    msg += ": a must have 3 elements";
-    throw runtime_error(msg);    
-  }  
-
-  VectorXcd c;
-  VectorNumPy2Eigen(a, &c);
-  *b = Vector3cd(c(0), c(1), c(2));
-
-}
-// -- to be removed
-void PrintAsEigen(np::ndarray& a) {
-
-  if(a.get_nd() == 1) {
-
-    VectorXcd b; 
-    VectorNumPy2Eigen(a, &b);
-    cout << b << endl;
-
-  } else if(a.get_nd() == 2) {
-
-    MatrixXcd b;
-    MatrixNumPy2Eigen(a, &b);
-    cout << b << endl;
-      
-  } else {
-    string msg; SUB_LOCATION(msg);
-    msg += "only 1 or 2 dimension of a is supported";
-    throw runtime_error(msg);
-
-  }
-
-}
-// -- to be removed
-Reduction ReductionSetsInit(int irrep, np::ndarray& cs_iat_ipn) {
-
-  MatrixXcd coef;
-  try {
-    MatrixNumPy2Eigen(cs_iat_ipn, &coef);
-  } catch(const runtime_error& e) {
-    string msg; SUB_LOCATION(msg);
-    msg += "Error on conversion: \n";
-    msg += e.what();
-    throw runtime_error(msg);
-  }
-
-  Reduction rds(irrep, coef);
-  return rds;
-
-}
-// -- to be removed
-SubSymGTOs Sub_s_py(Irrep irrep, np::ndarray& xyz, np::ndarray& zs) {
-
-  Vector3cd xyz_in; VectorNumPy2Eigen_3(xyz, &xyz_in);
-  VectorXcd zs_in; VectorNumPy2Eigen(zs, &zs_in);
-
-  return Sub_s(irrep, xyz_in, zs_in);
-}
-// -- to be removed
-SubSymGTOs Sub_pz_py(Irrep irrep, np::ndarray& xyz, np::ndarray& zs) {
-
-  Vector3cd xyz_in; VectorNumPy2Eigen_3(xyz, &xyz_in);
-  VectorXcd zs_in; VectorNumPy2Eigen(zs, &zs_in);
-
-  return Sub_pz(irrep, xyz_in, zs_in);
-
-}
-// -- to be removed
-SubSymGTOs Sub_TwoSGTO_py(SymmetryGroup sym, Irrep irrep,
-			  np::ndarray xyz, np::ndarray zs) {
-  Vector3cd xyz_in; VectorNumPy2Eigen_3(xyz, &xyz_in);
-  VectorXcd zs_in;  VectorNumPy2Eigen(zs, &zs_in);
-
-  return Sub_TwoSGTO(sym, irrep, xyz_in, zs_in);
-}
-
 BMatSet* SymGTOs_CalcMat(SymGTOs* gtos) {
-  BMatSet* res = new BMatSet(gtos->sym_group.order());
+  BMatSet* res = new BMatSet(gtos->sym_group->order());
   gtos->CalcMat(res);
   return res;
 }
 BMatSet* SymGTOs_CalcMatOther(SymGTOs* a, SymGTOs* b, bool calc_coulombq) {
-  BMatSet* res = new BMatSet(a->sym_group.order());
+  BMatSet* res = new BMatSet(a->sym_group->order());
   a->CalcMatOther(*b, calc_coulombq, res);
   return res;
+}
+IB2EInt* SymGTOs_CalcERI(SymGTOs* gtos, int method) {
+  int num(gtos->size_basis());
+  IB2EInt* eri = new B2EIntMem(pow(num, 4));
+  gtos->CalcERI(eri, method);
+  return eri;
+}
+IB2EInt* py_CalcERI(SymGTOs* gi, SymGTOs* gj, SymGTOs* gk, SymGTOs* gl) {
+  IB2EInt *eri = new B2EIntMem();
+  CalcERI(*gi, *gj, *gk, *gl, eri);
+  return eri;
+}
+BMat* py_CalcSEHamiltonian(MO mo, IB2EInt* eri, Irrep I0, int i0) {
+
+  BMat *res = new BMat();
+  CalcSEHamiltonian(mo, eri, I0, i0, res);
+  return res;
+
 }
 tuple SymGTOs_AtR_Ylm(SymGTOs* gtos,
 		      int L, int M,  int irrep,
@@ -231,6 +117,22 @@ MatrixXcd* CanonicalMatrix_py(const MatrixXcd& S, double eps) {
   return X;
 }
 
+MO CalcRHF1(SymGTOs& gtos, int nele, int max_iter, double eps, int debug_lvl) {
+  bool is_conv;
+  MO mo = CalcRHF(gtos, nele, max_iter, eps, &is_conv, debug_lvl);
+  return mo;
+}
+MO CalcRHF2(pSymmetryGroup sym, BMatSet& mat_set, IB2EInt* eri, int nele, 
+	    int max_iter, double eps, int debug_lvl) {
+  bool is_conv;
+  MO mo = CalcRHF(sym, mat_set, eri, nele, max_iter, eps, &is_conv, debug_lvl);
+  return mo;
+}
+boost::python::list MO_get_num_occ(MO mo) {
+  boost::python::list num_occ = PyListFromCppVector(mo->num_occ_irrep);
+  return num_occ;
+}
+
 BOOST_PYTHON_MODULE(symmolint_bind) {
 
   Py_Initialize();
@@ -240,21 +142,46 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
       return_value_policy<manage_new_object>());
   def("ceig", generalizedComplexEigenSolve_py);
 
-  class_<SymmetryGroup>("SymmetryGroup", init<int, string>())
+  register_ptr_to_python<pSymmetryGroup>();
+  class_<SymmetryGroup>("SymmetryGroup", no_init)
     .add_property("order", &SymmetryGroup::order)
     .add_property("name", &SymmetryGroup::name)
+    .def("get_irrep", &SymmetryGroup::GetIrrep)
+    .def("get_irrep_name", &SymmetryGroup::GetIrrepName)
     .def("__str__", &SymmetryGroup::str)
     .def("__repr__", &SymmetryGroup::str);
-  def("C1", SymmetryGroup_C1);
-  def("Cs", SymmetryGroup_Cs);
-  def("Cs_Ap", Cs_Ap);
-  def("Cs_App", Cs_App);
+  def("C1", SymmetryGroup::C1);
+  def("Cs", SymmetryGroup::Cs);
+  def("C2h", SymmetryGroup::C2h);
+  def("D2h", SymmetryGroup::D2h);
+  def("C4", SymmetryGroup::C4);
 
+  class_<vector<int> >("vector_i")
+    .def(vector_indexing_suite<vector<int> >());
+
+  class_<BVec>("BVec", no_init)
+    .def(map_indexing_suite<BVec>());
+
+  class_<BMat>("BMat", no_init)
+    .def("__getitem__", BMat_get, return_internal_reference<>());
+  
   class_<BMatSet>("BMatSet", init<int>())
     .def("get_matrix",  &BMatSet::GetMatrix, return_internal_reference<>())
     .def("__getitem__", BMatSets_getitem, return_internal_reference<>())
     .def("set_matrix", &BMatSet::SetMatrix);
 
+  class_<IB2EInt, boost::noncopyable>("IB2EInt", no_init);
+  class_<B2EIntMem, bases<IB2EInt> >("B2EIntMem", init<>())
+    .def("get", &IB2EInt::Get)
+    .def("set", &IB2EInt::Set)
+    .def("reset", &IB2EInt::Reset)
+    .def("at", &IB2EInt::At)
+    .def("exist", &IB2EInt::Exist)
+    .def("read",  &IB2EInt::Read)
+    .def("write", &IB2EInt::Write)
+    .def("size", &IB2EInt::size)
+    .def("capacity", &IB2EInt::capacity);
+  
   class_<Reduction>("Reduction", init<int, MatrixXcd>())
     .add_property("irrep",        &Reduction::irrep)
     .def("coef_iat_ipn", &Reduction::get_coef_iat_ipn,
@@ -262,32 +189,34 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
     .def("__str__", &Reduction::str)
     .def("__repr__", &Reduction::str);
 
-  class_<SubSymGTOs>("SubSymGTOs")
+  class_<SubSymGTOs>("SubSymGTOs", init<pSymmetryGroup>())
     .def("xyz", &SubSymGTOs::AddXyz, return_self<>())
     .def("ns",  &SubSymGTOs::AddNs,  return_self<>())
     .def("rds", &SubSymGTOs::AddRds,  return_self<>())
     .def("zeta",&SubSymGTOs::AddZeta, return_self<>())
-    .def("get_xyz_iat", &SubSymGTOs::get_xyz_iat,
-	 return_internal_reference<>())
-    .def("get_ns_ipn", &SubSymGTOs::get_ns_ipn,
-	 return_internal_reference<>())
-    .def("get_rds", &SubSymGTOs::get_rds,
-	 return_internal_reference<>())
-    .def("get_zeta_iz", &SubSymGTOs::get_zeta_iz,
-	 return_internal_reference<>())
+    .def("get_zeta", &SubSymGTOs::zeta)
+    .def("x", &SubSymGTOs::x)
+    .def("y", &SubSymGTOs::y)
+    .def("z", &SubSymGTOs::z)
+    .def("nx", &SubSymGTOs::nx)
+    .def("ny", &SubSymGTOs::ny)
+    .def("nz", &SubSymGTOs::nz)
     .def("__str__", &SubSymGTOs::str)
     .def("__repr__", &SubSymGTOs::str);
   def("sub_s", Sub_s);
   def("sub_pz", Sub_pz);
   def("sub_two_sgto", Sub_TwoSGTO);
 
-  class_<SymGTOs>("SymGTOs", init<SymmetryGroup>())
+  class_<SymGTOs>("SymGTOs", init<pSymmetryGroup>())
     .def("sub", &SymGTOs::AddSub, return_self<>())
     .def("atom", &SymGTOs::AddAtom, return_self<>())
-    .def("setup", &SymGTOs::SetUp)
+    .def("setup", &SymGTOs::SetUp, return_self<>())
+    .def("set_cc", &SymGTOs::SetComplexConj)
     .def("calc_mat", SymGTOs_CalcMat,
-	 return_value_policy<manage_new_object>())
+	 return_value_policy<manage_new_object>())    
     .def("calc_mat", SymGTOs_CalcMatOther,
+	 return_value_policy<manage_new_object>())
+    .def("calc_eri", SymGTOs_CalcERI,
 	 return_value_policy<manage_new_object>())
     .def("at_r_ylm_cpp", SymGTOs_AtR_Ylm)
     .def("correct_sign", SymGTOs_CorrectSign,
@@ -295,6 +224,22 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
     //    .def("at_r_ylm", SymGTOs_AtR_Ylm)    
     .def("__str__", &SymGTOs::str)
     .def("__repr__", &SymGTOs::str);
+  def("calc_ERI", py_CalcERI, return_value_policy<manage_new_object>());
+
+  register_ptr_to_python<MO>();
+  class_<_MO>("MO", no_init)
+    .def_readonly("H", &_MO::H)
+    .def_readonly("S", &_MO::S)
+    .def_readonly("C", &_MO::C)
+    .def_readonly("eigs", &_MO::eigs)
+    .def("num_occ", MO_get_num_occ)
+    .def_readonly("energy", &_MO::energy);
   
+  def("calc_RHF", CalcRHF1);
+  def("calc_RHF", CalcRHF2);
+  def("calc_SEHamiltonian", py_CalcSEHamiltonian,
+      return_value_policy<manage_new_object>());
+  def("calc_alpha", CalcAlpha);
+  def("pi_total_crosssection", PITotalCrossSection);
 }
 
