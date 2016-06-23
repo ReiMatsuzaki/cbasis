@@ -52,7 +52,7 @@ TEST(Matrix, He_small_basis) {
   gtos.SetUp();
 
   // compute basic matrix
-   BMatSet mat_set; gtos.CalcMat(&mat_set);
+  BMatSet mat_set; gtos.CalcMat(&mat_set);
   IB2EInt *eri = new B2EIntMem();
   gtos.CalcERI(eri, 1);
   
@@ -265,6 +265,131 @@ TEST(Matrix, JK) {
   
 }
 TEST(Matrix, H2_small) {
+
+  // set symmetry
+  pSymmetryGroup sym = SymmetryGroup::D2h();
+  double R0 = 1.4;
+
+  // sub set (S orbital)
+  SubSymGTOs sub_s(sym);
+  sub_s.AddXyz(Vector3cd(0, 0, +R0/2.0));
+  sub_s.AddXyz(Vector3cd(0, 0, -R0/2.0));
+  sub_s.AddNs(Vector3i(0, 0, 0));
+  VectorXcd zeta_s(1); zeta_s <<2.013;
+  sub_s.AddZeta(zeta_s);
+  MatrixXcd cs(2, 1); cs << 1.0, 1.0;
+  sub_s.AddRds(Reduction(sym->irrep_s, cs));
+  sub_s.SetUp();
+
+  // sub set (P orbital)
+  SubSymGTOs sub_z(sym);
+  sub_z.AddXyz(Vector3cd(0, 0, +R0/2.0));
+  sub_z.AddXyz(Vector3cd(0, 0, -R0/2.0));
+  sub_z.AddNs(Vector3i(0, 0, 1));
+  VectorXcd zeta_z(1); zeta_z << 1.0;
+  MatrixXcd cz(2, 1); cz << 1.0, -1.0;
+  sub_z.AddZeta(zeta_z);
+  sub_z.AddRds(Reduction(sym->irrep_s, cz));
+  sub_z.SetUp();
+
+  // sub set (D orbital)
+  SubSymGTOs sub_d(sym);
+  sub_d.AddXyz(Vector3cd(0, 0, 0));
+  sub_d.AddNs(Vector3i(2, 0, 0));
+  sub_d.AddNs(Vector3i(0, 2, 0));
+  sub_d.AddNs(Vector3i(0, 0, 2));
+  VectorXcd zeta_d(1); zeta_d << dcomplex(5.063464, -0.024632);
+  MatrixXcd cd(1, 3); cd << -1.0, -1.0, 2.0;
+  sub_d.AddZeta(zeta_d);
+  sub_d.AddRds(Reduction(sym->irrep_s, cd));
+  sub_d.SetUp();
+
+  // GTO set
+  SymGTOs gtos(sym);
+  gtos.AddSub(sub_s);
+  gtos.AddSub(sub_z);
+  gtos.AddSub(sub_d);
+  MatrixXcd xyzq(4, 2);
+  xyzq <<
+    0.0, 0.0,
+    0.0, 0.0,
+    +R0/2.0, -R0/2.0,
+    1.0, 1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+
+  BMatSet mat_set; gtos.CalcMat(&mat_set);
+  IB2EInt *eri = new B2EIntMem();
+  gtos.CalcERI(eri, 1);
+  
+  const MatrixXcd& S00 = mat_set.GetMatrix("s", 0, 0);
+  //  const MatrixXcd& S11 = mat_set.GetMatrix("s", 1, 1);
+  MatrixXcd S00_ref(3, 3);
+  S00_ref(1-1, 1-1) = dcomplex (2.27815053488874,0.000000000000000E+000);
+  S00_ref(1-1, 2-1) = dcomplex (-0.923122727265142,0.000000000000000E+000);
+  S00_ref(1-1, 3-1) = dcomplex (1.35935784944244,6.316245846956289E-003);
+  S00_ref(2-1, 1-1) = dcomplex (-0.923122727265142,0.000000000000000E+000);
+  S00_ref(2-1, 2-1) = dcomplex (2.72059730979469,0.000000000000000E+000);
+  S00_ref(2-1, 3-1) = dcomplex (0.774070190590069,5.100459746874277E-003);
+  S00_ref(3-1, 1-1) = dcomplex (1.35935784944244,6.316245846956289E-003);
+  S00_ref(3-1, 2-1) = dcomplex (0.774070190590069,5.100459746874277E-003);
+  S00_ref(3-1, 3-1) = dcomplex (12.0000000000000,-1.214306433183765E-017);
+  MatrixXcd S11_ref(2, 2);
+  S11_ref(0, 0) = dcomplex(1.72184946511126,0.0);
+  S11_ref(0, 1) = dcomplex(0.923122727265142,0.0);
+  S11_ref(1, 0) = dcomplex(0.923122727265142,0.0);
+  S11_ref(1, 1) = dcomplex(1.27940269020531,0.0);
+  const MatrixXcd& T00 = mat_set.GetMatrix("t", 0, 0);
+  MatrixXcd T00_ref(3, 3);
+  T00_ref(1-1, 1-1) = dcomplex(5.77430482478317,0.0);
+  T00_ref(1-1, 2-1) =  dcomplex(-1.46848241010191,0.0);
+  T00_ref(1-1, 3-1) =  dcomplex(10.9421575645574,0.03952537783003958);
+  T00_ref(2-1, 1-1) =  dcomplex(-1.46848241010191,0.0);
+  T00_ref(2-1, 2-1) =  dcomplex(7.56652741838541,0.0);
+  T00_ref(2-1, 3-1) =  dcomplex(3.10047956467259,0.01958232632537312);
+  T00_ref(3-1, 1-1) =  dcomplex(10.9421575645574,0.03952537783003958);
+  T00_ref(3-1, 2-1) =  dcomplex(3.10047956467259,0.01958232632537312);
+  T00_ref(3-1, 3-1) =  dcomplex(212.665488000000,-1.03454400000000);
+  const MatrixXcd& V00 = mat_set.GetMatrix("v", 0, 0);
+  MatrixXcd V00_ref(3, 3);
+  V00_ref(1-1, 1-1) = dcomplex(-6.71399792745968,0.0);
+  V00_ref(1-1, 2-1) = dcomplex(2.80168590393072,0.0);
+  V00_ref(1-1, 3-1) = dcomplex(-7.76431478876783,-0.02566801940514894);
+  V00_ref(2-1, 1-1) = dcomplex(2.80168590393072,0.0);
+  V00_ref(2-1, 2-1) = dcomplex(-5.53999525981359,0.0);
+  V00_ref(2-1, 3-1) = dcomplex(0.338975375012722,-0.009191430579939701);
+  V00_ref(3-1, 1-1) = dcomplex(-7.76431478876783,-0.02566801940514894);
+  V00_ref(3-1, 2-1) = dcomplex(0.338975375012722,-0.009191430579939701);
+  V00_ref(3-1, 3-1) = dcomplex(-43.3853460578071,-0.01186566895962939);
+
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j < 3; j++) {
+      dcomplex c(1.0/sqrt(S00_ref(i, i)*S00_ref(j, j)));
+      EXPECT_C_EQ(S00_ref(i, j)*c, S00(i, j)) << i << j;
+      EXPECT_C_EQ(T00_ref(i, j)*c, T00(i, j)) << i << j;
+      EXPECT_C_EQ(V00_ref(i, j)*c, V00(i, j)) << i << j;
+    }
+  }
+  dcomplex ref =  dcomplex(249.194759129673912, -0.606119545098925)/(S00_ref(2, 2) * S00_ref(2, 2));
+  EXPECT_C_NEAR(ref, eri->At(0, 0, 0, 0, 2, 2, 2, 2),
+		250 * pow(10.0, -10.0));
+  EXPECT_C_EQ(eri->At(0, 0, 0, 0, 0, 0, 0, 0)
+	      , 6.082101996924533/(S00_ref(0, 0) * S00_ref(0, 0)));
+  ref = dcomplex(4.713103999979870, 0.017955195142080)/
+    (pow(S00_ref(0,0), 1.5) * sqrt(S00_ref(2, 2)));
+  EXPECT_C_EQ(ref, eri->At(0, 0, 0, 0, 2, 0, 0, 0));
+	      
+//  1  1  1  1  3  1  1  1   4.713103999979870   0.017955195142080
+
+
+  //  EXPECT_C_EQ(eri->At(1, 1, 0, 0, 0, 0, 0, 0)/
+  //	      (S11_ref(0, 0) * S00_ref(0, 0)), 4.499506255091513);
+
+  //    1  1  1  1  3  3  3  3 249.194759129673912  -0.606119545098925
+  //1  1  1  1  1  1  1  1   6.082101996924533   0.000000000000000
+  //2  2  1  1  1  1  1  1   4.499506255091513   0.000000000000000
+  //2  2  2  2  1  1  1  1   3.412356981545473   0.000000000000000
+  //2  1  2  1  1  1  1  1   1.780420011334297   0.000000000000000
 
 }
 TEST(HF, first) {
@@ -481,14 +606,34 @@ TEST(HF, H2) {
 
   // structure
   dcomplex R0(1.4);
-  //dcomplex R0(0.0);
 
-  // set symmetry
-  /*
-  pSymmetryGroup sym = SymmetryGroup::D2h();
-  Irrep irrep_s  = sym->GetIrrep("Ag");
+  pSymmetryGroup sym = SymmetryGroup::C1();
+  Irrep irrep_s  = 0;
 
   // sub set (S orbital)
+  /*
+  SubSymGTOs sub_s(sym), sub_s2(sym);
+  sub_s.AddXyz(Vector3cd(0, 0,+R0/2.0));
+  sub_s2.AddXyz(Vector3cd(0, 0,-R0/2.0));
+  sub_s.AddNs(Vector3i(0, 0, 0));
+  sub_s2.AddNs(Vector3i(0, 0, 0));
+  int num_zeta(6);
+  VectorXcd zetas(num_zeta);
+  zetas << 1.336, 2.013, 0.4538, 0.1233, 0.0411, 0.0137;
+  sub_s.AddZeta(zetas); 
+  sub_s2.AddZeta(zetas); 
+  //  MatrixXcd c(2, 1); c << 1, 1;
+  sub_s.AddRds(Reduction(irrep_s, MatrixXcd::Ones(1, 1)));
+  sub_s2.AddRds(Reduction(irrep_s, MatrixXcd::Ones(1, 1)));
+  sub_s.SetUp(); 
+  sub_s2.SetUp(); 
+
+  // GTO set
+  
+  SymGTOs gtos(sym);
+  gtos.AddSub(sub_s); gtos.AddSub(sub_s2);
+  */
+  // see calculation result in ylcls
   SubSymGTOs sub_s(sym);
   sub_s.AddXyz(Vector3cd(0, 0,+R0/2.0));
   sub_s.AddXyz(Vector3cd(0, 0,-R0/2.0));
@@ -496,34 +641,24 @@ TEST(HF, H2) {
   int num_zeta(6);
   VectorXcd zetas(num_zeta);
   zetas << 1.336, 2.013, 0.4538, 0.1233, 0.0411, 0.0137;
-  sub_s.AddZeta(zetas);
-  sub_s.AddRds(Reduction(irrep_s, MatrixXcd::Ones(2, 1)));
-  sub_s.SetUp();
-
-  // GTO set
+  sub_s.AddZeta(zetas); 
+  MatrixXcd c(2, 1); c << 1, 1;
+  sub_s.AddRds(Reduction(irrep_s, c));
+  sub_s.SetUp(); 
+  
+  SubSymGTOs sub_p(sym);
+  sub_p.AddXyz(Vector3cd(0, 0, +R0/2.0));
+  sub_p.AddXyz(Vector3cd(0, 0, -R0/2.0));
+  sub_p.AddNs(Vector3i(  0, 0, 1));
+  VectorXcd zeta_p(1); zeta_p << 1.1;
+  sub_p.AddZeta(zeta_p);
+  MatrixXcd cp(2, 1); cp << 1, -1;
+  sub_p.AddRds(Reduction(irrep_s, cp));
+  sub_p.SetUp();
+  
   SymGTOs gtos(sym);
-  gtos.AddSub(sub_s);
-  //  gtos.AddSub(sub_p);
-  */
-
-  pSymmetryGroup sym = SymmetryGroup::C1();
-  Irrep irrep_s  = 0;
-
-  // sub set (S orbital)
-  SubSymGTOs sub_s(sym), sub_s2(sym);
-  sub_s.AddXyz(Vector3cd(0, 0,+R0/2.0)); sub_s2.AddXyz(Vector3cd(0, 0,-R0/2.0));
-  sub_s.AddNs(Vector3i(0, 0, 0));        sub_s2.AddNs(Vector3i(0, 0, 0));
-  int num_zeta(6);
-  VectorXcd zetas(num_zeta);
-  zetas << 1.336, 2.013, 0.4538, 0.1233, 0.0411, 0.0137;
-  sub_s.AddZeta(zetas); sub_s2.AddZeta(zetas);
-  sub_s.AddRds(Reduction(irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s2.AddRds(Reduction(irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s.SetUp(); sub_s2.SetUp();
-
-  // GTO set
-  SymGTOs gtos(sym);
-  gtos.AddSub(sub_s); gtos.AddSub(sub_s2);
+  gtos.AddSub(sub_s); 
+  gtos.AddSub(sub_p);
   MatrixXcd xyzq(4, 2); xyzq <<
 			  0.0,      0.0,
 			  0.0,      0.0,
@@ -533,24 +668,16 @@ TEST(HF, H2) {
   gtos.SetUp();
 
   bool conv;
-  double eps(pow(10.0, -7.0));
+  double eps(pow(10.0, -5.0));
   int num(gtos.size_basis());
   BMatSet mat_set; gtos.CalcMat(&mat_set);
   IB2EInt *eri = new B2EIntMem(pow(num, 4)); gtos.CalcERI(eri, 1);
 
-  //  MatrixXcd H = mat_set.GetMatrix("v", 0, 0) + mat_set.GetMatrix("t", 0, 0);
-  //  MatrixXcd S = mat_set.GetMatrix("s", 0, 0);
-  //  MatrixXcd C; VectorXcd eig;
-  //  cout << H << endl;
-  //  generalizedComplexEigenSolve(H, S, &C, &eig);
-  //  cout << eig << endl;
-
-  MO mo = CalcRHF(sym, mat_set, eri, 2, 30, eps, &conv, 0);
+  MO mo = CalcRHF(sym, mat_set, eri, 2, 50, eps, &conv, 0);
   EXPECT_TRUE(conv);
-  cout << mo->energy << endl;
-  cout << "Eigs: " << endl;
-  cout << mo->eigs[0](0) << endl;
-
+  EXPECT_C_NEAR(mo->energy + 1.0/R0, -1.11881323240, 0.00001);
+  EXPECT_C_NEAR(mo->eigs[0](0), -0.59012, 0.00002);
+  EXPECT_C_NEAR(mo->eigs[0](1), +0.02339, 0.00002);
 }
 TEST(HF, H2_eig) {
 

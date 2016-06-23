@@ -419,12 +419,44 @@ namespace l2func {
   }
   void SymGTOs::Normalize() {
 
-    A3dc dxmap(100), dymap(100), dzmap(100);
+    /*
+  A3dc dxmap(100), dymap(100), dzmap(100);
+    for(SubIt isub = subs.begin(), end = subs.end(); isub != end; ++isub) {
+      for(int iz = 0; iz < isub->size_zeta(); iz++) {
 
+	dcomplex zetai = isub->zeta_iz[iz];
+	dcomplex zetaP = zetai + zetai;
+
+	int mi = isub->maxn;
+	calc_d_coef(mi,mi,0, zetaP, 0.0, 0.0, 0.0, dxmap);
+	calc_d_coef(mi,mi,0, zetaP, 0.0, 0.0, 0.0, dymap);
+	calc_d_coef(mi,mi,0, zetaP, 0.0, 0.0, 0.0, dzmap);
+
+	int nipn(isub->size_pn());
+	for(int ipn = 0; ipn < nipn; ipn++) {
+	  int nxi, nyi, nzi;
+	  nxi = isub->nx(ipn);
+	  nyi = isub->ny(ipn);
+	  nzi = isub->nz(ipn);
+	  dcomplex dx00, dy00, dz00;
+	  dx00 = dxmap(nxi, nxi ,0);
+	  dy00 = dymap(nyi, nyi ,0);
+	  dz00 = dzmap(nzi, nzi ,0);
+	  dcomplex s_ele = dx00 * dy00 * dz00;
+	  dcomplex ce = pow(M_PI/zetaP, 1.5);	  
+	  for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
+	    irds->coef_iz(iz) = 1.0/sqrt(ce*s_ele);
+	  }
+	}
+      }
+    }
+    */
+
+    A3dc dxmap(100), dymap(100), dzmap(100);
     // >>> Irrep Adapted GTOs >>>
     for(SubIt isub = subs.begin(), end = subs.end(); isub != end; ++isub) {
       for(int iz = 0; iz < isub->size_zeta(); iz++) {
-	for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end();
+      for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end();
 	    ++irds) {
 	  dcomplex zetai = isub->zeta_iz[iz];
 	  dcomplex zetaP = zetai + zetai;
