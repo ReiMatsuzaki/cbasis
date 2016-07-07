@@ -63,7 +63,7 @@ check_symmolint: ${BINDIR}/test_symmolint
 	${RUN} ./$<
 
 # -- test 2e int --
-TWOINT_OBJS = test_2eint.o b2eint.o symmolint.o symgroup.o bmatset.o angmoment.o \
+TWOINT_OBJS = test_2eint.o b2eint.o symmolint.o symgroup.o one_int.o two_int.o bmatset.o angmoment.o  \
 	eigen_plus.o fact.o mol_func.o timer.o
 ${BINDIR}/test_2eint:  $(foreach o, ${TWOINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl

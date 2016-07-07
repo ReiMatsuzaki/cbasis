@@ -26,7 +26,7 @@ namespace l2func {
 
   // ==== SymGTOs ====
   void SymGTOs_CalcMatrix(SymGTOs& a, SymGTOs& b, bool calc_coulomb, BMatSet* res);
-  //  void SymGTOs_CalcERI(SymGTOs& i, SymGTOs& j, SymGTOs& k, SymGTOs& l, IB2EInt* eri);
+  
 
 }
 
