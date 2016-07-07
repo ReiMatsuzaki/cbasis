@@ -11,10 +11,6 @@ namespace l2func {
   typedef MultArray<dcomplex, 3> A3dc;
 
   // ==== Utility ====
-  dcomplex dist2(dcomplex dx, dcomplex dy, dcomplex dz) {
-    return dx*dx+dy*dy+dz*dz;
-  }
-
   double div(int a, int b) {
     return a*1.0/b;
   }

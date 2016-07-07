@@ -7,6 +7,19 @@
 
 namespace l2func {
 
+  class CartGTO {
+  public:
+    int nx, ny, nz;
+    dcomplex x, y, z;
+    dcomplex zeta;
+    CartGTO(){}
+    CartGTO(int _nx, int _ny, int _nz, dcomplex _x, dcomplex _y, dcomplex _z, dcomplex _zeta):
+      nx(_nx), ny(_ny), nz(_nz), x(_x), y(_y), z(_z), zeta(_zeta) {}
+    std::string str() const;
+  };
+
+  dcomplex dist2(dcomplex dx, dcomplex dy, dcomplex dz);
+
   // ==== Incomplete Gamma ====
   // K.Ishida J.Comput.Chem. 25, (2004), 739
   // F1 and F2 algorithms 
@@ -38,7 +51,7 @@ namespace l2func {
 		  dcomplex cx,  dcomplex cy,  dcomplex cz,
 		  int mx, int my, int mz, int j, dcomplex* Fjs);
 
-  // ==== molecular integral ====
+  // ==== molecular integral(To be removed) ====
   dcomplex GTOOverlap(int nAx, int nAy, int nAz, 
 		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
 		       dcomplex zetaA,

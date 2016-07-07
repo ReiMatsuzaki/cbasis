@@ -64,6 +64,7 @@ class TwoPotDrivEq():
         v1 = self.gtos.calc_mat_sto(self.v1)
         v1H = self.gtos_cc.calc_mat_sto(self.gtos, self.v1)
         (s, t, v0) = self.gtos.calc_mat_stv(1)
+        v0 = self.z * v0
         m = self.gtos.calc_vec_sto(self.s)
 
         # solve driven eq
@@ -91,6 +92,7 @@ class TwoPotDrivEq():
         # compute matrix/vector
         v1 = self.gtos.calc_mat_sto(self.v1)
         (s, t, v0) = self.gtos.calc_mat_stv(1)
+        v0 = self.z * v0
         m = self.gtos.calc_vec_sto(self.s)
 
         # solve driven eq
@@ -124,6 +126,7 @@ class TwoPotDrivEq():
     def solve_full(self):
         v1 = self.gtos.calc_mat_sto(self.v1)
         (s, t, v0) = self.gtos.calc_mat_stv(1)
+        v0 = self.z * v0
         m = self.gtos.calc_vec_sto(self.s)
 
         # solve driven eq

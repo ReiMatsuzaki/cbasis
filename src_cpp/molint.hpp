@@ -4,12 +4,14 @@
 #include <vector>
 #include <boost/array.hpp>
 #include "math_utils.hpp"
+#include "typedef.hpp"
 #include <map>
 
 namespace l2func {
 
   using std::vector;
- 
+
+  // -- old 
   dcomplex gto_overlap(int nAx, int nAy, int nAz, 
 		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
 		       dcomplex zetaA,
@@ -17,6 +19,7 @@ namespace l2func {
 		       dcomplex wBx, dcomplex wBy, dcomplex wBz,
 		       dcomplex zetaB);
 
+  // -- old 
   dcomplex gto_kinetic(int nAx, int nAy, int nAz,
 		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
 		       dcomplex zetaA,
@@ -24,6 +27,7 @@ namespace l2func {
 		       dcomplex wBx, dcomplex wBy, dcomplex wBz,
 		       dcomplex zetaB);
 
+  // -- old 
   dcomplex gto_moment_z(int nAx, int nAy, int nAz,
 			dcomplex wAx, dcomplex wAy, dcomplex wAz,
 			dcomplex zetaA,
@@ -31,6 +35,7 @@ namespace l2func {
 			dcomplex wBx, dcomplex wBy, dcomplex wBz,
 			dcomplex zetaB);
 
+  // -- old 
   dcomplex gto_nuclear_attraction(int nAx, int nAy, int nAz, 
 				  dcomplex wAx, dcomplex wAy, dcomplex wAz,
 				  dcomplex zetaA,

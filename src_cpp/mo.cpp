@@ -374,7 +374,7 @@ namespace l2func {
     h_stex->swap(res);
   }
   dcomplex CalcAlpha(MO mo, BMatSet& mat_set, Irrep I0, int i0, BMat& h_stex,
-		     double w, int method) {
+		     double w, Coord coord, int method) {
     dcomplex a(0);
     typedef vector<Irrep>::const_iterator It;
     dcomplex ene;
@@ -389,13 +389,24 @@ namespace l2func {
       // -- experimental value from "McQuarrie and Simon" p.302
       ene = w - 0.903724375;
     }
+
+    // -- set matrix name for direction --
+    string mat_name;
+    if(coord == CoordX)
+      mat_name = "x";
+    else if(coord == CoordY)
+      mat_name = "y";
+    else if(coord == CoordZ)
+      mat_name = "z";
+
     for(It it = mo->irrep_list.begin(); it != mo->irrep_list.end(); ++it) {      
       Irrep irrep = *it;
-      if(mat_set.Exist("z", irrep, I0)) {
+      if(mat_set.Exist(mat_name, irrep, I0)) {
 	pair<Irrep, Irrep> ii(irrep, irrep);
 	const MatrixXcd& S = mat_set.GetMatrix("s", irrep, irrep);
 	const MatrixXcd& H = h_stex[ii];
-	const MatrixXcd& Z = mat_set.GetMatrix("z", irrep, I0);
+	const MatrixXcd& Z = mat_set.GetMatrix(mat_name, irrep, I0);
+			     
 	MatrixXcd L = S * ene - H;
 	VectorXcd m = Z * mo->C[make_pair(I0, I0)].col(i0);
 	VectorXcd c = L.colPivHouseholderQr().solve(m);

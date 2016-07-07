@@ -9,6 +9,16 @@ namespace l2func {
 
   typedef MultArray<dcomplex, 3> A3dc;
 
+  string CartGTO::str() const {
+    ostringstream oss;
+    oss << nx << ny << nz << ": " << x << y << z;
+    return oss.str();
+  }
+  dcomplex dist2(dcomplex dx, dcomplex dy, dcomplex dz) {
+    return dx*dx+dy*dy+dz*dz;
+  }
+
+
   void IncompleteGamma_F1(int max_m, dcomplex z, dcomplex* res_list) {
 
     double x = real(z);
@@ -151,12 +161,13 @@ namespace l2func {
     
     double x = real(z);
     double y = imag(z);
-    double eps(pow(10.0, -10.0));
+    double eps(pow(10.0, -15.0));
 
     if(x < -eps) {
       std::string msg;
       SUB_LOCATION(msg);
-      msg += "negative Re[z] is not supported. Use ExpIncompleteGamma with -z";
+      msg += ": negative Re[z] is not supported. Use ExpIncompleteGamma with -z";
+      cout << "z: " << z << endl;
       throw std::runtime_error(msg);
     } 
     
@@ -174,6 +185,7 @@ namespace l2func {
   }
 
   void ExpIncompleteGamma_G1(int max_m, dcomplex z, dcomplex *res_list) {
+    cout << "G1" << endl;
     double x = real(z);
     double y = imag(z);
     double eps(pow(10.0, -10.0));
@@ -325,7 +337,7 @@ namespace l2func {
   }
   
   void ExpIncompleteGamma(int max_m, dcomplex z, dcomplex* res_list) {
-    cout << "ExpIncGamma: " << z << endl;
+    //    cout << "ExpIncGamma: " << z << endl;
     double x = real(z);
     double y = imag(z);
     double eps(pow(10.0, -10.0));
@@ -334,7 +346,8 @@ namespace l2func {
     if(x < -eps) {
       std::string msg;
       SUB_LOCATION(msg);
-      msg += "negative Re[z] is not supported. use IncompleteGamma with -z.";
+      msg += ": negative Re[z] is not supported. use IncompleteGamma with -z.";
+      cout << "z: " << z << endl;
       throw std::runtime_error(msg);
     }
  

@@ -5,7 +5,8 @@
 #include "eigen_plus.hpp"
 
 #include "mol_func.hpp"
-
+#include "one_int.hpp"
+#include "two_int.hpp"
 #include "symmolint.hpp"
 
 using namespace std;
@@ -15,6 +16,235 @@ using namespace Eigen;
 // other calculation:
 // 2016/3/22
 
+class TestValue : public ::testing::Test {
+public:
+  MatrixXcd S_ref, T_ref, V_ref;
+  CartGTO *cart_gtos;
+  double R0;
+  IB2EInt *eri;
+  VectorXcd N;
+  TestValue() {
+
+    // -- copied from 
+    // ~/calc/ccolumbus/h2/look_matrix/prim/
+    // Warnining basis number 2 is not normalized.
+
+    S_ref = MatrixXcd::Zero(3, 3);
+    S_ref(1, 0) = S_ref(0, 1) = dcomplex(0.513873194611748, 0.0);
+    S_ref(2, 0) = S_ref(0, 2) = dcomplex(-0.004134825663905873,-0.003633459594216835);
+    S_ref(2, 1) = S_ref(1, 2) = dcomplex(0.008021777897592569, 0.007549817884085504);
+    S_ref(0, 0) = 1.0;
+    S_ref(1, 1) = 1.0;
+    S_ref(2, 2) = 3.0;
+
+    T_ref = MatrixXcd::Zero(3, 3);
+    T_ref(0, 0) = dcomplex(2.00400000000000,0.0);
+    T_ref(1, 1) = 2.5;
+    T_ref(2, 2) = dcomplex(0.01665468999999993,-0.101396035000000);
+    T_ref(1, 0) = T_ref(0, 1) = dcomplex(0.810581687160939,0.0);
+    T_ref(2, 0) = T_ref(0, 2) = dcomplex(0.004400790809944475, 0.004508684316644799);
+    T_ref(2, 1) = T_ref(1, 2) = dcomplex(0.001116507965258936,-0.0008268252225118336);
+
+    V_ref = MatrixXcd::Zero(3, 3);
+    V_ref(0, 0) = -2.55789824622471;
+    V_ref(1, 0) = V_ref(0, 1) = -1.28506460356472;
+    V_ref(2, 0) = V_ref(0, 2) = dcomplex(0.006725376894693752, 0.005806630112951551);
+    V_ref(1, 1) = -1.91602738492149;
+    V_ref(2, 1) = V_ref(1, 2) = dcomplex(-0.008460539669617330, -0.007855139694167059);
+    V_ref(2, 2) = dcomplex(-0.487930940839014, 0.418008125164049);
+    
+    eri = new B2EIntMem(21);
+    eri->Set(0, 0, 0, 0, 0,0, 0, 0, dcomplex( 1.304242320953500,	  0.000000000000000));
+    eri->Set(0, 0, 0, 0, 1,0, 0, 0, dcomplex( 0.628781702685092,	  0.000000000000000));
+    eri->Set(0, 0, 0, 0, 1,1, 0, 0, dcomplex( 0.759778545089558,	  0.000000000000000));
+    eri->Set(0, 0, 0, 0, 1,0, 1, 0, dcomplex( 0.339943011162754,	  0.000000000000000));
+    eri->Set(0, 0, 0, 0, 1,1, 1, 0, dcomplex( 0.446428664582801,	  0.000000000000000));
+    eri->Set(0, 0, 0, 0, 1,1, 1, 1, dcomplex(0.921509653127999,	 0.000000000000000)); 
+    eri->Set(0, 0, 0, 0, 2,0, 0, 0, dcomplex(-0.004008078843243,	 -0.003473830310264)); 
+    eri->Set(0, 0, 0, 0, 2,1, 0, 0, dcomplex( 0.002518384782399,	  0.002384106992764)); 
+    eri->Set(0, 0, 0, 0, 2,0, 1, 0, dcomplex(-0.001736294955885,	 -0.001503863734779)); 
+    eri->Set(0, 0, 0, 0, 2,1, 1, 0, dcomplex( 0.001535095096629,	  0.001443367598624)); 
+    eri->Set(0, 0, 0, 0, 2,0, 1, 1, dcomplex(-0.002169086387108,	 -0.001883459993939)); 
+    eri->Set(0, 0, 0, 0, 2,1, 1, 1, dcomplex( 0.005972593235128,	  0.005519274508113)); 
+    eri->Set(0, 0, 0, 0, 2,2, 0, 0, dcomplex( 0.243965040060797,	 -0.209006616246956)); 
+    eri->Set(0, 0, 0, 0, 2,0, 2, 0, dcomplex( 0.000003926040252,	  0.000029032254199)); 
+    eri->Set(0, 0, 0, 0, 2,2, 1, 0, dcomplex( 0.125696676700414,	 -0.106858517235463)); 
+    eri->Set(0, 0, 0, 0, 2,1, 2, 0, dcomplex(-0.000001456206062,	 -0.000015419411288)); 
+    eri->Set(0, 0, 0, 0, 2,2, 1, 1, dcomplex( 0.243188051473405,	 -0.210254097028053)); 
+    eri->Set(0, 0, 0, 0, 2,1, 2, 1, dcomplex( 0.000009097897649,	  0.000121343795672)); 
+    eri->Set(0, 0, 0, 0, 2,2, 2, 0, dcomplex(-0.001771869914966,	 -0.000003726441273)); 
+    eri->Set(0, 0, 0, 0, 2,2, 2, 1, dcomplex( 0.003556365185446,	  0.000070319128288)); 
+    eri->Set(0, 0, 0, 0, 2,2, 2, 2, dcomplex( 0.736988908548374 , -0.625811204311571)); 
+
+    /*
+ 1  1  1  1  1  1  1  1   1.304242320953500   0.000000000000000
+  1  1  1  1  2  1  1  1   0.628781702685092   0.000000000000000
+  1  1  1  1  2  2  1  1   0.759778545089558   0.000000000000000
+  1  1  1  1  2  1  2  1   0.339943011162754   0.000000000000000
+  1  1  1  1  2  2  2  1   0.446428664582801   0.000000000000000
+  1  1  1  1  2  2  2  2   0.921509653127999   0.000000000000000
+  1  1  1  1  3  1  1  1  -0.004008078843243  -0.003473830310264
+  1  1  1  1  3  2  1  1   0.002518384782399   0.002384106992764
+  1  1  1  1  3  1  2  1  -0.001736294955885  -0.001503863734779
+  1  1  1  1  3  2  2  1   0.001535095096629   0.001443367598624
+  1  1  1  1  3  1  2  2  -0.002169086387108  -0.001883459993939
+  1  1  1  1  3  2  2  2   0.005972593235128   0.005519274508113
+  1  1  1  1  3  3  1  1   0.243965040060797  -0.209006616246956
+  1  1  1  1  3  1  3  1   0.000003926040252   0.000029032254199
+  1  1  1  1  3  3  2  1   0.125696676700414  -0.106858517235463
+  1  1  1  1  3  2  3  1  -0.000001456206062  -0.000015419411288
+  1  1  1  1  3  3  2  2   0.243188051473405  -0.210254097028053
+  1  1  1  1  3  2  3  2   0.000009097897649   0.000121343795672
+  1  1  1  1  3  3  3  1  -0.001771869914966  -0.000003726441273
+  1  1  1  1  3  3  3  2   0.003556365185446   0.000070319128288
+  1  1  1  1  3  3  3  3   0.736988908548374  -0.625811204311571
+*/
+
+    cart_gtos = new CartGTO[3];
+    R0 = 1.4;
+    dcomplex zeta_s(1.336);
+    CartGTO s0(0, 0, 0, 0.0, 0.0, +R0/2.0, +zeta_s);
+    
+    dcomplex zeta_p(1.0);
+    CartGTO p1(0, 0, 1, 0.0, 0.0, -R0/2.0, +zeta_p);
+    
+    dcomplex zeta_d(0.00256226, -0.01559939);
+    CartGTO dz(0, 0, 2, 0.0, 0.0, 0.0, zeta_d);
+
+    cart_gtos[0] = s0; cart_gtos[1] = p1; cart_gtos[2] = dz; 
+
+    // Adjust cCoulombus normalization.
+    // I dont knoe the origion of this difference of sign for basis 2.
+    N = VectorXcd::Zero(3);
+    N[0] = +1.0/sqrt(SMatEle(cart_gtos[0], cart_gtos[0]));
+    N[1] = +1.0/sqrt(SMatEle(cart_gtos[1], cart_gtos[1]));
+    N[2] = -1.0/sqrt(SMatEle(cart_gtos[2], cart_gtos[2]));
+    
+  }
+};
+TEST_F(TestValue, OneInt) {
+
+  MatrixXcd S(3, 3), T(3, 3), V(3, 3);
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j < 3; j++) {
+      S(i, j) = SMatEle(cart_gtos[i], cart_gtos[j]);
+      T(i, j) = TMatEle(cart_gtos[i], cart_gtos[j]);
+      V(i, j) = (VMatEle(cart_gtos[i], Vector3cd(0,0,+R0/2.0), cart_gtos[j]) +
+		 VMatEle(cart_gtos[i], Vector3cd(0,0,-R0/2.0), cart_gtos[j]));
+    }
+  }
+
+  cout << "End calc" << endl;
+  for(int i = 0; i < 3; i++) {
+    //    dcomplex c = S(i, i);
+    CartGTO gi = cart_gtos[i];
+    CartGTO gj = cart_gtos[i];
+    dcomplex told = GTOKinetic(gi.nx, gi.ny, gi.nz, gi.x, gi.y, gi.z, gi.zeta,
+			       gj.nx, gj.ny, gj.nz, gj.x, gj.y, gj.z, gj.zeta);
+    dcomplex sold = GTOOverlap(gi.nx, gi.ny, gi.nz, gi.x, gi.y, gi.z, gi.zeta,
+			       gj.nx, gj.ny, gj.nz, gj.x, gj.y, gj.z, gj.zeta);
+    EXPECT_C_EQ(told, T(i, i));
+    EXPECT_C_EQ(sold, S(i, i));
+    //EXPECT_C_EQ(T_ref(i, i), T(i, i)/c) << i;
+  }
+
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j <= i; j++) {
+      // dcomplex c = sqrt(S(i, i)) * sqrt(S(j, j)) / (coef(i) * coef(j));
+      dcomplex c = N[i] * N[j];
+      dcomplex cr = 1.0/sqrt(S_ref(i, i) * S_ref(j, j));
+      EXPECT_C_EQ(S_ref(i, j)*cr, S(i, j)*c) << "S" << i << j;
+      EXPECT_C_EQ(T_ref(i, j)*cr, T(i, j)*c) << "T" << i << j;
+      EXPECT_C_EQ(V_ref(i, j)*cr, V(i, j)*c) << "V" << i << j;
+    }
+  }
+
+}
+TEST_F(TestValue, TwoInt) {
+
+  
+  int ib,jb,kb,lb,i,j,k,l,t;
+  dcomplex v;
+  eri->Reset();
+  while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+    dcomplex cc = N[i]*N[j]*N[k]*N[l];
+    dcomplex cr = 1.0/sqrt(S_ref(i, i) * S_ref(j, j) * S_ref(k, k) * S_ref(l, l));
+    dcomplex eri_c = ERIEle(cart_gtos[i], cart_gtos[j], cart_gtos[k], cart_gtos[l]);
+    EXPECT_C_EQ(cr*v, cc*eri_c) << i << j << k << l;
+  }
+    
+}
+
+class TestOneInt_2 : public ::testing::Test {
+public:
+  MatrixXcd S_ref, T_ref, V_ref;
+  TestOneInt_2() {
+    S_ref = MatrixXcd::Zero(3, 3);
+    S_ref(1, 0) = S_ref(0, 1) = dcomplex(0.513873194611748,0.0);
+    S_ref(2, 0) = S_ref(0, 2) = dcomplex(0.05193755848351833,-0.08666606941735752);
+    S_ref(2, 1) = S_ref(1, 2) = dcomplex(-0.002073772307671170,-0.001833928633536128);
+    for(int i = 0; i < 3; i++)
+      S_ref(i, i) = 1.0;
+
+    T_ref = MatrixXcd::Zero(3, 3);
+    T_ref(0, 0) = dcomplex(2.00400000000000,0.0);
+    T_ref(1, 0) = T_ref(0, 1) = dcomplex(0.810581687160939,0.0);
+    T_ref(2, 0) = T_ref(0, 2) = dcomplex(-0.003593936930526835,-0.003148480048020555);
+    T_ref(1, 1) = 2.5;
+    T_ref(2, 1) = T_ref(1, 2) = dcomplex(-0.0001715966383410786, 0.0001346395225245968);
+    T_ref(2, 2) = dcomplex(0.003843389999999993,-0.023399085);
+
+    V_ref = MatrixXcd::Zero(3, 3);
+    V_ref(0, 0) = -1.84447717891340;
+    V_ref(1, 1) = -0.852181303851000;
+    V_ref(2, 2) = dcomplex(-0.153468088356997,0.128977566952773);
+    V_ref(1, 0) = V_ref(0, 1) = -0.827069477514693;
+    V_ref(2, 0) = V_ref(0, 2) = dcomplex(-6.714905900174725E-002,0.113541487325806);
+    V_ref(2, 1) = V_ref(1, 2) = dcomplex(-0.02281733798475866,0.04115368695515250);
+
+  }
+};
+TEST_F(TestOneInt_2, SPD) {
+  double R0 = 1.4;
+  dcomplex zeta_s(1.336);
+  CartGTO s0(0, 0, 0, 0.0, 0.0, +R0/2.0, +zeta_s);
+  dcomplex zeta_p(1.0);
+  CartGTO p1(0, 0, 1, 0.0, 0.0, -R0/2.0, +zeta_p);
+  dcomplex zeta_d(0.00256226, -0.01559939);
+  CartGTO dz(0, 0, 0, 0.0, 0.0, 0.0, zeta_d);
+
+  CartGTO *gtos = new CartGTO[3];
+  gtos[0] = s0; gtos[1] = p1; gtos[2] = dz; 
+
+  MatrixXcd S(3, 3), T(3, 3), V(3, 3);
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j < 3; j++) {
+      S(i, j) = SMatEle(gtos[i], gtos[j]);
+      T(i, j) = TMatEle(gtos[i], gtos[j]);
+      V(i, j) = VMatEle(gtos[i], Vector3cd(0,0,+R0/2.0), gtos[j]);
+    }
+  }
+  
+  CartGTO gi = gtos[0];
+  CartGTO gj = gtos[1];
+  cout << GTONuclearAttraction(gi.nx, gi.ny, gi.nz, gi.x, gi.y, gi.z, gi.zeta,
+			       gj.nx, gj.ny, gj.nz, gj.x, gj.y, gj.z, gj.zeta,
+			       0, 0, R0/2.0)/sqrt(SMatEle(gi, gi)*SMatEle(gj,gj)) << endl;
+  dcomplex vold = GTONuclearAttraction(gi.nx, gi.ny, gi.nz, gi.x, gi.y, gi.z, gi.zeta,
+				       gj.nx, gj.ny, gj.nz, gj.x, gj.y, gj.z, gj.zeta,
+				       0, 0, R0/2.0);
+  EXPECT_C_EQ(vold, V(0, 1));
+
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j <= i; j++) {
+      dcomplex c = sqrt(S(i, i)) * sqrt(S(j, j));
+      EXPECT_C_EQ(S_ref(i, j), S(i, j)/c) << i << j;
+      EXPECT_C_EQ(T_ref(i, j), T(i, j)/c) << i << j;
+      EXPECT_C_EQ(V_ref(i, j), V(i, j)/c) << i << j;
+    }
+  }  
+
+}
 
 void SymGTOs_AtR_Ylm_NDeriv(SymGTOs* gtos, int L, int M, int irrep,
 				const VectorXcd& cs, dcomplex r,
@@ -49,6 +279,7 @@ void SymGTOs_AtR_Ylm_NDeriv(SymGTOs* gtos, int L, int M, int irrep,
   *res_dv_nd = (vp0 + iv0m - vm0 - iv0p) / (4.0 * h);
   
 }
+
 TEST(SubSymGTOs, AddZeta) {
 
   SubSymGTOs sub(SymmetryGroup::C1());
@@ -64,6 +295,209 @@ TEST(SubSymGTOs, AddZeta) {
   EXPECT_C_EQ(2.2, sub.get_zeta_iz()(4));
 
 }
+
+
+void test_SymGTOsOneInt(CartGTO a, Vector3cd at, CartGTO b) {
+  
+  pSymmetryGroup sym = SymmetryGroup::C1();
+
+
+  // Build SymGTOs
+  SubSymGTOs sub_a(sym);
+  sub_a.AddXyz(Vector3cd(a.x, a.y, a.z));
+  sub_a.AddNs( Vector3i( a.nx,a.ny,a.nz));
+  sub_a.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
+  VectorXcd zeta_a(1); zeta_a << a.zeta;
+  sub_a.AddZeta(zeta_a);
+  sub_a.SetUp();
+
+  SubSymGTOs sub_b(sym);
+  sub_b.AddXyz(Vector3cd(b.x, b.y, b.z));
+  sub_b.AddNs( Vector3i( b.nx,b.ny,b.nz));
+  sub_b.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
+  VectorXcd zeta_b(1); zeta_b << b.zeta;
+  sub_b.AddZeta(zeta_b);
+  sub_b.SetUp();
+
+  SymGTOs gtos(sym);
+  gtos.AddSub(sub_a);
+  gtos.AddSub(sub_b);
+  MatrixXcd xyzq(4, 1); 
+  xyzq << at[0], at[1], at[2], 1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+  BMatSet mat; gtos.CalcMat(&mat);
+
+  // Check Matrix
+  const MatrixXcd& S_sym  = mat.GetMatrix("s", 0, 0);
+  MatrixXcd S_cart(2, 2);
+  S_cart(0, 0) = SMatEle(a, a); S_cart(0, 1) = SMatEle(a, b);
+  S_cart(1, 0) = SMatEle(b, a); S_cart(1, 1) = SMatEle(b, b);
+  dcomplex c_sym = 1.0/sqrt(S_sym(0, 0) *S_sym( 1, 1));
+  dcomplex c_cart= 1.0/sqrt(S_cart(0, 0)*S_cart(1, 1));
+  dcomplex s_sym  = S_sym(0, 1)  * c_sym;
+  dcomplex s_cart = S_cart(0, 1) * c_cart;
+  EXPECT_C_EQ(s_cart, s_sym) << endl
+			     << "S matrix" << endl
+			     << "a: " << a.str() << endl
+			     << "b: " << b.str() << endl;
+  dcomplex T_sym = mat.GetMatrix("t", 0, 0)(0, 1)*c_sym;
+  dcomplex T_cart= TMatEle(a, b)*c_cart;
+  EXPECT_C_EQ(T_cart, T_sym) << endl
+			     << "T matrix" << endl
+			     << "a: " << a.str() << endl
+			     << "b: " << b.str() << endl;
+  dcomplex V_sym = mat.GetMatrix("v", 0, 0)(0, 1)*c_sym;
+  dcomplex V_cart= VMatEle(a, at, b)*c_cart;
+  EXPECT_C_EQ(V_cart, V_sym) << endl
+			     << "V matrix" << endl
+			     << "a: " << a.str() << endl
+			     << "b: " << b.str() << endl;
+  
+}
+TEST(SymGTOsMatrix, OneInt) {
+
+  CartGTO s0(0, 0, 0, 0.0, 0.0, +0.7, 1.336);
+  CartGTO s1(0, 0, 0, 0.0, 0.0, -0.7, 1.336);
+  CartGTO p0(0, 0, 1, 0.0, 0.0, +0.7, 1.0);
+  CartGTO p1(0, 0, 1, 0.0, 0.0, -0.7, 1.0);
+  dcomplex zeta_d(0.00256226, -0.01559939);
+  CartGTO dx(2, 0, 0, 0.0, 0.0, 0.0, zeta_d);
+  CartGTO dy(0, 2, 0, 0.0, 0.0, 0.0, zeta_d);
+  CartGTO dz(0, 0, 2, 0.0, 0.0, 0.0, zeta_d);
+
+  test_SymGTOsOneInt(s0, Vector3cd(0, 0, 0.35), s1);
+  test_SymGTOsOneInt(s0, Vector3cd(0, 0, 0.35), dz);
+  test_SymGTOsOneInt(p0, Vector3cd(0, 0, 0.35), dz);
+  test_SymGTOsOneInt(CartGTO(2, 1, 3, 0.1, 0.2, 0.3, dcomplex(1.0, -0.4)),
+		     Vector3cd(-0.1, 0, 0.35),
+		     CartGTO(0, 2, 2, 0.4, 0.3, 0.0, dcomplex(0.1, -0.1)));
+  test_SymGTOsOneInt(p0, Vector3cd(0, 0, 0.7), dz);
+
+}
+
+// -- to be removed
+SymGTOs* GTOs_h2_small() {
+
+  double R0 = 1.4;
+  pSymmetryGroup sym = SymmetryGroup::D2h();
+  SymGTOs* gtos = new SymGTOs(sym);
+
+  SubSymGTOs sub_s(sym);
+  sub_s.AddXyz(Vector3cd(0, 0,+R0/2.0));
+  sub_s.AddNs(Vector3i(0, 0, 0));
+  VectorXcd zetas(1);
+  zetas << 1.336;
+  sub_s.AddZeta(zetas); 
+  MatrixXcd c(1, 1); c << 1;
+  sub_s.AddRds(Reduction(sym->irrep_s, c));
+  sub_s.SetUp(); 
+  gtos->AddSub(sub_s); 
+
+  SubSymGTOs sub_p(sym);
+  sub_p.AddXyz(Vector3cd(0, 0, -R0/2.0));
+  sub_p.AddNs(Vector3i(  0, 0, 1));
+  VectorXcd zeta_p(1); zeta_p << 1.0;
+  sub_p.AddZeta(zeta_p);
+  MatrixXcd cp(1, 1); cp << 1;
+  sub_p.AddRds(Reduction(sym->irrep_s, cp));
+  sub_p.SetUp();
+  gtos->AddSub(sub_p);
+
+  SubSymGTOs sub_p_cen(sym);
+  sub_p_cen.AddXyz(Vector3cd(0, 0, 0));
+  sub_p_cen.AddNs( Vector3i( 0, 0, 2));
+  VectorXcd zeta_cen(1);
+  zeta_cen << dcomplex(0.00256226, -0.01559939);
+  sub_p_cen.AddZeta(zeta_cen);
+  MatrixXcd cd(1, 1); cd << 1;
+  sub_p_cen.AddRds(Reduction(sym->irrep_s, cd));
+  sub_p_cen.SetUp();
+  gtos->AddSub(sub_p_cen);
+  
+  MatrixXcd xyzq(4, 2); xyzq <<
+			  0.0,      0.0,
+			  0.0,      0.0,
+			  +R0/2.0, -R0/2.0,
+			  1.0,      1.0;
+  gtos->SetAtoms(xyzq);
+  gtos->SetUp();
+
+  return gtos;
+}
+// -- to be removed
+void CalcMatByCart(MatrixXcd& S, MatrixXcd& T, MatrixXcd& V) {
+  CartGTO s0(0, 0, 0, 0.0, 0.0, +0.7, 1.336);
+  CartGTO s1(0, 0, 0, 0.0, 0.0, -0.7, 1.336);
+  CartGTO p0(0, 0, 1, 0.0, 0.0, +0.7, 1.0);
+  CartGTO p1(0, 0, 1, 0.0, 0.0, -0.7, 1.0);
+  CartGTO dx(2, 0, 0, 0.0, 0.0, 0.0, 1.336);
+  CartGTO dy(0, 2, 0, 0.0, 0.0, 0.0, 1.336);
+  CartGTO dz(0, 0, 2, 0.0, 0.0, 0.0, 1.336);
+
+  // 0 vs 2
+  S = MatrixXcd::Zero(3, 3);
+  S(0, 0) = SMatEle(s0, s0) + 2.0*SMatEle(s0, s1) + SMatEle(s1, s1);
+  S(1, 1) = SMatEle(p0, p0) - 2.0*SMatEle(p0, p1) + SMatEle(p1, p1);
+  S(2, 2) = (SMatEle(dx, dx)        + SMatEle(dx, dy)        -2.0 * SMatEle(dx, dz) +
+	     SMatEle(dy, dx)        + SMatEle(dy, dy)        -2.0 * SMatEle(dy, dz) +
+	     (-2.0)*SMatEle(dz, dx) + (-2.0)*SMatEle(dz, dy) + 4.0*SMatEle(dz, dz));
+  S(0, 1) = S(1, 0) = (+SMatEle(s0, p0) - SMatEle(s0, p1) 
+		       +SMatEle(s1, p0) - SMatEle(s1, p1));
+  S(0, 2) = S(2, 0) = (SMatEle(s0, dx) + SMatEle(s0, dy) -2.0*SMatEle(s0, dz) + 
+		       SMatEle(s1, dx) + SMatEle(s1, dy) -2.0*SMatEle(s1, dz));
+  S(1, 2) = S(2, 1) = (+SMatEle(p0, dx) + SMatEle(p0, dy) -2.0*SMatEle(p0, dz)
+		       -SMatEle(p1, dx) - SMatEle(p1, dy) +2.0*SMatEle(p1, dz));
+  T = MatrixXcd::Zero(3, 3);
+  T(0, 0) = TMatEle(s0, s0) + 2.0*TMatEle(s0, s1) + TMatEle(s1, s1);
+  T(1, 1) = TMatEle(p0, p0) - 2.0*TMatEle(p0, p1) + TMatEle(p1, p1);
+  T(2, 2) = (TMatEle(dx, dx)        + TMatEle(dx, dy)        -2.0 * TMatEle(dx, dz) +
+	     TMatEle(dy, dx)        + TMatEle(dy, dy)        -2.0 * TMatEle(dy, dz) +
+	     (-2.0)*TMatEle(dz, dx) + (-2.0)*TMatEle(dz, dy) + 4.0*TMatEle(dz, dz));
+  T(0, 1) = T(1, 0) = (+TMatEle(s0, p0) - TMatEle(s0, p1) 
+		       +TMatEle(s1, p0) - TMatEle(s1, p1));
+  T(0, 2) = T(2, 0) = (TMatEle(s0, dx) + TMatEle(s0, dy) -2.0*TMatEle(s0, dz) + 
+		       TMatEle(s1, dx) + TMatEle(s1, dy) -2.0*TMatEle(s1, dz));
+  T(1, 2) = T(2, 1) = (+TMatEle(p0, dx) + TMatEle(p0, dy) -2.0*TMatEle(p0, dz)
+		       -TMatEle(p1, dx) - TMatEle(p1, dy) +2.0*TMatEle(p1, dz));
+  
+  V = MatrixXcd::Zero(3, 3);
+  Vector3cd kat0(0, 0, +0.7);
+  Vector3cd kat1(0, 0, -0.7);
+  V(0, 0) = (VMatEle(s0, kat0, s0) + 2.0*VMatEle(s0, kat0, s1) + VMatEle(s1, kat0, s1)+
+	     VMatEle(s0, kat1, s0) + 2.0*VMatEle(s0, kat1, s1) + VMatEle(s1, kat1, s1));
+  V(1, 1) = (VMatEle(p0, kat0, p0) - 2.0*VMatEle(p0, kat0, p1) + VMatEle(p1, kat0, p1) +
+	     VMatEle(p0, kat1, p0) - 2.0*VMatEle(p0, kat1, p1) + VMatEle(p1, kat1, p1));
+  V(2, 2) = (VMatEle(dx, kat0, dx) + VMatEle(dx, kat0, dy) -2.0 * VMatEle(dx, kat0, dz) +
+	     VMatEle(dy, kat0, dx) + VMatEle(dy, kat0, dy) -2.0 * VMatEle(dy, kat0, dz) +
+	     (-2.0)*VMatEle(dz, kat0, dx) + (-2.0)*VMatEle(dz, kat0, dy) + 4.0*VMatEle(dz, kat0, dz)+
+	     VMatEle(dx, kat1, dx) + VMatEle(dx, kat1, dy) -2.0 * VMatEle(dx, kat1, dz) +
+	     VMatEle(dy, kat1, dx) + VMatEle(dy, kat1, dy) -2.0 * VMatEle(dy, kat1, dz) +
+	     (-2.0)*VMatEle(dz, kat1, dx) + (-2.0)*VMatEle(dz, kat1, dy) + 4.0*VMatEle(dz, kat1, dz));
+
+  V(0, 1) = V(1, 0) = (+VMatEle(s0, kat0, p0) - VMatEle(s0, kat0, p1) 
+		       +VMatEle(s1, kat0, p0) - VMatEle(s1, kat0, p1)
+		       +VMatEle(s0, kat1, p0) - VMatEle(s0, kat1, p1) 
+		       +VMatEle(s1, kat1, p0) - VMatEle(s1, kat1, p1));
+  V(0, 2) = V(2, 0) = (VMatEle(s0, kat0, dx) + VMatEle(s0, kat0, dy)
+		       -2.0*VMatEle(s0, kat0, dz) + 
+		       VMatEle(s1, kat0, dx) + VMatEle(s1, kat0, dy)
+		       -2.0*VMatEle(s1, kat0, dz) +
+		       VMatEle(s0, kat1, dx) + VMatEle(s0, kat1, dy)
+		       -2.0*VMatEle(s0, kat1, dz) + 
+		       VMatEle(s1, kat1, dx) + VMatEle(s1, kat1, dy)
+		       -2.0*VMatEle(s1, kat1, dz));
+  V(1, 2) = V(2, 1) = (+VMatEle(p0, kat0, dx) + VMatEle(p0, kat0, dy)
+		       -2.0*VMatEle(p0, kat0, dz)
+		       -VMatEle(p1, kat0, dx) - VMatEle(p1, kat0, dy)
+		       +2.0*VMatEle(p1, kat0, dz)
+		       +VMatEle(p0, kat1, dx) + VMatEle(p0, kat1, dy)
+		       -2.0*VMatEle(p0, kat1, dz)
+		       -VMatEle(p1, kat1, dx) - VMatEle(p1, kat1, dy)
+		       +2.0*VMatEle(p1, kat1, dz));
+  
+}
+
 TEST(SymGTOs, at_r_ylm_lin) {
 
   pSymmetryGroup C1 = SymmetryGroup::C1();
@@ -359,7 +793,7 @@ TEST(SymGTOs, conjugate) {
   SymGTOs gtos_3(Cs);
   SymGTOs gtos_2(Cs);
   Irrep Ap = Cs->GetIrrep("A'");
-  Irrep App= Cs->GetIrrep("A''");
+  //  Irrep App= Cs->GetIrrep("A''");
   dcomplex z_gh(1.1);
   
   // -- A' symmetry --
@@ -385,6 +819,7 @@ TEST(SymGTOs, conjugate) {
 	      mat3.GetMatrix("t", 0, 0)(0, 1));
 
 }
+
 
 class SP_GTO : public ::testing::Test {
  protected:

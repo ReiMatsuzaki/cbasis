@@ -42,7 +42,7 @@ namespace l2func {
 	     int max_iter, double eps, bool *is_conv, int debug_lvl=0);
   void CalcSEHamiltonian(MO mo, IB2EInt* eri, Irrep I0, int i0, BMat* hmat,
 			 int method = 0);
-  dcomplex CalcAlpha(MO mo, BMatSet& mat_set, Irrep I0, int i0, BMat& h_stex, double w, int method=0);
+  dcomplex CalcAlpha(MO mo, BMatSet& mat_set, Irrep I0, int i0, BMat& h_stex, double w, Coord coord, int method=0);
   double PITotalCrossSection(dcomplex alpha, double w, int num_occ_ele);  
 }
 
