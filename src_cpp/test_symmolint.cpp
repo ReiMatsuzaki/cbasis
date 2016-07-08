@@ -110,20 +110,6 @@ TEST_F(TestValue, OneInt) {
     }
   }
 
-  cout << "End calc" << endl;
-  for(int i = 0; i < 3; i++) {
-    //    dcomplex c = S(i, i);
-    CartGTO gi = cart_gtos[i];
-    CartGTO gj = cart_gtos[i];
-    dcomplex told = GTOKinetic(gi.nx, gi.ny, gi.nz, gi.x, gi.y, gi.z, gi.zeta,
-			       gj.nx, gj.ny, gj.nz, gj.x, gj.y, gj.z, gj.zeta);
-    dcomplex sold = GTOOverlap(gi.nx, gi.ny, gi.nz, gi.x, gi.y, gi.z, gi.zeta,
-			       gj.nx, gj.ny, gj.nz, gj.x, gj.y, gj.z, gj.zeta);
-    EXPECT_C_EQ(told, T(i, i));
-    EXPECT_C_EQ(sold, S(i, i));
-    //EXPECT_C_EQ(T_ref(i, i), T(i, i)/c) << i;
-  }
-
   for(int i = 0; i < 3; i++) {
     for(int j = 0; j <= i; j++) {
       // dcomplex c = sqrt(S(i, i)) * sqrt(S(j, j)) / (coef(i) * coef(j));
@@ -148,77 +134,6 @@ TEST_F(TestValue, TwoInt) {
     EXPECT_C_EQ(cr*v, cc*eri_c) << i << j << k << l;
   }
     
-}
-
-class TestOneInt_2 : public ::testing::Test {
-public:
-  MatrixXcd S_ref, T_ref, V_ref;
-  TestOneInt_2() {
-    S_ref = MatrixXcd::Zero(3, 3);
-    S_ref(1, 0) = S_ref(0, 1) = dcomplex(0.513873194611748,0.0);
-    S_ref(2, 0) = S_ref(0, 2) = dcomplex(0.05193755848351833,-0.08666606941735752);
-    S_ref(2, 1) = S_ref(1, 2) = dcomplex(-0.002073772307671170,-0.001833928633536128);
-    for(int i = 0; i < 3; i++)
-      S_ref(i, i) = 1.0;
-
-    T_ref = MatrixXcd::Zero(3, 3);
-    T_ref(0, 0) = dcomplex(2.00400000000000,0.0);
-    T_ref(1, 0) = T_ref(0, 1) = dcomplex(0.810581687160939,0.0);
-    T_ref(2, 0) = T_ref(0, 2) = dcomplex(-0.003593936930526835,-0.003148480048020555);
-    T_ref(1, 1) = 2.5;
-    T_ref(2, 1) = T_ref(1, 2) = dcomplex(-0.0001715966383410786, 0.0001346395225245968);
-    T_ref(2, 2) = dcomplex(0.003843389999999993,-0.023399085);
-
-    V_ref = MatrixXcd::Zero(3, 3);
-    V_ref(0, 0) = -1.84447717891340;
-    V_ref(1, 1) = -0.852181303851000;
-    V_ref(2, 2) = dcomplex(-0.153468088356997,0.128977566952773);
-    V_ref(1, 0) = V_ref(0, 1) = -0.827069477514693;
-    V_ref(2, 0) = V_ref(0, 2) = dcomplex(-6.714905900174725E-002,0.113541487325806);
-    V_ref(2, 1) = V_ref(1, 2) = dcomplex(-0.02281733798475866,0.04115368695515250);
-
-  }
-};
-TEST_F(TestOneInt_2, SPD) {
-  double R0 = 1.4;
-  dcomplex zeta_s(1.336);
-  CartGTO s0(0, 0, 0, 0.0, 0.0, +R0/2.0, +zeta_s);
-  dcomplex zeta_p(1.0);
-  CartGTO p1(0, 0, 1, 0.0, 0.0, -R0/2.0, +zeta_p);
-  dcomplex zeta_d(0.00256226, -0.01559939);
-  CartGTO dz(0, 0, 0, 0.0, 0.0, 0.0, zeta_d);
-
-  CartGTO *gtos = new CartGTO[3];
-  gtos[0] = s0; gtos[1] = p1; gtos[2] = dz; 
-
-  MatrixXcd S(3, 3), T(3, 3), V(3, 3);
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      S(i, j) = SMatEle(gtos[i], gtos[j]);
-      T(i, j) = TMatEle(gtos[i], gtos[j]);
-      V(i, j) = VMatEle(gtos[i], Vector3cd(0,0,+R0/2.0), gtos[j]);
-    }
-  }
-  
-  CartGTO gi = gtos[0];
-  CartGTO gj = gtos[1];
-  cout << GTONuclearAttraction(gi.nx, gi.ny, gi.nz, gi.x, gi.y, gi.z, gi.zeta,
-			       gj.nx, gj.ny, gj.nz, gj.x, gj.y, gj.z, gj.zeta,
-			       0, 0, R0/2.0)/sqrt(SMatEle(gi, gi)*SMatEle(gj,gj)) << endl;
-  dcomplex vold = GTONuclearAttraction(gi.nx, gi.ny, gi.nz, gi.x, gi.y, gi.z, gi.zeta,
-				       gj.nx, gj.ny, gj.nz, gj.x, gj.y, gj.z, gj.zeta,
-				       0, 0, R0/2.0);
-  EXPECT_C_EQ(vold, V(0, 1));
-
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j <= i; j++) {
-      dcomplex c = sqrt(S(i, i)) * sqrt(S(j, j));
-      EXPECT_C_EQ(S_ref(i, j), S(i, j)/c) << i << j;
-      EXPECT_C_EQ(T_ref(i, j), T(i, j)/c) << i << j;
-      EXPECT_C_EQ(V_ref(i, j), V(i, j)/c) << i << j;
-    }
-  }  
-
 }
 
 void SymGTOs_AtR_Ylm_NDeriv(SymGTOs* gtos, int L, int M, int irrep,
@@ -668,105 +583,6 @@ TEST(SymGTOs, Create) {
    gtos.CalcMat(&mat);
    EXPECT_C_EQ(1.0, mat.GetValue("s", Ap, Ap, 0, 0));
  }
-TEST(SymGTOs, one_center_S_gto) {
-
-   dcomplex zeta1(1.1, -0.2);
-   dcomplex zeta2(0.3, -0.01);
-
-   pSymmetryGroup C1 = SymmetryGroup::C1();
-   SymGTOs gtos(C1); 
-   VectorXcd zetas(2); zetas << zeta1, zeta2;
-   gtos.AddSub(Sub_s(C1, 0, Vector3cd(0, 0, 0), zetas));
-   gtos.AddAtom(Vector3cd(0, 0, 0), 1.0);
-   gtos.SetUp();
-
-   BMatSet res;
-   gtos.CalcMat(&res);
-
-   dcomplex c0 = GTONormConst(0, 0, 0, zeta1);
-   dcomplex c1 = GTONormConst(0, 0, 0, zeta2);
-   dcomplex s01 = GTOOverlap(0, 0, 0, 0.0, 0.0, 0.0, zeta1,
-			    0, 0, 0, 0.0, 0.0, 0.0, zeta2);
-   dcomplex t00 = GTOKinetic(0, 0, 0, 0.0, 0.0, 0.0, zeta1,
-			    0, 0, 0, 0.0, 0.0, 0.0, zeta1);
-   dcomplex t01 = GTOKinetic(0, 0, 0, 0.0, 0.0, 0.0, zeta1,
-			    0, 0, 0, 0.0, 0.0, 0.0, zeta2);
-   dcomplex t11 = GTOKinetic(0, 0, 0, 0.0, 0.0, 0.0, zeta2,
-			    0, 0, 0, 0.0, 0.0, 0.0, zeta2);
-   dcomplex v00 = GTONuclearAttraction(0, 0, 0, 0.0, 0.0, 0.0, zeta1,
-				      0, 0, 0, 0.0, 0.0, 0.0, zeta1,
-				      0.0, 0.0, 0.0);
-   dcomplex v11 = GTONuclearAttraction(0, 0, 0, 0.0, 0.0, 0.0, zeta2,
-				      0, 0, 0, 0.0, 0.0, 0.0, zeta2,
-				      0.0, 0.0, 0.0);
-   dcomplex v01 = GTONuclearAttraction(0, 0, 0, 0.0, 0.0, 0.0, zeta1,
-				      0, 0, 0, 0.0, 0.0, 0.0, zeta2,
-				      0.0, 0.0, 0.0);
-
-   const MatrixXcd& S = res.GetMatrix("s", 0, 0);
-   EXPECT_C_EQ(1.0, S(0, 0));
-   EXPECT_C_EQ(1.0, S(1, 1));
-   EXPECT_C_EQ(S(1, 0), S(0, 1));
-   EXPECT_C_EQ(s01*c0*c1, S(0, 1));
-
-   const MatrixXcd& T = res.GetMatrix("t", 0, 0);
-   EXPECT_C_EQ(t00*c0*c0, T(0, 0));
-   EXPECT_C_EQ(t11*c1*c1, T(1, 1));
-   EXPECT_C_EQ(T(1, 0), T(0, 1));
-   EXPECT_C_EQ(t01*c0*c1, T(0, 1));  
-
-   const MatrixXcd& V = res.GetMatrix("v", 0, 0);
-   EXPECT_C_EQ(v00*c0*c0, V(0, 0));
-   EXPECT_C_EQ(v11*c1*c1, V(1, 1));
-   EXPECT_C_EQ(V(1, 0), V(0, 1));
-   EXPECT_C_EQ(v01*c0*c1, V(0, 1));    
-
- }
-TEST(SymGTOs, two_center_SP) {
-
-   dcomplex zeta1(1.1, -0.2);
-   dcomplex x1(0), y1(0), z1(0);
-   dcomplex zeta2(0.3, -0.01);
-   dcomplex x2(1.1), y2(1.2), z2(1.3);
-
-   pSymmetryGroup C1 = SymmetryGroup::C1();
-   SymGTOs gtos(C1); 
-
-   VectorXcd zeta_cen(1); zeta_cen << zeta1;
-   gtos.AddSub(Sub_pz(C1, 0, Vector3cd(x1, y1, z1), zeta_cen));
-
-   VectorXcd zeta_gh(1); zeta_gh << zeta2;
-   gtos.AddSub(Sub_s(C1, 0, Vector3cd(x2, y2, z2), zeta_gh));
-
-   MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
-   gtos.SetAtoms(xyzq);
-
-   BMatSet res;
-   gtos.CalcMat(&res);
-
-   dcomplex s_c =    GTOOverlap(0, 0, 1, x1, y1, z1,  zeta1,
-			       0, 0, 1, x1, y1, z1,  zeta1);
-   dcomplex s_g00  = GTOOverlap(0, 0, 0, x2, y2, z2, zeta2,
-			       0, 0, 0, x2, y2, z2, zeta2);
-   dcomplex s_cg0  = GTOOverlap(0, 0, 1, x1, y1, z1, zeta1,
-			       0, 0, 0, x2, y2, z2, zeta2);
-
-   const MatrixXcd& S = res.GetMatrix("s", 0, 0);
-   EXPECT_EQ(2, S.rows());
-   EXPECT_EQ(2, S.cols());
-
-   dcomplex c_g = 1.0 / sqrt(s_g00);
-   dcomplex c_c = 1.0 / sqrt(s_c);
-   EXPECT_C_EQ(1.0, c_c * c_c * s_c);
-   EXPECT_C_EQ(1.0, c_g * c_g * s_g00);
-   EXPECT_C_EQ(1.0, S(0, 0));
-   EXPECT_C_EQ(1.0, S(1, 1));
-   EXPECT_C_EQ(S(1, 0), S(0, 1));
-   EXPECT_C_EQ(c_c, gtos.subs[0].rds[0].coef_iz(0));
-   EXPECT_C_EQ(c_g, gtos.subs[1].rds[0].coef_iz(0));
-   EXPECT_C_EQ(c_g * c_c * s_cg0, S(0, 1));
-
- }
 TEST(SymGTOs, add_atom) {
 
    SymGTOs gtos(SymmetryGroup::C1()); 
@@ -867,144 +683,319 @@ TEST(SymGTOs, conjugate) {
 
 }
 
+TEST(CompareCColumbus, small_h2) {
 
-class SP_GTO : public ::testing::Test {
- protected:
-   SymGTOs* gtos;
-   dcomplex zeta1, zeta2;
-   dcomplex z_gh;
-   VectorXcd zeta_h;
-   BMatSet res;
+  double R0 = 1.4;
+  pSymmetryGroup sym = SymmetryGroup::D2h();
+  SymGTOs gtos(sym);
 
-   dcomplex c_g, c_c, c_h0;
+  SubSymGTOs sub_s(sym);
+  sub_s.AddXyz(Vector3cd(0, 0,+R0/2.0));
+  sub_s.AddXyz(Vector3cd(0, 0,-R0/2.0));
+  sub_s.AddNs(Vector3i(0, 0, 0));
+  VectorXcd zetas(1);
+  zetas << 1.336;
+  sub_s.AddZeta(zetas); 
+  MatrixXcd c(2, 1); c << 1, 1;
+  sub_s.AddRds(Reduction(sym->irrep_s, c));
+  sub_s.SetUp(); 
+  gtos.AddSub(sub_s); 
 
- public:
-   SP_GTO() {
-     pSymmetryGroup Cs = SymmetryGroup::Cs();
-     gtos = new SymGTOs(Cs);
-     zeta1 = dcomplex(1.1, -0.2);
-     zeta2 = dcomplex(0.3, -0.01);
+  SubSymGTOs sub_p(sym);
+  sub_p.AddXyz(Vector3cd(0, 0, +R0/2.0));
+  sub_p.AddXyz(Vector3cd(0, 0, -R0/2.0));
+  sub_p.AddNs(Vector3i(  0, 0, 1));
+  VectorXcd zeta_p(1); zeta_p << 1.0;
+  sub_p.AddZeta(zeta_p);
+  MatrixXcd cp(2, 1); cp << 1, -1;
+  sub_p.AddRds(Reduction(sym->irrep_s, cp));
+  sub_p.SetUp();
+  gtos.AddSub(sub_p);
 
-     int Ap = 0;
-     int App= 1;
-
-     // -- A' symmetry --
-     zeta_h = VectorXcd::Zero(3); zeta_h << 0.4, 1.0, 2.0;
-     gtos->AddSub(Sub_s(Cs, Ap, Vector3cd(0, 0, 0), zeta_h));
-
-     // -- A'' symmetry, Center --
-     VectorXcd zeta_cen(1); zeta_cen << zeta1;
-     gtos->AddSub(Sub_pz(Cs, App, Vector3cd(0, 0, 0), zeta_cen));
-
-     // -- A'' symmetry, Ghost --
-     z_gh = dcomplex(0.8);
-     VectorXcd zeta_gh(1); zeta_gh << zeta2;
-     gtos->AddSub(Sub_TwoSGTO(SymmetryGroup::Cs(), App,
-			     Vector3cd(0.0, 0.0, z_gh), zeta_gh));
-
-     // -- potential --
-     MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
-     gtos->SetAtoms(xyzq);
-
-     // -- calc --
-     gtos->CalcMat(&res);
-
-     // -- reference --
-     dcomplex s_g00  = GTOOverlap(0, 0, 0, 0.0, 0.0, z_gh, zeta2,
-				 0, 0, 0, 0.0, 0.0, z_gh, zeta2);
-     dcomplex s_g01  = GTOOverlap(0, 0, 0, 0.0, 0.0, z_gh, zeta2,
-				 0, 0, 0, 0.0, 0.0, -z_gh, zeta2);
-     c_h0 = GTONormConst(0, 0, 0, zeta_h(0));
-     c_c = GTONormConst(0, 0, 1, zeta1);
-     c_g  = 1.0 / sqrt(s_g00*2.0 - s_g01*2.0);
+  SubSymGTOs sub_p_cen(sym);
+  sub_p_cen.AddXyz(Vector3cd(0, 0, 0));
+  sub_p_cen.AddNs( Vector3i( 2, 0, 0));
+  sub_p_cen.AddNs( Vector3i( 0, 2, 0));
+  sub_p_cen.AddNs( Vector3i( 0, 0, 2));
+  VectorXcd zeta_cen(1);
+  zeta_cen << dcomplex(0.00256226, -0.01559939);
+  //zeta_cen << dcomplex(0.00256226, -0.01559939);
+  sub_p_cen.AddZeta(zeta_cen);
+  MatrixXcd cd(1, 3); cd << 1, 1, -2;
+  sub_p_cen.AddRds(Reduction(sym->irrep_s, cd));
+  sub_p_cen.SetUp();
+  gtos.AddSub(sub_p_cen);
   
-   }
-   ~SP_GTO() {
-     delete gtos;
-   }
- };
-TEST_F(SP_GTO, matrix) {
+  MatrixXcd xyzq(4, 2); xyzq <<
+			  0.0,      0.0,
+			  0.0,      0.0,
+			  +R0/2.0, -R0/2.0,
+			  1.0,      1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
 
-   dcomplex s_c = GTOOverlap(0, 0, 1, 0.0, 0.0, 0.0,  zeta1,
-			    0, 0, 1, 0.0, 0.0, 0.0,  zeta1);
-   dcomplex s_cg0  = GTOOverlap(0, 0, 1, 0.0, 0.0, 0.0,	 zeta1,
-			       0, 0, 0, 0.0, 0.0, z_gh, zeta2);
+  BMatSet mat; gtos.CalcMat(&mat);
 
-   dcomplex t_c = GTOKinetic(0, 0, 1, 0.0, 0.0, 0.0, zeta1,
-			    0, 0, 1, 0.0, 0.0, 0.0, zeta1);
-   dcomplex t_cg = GTOKinetic(0, 0, 1, 0.0, 0.0, 0.0,  zeta1,
-			    0, 0, 0, 0.0, 0.0, z_gh, zeta2);
-   dcomplex t_g00 = GTOKinetic(0, 0, 0, 0.0, 0.0, z_gh, zeta2,
-			      0, 0, 0, 0.0, 0.0, z_gh, zeta2);
-   dcomplex t_g01 = GTOKinetic(0, 0, 0, 0.0, 0.0, z_gh, zeta2,
-			      0, 0, 0, 0.0, 0.0,-z_gh, zeta2);
+  // -- look ylcls:~/calc/ccolumbus/h2/look_matrix
+  MatrixXcd S_ref00(3, 3);
+  S_ref00(0, 0) = dcomplex(2.54002879355886,0.00000000000);
+  S_ref00(0, 1) = dcomplex(-1.02774638922350,0.00000000000);
+  S_ref00(0, 2) = dcomplex(-0.009327584786309644,-0.00828045703077020);
+  S_ref00(1, 1) = dcomplex(2.72059730979469,0.0000000000000);
+  S_ref00(1, 2) = dcomplex(-0.03236115842797820,-0.02998289626140810);
+  S_ref00(2, 2) = dcomplex(12.0);
+  S_ref00(2, 1) = S_ref00(1, 2);
+  S_ref00(1, 0) = S_ref00(0, 1); 
+  S_ref00(2, 0) = S_ref00(0, 2); 
 
-   dcomplex z_h0g = GTODipZ(0, 0, 0, 0.0, 0.0, 0.0, zeta_h(0),
-			   0, 0, 0, 0.0, 0.0, z_gh, zeta2);
-   dcomplex z_h0c = GTODipZ(0, 0, 0, 0.0, 0.0, 0.0, zeta_h(0),
-			   0, 0, 1, 0.0, 0.0, 0.0, zeta1);  
+  MatrixXcd T_ref00(3, 3);
+  T_ref00(0, 0) = dcomplex(4.14560037345408,0.0);
+  T_ref00(0, 1) = dcomplex(-1.62116337432188,0.0);
+  T_ref00(0, 2) = dcomplex(-0.001080858125006526,0.000853094902854401);
+  T_ref00(1, 1) = dcomplex(7.56652741838541,0.0);
+  T_ref00(1, 2) = dcomplex(-0.003899884013199560,0.002908577808236390);
+  T_ref00(2, 2) = dcomplex(0.107614920000000,-0.655174379999998);
+  T_ref00(2, 1) = T_ref00(1, 2);
+  T_ref00(1, 0) = T_ref00(0, 1); 
+  T_ref00(2, 0) = T_ref00(0, 2); 
 
-   dcomplex v_c = GTONuclearAttraction(0, 0, 1, 0.0, 0.0, 0.0, zeta1,
-					0, 0, 1, 0.0, 0.0, 0.0, zeta1,
-					0.0, 0.0, 0.0);
-   dcomplex v_cg = GTONuclearAttraction(0, 0, 1, 0.0, 0.0, 0.0, zeta1,
-				       0, 0, 0, 0.0, 0.0, z_gh, zeta2,
-				      0.0, 0.0, 0.0);
-   dcomplex v_g00 = GTONuclearAttraction(0, 0, 0, 0.0, 0.0, z_gh, zeta2,
-					0, 0, 0, 0.0, 0.0, z_gh, zeta2,
-					0.0, 0.0, 0.0);
-  dcomplex v_g01 = GTONuclearAttraction(0, 0, 0, 0.0, 0.0, z_gh, zeta2,
-					0, 0, 0, 0.0, 0.0,-z_gh, zeta2,
-					0.0, 0.0, 0.0);
+  MatrixXcd V_ref00(3, 3);
+  V_ref00(0, 0) = dcomplex(-6.49577025469466,0.0);
+  V_ref00(0, 1) = dcomplex(2.98842408078067,0.0);
+  V_ref00(0, 2) = dcomplex(0.01636122032740119,0.01419384999265892);
+  V_ref00(1, 1) = dcomplex(-5.53999525981359,0.0);
+  V_ref00(1, 2) = dcomplex(0.03653639231763511, 0.03327467147633245);
+  V_ref00(2, 2) = dcomplex(-1.95460635098110,1.66714310112737);
+  V_ref00(2, 1) = V_ref00(1, 2);
+  V_ref00(1, 0) = V_ref00(0, 1); 
+  V_ref00(2, 0) = V_ref00(0, 2);   
 
-  const MatrixXcd& S = res.GetMatrix("s", 1, 1);
-
-  EXPECT_EQ(2, S.rows());
-  EXPECT_EQ(2, S.cols());
+  for(int i = 0; i < 3; i++)
+    for(int j = 0; j < 3; j++) {
+      dcomplex c = 1.0/sqrt(S_ref00(i, i) * S_ref00(j, j));
+      EXPECT_C_EQ(S_ref00(i, j)*c, mat.GetMatrix("s", 0, 0)(i, j)) << i << j;
+      EXPECT_C_EQ(T_ref00(i, j)*c, mat.GetMatrix("t", 0, 0)(i, j)) << i << j;
+      EXPECT_C_EQ(V_ref00(i, j)*c, mat.GetMatrix("v", 0, 0)(i, j)) << i << j;
+    }
   
-  EXPECT_C_EQ(1.0, c_c * c_c * s_c);
-  EXPECT_C_EQ(1.0, S(0, 0));
-  EXPECT_C_EQ(1.0, S(1, 1));
-  EXPECT_C_EQ(S(1, 0), S(0, 1));
-  EXPECT_C_EQ(c_c, gtos->subs[1].rds[0].coef_iz(0));
-  EXPECT_C_EQ(c_g, gtos->subs[2].rds[0].coef_iz(0));
-  EXPECT_C_EQ(c_g * c_c * s_cg0 * 2.0, S(0, 1));
-
-  const MatrixXcd& T = res.GetMatrix("t", 1, 1);
-  EXPECT_C_EQ(t_c*c_c*c_c, T(0, 0));
-  EXPECT_C_EQ(2.0*(t_g00-t_g01)*c_g*c_g, T(1, 1));
-  EXPECT_C_EQ(c_g * c_c * t_cg * 2.0, T(0, 1));
-  EXPECT_C_EQ(T(1, 0), T(0, 1));  
-
-  const MatrixXcd& V = res.GetMatrix("v", 1, 1);
-  EXPECT_C_EQ(v_c*c_c*c_c, V(0, 0));
-  EXPECT_C_EQ(2.0*(v_g00-v_g01)*c_g*c_g, V(1, 1));
-  EXPECT_C_EQ(c_g * c_c * v_cg * 2.0, V(0, 1));
-  EXPECT_C_EQ(V(1, 0), V(0, 1));  
-
-  const MatrixXcd& Z = res.GetMatrix("z", 0, 0);
-  EXPECT_MATXCD_EQ(MatrixXcd::Zero(3, 3), Z);
-  const MatrixXcd& Z11 = res.GetMatrix("z", 1, 1);
-  EXPECT_MATXCD_EQ(MatrixXcd::Zero(2, 2), Z11);
-  const MatrixXcd& Z01 = res.GetMatrix("z", 0, 1);
-  EXPECT_C_EQ(z_h0c * c_h0 * c_c, Z01(0, 0));
-  EXPECT_C_EQ(z_h0g * c_h0 * c_g * 2.0, Z01(0, 1));
 
 }
-TEST_F(SP_GTO, at_r_0) {
+TEST(CompareCColumbus, small_he) {
 
-  VectorXcd cs0_ibasis(3);
-  cs0_ibasis << 1.1, 0.0, 0.0;
-
-  VectorXcd rs(2); rs << 1.1, 1.4;
-  VectorXcd vs, dvs; gtos->AtR_Ylm(0, 0, 0, cs0_ibasis, rs, &vs, &dvs);
+  dcomplex z1(0.09154356, -0.24865707);
   
-  for(int i = 0; i < 2; i++) {
-    dcomplex r(rs[i]);
-    dcomplex c_expz(cs0_ibasis(0) * c_h0 * exp(-zeta_h[0]*r*r)*sqrt(4.0*M_PI));
-    EXPECT_C_EQ(c_expz * r, vs[i]) << i;
-    EXPECT_C_EQ(c_expz * (1.0 -2.0*zeta_h[0]*r*r), dvs[i]) << i;
-  }  
+  // set symmetry
+  pSymmetryGroup sym = SymmetryGroup::Cs();
+
+  // sub set (S orbital)
+  SubSymGTOs sub_s(sym);
+  sub_s.AddXyz(Vector3cd(0, 0, 0));
+  sub_s.AddNs(Vector3i(0, 0, 0));
+  VectorXcd zeta_s(2); zeta_s << 0.107951, 3293.694;
+  sub_s.AddZeta(zeta_s);
+  sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
+  sub_s.SetUp();
+
+  // sub set (P orbital)
+  SubSymGTOs sub_z(sym);
+  sub_z.AddXyz(Vector3cd(0, 0, 0));
+  sub_z.AddNs(Vector3i(0, 0, 1));
+  VectorXcd zeta_z(1); zeta_z << z1;
+  sub_z.AddZeta(zeta_z);
+  sub_z.AddRds(Reduction(sym->irrep_z, MatrixXcd::Ones(1, 1)));
+  sub_z.SetUp();
+
+  // GTO set
+  SymGTOs gtos(sym);
+  gtos.AddSub(sub_s);
+  gtos.AddSub(sub_z);
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 2.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+
+  // compute basic matrix
+  BMatSet mat_set; gtos.CalcMat(&mat_set);
+  IB2EInt *eri = new B2EIntMem();
+  gtos.CalcERI(eri, 1);
+  
+  const MatrixXcd& S00 = mat_set.GetMatrix("s", 0, 0);
+  EXPECT_C_EQ(dcomplex(1.00000000000000,0.000000000000000), S00(0, 0));
+  EXPECT_C_EQ(dcomplex(0.001225127274895041, 0.000000000000000), S00(0, 1));
+  EXPECT_C_EQ(dcomplex(0.001225127274895041, 0.000000000000000), S00(1, 0));
+  EXPECT_C_EQ(1.0, S00(1, 1));
+  const MatrixXcd& S11 = mat_set.GetMatrix("s", 1, 1);
+  EXPECT_C_EQ(1.0, S11(0, 0));
+  
+  const MatrixXcd& T00 = mat_set.GetMatrix("t", 0, 0);
+  EXPECT_C_EQ(0.1619265, T00(0, 0));
+  EXPECT_C_EQ(0.0003967481399147181, T00(0, 1));
+  EXPECT_C_EQ(0.0003967481399147181, T00(1, 0));
+  EXPECT_C_EQ(4940.54100000000, T00(1, 1));
+  const MatrixXcd& T11 = mat_set.GetMatrix("t", 1, 1);  
+  EXPECT_C_EQ(dcomplex(0.2288589, -0.621642675), T11(0, 0));
+
+  const MatrixXcd& V00 = mat_set.GetMatrix("v", 0, 0);
+  EXPECT_C_EQ(-1.04860853360520,  V00(0, 0));
+  EXPECT_C_EQ(-0.158677374090625, V00(0, 1));
+  EXPECT_C_EQ(0.0003967481399147181, T00(1, 0));
+  EXPECT_C_EQ(-183.164657050577, V00(1, 1));
+  const MatrixXcd& V11 = mat_set.GetMatrix("v", 1, 1);  
+  EXPECT_C_EQ(dcomplex(-0.898325031872102,0.626548799637203), V11(0, 0));
+
+  EXPECT_C_EQ(eri->At(1,  1,  1,  1,  0,  0,  0,  0),
+	      dcomplex(0.389067179569661,  -0.271360104292752));
+  EXPECT_C_EQ(eri->At(1, 1, 0, 0,  0, 0, 0, 0),
+	      dcomplex(0.431669280913818,  -0.113052122000587));
+  EXPECT_C_EQ(eri->At(1, 0, 1, 0,  0, 0, 0, 0),
+	      dcomplex(0.148545492311628,  0.012837791008275));
+  EXPECT_C_EQ(eri->At(0, 0, 0, 0,  0, 0, 0, 0),
+	      dcomplex(0.370739102461159,   0.000000000000000));
+  EXPECT_C_EQ(eri->At(1, 1, 0, 0, 0, 0, 1, 0),
+	      dcomplex(0.000550281255615,  -0.000383801011115));
+  EXPECT_C_EQ(eri->At(1, 0, 1, 0,  0, 1, 0, 0),
+	      dcomplex(-0.000000049115720,  -0.000000075073399));
+  EXPECT_C_EQ(eri->At(0, 0, 0, 0, 1, 0, 0, 0),
+	      dcomplex(0.000642318406618,   0.000000000000000));
+  EXPECT_C_EQ(eri->At(1, 1, 0, 0, 0, 0, 1, 1),
+	      dcomplex( 0.449162517258858,  -0.313274399690404));
+  EXPECT_C_EQ(eri->At(1, 0, 1, 0, 0, 1, 0, 1),
+	      dcomplex(-0.000000007054518,  -0.000000000684658));
+  EXPECT_C_EQ(eri->At(0, 0, 0, 0, 1, 1, 0, 0),
+	      dcomplex( 0.524295674963366,   0.000000000000000));
+  EXPECT_C_EQ(eri->At(0, 0, 0, 0, 1, 0, 1, 0),
+	      dcomplex(0.000068730771674,   0.000000000000000));
+  EXPECT_C_EQ(eri->At(0, 0, 0, 0, 1, 1, 1, 0),
+	      dcomplex( 0.064779412850629,   0.000000000000000));
+  EXPECT_C_EQ(eri->At(0, 0, 0, 0, 1, 1, 1, 1),
+	      dcomplex(64.758485537085718,   0.000000000000000));
+	   
+}
+TEST(CompareCColumbus, small_h2_2) {
+
+  // set symmetry
+  pSymmetryGroup sym = SymmetryGroup::D2h();
+  double R0 = 1.4;
+
+  // sub set (S orbital)
+  SubSymGTOs sub_s(sym);
+  sub_s.AddXyz(Vector3cd(0, 0, +R0/2.0));
+  sub_s.AddXyz(Vector3cd(0, 0, -R0/2.0));
+  sub_s.AddNs(Vector3i(0, 0, 0));
+  VectorXcd zeta_s(1); zeta_s <<2.013;
+  sub_s.AddZeta(zeta_s);
+  MatrixXcd cs(2, 1); cs << 1.0, 1.0;
+  sub_s.AddRds(Reduction(sym->irrep_s, cs));
+  sub_s.SetUp();
+
+  // sub set (P orbital)
+  SubSymGTOs sub_z(sym);
+  sub_z.AddXyz(Vector3cd(0, 0, +R0/2.0));
+  sub_z.AddXyz(Vector3cd(0, 0, -R0/2.0));
+  sub_z.AddNs(Vector3i(0, 0, 1));
+  VectorXcd zeta_z(1); zeta_z << 1.0;
+  MatrixXcd cz(2, 1); cz << 1.0, -1.0;
+  sub_z.AddZeta(zeta_z);
+  sub_z.AddRds(Reduction(sym->irrep_s, cz));
+  sub_z.SetUp();
+
+  // sub set (D orbital)
+  SubSymGTOs sub_d(sym);
+  sub_d.AddXyz(Vector3cd(0, 0, 0));
+  sub_d.AddNs(Vector3i(2, 0, 0));
+  sub_d.AddNs(Vector3i(0, 2, 0));
+  sub_d.AddNs(Vector3i(0, 0, 2));
+  VectorXcd zeta_d(1); zeta_d << dcomplex(5.063464, -0.024632);
+  MatrixXcd cd(1, 3); cd << -1.0, -1.0, 2.0;
+  sub_d.AddZeta(zeta_d);
+  sub_d.AddRds(Reduction(sym->irrep_s, cd));
+  sub_d.SetUp();
+
+  // GTO set
+  SymGTOs gtos(sym);
+  gtos.AddSub(sub_s);
+  gtos.AddSub(sub_z);
+  gtos.AddSub(sub_d);
+  MatrixXcd xyzq(4, 2);
+  xyzq <<
+    0.0, 0.0,
+    0.0, 0.0,
+    +R0/2.0, -R0/2.0,
+    1.0, 1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+
+  BMatSet mat_set; gtos.CalcMat(&mat_set);
+  IB2EInt *eri = new B2EIntMem();
+  gtos.CalcERI(eri, 1);
+  
+  const MatrixXcd& S00 = mat_set.GetMatrix("s", 0, 0);
+  //  const MatrixXcd& S11 = mat_set.GetMatrix("s", 1, 1);
+  MatrixXcd S00_ref(3, 3);
+  S00_ref(1-1, 1-1) = dcomplex (2.27815053488874,0.000000000000000E+000);
+  S00_ref(1-1, 2-1) = dcomplex (-0.923122727265142,0.000000000000000E+000);
+  S00_ref(1-1, 3-1) = dcomplex (1.35935784944244,6.316245846956289E-003);
+  S00_ref(2-1, 1-1) = dcomplex (-0.923122727265142,0.000000000000000E+000);
+  S00_ref(2-1, 2-1) = dcomplex (2.72059730979469,0.000000000000000E+000);
+  S00_ref(2-1, 3-1) = dcomplex (0.774070190590069,5.100459746874277E-003);
+  S00_ref(3-1, 1-1) = dcomplex (1.35935784944244,6.316245846956289E-003);
+  S00_ref(3-1, 2-1) = dcomplex (0.774070190590069,5.100459746874277E-003);
+  S00_ref(3-1, 3-1) = dcomplex (12.0000000000000,-1.214306433183765E-017);
+  MatrixXcd S11_ref(2, 2);
+  S11_ref(0, 0) = dcomplex(1.72184946511126,0.0);
+  S11_ref(0, 1) = dcomplex(0.923122727265142,0.0);
+  S11_ref(1, 0) = dcomplex(0.923122727265142,0.0);
+  S11_ref(1, 1) = dcomplex(1.27940269020531,0.0);
+  const MatrixXcd& T00 = mat_set.GetMatrix("t", 0, 0);
+  MatrixXcd T00_ref(3, 3);
+  T00_ref(1-1, 1-1) = dcomplex(5.77430482478317,0.0);
+  T00_ref(1-1, 2-1) =  dcomplex(-1.46848241010191,0.0);
+  T00_ref(1-1, 3-1) =  dcomplex(10.9421575645574,0.03952537783003958);
+  T00_ref(2-1, 1-1) =  dcomplex(-1.46848241010191,0.0);
+  T00_ref(2-1, 2-1) =  dcomplex(7.56652741838541,0.0);
+  T00_ref(2-1, 3-1) =  dcomplex(3.10047956467259,0.01958232632537312);
+  T00_ref(3-1, 1-1) =  dcomplex(10.9421575645574,0.03952537783003958);
+  T00_ref(3-1, 2-1) =  dcomplex(3.10047956467259,0.01958232632537312);
+  T00_ref(3-1, 3-1) =  dcomplex(212.665488000000,-1.03454400000000);
+  const MatrixXcd& V00 = mat_set.GetMatrix("v", 0, 0);
+  MatrixXcd V00_ref(3, 3);
+  V00_ref(1-1, 1-1) = dcomplex(-6.71399792745968,0.0);
+  V00_ref(1-1, 2-1) = dcomplex(2.80168590393072,0.0);
+  V00_ref(1-1, 3-1) = dcomplex(-7.76431478876783,-0.02566801940514894);
+  V00_ref(2-1, 1-1) = dcomplex(2.80168590393072,0.0);
+  V00_ref(2-1, 2-1) = dcomplex(-5.53999525981359,0.0);
+  V00_ref(2-1, 3-1) = dcomplex(0.338975375012722,-0.009191430579939701);
+  V00_ref(3-1, 1-1) = dcomplex(-7.76431478876783,-0.02566801940514894);
+  V00_ref(3-1, 2-1) = dcomplex(0.338975375012722,-0.009191430579939701);
+  V00_ref(3-1, 3-1) = dcomplex(-43.3853460578071,-0.01186566895962939);
+
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j < 3; j++) {
+      dcomplex c(1.0/sqrt(S00_ref(i, i)*S00_ref(j, j)));
+      EXPECT_C_EQ(S00_ref(i, j)*c, S00(i, j)) << i << j;
+      EXPECT_C_EQ(T00_ref(i, j)*c, T00(i, j)) << i << j;
+      EXPECT_C_EQ(V00_ref(i, j)*c, V00(i, j)) << i << j;
+    }
+  }
+  dcomplex ref =  dcomplex(249.194759129673912, -0.606119545098925)/(S00_ref(2, 2) * S00_ref(2, 2));
+  EXPECT_C_NEAR(ref, eri->At(0, 0, 0, 0, 2, 2, 2, 2),
+		250 * pow(10.0, -10.0));
+  EXPECT_C_EQ(eri->At(0, 0, 0, 0, 0, 0, 0, 0)
+	      , 6.082101996924533/(S00_ref(0, 0) * S00_ref(0, 0)));
+  ref = dcomplex(4.713103999979870, 0.017955195142080)/
+    (pow(S00_ref(0,0), 1.5) * sqrt(S00_ref(2, 2)));
+  EXPECT_C_EQ(ref, eri->At(0, 0, 0, 0, 2, 0, 0, 0));
+	      
+//  1  1  1  1  3  1  1  1   4.713103999979870   0.017955195142080
+
+
+  //  EXPECT_C_EQ(eri->At(1, 1, 0, 0, 0, 0, 0, 0)/
+  //	      (S11_ref(0, 0) * S00_ref(0, 0)), 4.499506255091513);
+
+  //    1  1  1  1  3  3  3  3 249.194759129673912  -0.606119545098925
+  //1  1  1  1  1  1  1  1   6.082101996924533   0.000000000000000
+  //2  2  1  1  1  1  1  1   4.499506255091513   0.000000000000000
+  //2  2  2  2  1  1  1  1   3.412356981545473   0.000000000000000
+  //2  1  2  1  1  1  1  1   1.780420011334297   0.000000000000000
 
 }
 

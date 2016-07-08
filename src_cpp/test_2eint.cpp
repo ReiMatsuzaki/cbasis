@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 #include "gtest_plus.hpp"
 #include "b2eint.hpp"
+#include "two_int.hpp"
 #include "symmolint.hpp"
 #include "timer.hpp"
 
@@ -124,8 +125,8 @@ TEST(SymGTOs, CalcERI_differenct) {
   IB2EInt *eri_full = new B2EIntMem();
   IB2EInt *eri_J = new B2EIntMem();
 
-  CalcERI(gtos_full, gtos_full, gtos_full, gtos_full, eri_full);
-  CalcERI(gtos_1, gtos_1, gtos_2, gtos_2, eri_J);
+  SymGTOs_CalcERI(gtos_full, gtos_full, gtos_full, gtos_full, eri_full);
+  SymGTOs_CalcERI(gtos_1, gtos_1, gtos_2, gtos_2, eri_J);
 
   for(int i = 0; i < 2; i++)
     for(int j = 0; j < 2; j++)
@@ -524,25 +525,27 @@ TEST(Time, MatrixAccess) {
       a(i, j) = 1.2;
   for(int i = 0; i < n; i++)
     for(int j = 0; j < n; j++)
-      dcomplex x = a(i, j);
+      a(i, j);
   timer.End("Eigen");
 
   timer.Start("Array");
   for(int i = 0; i < n; i++)
     for(int j = 0; j < n; j++)
       b[i+n*j] = 1.2;
+  dcomplex cumsum(0);
   for(int i = 0; i < n; i++)
     for(int j = 0; j < n; j++)
-      dcomplex x = b[i+n*j];
+      cumsum += b[i+n*j];
   timer.End("Array");
 
   timer.Start("Array2");
   for(int i = 0; i < n; i++)
     for(int j = 0; j < n; j++)
       b[j+n*i] = 1.2;
+  cumsum = 0;
   for(int i = 0; i < n; i++)
     for(int j = 0; j < n; j++)
-      dcomplex x = b[j+n*i];
+      cumsum += b[j+n*i];
   timer.End("Array2");
   timer.Display();
 
