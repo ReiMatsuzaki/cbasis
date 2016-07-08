@@ -164,7 +164,7 @@ namespace l2func {
     void CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs);
   };
   
-  void CalcERI(SymGTOs& gi, SymGTOs& gj,SymGTOs& gk,SymGTOs& gl, IB2EInt* eri);
+  //  void CalcERI(SymGTOs& gi, SymGTOs& gj,SymGTOs& gk,SymGTOs& gl, IB2EInt* eri);
 }
 
 #endif

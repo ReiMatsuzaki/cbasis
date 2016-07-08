@@ -793,8 +793,7 @@ namespace l2func {
     }
   }
 
-  void SymGTOs_CalcERI(SymGTOs& gi, SymGTOs& gj, SymGTOs& gk, SymGTOs& gl,
-		       IB2EInt* eri) {
+  void SymGTOs_CalcERI(SymGTOs& gi, SymGTOs& gj, SymGTOs& gk, SymGTOs& gl, IB2EInt* eri) {
 
     eri->Init(gi.size_basis() * gj.size_basis() * gk.size_basis() * gl.size_basis());
     A4dc prim(gi.max_num_prim() * gj.max_num_prim() *

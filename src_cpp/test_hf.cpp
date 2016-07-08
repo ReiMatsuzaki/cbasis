@@ -7,6 +7,7 @@
 #include <Eigen/Core>
 #include "gtest_plus.hpp"
 
+#include "two_int.hpp"
 #include "symmolint.hpp"
 #include "b2eint.hpp"
 #include "symgroup.hpp"
@@ -17,61 +18,7 @@ using namespace std;
 using namespace l2func;
 using namespace Eigen;
 
-TEST(Matrix, inc_gamma) {
-
-  // to see error on molecular integral evaluation 2016/6/23
-
-  double R0 = 1.4;
-  pSymmetryGroup sym = SymmetryGroup::D2h();
-  SymGTOs gtos(sym);
-
-  SubSymGTOs sub_s(sym);
-  sub_s.AddXyz(Vector3cd(0, 0,+R0/2.0));
-  sub_s.AddXyz(Vector3cd(0, 0,-R0/2.0));
-  sub_s.AddNs(Vector3i(0, 0, 0));
-  /*
-  int num_zeta(6);
-  VectorXcd zetas(num_zeta);
-  zetas << 1.336, 2.013, 0.4538, 0.1233, 0.0411, 0.0137;
-  */
-  VectorXcd zetas(1);
-  zetas << 1.336;
-  sub_s.AddZeta(zetas); 
-  MatrixXcd c(2, 1); c << 1, 1;
-  sub_s.AddRds(Reduction(sym->irrep_s, c));
-  sub_s.SetUp(); 
-  gtos.AddSub(sub_s); 
- 
-  SubSymGTOs sub_p_cen(sym);
-  sub_p_cen.AddXyz(Vector3cd(0, 0, 0));
-  sub_p_cen.AddNs( Vector3i( 1, 0, 0));
-  sub_p_cen.AddNs( Vector3i( 0, 1, 0));
-  sub_p_cen.AddNs( Vector3i( 0, 0, 1));
-  VectorXcd zeta_cen(1);
-  zeta_cen << dcomplex(0.00256226, -0.01559939);
-  sub_p_cen.AddZeta(zeta_cen);
-  MatrixXcd cx(1, 3); cx << 1, 0, 0;
-  MatrixXcd cy(1, 3); cy << 0, 1, 0;
-  MatrixXcd cz(1, 3); cz << 0, 0, 1;
-  sub_p_cen.AddRds(Reduction(sym->irrep_x, cx));
-  sub_p_cen.AddRds(Reduction(sym->irrep_y, cy));
-  sub_p_cen.AddRds(Reduction(sym->irrep_z, cz));
-  sub_p_cen.SetUp();
-  gtos.AddSub(sub_p_cen);
-  
-  MatrixXcd xyzq(4, 2); xyzq <<
-			  0.0,      0.0,
-			  0.0,      0.0,
-			  +R0/2.0, -R0/2.0,
-			  1.0,      1.0;
-  gtos.SetAtoms(xyzq);
-  gtos.SetUp();
-
-  BMatSet mat_set; gtos.CalcMat(&mat_set);
-  // IB2EInt *eri = new B2EIntMem(); gtos.CalcERI(eri, 1);
-  // delete eri;
-}
-TEST(Matrix, inc_gamma_value) {
+TEST(CompareCColumbus, small_h2) {
 
   double R0 = 1.4;
   pSymmetryGroup sym = SymmetryGroup::D2h();
@@ -168,37 +115,7 @@ TEST(Matrix, inc_gamma_value) {
   
 
 }
-TEST(Matrix, p_orbital) {
-
-  pSymmetryGroup sym = SymmetryGroup::D2h();  
-  
-  SubSymGTOs sub_p_cen(sym);
-  sub_p_cen.AddXyz(Vector3cd(0, 0, 0));
-  sub_p_cen.AddNs( Vector3i( 1, 0, 0));
-  sub_p_cen.AddNs( Vector3i( 0, 1, 0));
-  sub_p_cen.AddNs( Vector3i( 0, 0, 1));
-  VectorXcd zeta_p_cen(1); zeta_p_cen << dcomplex(1.1, -0.4);
-  sub_p_cen.AddZeta(zeta_p_cen);
-  MatrixXcd cx(1, 3); cx << 1, 0, 0;
-  MatrixXcd cy(1, 3); cy << 0, 1, 0;
-  MatrixXcd cz(1, 3); cz << 0, 0, 1;
-  sub_p_cen.AddRds(Reduction(sym->irrep_x, cx));
-  sub_p_cen.AddRds(Reduction(sym->irrep_y, cy));
-  sub_p_cen.AddRds(Reduction(sym->irrep_z, cz));
-  sub_p_cen.SetUp();
-  
-  SymGTOs gtos(sym);
-  gtos.AddSub(sub_p_cen);
-  MatrixXcd xyzq(4, 2); xyzq <<
-			  0.0,      0.0,
-			  0.0,      0.0,
-			  +1.0,    -1.0,
-			  1.0,      1.0;
-  gtos.SetAtoms(xyzq);
-  gtos.SetUp();
-  
-}
-TEST(Matrix, He_small_basis) {
+TEST(CompareCColumbus, small_he) {
 
   dcomplex z1(0.09154356, -0.24865707);
   
@@ -288,163 +205,7 @@ TEST(Matrix, He_small_basis) {
 	      dcomplex(64.758485537085718,   0.000000000000000));
 	   
 }
-TEST(Matrix, HeSmall) {
-  // set symmetry
-  pSymmetryGroup sym = SymmetryGroup::D2h();
-
-  // sub set (S orbital)
-  SubSymGTOs sub_s(sym);
-  sub_s.AddXyz(Vector3cd(0, 0, 0));
-  sub_s.AddNs(Vector3i(0, 0, 0));
-  VectorXcd zeta_s(2);
-  zeta_s << 0.5, 1.5;
-  sub_s.AddZeta(zeta_s);
-  sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s.SetUp();
-
-  // sub set (P orbital)
-  SubSymGTOs sub_z(sym);
-  sub_z.AddXyz(Vector3cd(0, 0, 0));
-  sub_z.AddNs(Vector3i(0, 0, 1));
-  VectorXcd zetas(2); zetas <<
-			dcomplex(0.0025, -0.016),
-			dcomplex(0.004,  -0.022),
-
-
-  sub_z.AddZeta(zetas);
-  sub_z.AddRds(Reduction(sym->irrep_z, MatrixXcd::Ones(1, 1)));
-  sub_z.SetUp();
-
-  // GTO set
-  SymGTOs gtos(sym);
-  gtos.AddSub(sub_z);
-  gtos.AddSub(sub_s);
-  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 2.0;
-  gtos.SetAtoms(xyzq);
-  gtos.SetUp();
-
-  // compute basic matrix
-  BMatSet mat_set;  
-  gtos.CalcMat(&mat_set);
-  IB2EInt *eri = new B2EIntMem();
-  //eri = new B2EIntMem(pow(gtos.size_basis(), 4));
-  gtos.CalcERI(eri, 1);
-
-  /*
-  cout << "S(00)" << endl;
-  cout << mat_set.GetMatrix("s", 0, 0)<< endl;
-  cout << "S(11)" << endl;
-  cout << mat_set.GetMatrix("s", sym->irrep_z, sym->irrep_z)<< endl;
-
-  cout << "T(00)" << endl;
-  cout << mat_set.GetMatrix("t", 0, 0)<< endl;
-  cout << "T(11)" << endl;
-  cout << mat_set.GetMatrix("t", sym->irrep_z, sym->irrep_z)<< endl;
-
-  cout << "V(00)" << endl;
-  cout << mat_set.GetMatrix("v", 0, 0)<< endl;
-  cout << "V(11)" << endl;
-  cout << mat_set.GetMatrix("v", sym->irrep_z, sym->irrep_z)<< endl;
-
-  int ib,jb,kb,lb,i,j,k,l,t;
-  dcomplex v;
-  eri->Reset();
-    while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
-      cout <<  ib << jb << kb << lb << i << j << k << l << v << endl;
-    }
-  */
-  delete eri;
-}
-TEST(Matrix, JK) {
-
-  // set symmetry
-  pSymmetryGroup sym = SymmetryGroup::Cs();
-  
-  // GTO
-  SymGTOs gtos(sym);
-  SymGTOs gtos_cc(sym);
-  SymGTOs gtos_full(sym);
-
-  VectorXcd zeta1(2); zeta1 << 0.4, 1.0;
-  SubSymGTOs sub_s(Sub_mono(sym, 0, Vector3cd(0, 0, 0), Vector3i(0, 0, 0), zeta1));
-  gtos.AddSub(     sub_s);
-  gtos_cc.AddSub(  sub_s);
-  gtos_full.AddSub(sub_s);
-
-  VectorXcd zeta2(2); zeta2 << dcomplex(1.0, 0.4), dcomplex(0.4, 0.1);
-  VectorXcd zeta2_cc(zeta2.conjugate());
-  SubSymGTOs sub_z(Sub_mono(sym, 1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1), zeta2));
-  SubSymGTOs sub_zc(Sub_mono(sym, 1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1),
-			     zeta2.conjugate()));
-  gtos.AddSub(   sub_z);
-  gtos_cc.AddSub(sub_zc);
-  gtos_full.AddSub(sub_z);
-  gtos_full.AddSub(sub_zc);
-
-  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 2.0;
-  gtos.SetAtoms(xyzq); gtos.SetUp();  
-  gtos_cc.SetAtoms(xyzq); gtos_cc.SetUp();  
-  gtos_full.SetAtoms(xyzq); gtos_full.SetUp();  
-  
-  // Set coefficient
-  BMat C;
-  C[make_pair(0, 0)] = MatrixXcd::Zero(2, 2);
-  C[make_pair(0, 0)] <<
-    1.0, 1.5,
-    0.3, 0.2;
-  C[make_pair(1, 1)] = MatrixXcd::Zero(2, 2);
-  C[make_pair(1, 1)] <<
-    0.2, 0.5,
-    1.1, 1.4;
-
-  // compute J/K
-  BMat JK, JK_cc, JK_h, JK_full;
-  pair<int, int> i00(0, 0), i11(1, 1);
-  IB2EInt *eri = new B2EIntMem();
-  IB2EInt *eri_cc = new B2EIntMem();
-  IB2EInt *eri_h = new B2EIntMem();
-  IB2EInt *eri_full = new B2EIntMem();
-  
-  gtos.CalcERI(eri, 1);
-  JK[i00] = MatrixXcd::Zero(2, 2); JK[i11] = MatrixXcd::Zero(2, 2);
-  AddJK(eri, C, 0, 0, 1.0, 1.0, JK);
-  
-  gtos_cc.CalcERI(eri_cc, 1);
-  JK_cc[i00] = MatrixXcd::Zero(2, 2); JK_cc[i11] = MatrixXcd::Zero(2, 2);
-  AddJK(eri_cc, C, 0, 0, 1.0, 1.0, JK_cc);
-
-  CalcERI(gtos_cc, gtos, gtos_cc, gtos, eri_h);
-  JK_h[i00] = MatrixXcd::Zero(2, 2); JK_h[i11] = MatrixXcd::Zero(2, 2);
-  AddJK(eri_h, C, 0, 0, 1.0, 1.0, JK_h);
-  
-  gtos_full.CalcERI(eri_full, 1);
-  JK_full[i00] = MatrixXcd::Zero(4, 4); JK_full[i11] = MatrixXcd::Zero(4, 4);
-  AddJK(eri_full, C, 0, 0, 1.0, 1.0, JK_full);
-
-  // Check values
-  EXPECT_C_EQ(JK[i11](0, 0), JK_full[i11](0, 0));
-  EXPECT_C_EQ(JK[i11](0, 1), JK_full[i11](0, 1));
-  EXPECT_C_EQ(JK[i11](1, 0), JK_full[i11](1, 0));
-  EXPECT_C_EQ(JK[i11](1, 1), JK_full[i11](1, 1));
-
-  EXPECT_C_EQ(JK_h[i11](0, 0), JK_full[i11](2, 0));
-  EXPECT_C_EQ(JK_h[i11](0, 1), JK_full[i11](2, 1));
-  EXPECT_C_EQ(JK_h[i11](1, 0), JK_full[i11](3, 0));
-  EXPECT_C_EQ(JK_h[i11](1, 1), JK_full[i11](3, 1));
-  
-  cout << "normal" << endl;
-  cout << JK[i11] << endl;
-  cout << "CC" << endl;
-  cout << JK_cc[i11] << endl;
-  cout << "H" << endl;
-  cout << JK_h[i11] << endl;
-  cout << "Full" << endl;
-  cout << JK_full[i11] << endl;
-
-  delete eri; delete eri_cc; delete eri_full;
-  
-}
-TEST(Matrix, H2_small) {
+TEST(CompareCColumbus, small_h2_2) {
 
   // set symmetry
   pSymmetryGroup sym = SymmetryGroup::D2h();
@@ -571,6 +332,95 @@ TEST(Matrix, H2_small) {
   //2  2  2  2  1  1  1  1   3.412356981545473   0.000000000000000
   //2  1  2  1  1  1  1  1   1.780420011334297   0.000000000000000
 
+}
+TEST(Matrix, JK) {
+
+  // set symmetry
+  pSymmetryGroup sym = SymmetryGroup::Cs();
+  
+  // GTO
+  SymGTOs gtos(sym);
+  SymGTOs gtos_cc(sym);
+  SymGTOs gtos_full(sym);
+
+  VectorXcd zeta1(2); zeta1 << 0.4, 1.0;
+  SubSymGTOs sub_s(Sub_mono(sym, 0, Vector3cd(0, 0, 0), Vector3i(0, 0, 0), zeta1));
+  gtos.AddSub(     sub_s);
+  gtos_cc.AddSub(  sub_s);
+  gtos_full.AddSub(sub_s);
+
+  VectorXcd zeta2(2); zeta2 << dcomplex(1.0, 0.4), dcomplex(0.4, 0.1);
+  VectorXcd zeta2_cc(zeta2.conjugate());
+  SubSymGTOs sub_z(Sub_mono(sym, 1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1), zeta2));
+  SubSymGTOs sub_zc(Sub_mono(sym, 1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1),
+			     zeta2.conjugate()));
+  gtos.AddSub(   sub_z);
+  gtos_cc.AddSub(sub_zc);
+  gtos_full.AddSub(sub_z);
+  gtos_full.AddSub(sub_zc);
+
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 2.0;
+  gtos.SetAtoms(xyzq); gtos.SetUp();  
+  gtos_cc.SetAtoms(xyzq); gtos_cc.SetUp();  
+  gtos_full.SetAtoms(xyzq); gtos_full.SetUp();  
+  
+  // Set coefficient
+  BMat C;
+  C[make_pair(0, 0)] = MatrixXcd::Zero(2, 2);
+  C[make_pair(0, 0)] <<
+    1.0, 1.5,
+    0.3, 0.2;
+  C[make_pair(1, 1)] = MatrixXcd::Zero(2, 2);
+  C[make_pair(1, 1)] <<
+    0.2, 0.5,
+    1.1, 1.4;
+
+  // compute J/K
+  BMat JK, JK_cc, JK_h, JK_full;
+  pair<int, int> i00(0, 0), i11(1, 1);
+  IB2EInt *eri = new B2EIntMem();
+  IB2EInt *eri_cc = new B2EIntMem();
+  IB2EInt *eri_h = new B2EIntMem();
+  IB2EInt *eri_full = new B2EIntMem();
+  
+  gtos.CalcERI(eri, 1);
+  JK[i00] = MatrixXcd::Zero(2, 2); JK[i11] = MatrixXcd::Zero(2, 2);
+  AddJK(eri, C, 0, 0, 1.0, 1.0, JK);
+  
+  gtos_cc.CalcERI(eri_cc, 1);
+  JK_cc[i00] = MatrixXcd::Zero(2, 2); JK_cc[i11] = MatrixXcd::Zero(2, 2);
+  AddJK(eri_cc, C, 0, 0, 1.0, 1.0, JK_cc);
+
+  SymGTOs_CalcERI(gtos_cc, gtos, gtos_cc, gtos, eri_h);
+  JK_h[i00] = MatrixXcd::Zero(2, 2); JK_h[i11] = MatrixXcd::Zero(2, 2);
+  AddJK(eri_h, C, 0, 0, 1.0, 1.0, JK_h);
+  
+  gtos_full.CalcERI(eri_full, 1);
+  JK_full[i00] = MatrixXcd::Zero(4, 4); JK_full[i11] = MatrixXcd::Zero(4, 4);
+  AddJK(eri_full, C, 0, 0, 1.0, 1.0, JK_full);
+
+  // Check values
+  EXPECT_C_EQ(JK[i11](0, 0), JK_full[i11](0, 0));
+  EXPECT_C_EQ(JK[i11](0, 1), JK_full[i11](0, 1));
+  EXPECT_C_EQ(JK[i11](1, 0), JK_full[i11](1, 0));
+  EXPECT_C_EQ(JK[i11](1, 1), JK_full[i11](1, 1));
+
+  EXPECT_C_EQ(JK_h[i11](0, 0), JK_full[i11](2, 0));
+  EXPECT_C_EQ(JK_h[i11](0, 1), JK_full[i11](2, 1));
+  EXPECT_C_EQ(JK_h[i11](1, 0), JK_full[i11](3, 0));
+  EXPECT_C_EQ(JK_h[i11](1, 1), JK_full[i11](3, 1));
+  
+  cout << "normal" << endl;
+  cout << JK[i11] << endl;
+  cout << "CC" << endl;
+  cout << JK_cc[i11] << endl;
+  cout << "H" << endl;
+  cout << JK_h[i11] << endl;
+  cout << "Full" << endl;
+  cout << JK_full[i11] << endl;
+
+  delete eri; delete eri_cc; delete eri_full;
+  
 }
 TEST(HF, first) {
 

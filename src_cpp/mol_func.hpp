@@ -52,6 +52,7 @@ namespace l2func {
 		  int mx, int my, int mz, int j, dcomplex* Fjs);
 
   // ==== molecular integral(To be removed) ====
+  /*
   dcomplex GTOOverlap(int nAx, int nAy, int nAz, 
 		       dcomplex wAx, dcomplex wAy, dcomplex wAz,
 		       dcomplex zetaA,
@@ -78,7 +79,7 @@ namespace l2func {
 				dcomplex wBx, dcomplex wBy, dcomplex wBz,
 				dcomplex zetaB,
 				dcomplex wCx, dcomplex wCy, dcomplex wCz);
-
+  */
 }
 
 #endif

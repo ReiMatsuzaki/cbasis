@@ -10,8 +10,8 @@ namespace l2func {
   dcomplex ERIEle(CartGTO& a, CartGTO& b, CartGTO& c, CartGTO& d);
 
   // ==== SymGTOs ====
-  void SymGTOs_CalcERI(SymGTOs& i, SymGTOs& j, SymGTOs& k, SymGTOs& l,
-		       IB2EInt* eri);  
+  void SymGTOs_CalcERI(SymGTOs& i, SymGTOs& j, SymGTOs& k, SymGTOs& l, IB2EInt* eri);  
+	       
 }
 
 #endif
