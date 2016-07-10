@@ -550,33 +550,10 @@ namespace l2func {
   void SymGTOs::CalcMat(BMatSet* res) {
     this->CalcMatOther(*this, true, res);
   }
-  void SymGTOs::CalcERI(IB2EInt* eri, int method) {
+  void SymGTOs::CalcERI(IB2EInt* eri, ERIMethod method) {
+    
+    SymGTOs_CalcERI(*this, *this, *this, *this, eri, method);
 
-    SymGTOs_CalcERI(*this, *this, *this, *this, eri);
-    /*
-    eri->Init(pow(this->size_basis(), 4));
-    int max_num_prim(0);
-    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
-      max_num_prim = std::max(max_num_prim, isub->size_prim());
-    }
-    A4dc prim(pow(max_num_prim, 4));
-
-    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) 
-    for(SubIt jsub = subs.begin(); jsub != subs.end(); ++jsub) 
-    for(SubIt ksub = subs.begin(); ksub != subs.end(); ++ksub) 
-    for(SubIt lsub = subs.begin(); lsub != subs.end(); ++lsub) {
-      
-      if(method == 0) {
-	throw runtime_error("not implemented");
-      }
-      if(method == 1) {
-	CalcERI1(*this, *this,*this,*this,isub, jsub, ksub, lsub, prim, eri);
-      }
-      if(method == 2) {
-	CalcERI2(isub, jsub, ksub, lsub, prim, eri);
-      }
-    }
-    */
   }
   
   // ---- AtR ----

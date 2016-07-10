@@ -11,6 +11,14 @@
 
 namespace l2func {
 
+  // ==== ERI method ====
+  struct ERIMethod {
+    int symmetry;
+    int coef_R_memo;
+    ERIMethod(): symmetry(0), coef_R_memo(0) {}
+  };
+
+
   // ==== AO Reduction ====
   struct Reduction {
     Irrep irrep;
@@ -153,7 +161,7 @@ namespace l2func {
     // -- matrix calculation --
     void CalcMatOther(SymGTOs& o, bool calc_coulomb, BMatSet*);
     void CalcMat(BMatSet* res);
-    void CalcERI(IB2EInt* eri, int method=0);
+    void CalcERI(IB2EInt* eri, ERIMethod method);
     // -- Radial wave function --
     void AtR_Ylm(int L, int M,  int irrep,
 		 const Eigen::VectorXcd& cs_ibasis,

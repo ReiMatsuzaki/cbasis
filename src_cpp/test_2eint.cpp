@@ -125,8 +125,10 @@ TEST(SymGTOs, CalcERI_differenct) {
   IB2EInt *eri_full = new B2EIntMem();
   IB2EInt *eri_J = new B2EIntMem();
 
-  SymGTOs_CalcERI(gtos_full, gtos_full, gtos_full, gtos_full, eri_full);
-  SymGTOs_CalcERI(gtos_1, gtos_1, gtos_2, gtos_2, eri_J);
+  ERIMethod method; method.symmetry = 0; method.coef_R_memo = 0; 
+  
+  SymGTOs_CalcERI(gtos_full, gtos_full, gtos_full, gtos_full, eri_full, method);
+  SymGTOs_CalcERI(gtos_1, gtos_1, gtos_2, gtos_2, eri_J, method);
 
   for(int i = 0; i < 2; i++)
     for(int j = 0; j < 2; j++)
@@ -167,7 +169,8 @@ TEST(SymGTOs, CalcERI) {
 
   // -- Calculation --
   IB2EInt *eri = new B2EIntMem(pow(4, 4));
-  gtos.CalcERI(eri, 1);
+  ERIMethod method; 
+  gtos.CalcERI(eri, method);
   // -- size check --
   EXPECT_EQ(pow(4, 4), eri->size());
 
@@ -240,7 +243,7 @@ TEST(SymGTOs, CalcERI2) {
   // -- Calculation --
   //IB2EInt *eri = new B2EIntMem(pow(4, 4));
   IB2EInt *eri = new B2EIntMem();
-  gtos.CalcERI(eri, 1);
+  gtos.CalcERI(eri, ERIMethod());
 
   // -- size check --
   //  cout << 1 << endl;
@@ -262,47 +265,6 @@ TEST(SymGTOs, CalcERI2) {
 
   delete eri;
 
-}
-TEST(SymGTOs, CalcERI_time) {
-/*
-  SymGTOs gtos(SymmetryGroup_C1());
-
-  Vector3cd xyz1(0.0, 0.0, 0.0);
-  Vector3cd xyz2(0.0, 0.4, 0.0);
-
-  SubSymGTOs sub1;
-  
-  int num_at(2);
-  sub1.AddXyz(Vector3cd(0.0, 0.4, 0.0));
-  sub1.AddXyz(Vector3cd(0.0, 0.0, 0.5));
-
-  int  num_ns(3);
-  sub1.AddNs(Vector3i(1, 0, 0));
-  sub1.AddNs(Vector3i(0, 1, 0));
-  sub1.AddNs(Vector3i(0, 0, 1));
-
-
-  int num_z(5);
-  VectorXcd zs(num_z); zs << 1.1, 1.2, 1.3, 1.4, 1.5;
-  sub1.AddZeta(zs);
-  MatrixXcd cs = MatrixXcd::Ones(num_at, num_ns);
-  sub1.AddRds(Reduction(0, cs));
-  sub1.SetSym(MatrixXi::Ones(1, 2*num_ns),
-	      MatrixXi::Ones(1, 2*num_ns));
-  sub1.SetUp();
-  
-  gtos.AddSub(sub1);
-  gtos.SetUp();
-
-  // -- potential --
-  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
-  gtos.SetAtoms(xyzq);
-  gtos.SetUp();
-
-  IB2EInt *eri = new B2EIntMem(pow(num_z, 4));
-  gtos.CalcERI(eri);
-  delete eri;
-*/
 }
 TEST(SymGTOs, CalcERI_sym_p) {
 
@@ -335,40 +297,27 @@ TEST(SymGTOs, CalcERI_sym_p) {
   gtos.SetUp();
   //  cout << gtos.str() << endl;
 
-  //IB2EInt *eri1 = new B2EIntMem(pow(3*num_z_p, 4));
-  IB2EInt *eri1 = new B2EIntMem();
-  IB2EInt *eri2 = new B2EIntMem();
-  gtos.CalcERI(eri1, 1);
-  gtos.CalcERI(eri2, 2);
+  IB2EInt *eri0 = new B2EIntMem(); ERIMethod method0; 
+  IB2EInt *eri1 = new B2EIntMem(); ERIMethod method1; method1.symmetry = 1;
+  gtos.CalcERI(eri0, method0);
+  gtos.CalcERI(eri1, method1);
 
   int ib,jb,kb,lb,i,j,k,l,t;
   dcomplex v;
   eri1->Reset();
-  while(eri2->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+  while(eri0->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
     if(abs(v) > 0.000001)
       EXPECT_C_EQ(v, eri1->At(ib, jb, kb, lb, i, j, k, l)) <<
 	ib << jb << kb << lb << i << j << k << l;
   }
 
+  delete eri0;
   delete eri1;
-  delete eri2;
 
 }
 TEST(SymGTOs, CalcERI_sym) {
 
   pSymmetryGroup sym = SymmetryGroup::D2h();
-  Irrep irrep_s  = sym->GetIrrep("Ag");
-  Irrep irrep_x = sym->GetIrrep("B1u");
-  Irrep irrep_y = sym->GetIrrep("B2u");
-  Irrep irrep_z = sym->GetIrrep("B3u");
-
-  /*
-  pSymmetryGroup sym = SymmetryGroup::Cs();
-  Irrep irrep_s  = sym->GetIrrep("A'");
-  Irrep irrep_x = sym->GetIrrep("A'");
-  Irrep irrep_y = sym->GetIrrep("A'");
-  Irrep irrep_z = sym->GetIrrep("A''");
-  */
 
   SymGTOs gtos(sym);
 
@@ -381,7 +330,7 @@ TEST(SymGTOs, CalcERI_sym) {
   int num_z(1);
   VectorXcd zs(num_z); zs << 1.1;
   sub_s.AddZeta(zs);
-  sub_s.AddRds(Reduction(irrep_s, MatrixXcd::Ones(1, 1)));
+  sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
   sub_s.SetUp();
   gtos.AddSub(sub_s);
 
@@ -392,9 +341,9 @@ TEST(SymGTOs, CalcERI_sym) {
   sub_p.AddNs( Vector3i( 0, 1, 0));
   sub_p.AddNs( Vector3i( 0, 0, 1));
   VectorXcd zs_p(1); zs_p << 1.1; sub_p.AddZeta(zs_p);
-  MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(irrep_x, c1));
-  MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(irrep_y, c2));
-  MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(irrep_z, c3));
+  MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_x, c1));
+  MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_y, c2));
+  MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(sym->irrep_z, c3));
   sub_p.SetUp();
   gtos.AddSub(sub_p);
 
@@ -407,17 +356,15 @@ TEST(SymGTOs, CalcERI_sym) {
   gtos.CalcMat(&mat);
 
   //int n(gtos.size_basis());
-  //IB2EInt *eri1 = new B2EIntMem(pow(n, 4));
-  IB2EInt *eri1 = new B2EIntMem();
-  //IB2EInt *eri2 = new B2EIntMem(pow(n, 4));
-  IB2EInt *eri2 = new B2EIntMem();
-  gtos.CalcERI(eri1, 1);
-  gtos.CalcERI(eri2, 2);
+  IB2EInt *eri0 = new B2EIntMem(); ERIMethod m0; 
+  IB2EInt *eri1 = new B2EIntMem(); ERIMethod m1; m1.symmetry = 1;
+  gtos.CalcERI(eri0, m0);
+  gtos.CalcERI(eri1, m1);
 
   int ib,jb,kb,lb,i,j,k,l,t;
   dcomplex v;
   eri1->Reset();
-  while(eri2->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+  while(eri0->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
     if(eri1->Exist(ib, jb, kb, lb, i, j, k, l)) {
       EXPECT_C_EQ(v, eri1->At(ib, jb, kb, lb, i, j, k, l)) <<
 	ib << jb << kb << lb << " : " << i << j << k << l;
@@ -429,32 +376,13 @@ TEST(SymGTOs, CalcERI_sym) {
     }
 
   }
-
+  delete eri0;
   delete eri1;
-  delete eri2;
 }
-TEST(SymGTOs, CalcERI_time2) {
+TEST(SymGTOs, method_time) {
 
   Timer timer;
   pSymmetryGroup sym = SymmetryGroup::D2h();
-  Irrep irrep_s  = sym->GetIrrep("Ag");
-  Irrep irrep_x = sym->GetIrrep("B1u");
-  Irrep irrep_y = sym->GetIrrep("B2u");
-  Irrep irrep_z = sym->GetIrrep("B3u");
-  /*
-  pSymmetryGroup sym = SymmetryGroup::Cs();
-  Irrep irrep_s  = sym->GetIrrep("A'");
-  Irrep irrep_x = sym->GetIrrep("A'");
-  Irrep irrep_y = sym->GetIrrep("A'");
-  Irrep irrep_z = sym->GetIrrep("A''");
-  */
-  /*
-  pSymmetryGroup sym = SymmetryGroup::C4();
-  Irrep irrep_s  = sym->GetIrrep("A");
-  Irrep irrep_x = sym->GetIrrep("E");
-  Irrep irrep_y = sym->GetIrrep("E");
-  Irrep irrep_z = sym->GetIrrep("A");
-  */
 
   SymGTOs gtos(sym);
 
@@ -469,7 +397,7 @@ TEST(SymGTOs, CalcERI_time2) {
   VectorXcd zs(num_z); zs << 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0;
 
   sub_s.AddZeta(zs);
-  sub_s.AddRds(Reduction(irrep_s, MatrixXcd::Ones(1, 1)));
+  sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
   sub_s.SetUp();
   gtos.AddSub(sub_s);
 
@@ -482,9 +410,9 @@ TEST(SymGTOs, CalcERI_time2) {
   int num_z_p(8);
   VectorXcd zs_p(num_z_p); zs_p << 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8;
   sub_p.AddZeta(zs_p);
-  MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(irrep_x, c1));
-  MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(irrep_y, c2));
-  MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(irrep_z, c3));
+  MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_x, c1));
+  MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_y, c2));
+  MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(sym->irrep_z, c3));
   sub_p.SetUp();
   gtos.AddSub(sub_p);
 
@@ -496,20 +424,139 @@ TEST(SymGTOs, CalcERI_time2) {
   BMatSet mat;
   gtos.CalcMat(&mat);
 
-  IB2EInt *eri1 = new B2EIntMem(pow(num_z+3*num_z_p, 4)); 
-  IB2EInt *eri2 = new B2EIntMem(pow(num_z+3*num_z_p, 4)); 
+  IB2EInt *eri00 = new B2EIntMem(0);
+  ERIMethod m00;
+  IB2EInt *eri01 = new B2EIntMem(0);
+  ERIMethod m01; m01.symmetry = 1;
+  IB2EInt *eri10 = new B2EIntMem(0);
+  ERIMethod m10; m10.coef_R_memo = 1;
+  IB2EInt *eri20 = new B2EIntMem(0);
+  ERIMethod m20; m20.coef_R_memo = 2;
 
-  timer.Start("method1"); gtos.CalcERI(eri1, 1); timer.End("method1");
-  timer.Start("method2"); gtos.CalcERI(eri2, 2); timer.End("method2");
+  timer.Start("method00"); gtos.CalcERI(eri00, m00); timer.End("method00");
+  timer.Start("method01"); gtos.CalcERI(eri01, m01); timer.End("method01");
+  timer.Start("method10"); gtos.CalcERI(eri10, m10); timer.End("method10");
+  timer.Start("method20"); gtos.CalcERI(eri20, m20); timer.End("method20");
     
-  EXPECT_C_EQ(eri1->At(0, 0, 0, 0, 2, 1, 5, 0),
-	      eri2->At(0, 0, 0, 0, 2, 1, 5, 0));
+  EXPECT_C_EQ(eri00->At(0, 0, 0, 0, 2, 1, 5, 0),
+	      eri01->At(0, 0, 0, 0, 2, 1, 5, 0));
+  EXPECT_C_EQ(eri00->At(0, 0, 0, 0, 2, 1, 5, 0),
+	      eri20->At(0, 0, 0, 0, 2, 1, 5, 0));
+  EXPECT_C_EQ(eri00->At(0, 0, 0, 0, 2, 1, 5, 0),
+	      eri10->At(0, 0, 0, 0, 2, 1, 5, 0));
 
   timer.Display();
-  cout << "size(eri1): " << eri1->size() << endl;
-  cout << "size(eri2): " << eri2->size() << endl;
-  delete eri1;
-  delete eri2;
+  cout << "size(eri00): " << eri00->size() << endl;
+  cout << "size(eri10): " << eri10->size() << endl;
+  cout << "size(eri01): " << eri01->size() << endl;
+  cout << "size(eri11): " << eri20->size() << endl;
+
+  delete eri00;
+  delete eri01;
+  delete eri10;
+  delete eri20;
+}
+TEST(SymGTOs, method_check) {
+
+  pSymmetryGroup sym = SymmetryGroup::D2h();
+
+  SymGTOs gtos(sym);
+
+  Vector3cd xyz0(0.0, 0.0, 0.0);
+
+  // ---- s orbital ----
+  SubSymGTOs sub_s(sym);
+  sub_s.AddXyz(Vector3cd(0, 0, 0));
+  sub_s.AddNs( Vector3i( 0, 0, 0));
+  int num_z(1);
+  VectorXcd zs(num_z); zs << 1.1;
+  sub_s.AddZeta(zs);
+  sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
+  sub_s.SetUp();
+  gtos.AddSub(sub_s);
+
+  // ---- p orbital ----
+  SubSymGTOs sub_p(sym);
+  sub_p.AddXyz(Vector3cd(0, 0, 0));
+  sub_p.AddNs( Vector3i( 1, 0, 0));
+  sub_p.AddNs( Vector3i( 0, 1, 0));
+  sub_p.AddNs( Vector3i( 0, 0, 1));
+  VectorXcd zs_p(1); zs_p << 1.1; sub_p.AddZeta(zs_p);
+  MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_x, c1));
+  MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_y, c2));
+  MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(sym->irrep_z, c3));
+  sub_p.SetUp();
+  gtos.AddSub(sub_p);
+
+  // -- potential --
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();  
+
+  
+  // -- compute --
+  IB2EInt *eri00 = new B2EIntMem(); ERIMethod m00;
+  IB2EInt *eri10 = new B2EIntMem(); ERIMethod m10; m10.symmetry = 1;
+  IB2EInt *eri02 = new B2EIntMem(); ERIMethod m02; m02.coef_R_memo = 2;
+  IB2EInt *eri01 = new B2EIntMem(); ERIMethod m01; m01.coef_R_memo = 1;
+  IB2EInt *eri11 = new B2EIntMem(); ERIMethod m11; m11.symmetry=1; m11.coef_R_memo=2;
+  m11.coef_R_memo = 1; m11.symmetry = 1;
+
+  CalcERI_Hermite(gtos, eri00, m00);
+  CalcERI_Hermite(gtos, eri10, m10);
+  CalcERI_Hermite(gtos, eri02, m02);
+  CalcERI_Hermite(gtos, eri01, m01);
+  CalcERI_Hermite(gtos, eri11, m11);
+
+  int ib,jb,kb,lb,i,j,k,l,t;
+  dcomplex v;
+  eri00->Reset();
+  while(eri00->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+    if(eri10->Exist(ib, jb, kb, lb, i, j, k, l)) {
+      EXPECT_C_EQ(v, eri00->At(ib, jb, kb, lb, i, j, k, l)) <<
+	ib << jb << kb << lb << " : " << i << j << k << l;
+    } else {
+      EXPECT_TRUE(abs(v) < 0.000001) <<
+	v << " : " <<
+	ib << jb << kb << lb << " : " <<
+	i << j << k << l;
+    }
+
+    if(eri02->Exist(ib, jb, kb, lb, i, j, k, l)) {
+      EXPECT_C_EQ(v, eri00->At(ib, jb, kb, lb, i, j, k, l)) <<
+	ib << jb << kb << lb << " : " << i << j << k << l;
+    } else {
+      EXPECT_TRUE(abs(v) < 0.000001) <<
+	v << " : " <<
+	ib << jb << kb << lb << " : " <<
+	i << j << k << l;
+    }
+
+    if(eri01->Exist(ib, jb, kb, lb, i, j, k, l)) {
+      EXPECT_C_EQ(v, eri00->At(ib, jb, kb, lb, i, j, k, l)) <<
+	ib << jb << kb << lb << " : " << i << j << k << l;
+    } else {
+      EXPECT_TRUE(abs(v) < 0.000001) <<
+	v << " : " <<
+	ib << jb << kb << lb << " : " <<
+	i << j << k << l;
+    }
+
+    if(eri11->Exist(ib, jb, kb, lb, i, j, k, l)) {
+      EXPECT_C_EQ(v, eri00->At(ib, jb, kb, lb, i, j, k, l)) <<
+	ib << jb << kb << lb << " : " << i << j << k << l;
+    } else {
+      EXPECT_TRUE(abs(v) < 0.000001) <<
+	v << " : " <<
+	ib << jb << kb << lb << " : " <<
+	i << j << k << l;
+    }
+
+  }
+  delete eri00;
+  delete eri10;
+  delete eri01;
+
 }
 TEST(Time, MatrixAccess) {
   int n(1000);

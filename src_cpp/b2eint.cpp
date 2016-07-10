@@ -73,9 +73,9 @@ namespace l2func {
       return false;
     }
     *ib = this->ibs[this->idx_];
-    *jb =  this->jbs[this->idx_];
-    *kb =  this->kbs[this->idx_];
-    *lb =  this->lbs[this->idx_];
+    *jb = this->jbs[this->idx_];
+    *kb = this->kbs[this->idx_];
+    *lb = this->lbs[this->idx_];
     *i  = this->is[this->idx_];
     *j  = this->js[this->idx_];
     *k  = this->ks[this->idx_];

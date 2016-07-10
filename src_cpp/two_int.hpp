@@ -10,7 +10,9 @@ namespace l2func {
   dcomplex ERIEle(CartGTO& a, CartGTO& b, CartGTO& c, CartGTO& d);
 
   // ==== SymGTOs ====
-  void SymGTOs_CalcERI(SymGTOs& i, SymGTOs& j, SymGTOs& k, SymGTOs& l, IB2EInt* eri);  
+  void CalcERI_Complex(SymGTOs& i, IB2EInt* eri, ERIMethod m);
+  void CalcERI_Hermite(SymGTOs& i, IB2EInt* eri, ERIMethod m);
+  void SymGTOs_CalcERI(SymGTOs& i, SymGTOs& j, SymGTOs& k, SymGTOs& l, IB2EInt* eri, ERIMethod method);  
 	       
 }
 
