@@ -12,12 +12,14 @@
 namespace l2func {
 
   // ==== ERI method ====
-  struct ERIMethod {
+  class ERIMethod {
+  public:
     int symmetry;
     int coef_R_memo;
-    ERIMethod(): symmetry(0), coef_R_memo(0) {}
+    ERIMethod();
+    void set_symmetry(int s);
+    void set_coef_R_memo(int s);
   };
-
 
   // ==== AO Reduction ====
   struct Reduction {

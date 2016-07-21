@@ -8,10 +8,14 @@
 #include "../src_cpp/macros.hpp"
 
 #include "../src_cpp/eigen_plus.hpp"
+#include "../src_cpp/angmoment.hpp"
 #include "../src_cpp/b2eint.hpp"
 #include "../src_cpp/bmatset.hpp"
+#include "../src_cpp/one_int.hpp"
+#include "../src_cpp/two_int.hpp"
 #include "../src_cpp/symmolint.hpp"
 #include "../src_cpp/mo.hpp"
+
 
 namespace {
   using namespace boost::python;
@@ -51,15 +55,28 @@ BMatSet* SymGTOs_CalcMatOther(SymGTOs* a, SymGTOs* b, bool calc_coulombq) {
   a->CalcMatOther(*b, calc_coulombq, res);
   return res;
 }
-IB2EInt* SymGTOs_CalcERI(SymGTOs* gtos, int method) {
-  int num(gtos->size_basis());
-  IB2EInt* eri = new B2EIntMem(pow(num, 4));
-  gtos->CalcERI(eri, method);
+BMatSet* py_CalcMatirx_Complex(SymGTOs& gtos, bool calc_coulomb) {
+  
+  BMatSet *res = new BMatSet();
+  CalcMatrix_Complex(gtos, calc_coulomb, res);
+  return res;
+  
+}
+BMatSet* py_CalcMatrix_Hermite(SymGTOs& gtos, bool calc_coulomb) {
+
+  BMatSet *res = new BMatSet();
+  CalcMatrix_Hermite(gtos, calc_coulomb, res);
+  return res;
+
+}
+IB2EInt* py_CalcERI_Complex(SymGTOs* gtos, ERIMethod method) {
+  IB2EInt* eri = new B2EIntMem();
+  CalcERI_Complex(*gtos, eri, method);
   return eri;
 }
-IB2EInt* py_CalcERI(SymGTOs* gi, SymGTOs* gj, SymGTOs* gk, SymGTOs* gl) {
-  IB2EInt *eri = new B2EIntMem();
-  CalcERI(*gi, *gj, *gk, *gl, eri);
+IB2EInt* py_CalcERI_Hermite(SymGTOs* gtos, ERIMethod method) {
+  IB2EInt* eri = new B2EIntMem();
+  CalcERI_Hermite(*gtos, eri, method);
   return eri;
 }
 BMat* py_CalcSEHamiltonian(MO mo, IB2EInt* eri, Irrep I0, int i0) {
@@ -67,6 +84,20 @@ BMat* py_CalcSEHamiltonian(MO mo, IB2EInt* eri, Irrep I0, int i0) {
   BMat *res = new BMat();
   CalcSEHamiltonian(mo, eri, I0, i0, res);
   return res;
+
+}
+BMat* py_JK(IB2EInt* eri, BMat& C, Irrep I0, int i0, dcomplex c_J, dcomplex c_K) {
+
+  BMat *mat = new BMat();
+  for(int I = 0; I < (int)C.size(); I++) {
+    pair<Irrep, Irrep> II(I, I);
+    MatrixXcd& CII = C[II];
+    (*mat)[II] = MatrixXcd::Zero(CII.rows(), CII.cols());
+  }
+  
+  AddJK(eri, C, I0, i0, c_J, c_K, *mat);
+
+  return mat;
 
 }
 tuple SymGTOs_AtR_Ylm(SymGTOs* gtos,
@@ -133,10 +164,17 @@ boost::python::list MO_get_num_occ(MO mo) {
   return num_occ;
 }
 
+void AddAngmoemnt() {
+
+  def("cg_coef", cg_coef);
+
+}
 BOOST_PYTHON_MODULE(symmolint_bind) {
 
   Py_Initialize();
   np::initialize();
+
+  AddAngmoemnt();
   
   def("canonical_matrix", CanonicalMatrix_py,
       return_value_policy<manage_new_object>());
@@ -146,6 +184,10 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
   class_<SymmetryGroup>("SymmetryGroup", no_init)
     .add_property("order", &SymmetryGroup::order)
     .add_property("name", &SymmetryGroup::name)
+    .add_property("irrep_s", &SymmetryGroup::irrep_s)
+    .add_property("irrep_x", &SymmetryGroup::irrep_x)
+    .add_property("irrep_y", &SymmetryGroup::irrep_y)
+    .add_property("irrep_z", &SymmetryGroup::irrep_z)
     .def("get_irrep", &SymmetryGroup::GetIrrep)
     .def("get_irrep_name", &SymmetryGroup::GetIrrepName)
     .def("__str__", &SymmetryGroup::str)
@@ -163,6 +205,8 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
     .def(map_indexing_suite<BVec>());
 
   class_<BMat>("BMat", no_init)
+    .def("write", BMatWrite)
+    .def("read", BMatRead)
     .def("__getitem__", BMat_get, return_internal_reference<>());
   
   class_<BMatSet>("BMatSet", init<int>())
@@ -208,6 +252,7 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
   def("sub_two_sgto", Sub_TwoSGTO);
 
   class_<SymGTOs>("SymGTOs", init<pSymmetryGroup>())
+    .add_property("sym_group", &SymGTOs::sym_group)
     .def("sub", &SymGTOs::AddSub, return_self<>())
     .def("atom", &SymGTOs::AddAtom, return_self<>())
     .def("setup", &SymGTOs::SetUp, return_self<>())
@@ -216,15 +261,27 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
 	 return_value_policy<manage_new_object>())    
     .def("calc_mat", SymGTOs_CalcMatOther,
 	 return_value_policy<manage_new_object>())
-    .def("calc_eri", SymGTOs_CalcERI,
-	 return_value_policy<manage_new_object>())
     .def("at_r_ylm_cpp", SymGTOs_AtR_Ylm)
     .def("correct_sign", SymGTOs_CorrectSign,
 	 return_value_policy<manage_new_object>())
     //    .def("at_r_ylm", SymGTOs_AtR_Ylm)    
     .def("__str__", &SymGTOs::str)
     .def("__repr__", &SymGTOs::str);
-  def("calc_ERI", py_CalcERI, return_value_policy<manage_new_object>());
+
+  class_<ERIMethod>("ERI_method", init<>())
+    .def("use_symmetry",    &ERIMethod::set_symmetry,
+	 return_self<>())
+    .def("coef_R_memo", &ERIMethod::set_coef_R_memo,
+	 return_self<>());
+  def("calc_matrix_complex",
+      py_CalcMatirx_Complex,
+      return_value_policy<manage_new_object>());
+  def("calc_matrix_hermite", py_CalcMatrix_Hermite,
+      return_value_policy<manage_new_object>());  
+  def("calc_ERI_complex", py_CalcERI_Complex,
+      return_value_policy<manage_new_object>());
+  def("calc_ERI_hermite", py_CalcERI_Hermite,
+      return_value_policy<manage_new_object>());
 
   register_ptr_to_python<MO>();
   class_<_MO>("MO", no_init)
@@ -239,6 +296,7 @@ BOOST_PYTHON_MODULE(symmolint_bind) {
   def("calc_RHF", CalcRHF2);
   def("calc_SEHamiltonian", py_CalcSEHamiltonian,
       return_value_policy<manage_new_object>());
+  def("calc_JK", py_JK, return_value_policy<manage_new_object>());
   def("calc_alpha", CalcAlpha);
   def("pi_total_crosssection", PITotalCrossSection);
 }

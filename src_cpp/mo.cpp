@@ -119,14 +119,45 @@ namespace l2func {
       }
     }      
   }
+  void AddJK_Slow(IB2EInt* eri, BMat& C, int I0, int i0,
+		  dcomplex coef_J, dcomplex coef_K, BMat& H) {
+
+    VectorXcd c0 = C[make_pair(I0, I0)].col(i0);
+    for(BMat::iterator it = H.begin(); it != H.end(); ++it) {
+
+      pair<Irrep, Irrep> II(it->first);
+      Irrep irrep(II.first);
+      Irrep jrrep(II.second);
+      MatrixXcd& HII = it->second;
+      int n(HII.rows());
+      int m(HII.cols());
+      for(int i = 0; i < n; i++) {
+	for(int j = 0; j < m; j++) {
+	  dcomplex cumsum(0);
+	  for(int a = 0; a < c0.size(); a++) {
+	    for(int b = 0; b < c0.size(); b++) {
+	      if(eri->Exist(irrep, jrrep, I0, I0, i, j, a, b)) 
+		cumsum += coef_J*c0[a] * c0[b] *
+		  eri->At(irrep, irrep, I0, I0, i, j, a, b);
+	      if(eri->Exist(irrep, I0, I0, jrrep, i, a, b, j))
+		cumsum += coef_K*c0[a] * c0[b] *
+		  eri->At(irrep, I0, I0, jrrep, i, a, b, j);
+	    }
+	  }
+	  HII(i, j) += cumsum;
+	}
+      }
+    }
+  }
   MO CalcRHF(SymGTOs& gtos, int nele, int max_iter, double eps,
 	     bool *is_conv, int debug_lvl) {
     int num_basis(gtos.size_basis());
+    ERIMethod method; method.symmetry = 1;
     BMatSet mat_set; 
     IB2EInt *eri = new B2EIntMem(pow(num_basis, 4));
 
     gtos.CalcMat(&mat_set);
-    gtos.CalcERI(eri, 2);
+    gtos.CalcERI(eri, method);
 
     return CalcRHF(gtos.sym_group, mat_set, eri, nele, max_iter,
 		   eps, is_conv, debug_lvl);
@@ -375,18 +406,18 @@ namespace l2func {
   }
   dcomplex CalcAlpha(MO mo, BMatSet& mat_set, Irrep I0, int i0, BMat& h_stex,
 		     double w, Coord coord, int method) {
-    dcomplex a(0);
+
     typedef vector<Irrep>::const_iterator It;
     dcomplex ene;
     if(method == 0) {
-      // -- Koopsman's theorem 
+      // -- Koopsman's theorem --
       ene = w + mo->eigs[I0](i0);
     } else if(method == 1){
-      // -- calulate ionization potential using HF energy
+      // -- calulate ionization potential using HF energy --
       double E_ion = -2.0;
       ene = w + mo->energy - E_ion;
     } else if(method == 2) {
-      // -- experimental value from "McQuarrie and Simon" p.302
+      // -- experimental value from "McQuarrie and Simon" p.302 --
       ene = w - 0.903724375;
     }
 
@@ -399,14 +430,17 @@ namespace l2func {
     else if(coord == CoordZ)
       mat_name = "z";
 
-    for(It it = mo->irrep_list.begin(); it != mo->irrep_list.end(); ++it) {      
+    dcomplex a(0);
+    It it; 
+    It end= mo->irrep_list.end();
+    for(it = mo->irrep_list.begin(); it != end; ++it) {      
       Irrep irrep = *it;
       if(mat_set.Exist(mat_name, irrep, I0)) {
 	pair<Irrep, Irrep> ii(irrep, irrep);
 	const MatrixXcd& S = mat_set.GetMatrix("s", irrep, irrep);
 	const MatrixXcd& H = h_stex[ii];
 	const MatrixXcd& Z = mat_set.GetMatrix(mat_name, irrep, I0);
-			     
+	
 	MatrixXcd L = S * ene - H;
 	VectorXcd m = Z * mo->C[make_pair(I0, I0)].col(i0);
 	VectorXcd c = L.colPivHouseholderQr().solve(m);

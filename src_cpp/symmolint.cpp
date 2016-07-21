@@ -20,6 +20,11 @@ namespace l2func {
   typedef MultArray<dcomplex, 4> A4dc;
 
 
+  // ==== ERI method ====
+  ERIMethod::ERIMethod(): symmetry(0), coef_R_memo(0) {}
+  void ERIMethod::set_symmetry(int s) {symmetry = s; }
+  void ERIMethod::set_coef_R_memo(int s) {coef_R_memo = s; }
+
   // ==== Reduction Sets ====
   string Reduction::str() const {
     ostringstream oss;
@@ -548,11 +553,14 @@ namespace l2func {
 
   }
   void SymGTOs::CalcMat(BMatSet* res) {
-    this->CalcMatOther(*this, true, res);
+    
+    CalcMatrix_Complex(*this, true, res);
+
   }
   void SymGTOs::CalcERI(IB2EInt* eri, ERIMethod method) {
     
-    SymGTOs_CalcERI(*this, *this, *this, *this, eri, method);
+    //SymGTOs_CalcERI(*this, *this, *this, *this, eri, method);
+    CalcERI_Complex(*this, eri, method);
 
   }
   

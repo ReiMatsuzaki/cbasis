@@ -399,5 +399,16 @@ namespace l2func {
 
 
   }
+  void CalcMatrix_Complex(SymGTOs& g, bool calc_coulomb, BMatSet* res) {
+
+    SymGTOs_CalcMatrix(g, g, calc_coulomb, res);
+    
+  }
+  void CalcMatrix_Hermite(SymGTOs& g, bool calc_coulomb, BMatSet* res) {
+    SymGTOs c(g.sym_group);
+    c.SetComplexConj(g);
+    SymGTOs_CalcMatrix(c, g, calc_coulomb, res);
+
+  }
   
 }

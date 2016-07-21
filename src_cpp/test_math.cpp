@@ -18,6 +18,133 @@ using namespace std;
 using namespace l2func;
 using namespace Eigen;
 
+TEST(BMat, ReadWrite) {
+
+  BMat bmat1;
+
+  MatrixXcd M10(2, 3); 
+  M10 <<
+    1.0, 1.1, 1.2,
+    2.1, 2.2, 2.3;
+  bmat1[make_pair(1, 0)] = M10;
+
+  MatrixXcd M12(3, 1); 
+  M10 << 3.1, 3.2, 3.3;
+  bmat1[make_pair(1, 2)] = M12;
+
+  string filename("tmp.dat");
+  BMatWrite(bmat1, filename);
+
+  BMat bmat2;
+  BMatRead(bmat2, filename);
+
+  EXPECT_EQ(bmat1.size(), bmat2.size());
+  EXPECT_MATXCD_EQ(bmat1[make_pair(1, 0)],
+		   bmat2[make_pair(1, 0)]);
+  EXPECT_MATXCD_EQ(bmat1[make_pair(1, 2)],
+		   bmat2[make_pair(1, 2)]);
+  
+}
+
+TEST(BMatSet, SetGet) {
+
+  BMatSet sets(2);
+
+  MatrixXcd s00(2,2); s00 << 1.0, 1.1, 1.2, 1.3;
+  sets.SetMatrix("s", 0, 0, s00);
+
+  MatrixXcd s01(2,3); s01 << 2.0, 2.1, 2.2, 2.3, 0.1, 0.1;
+  sets.SetMatrix("s", 0, 1, s01);
+
+  MatrixXcd t01(2,3); t01 << 2.6, 2.1, 2.5, 0.3, 0.11, 0.12;
+  sets.SetMatrix("t", 0, 1, t01);
+
+  const MatrixXcd s01ref = sets.GetMatrix("s", 0, 1);
+
+  EXPECT_C_EQ(2.0, s01ref(0, 0));
+  EXPECT_C_EQ(2.1, s01ref(0, 1));
+  EXPECT_C_EQ(2.2, s01ref(0, 2));
+  EXPECT_C_EQ(2.3, s01ref(1, 0));
+  EXPECT_C_EQ(0.1, s01ref(1, 1));
+  EXPECT_C_EQ(0.1, s01ref(1, 2));
+
+}
+TEST(BMatSet, Plus) {
+
+  BMatSet sets(2);
+  MatrixXcd s00(2,2); s00 << 1.0, 1.1, 1.2, 1.3;
+  sets.SetMatrix("s", 0, 0, s00);
+
+  sets.SelfAdd("s", 0, 0, 0, 1, 0.33);
+  EXPECT_C_EQ(1.1+0.33, sets.GetValue("s", 0, 0, 0, 1));
+
+}
+TEST(BMatSet, Exception) {
+
+  BMatSet sets(2);
+  
+  MatrixXcd s00 = MatrixXcd::Zero(2, 2);
+  
+  sets.SetMatrix("s", 0, 0, s00);
+  EXPECT_NO_THROW(sets.SetMatrix("s", 2, 1, s00));
+  EXPECT_NO_THROW(sets.SetMatrix("s", -1, 1, s00));
+  
+#ifdef ARG_NO_CHECK
+  EXPECT_NO_THROW(sets.GetMatrix("t", 0, 0));
+  EXPECT_NO_THROW(sets.GetMatrix("s", -1, 0));
+  EXPECT_NO_THROW(sets.GetMatrix("s", 1, 2));
+#else
+  EXPECT_ANY_THROW(sets.GetMatrix("t", 0, 0));
+  EXPECT_ANY_THROW(sets.GetMatrix("s", -1, 0));
+  EXPECT_ANY_THROW(sets.GetMatrix("s", 1, 2));
+#endif  
+
+  try {
+    sets.GetMatrix("s", -1, 0);
+  } catch(const runtime_error& e) {
+    cout << e.what() << endl;
+  }
+
+}
+TEST(BMatSet, BMat_swap) {
+
+  BMat s0;
+  s0[make_pair(0, 0)] = MatrixXcd::Ones(4, 5);
+  s0[make_pair(1, 1)] = MatrixXcd::Zero(4, 5);
+
+  BMat s1;
+  swap(s0, s1);
+  
+  EXPECT_MATXCD_EQ(MatrixXcd::Ones(4, 5), s1[make_pair(0, 0)]);
+  EXPECT_MATXCD_EQ(MatrixXcd::Zero(4, 5), s1[make_pair(1, 1)]);
+
+}
+TEST(BmatSet, Swap) {
+
+  BMatSet sets(2);
+  MatrixXcd s00(2, 2); 
+  s00 << 1.0, 1.1, 1.2, 1.3;
+  MatrixXcd s01(2, 2); 
+  s01 << 2.0, 2.1, 2.2, 2.3;
+
+  sets.SetMatrix("s", 0, 0, s00);
+  sets.SetMatrix("s", 0, 1, s01);
+
+  BMatSet set2;
+  swap(set2, sets);
+
+  EXPECT_C_EQ(set2.GetValue("s", 0, 0, 0, 0), 1.0);
+  EXPECT_C_EQ(set2.GetValue("s", 0, 0, 0, 1), 1.1);
+  EXPECT_C_EQ(set2.GetValue("s", 0, 0, 1, 0), 1.2);
+  EXPECT_C_EQ(set2.GetValue("s", 0, 0, 1, 1), 1.3);
+
+  EXPECT_C_EQ(set2.GetValue("s", 0, 1, 0, 0), 2.0);
+  EXPECT_C_EQ(set2.GetValue("s", 0, 1, 0, 1), 2.1);
+  EXPECT_C_EQ(set2.GetValue("s", 0, 1, 1, 0), 2.2);
+  EXPECT_C_EQ(set2.GetValue("s", 0, 1, 1, 1), 2.3);
+  
+}
+
 TEST(MultArray, MultArray1) {
 
   MultArray<int, 1> xs(10);
@@ -685,104 +812,6 @@ TEST(Eigen, sort) {
 
 }
 
-TEST(BMatSet, SetGet) {
-
-  BMatSet sets(2);
-
-  MatrixXcd s00(2,2); s00 << 1.0, 1.1, 1.2, 1.3;
-  sets.SetMatrix("s", 0, 0, s00);
-
-  MatrixXcd s01(2,3); s01 << 2.0, 2.1, 2.2, 2.3, 0.1, 0.1;
-  sets.SetMatrix("s", 0, 1, s01);
-
-  MatrixXcd t01(2,3); t01 << 2.6, 2.1, 2.5, 0.3, 0.11, 0.12;
-  sets.SetMatrix("t", 0, 1, t01);
-
-  const MatrixXcd s01ref = sets.GetMatrix("s", 0, 1);
-
-  EXPECT_C_EQ(2.0, s01ref(0, 0));
-  EXPECT_C_EQ(2.1, s01ref(0, 1));
-  EXPECT_C_EQ(2.2, s01ref(0, 2));
-  EXPECT_C_EQ(2.3, s01ref(1, 0));
-  EXPECT_C_EQ(0.1, s01ref(1, 1));
-  EXPECT_C_EQ(0.1, s01ref(1, 2));
-
-}
-TEST(BMatSet, Plus) {
-
-  BMatSet sets(2);
-  MatrixXcd s00(2,2); s00 << 1.0, 1.1, 1.2, 1.3;
-  sets.SetMatrix("s", 0, 0, s00);
-
-  sets.SelfAdd("s", 0, 0, 0, 1, 0.33);
-  EXPECT_C_EQ(1.1+0.33, sets.GetValue("s", 0, 0, 0, 1));
-
-}
-TEST(BMatSet, Exception) {
-
-  BMatSet sets(2);
-  
-  MatrixXcd s00 = MatrixXcd::Zero(2, 2);
-  
-  sets.SetMatrix("s", 0, 0, s00);
-  EXPECT_NO_THROW(sets.SetMatrix("s", 2, 1, s00));
-  EXPECT_NO_THROW(sets.SetMatrix("s", -1, 1, s00));
-  
-#ifdef ARG_NO_CHECK
-  EXPECT_NO_THROW(sets.GetMatrix("t", 0, 0));
-  EXPECT_NO_THROW(sets.GetMatrix("s", -1, 0));
-  EXPECT_NO_THROW(sets.GetMatrix("s", 1, 2));
-#else
-  EXPECT_ANY_THROW(sets.GetMatrix("t", 0, 0));
-  EXPECT_ANY_THROW(sets.GetMatrix("s", -1, 0));
-  EXPECT_ANY_THROW(sets.GetMatrix("s", 1, 2));
-#endif  
-
-  try {
-    sets.GetMatrix("s", -1, 0);
-  } catch(const runtime_error& e) {
-    cout << e.what() << endl;
-  }
-
-}
-TEST(BMatSet, BMat_swap) {
-
-  BMat s0;
-  s0[make_pair(0, 0)] = MatrixXcd::Ones(4, 5);
-  s0[make_pair(1, 1)] = MatrixXcd::Zero(4, 5);
-
-  BMat s1;
-  swap(s0, s1);
-  
-  EXPECT_MATXCD_EQ(MatrixXcd::Ones(4, 5), s1[make_pair(0, 0)]);
-  EXPECT_MATXCD_EQ(MatrixXcd::Zero(4, 5), s1[make_pair(1, 1)]);
-
-}
-TEST(BmatSet, Swap) {
-
-  BMatSet sets(2);
-  MatrixXcd s00(2, 2); 
-  s00 << 1.0, 1.1, 1.2, 1.3;
-  MatrixXcd s01(2, 2); 
-  s01 << 2.0, 2.1, 2.2, 2.3;
-
-  sets.SetMatrix("s", 0, 0, s00);
-  sets.SetMatrix("s", 0, 1, s01);
-
-  BMatSet set2;
-  swap(set2, sets);
-
-  EXPECT_C_EQ(set2.GetValue("s", 0, 0, 0, 0), 1.0);
-  EXPECT_C_EQ(set2.GetValue("s", 0, 0, 0, 1), 1.1);
-  EXPECT_C_EQ(set2.GetValue("s", 0, 0, 1, 0), 1.2);
-  EXPECT_C_EQ(set2.GetValue("s", 0, 0, 1, 1), 1.3);
-
-  EXPECT_C_EQ(set2.GetValue("s", 0, 1, 0, 0), 2.0);
-  EXPECT_C_EQ(set2.GetValue("s", 0, 1, 0, 1), 2.1);
-  EXPECT_C_EQ(set2.GetValue("s", 0, 1, 1, 0), 2.2);
-  EXPECT_C_EQ(set2.GetValue("s", 0, 1, 1, 1), 2.3);
-  
-}
 
 int main(int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);

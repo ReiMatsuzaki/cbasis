@@ -586,9 +586,9 @@ namespace l2func {
     g->setProdTable();
 
     g->irrep_s = Ag;
-    g->irrep_x = B1u;
+    g->irrep_x = B3u;
     g->irrep_y = B2u;
-    g->irrep_z = B3u;
+    g->irrep_z = B1u;
 
     return g;
   }

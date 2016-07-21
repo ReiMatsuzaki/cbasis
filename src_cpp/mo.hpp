@@ -36,6 +36,8 @@ namespace l2func {
   MO CalcOneEle(pSymmetryGroup sym, BMatSet& mat_set, int debug_lvl = 0);
   void AddJK(IB2EInt* eri,  BMat& C, int I0, int i0,
 	     dcomplex coef_J, dcomplex coef_K, BMat& JK);
+  void AddJK_Slow(IB2EInt* eri, BMat& C, int I0, int i0,
+		  dcomplex coef_J, dcomplex coef_K, BMat& H);
   MO CalcRHF(SymGTOs& gtos, int nele, int max_iter, double eps, bool *is_conv,
 	     int debug_lvl = 0);
   MO CalcRHF(pSymmetryGroup sym, BMatSet& mat_set, IB2EInt* eri, int nele, 

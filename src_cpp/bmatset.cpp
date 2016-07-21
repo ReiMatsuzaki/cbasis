@@ -1,5 +1,7 @@
 #include <string>
 #include <ostream>
+#include <fstream>
+#include <iostream>
 #include "macros.hpp"
 #include "bmatset.hpp"
 
@@ -7,6 +9,73 @@ using namespace std;
 using namespace Eigen;
 
 namespace l2func {
+
+
+  // ==== BMat ====
+  // typedef map<pair<int, int>, Matrix> BMat 
+  void BMatRead(BMat& bmat, string fn) {
+
+    ifstream f(fn, ios::in|ios::binary);
+    
+    if(!f) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": file not found";
+      throw runtime_error(msg);
+    }
+
+    int num;
+    f.read((char*)&num, sizeof(int));
+    for(int i = 0; i < num; i++) {
+
+      int irrep, jrrep, n, m;
+      f.read((char*)&irrep, sizeof(int));
+      f.read((char*)&jrrep, sizeof(int));
+      f.read((char*)&n, sizeof(int));
+      f.read((char*)&m, sizeof(int));
+      MatrixXcd M(n, m);
+      for(int i = 0; i < n; i++) {
+	for(int j = 0; j < m; j++) {
+	  dcomplex v;
+	  f.read((char*)&v, sizeof(dcomplex));
+	  M(i, j) = v;
+	}
+      }
+      bmat[make_pair(irrep, jrrep)] = MatrixXcd::Zero(1, 1);
+      bmat[make_pair(irrep, jrrep)].swap(M);
+    }
+
+  }
+  void BMatWrite(BMat& bmat, string fn) {
+
+    ofstream f;
+    f.open(fn, ios::out|ios::binary|ios::trunc);
+    
+    if(!f) {
+      string msg; SUB_LOCATION(msg); msg+=": file not found";
+      throw runtime_error(msg);
+    }
+
+    int num = bmat.size();
+    f.write((char*)&num, sizeof(int));
+
+    for(BMat::iterator it = bmat.begin(); it != bmat.end(); ++it) {
+      int irrep = it->first.first;
+      int jrrep = it->first.second;
+      f.write((char*)&irrep, sizeof(int));
+      f.write((char*)&jrrep, sizeof(int));
+      MatrixXcd& M = it->second;
+      int n = M.rows();
+      int m = M.cols();
+      f.write((char*)&n, sizeof(int));
+      f.write((char*)&m, sizeof(int));
+      for(int i = 0; i < n; i++) {
+	for(int j = 0; j < m; j++) {
+	  f.write((char*)&M.coeff(i, j), sizeof(dcomplex));
+	}
+      }
+    }
+  }
+
   // ==== BlockMatrixSets ====
   BMatSet::BMatSet(): block_num_(1) {}
   BMatSet::BMatSet(int _block_num): block_num_(_block_num) {}
@@ -47,6 +116,9 @@ namespace l2func {
   }
   const MatrixXcd& BMatSet::GetMatrix(string name, int i, int j) {
     return mat_map_[name][make_pair(i, j)];
+  }
+  const BMat& BMatSet::GetBlockMatrix(std::string name) {
+    return mat_map_[name];
   }
   void BMatSet::SelfAdd(string name, int i, int j, int a, int b, dcomplex v) {
 
@@ -143,7 +215,7 @@ namespace l2func {
     }
     return oss.str();
   }
-  
+	      
   // ==== External ====
   void swap(BMat& a, BMat& b) {
 

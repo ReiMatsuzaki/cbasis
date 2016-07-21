@@ -1,7 +1,7 @@
 include local.mk
 ARCH=debug
 $(shell mkdir -p ${BINDIR})
-VALGRIND=valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no
+VALGRIND=valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no 
 
 ifeq (${ARCH},fast)
   # calculation speed
@@ -74,9 +74,9 @@ time_2eint: ${BINDIR}/test_2eint
 	iprofiler -timeprofiler ./$<
 
 # -- test hf --
-HF_OBJS = test_hf.o mo.o b2eint.o symmolint.o one_int.o two_int.o \
+HF_OBJS = test_hf.o trans_eri.o mo.o b2eint.o symmolint.o one_int.o two_int.o \
 	symgroup.o bmatset.o angmoment.o eigen_plus.o \
-	fact.o mol_func.o
+	fact.o mol_func.o timer.o
 ${BINDIR}/test_hf: $(foreach o, ${HF_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_hf

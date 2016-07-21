@@ -91,6 +91,27 @@ TEST_F(TestB2EInt, IO) {
   delete eri2;
   
 }
+
+TEST(coef_R, method1) {
+
+  static const int nn(6);
+  dcomplex Fjs[nn];
+  Fjs[0] = 0.1;  Fjs[1] = 0.2; Fjs[2] = 0.3;
+  Fjs[3] = 0.25; Fjs[4] = 0.7; Fjs[5] = 0.6;
+
+  dcomplex zeta(0.1, 0.001);
+  MultArray<dcomplex, 3> res0(1000); ERIMethod m0;
+  MultArray<dcomplex, 3> res1(1000); ERIMethod m1; m1.coef_R_memo = 1;
+  
+  coef_R_eri_switch(zeta, 0.1, 0.2, 0.3, 0.11, 0.22, 0.33, 2, Fjs, 1, res0, m0);
+  coef_R_eri_switch(zeta, 0.1, 0.2, 0.3, 0.11, 0.22, 0.33, 2, Fjs, 1, res1, m1);
+  
+  for(int i = 0; i < nn; i++)
+    for(int j = 0; j < nn; j++)
+      EXPECT_C_EQ(res0(i, j, 0), res1(i, j, 0)) << i << j;
+
+}
+
 TEST(SymGTOs, CalcERI_differenct) {
 
   pSymmetryGroup Cs = SymmetryGroup::Cs();
@@ -139,7 +160,6 @@ TEST(SymGTOs, CalcERI_differenct) {
 	}
 
 }
-
 VectorXcd OneVec(dcomplex z) {
   VectorXcd zs(1); zs << z;
   return zs;
@@ -430,18 +450,18 @@ TEST(SymGTOs, method_time) {
   ERIMethod m01; m01.symmetry = 1;
   IB2EInt *eri10 = new B2EIntMem(0);
   ERIMethod m10; m10.coef_R_memo = 1;
-  IB2EInt *eri20 = new B2EIntMem(0);
-  ERIMethod m20; m20.coef_R_memo = 2;
+  IB2EInt *eri11 = new B2EIntMem(0);
+  ERIMethod m11; m11.coef_R_memo = 1; m11.symmetry = 1;
 
   timer.Start("method00"); gtos.CalcERI(eri00, m00); timer.End("method00");
   timer.Start("method01"); gtos.CalcERI(eri01, m01); timer.End("method01");
   timer.Start("method10"); gtos.CalcERI(eri10, m10); timer.End("method10");
-  timer.Start("method20"); gtos.CalcERI(eri20, m20); timer.End("method20");
+  timer.Start("method11"); gtos.CalcERI(eri11, m11); timer.End("method11");
     
   EXPECT_C_EQ(eri00->At(0, 0, 0, 0, 2, 1, 5, 0),
 	      eri01->At(0, 0, 0, 0, 2, 1, 5, 0));
   EXPECT_C_EQ(eri00->At(0, 0, 0, 0, 2, 1, 5, 0),
-	      eri20->At(0, 0, 0, 0, 2, 1, 5, 0));
+	      eri11->At(0, 0, 0, 0, 2, 1, 5, 0));
   EXPECT_C_EQ(eri00->At(0, 0, 0, 0, 2, 1, 5, 0),
 	      eri10->At(0, 0, 0, 0, 2, 1, 5, 0));
 
@@ -449,12 +469,12 @@ TEST(SymGTOs, method_time) {
   cout << "size(eri00): " << eri00->size() << endl;
   cout << "size(eri10): " << eri10->size() << endl;
   cout << "size(eri01): " << eri01->size() << endl;
-  cout << "size(eri11): " << eri20->size() << endl;
+  cout << "size(eri11): " << eri11->size() << endl;
 
   delete eri00;
   delete eri01;
   delete eri10;
-  delete eri20;
+  delete eri11;
 }
 TEST(SymGTOs, method_check) {
 
@@ -497,14 +517,12 @@ TEST(SymGTOs, method_check) {
   // -- compute --
   IB2EInt *eri00 = new B2EIntMem(); ERIMethod m00;
   IB2EInt *eri10 = new B2EIntMem(); ERIMethod m10; m10.symmetry = 1;
-  IB2EInt *eri02 = new B2EIntMem(); ERIMethod m02; m02.coef_R_memo = 2;
   IB2EInt *eri01 = new B2EIntMem(); ERIMethod m01; m01.coef_R_memo = 1;
   IB2EInt *eri11 = new B2EIntMem(); ERIMethod m11; m11.symmetry=1; m11.coef_R_memo=2;
   m11.coef_R_memo = 1; m11.symmetry = 1;
 
   CalcERI_Hermite(gtos, eri00, m00);
   CalcERI_Hermite(gtos, eri10, m10);
-  CalcERI_Hermite(gtos, eri02, m02);
   CalcERI_Hermite(gtos, eri01, m01);
   CalcERI_Hermite(gtos, eri11, m11);
 
@@ -513,17 +531,7 @@ TEST(SymGTOs, method_check) {
   eri00->Reset();
   while(eri00->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
     if(eri10->Exist(ib, jb, kb, lb, i, j, k, l)) {
-      EXPECT_C_EQ(v, eri00->At(ib, jb, kb, lb, i, j, k, l)) <<
-	ib << jb << kb << lb << " : " << i << j << k << l;
-    } else {
-      EXPECT_TRUE(abs(v) < 0.000001) <<
-	v << " : " <<
-	ib << jb << kb << lb << " : " <<
-	i << j << k << l;
-    }
-
-    if(eri02->Exist(ib, jb, kb, lb, i, j, k, l)) {
-      EXPECT_C_EQ(v, eri00->At(ib, jb, kb, lb, i, j, k, l)) <<
+      EXPECT_C_EQ(v, eri10->At(ib, jb, kb, lb, i, j, k, l)) <<
 	ib << jb << kb << lb << " : " << i << j << k << l;
     } else {
       EXPECT_TRUE(abs(v) < 0.000001) <<
@@ -533,7 +541,7 @@ TEST(SymGTOs, method_check) {
     }
 
     if(eri01->Exist(ib, jb, kb, lb, i, j, k, l)) {
-      EXPECT_C_EQ(v, eri00->At(ib, jb, kb, lb, i, j, k, l)) <<
+      EXPECT_C_EQ(v, eri01->At(ib, jb, kb, lb, i, j, k, l)) <<
 	ib << jb << kb << lb << " : " << i << j << k << l;
     } else {
       EXPECT_TRUE(abs(v) < 0.000001) <<
@@ -541,9 +549,8 @@ TEST(SymGTOs, method_check) {
 	ib << jb << kb << lb << " : " <<
 	i << j << k << l;
     }
-
     if(eri11->Exist(ib, jb, kb, lb, i, j, k, l)) {
-      EXPECT_C_EQ(v, eri00->At(ib, jb, kb, lb, i, j, k, l)) <<
+      EXPECT_C_EQ(v, eri11->At(ib, jb, kb, lb, i, j, k, l)) <<
 	ib << jb << kb << lb << " : " << i << j << k << l;
     } else {
       EXPECT_TRUE(abs(v) < 0.000001) <<

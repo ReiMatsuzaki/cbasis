@@ -81,7 +81,7 @@ namespace l2func {
     return lambda * cumsum;
   }
   
-  // ==== SymGTOs ====
+  // ==== R_coef ====
   void calc_R_coef_eri0(dcomplex zarg,
 		       dcomplex wPx,  dcomplex wPy,  dcomplex wPz,
 		       dcomplex wPpx, dcomplex wPpy, dcomplex wPpz,
@@ -101,69 +101,72 @@ namespace l2func {
 	}
 
   }
-  map<vector<int>, dcomplex> coef_R_memo;
+  MultArray<dcomplex, 4> coef_R_map_val(1000);
+  MultArray<bool,     4> coef_R_map_has(1000);
   dcomplex coef_R_with_memo(dcomplex zetaP,
-			   dcomplex wPx, dcomplex wPy, dcomplex wPz,
-			   dcomplex cx,  dcomplex cy,  dcomplex cz,
-			   int mx, int my, int mz, int j, dcomplex* Fjs) {
+			    dcomplex wPx, dcomplex wPy, dcomplex wPz,
+			    dcomplex cx,  dcomplex cy,  dcomplex cz,
+			    int mx, int my, int mz, int j, dcomplex* Fjs) {
     /* Compute function coef_R with memorize;     */
-    
-    vector<int> idx(4);
-    idx[0] = mx; idx[1] = my; idx[2] = mz; idx[3] = j;
 
-    map<vector<int>, dcomplex>::iterator find_it = coef_R_memo.find(idx);
-    if(find_it != coef_R_memo.end())
-      return find_it->second;
+    dcomplex& ref = coef_R_map_val(mx, my, mz, j);
+    bool& has = coef_R_map_has(mx, my, mz, j);
+    if(has) 
+      return ref;
 
     if(mx == 0 && my == 0 && mz == 0) {
-      coef_R_memo[idx] = pow(-2.0*zetaP, j) * Fjs[j];
+      ref = pow(-2.0*zetaP, j) * Fjs[j];
+      has = true;
+      return ref;
     }
     
     if(mx > 0) {
-      dcomplex res(0.0);
+      ref = 0.0;
       if(mx > 1) 
-	res += (mx-1.0) * coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					   mx-2, my, mz, j+1, Fjs);
-      res += (wPx-cx) * coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					 mx-1, my, mz, j+1, Fjs);
-      coef_R_memo[idx] = res;
+	ref += (mx-1.0) * coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
+					    mx-2, my, mz, j+1, Fjs);
+      ref += (wPx-cx) * coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
+					  mx-1, my, mz, j+1, Fjs);
+      has = true;
+      return ref;
     }
     if(my > 0) {
-      dcomplex res(0.0);
+      ref = 0.0;
       if(my > 1) 
-	res += (my-1.0) * coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					   mx, my-2, mz, j+1, Fjs);
-      res += (wPy-cy) *   coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					   mx, my-1, mz, j+1, Fjs);
-      coef_R_memo[idx] = res;
+	ref += (my-1.0) * coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
+					    mx, my-2, mz, j+1, Fjs);
+      ref += (wPy-cy) *   coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
+					    mx, my-1, mz, j+1, Fjs);
+      has = true;
+      return ref;
     }
     if(mz > 0) {
-      dcomplex res(0.0);
+      ref = 0.0;
       if(mz > 1) 
-	res += (mz-1.0) * coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					   mx, my, mz-2, j+1, Fjs);
-      res += (wPz-cz) *   coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					   mx, my, mz-1, j+1, Fjs);
-      coef_R_memo[idx] = res;
+	ref += (mz-1.0) * coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
+					    mx, my, mz-2, j+1, Fjs);
+      ref += (wPz-cz) *   coef_R_with_memo(zetaP, wPx, wPy, wPz, cx, cy, cz,
+					    mx, my, mz-1, j+1, Fjs);
+      has = true;
+      return ref;
     }
 
-    find_it = coef_R_memo.find(idx);
-    if(find_it == coef_R_memo.end()) {
-      std::string msg;
-      SUB_LOCATION(msg);
-      msg += " one of mx, my, mz is negative integer.";
-      throw std::runtime_error(msg);    
-      return 0.0;    
-    }
+    std::string msg;
+    SUB_LOCATION(msg);
+    msg += " one of mx, my, mz is negative integer.";
+    throw std::runtime_error(msg);    
+    return 0.0;    
 
-    return find_it->second;
-  }  
+  }
   void calc_R_coef_eri1(dcomplex zarg,
 			dcomplex wPx, dcomplex wPy, dcomplex wPz,
 			dcomplex wPpx,dcomplex wPpy,dcomplex wPpz,
 			int max_n, dcomplex *Fjs, dcomplex mult_coef, A3dc& res) {
 
-    coef_R_memo.erase(coef_R_memo.begin(), coef_R_memo.end());
+    coef_R_map_val.SetRange(0, max_n, 0, max_n, 0, max_n, 0, max_n);
+    coef_R_map_has.SetRange(0, max_n, 0, max_n, 0, max_n, 0, max_n);
+
+    coef_R_map_has.SetValue(false);
       
     for(int nx = 0; nx <= max_n; nx++)
       for(int ny = 0; ny <= max_n; ny++)
@@ -177,101 +180,26 @@ namespace l2func {
 	  }
 	}
   }
-  MultArray<dcomplex, 4> coef_R_map_val(1000);
-  MultArray<bool,     4> coef_R_map_has(1000);
-  dcomplex coef_R_with_memo2(dcomplex zetaP,
-			     dcomplex wPx, dcomplex wPy, dcomplex wPz,
-			     dcomplex cx,  dcomplex cy,  dcomplex cz,
-			     int mx, int my, int mz, int j, dcomplex* Fjs) {
-    /* Compute function coef_R with memorize;     */
-
-    dcomplex& ref = coef_R_map_val(mx, my, mz, j);
-    bool& has = coef_R_map_has(mx, my, mz, j);
-    if(has) 
-      return ref;
-
-    if(mx == 0 && my == 0 && mz == 0) {
-      ref = pow(-2.0*zetaP, j) * Fjs[j];
-      has = true;
-      cout << "True: " << coef_R_map_has(mx, my, mz, j) << endl;
-    }
-    
-    if(mx > 0) {
-      ref = 0.0;
-      if(mx > 1) 
-	ref += (mx-1.0) * coef_R_with_memo2(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					    mx-2, my, mz, j+1, Fjs);
-      ref += (wPx-cx) * coef_R_with_memo2(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					  mx-1, my, mz, j+1, Fjs);
-      has = true;
-    }
-    if(my > 0) {
-      ref = 0.0;
-      if(my > 1) 
-	ref += (my-1.0) * coef_R_with_memo2(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					    mx, my-2, mz, j+1, Fjs);
-      ref += (wPy-cy) *   coef_R_with_memo2(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					    mx, my-1, mz, j+1, Fjs);
-      has = true;
-    }
-    if(mz > 0) {
-      ref = 0.0;
-      if(mz > 1) 
-	ref += (mz-1.0) * coef_R_with_memo2(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					    mx, my, mz-2, j+1, Fjs);
-      ref += (wPz-cz) *   coef_R_with_memo2(zetaP, wPx, wPy, wPz, cx, cy, cz,
-					    mx, my, mz-1, j+1, Fjs);
-      has = true;
-    }
-
-    if(!has) {
-      std::string msg;
-      SUB_LOCATION(msg);
-      msg += " one of mx, my, mz is negative integer.";
-      throw std::runtime_error(msg);    
-      return 0.0;    
-    }
-
-    return ref;
-  }
-  void calc_R_coef_eri2(dcomplex zarg,
-			dcomplex wPx, dcomplex wPy, dcomplex wPz,
-			dcomplex wPpx,dcomplex wPpy,dcomplex wPpz,
-			int max_n, dcomplex *Fjs, dcomplex mult_coef, A3dc& res) {
-
-    coef_R_memo.erase(coef_R_memo.begin(), coef_R_memo.end());
-      
-    for(int nx = 0; nx <= max_n; nx++)
-      for(int ny = 0; ny <= max_n; ny++)
-	for(int nz = 0; nz <= max_n; nz++) {
-	  if(nx + ny + nz <= max_n) {
-	    dcomplex v = coef_R_with_memo2(zarg,
-					  wPx, wPy, wPz,
-					  wPpx, wPpy, wPpz,
-					  nx, ny, nz, 0, Fjs);
-	    res(nx, ny, nz) = mult_coef * v;
-	  }
-	}
-  }
   void coef_R_eri_switch(dcomplex zarg,
 			 dcomplex wPx, dcomplex wPy, dcomplex wPz,
 			 dcomplex wPpx,dcomplex wPpy,dcomplex wPpz,
 			 int max_n, dcomplex *Fjs, dcomplex mult_coef, A3dc& res,
 			 ERIMethod method) {
 
+    res.SetRange(0, max_n, 0, max_n, 0, max_n);
+
+
     if(method.coef_R_memo == 0) {
       calc_R_coef_eri0(zarg, wPx, wPy, wPz,
 		       wPpx, wPpy, wPpz, max_n, Fjs, mult_coef, res);
-    } else if(method.coef_R_memo == 1) {
+    } else { 
       calc_R_coef_eri1(zarg, wPx, wPy, wPz,
-		  wPpx, wPpy, wPpz, max_n, Fjs, mult_coef, res);
-    } else {
-      calc_R_coef_eri2(zarg, wPx, wPy, wPz,
 		       wPpx, wPpy, wPpz, max_n, Fjs, mult_coef, res);
     }
 
   }
 
+  // ==== SymGTOs ====
   bool ExistNon0(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub) {
     pSymmetryGroup sym = isub->sym_group;
     bool non0(false);
@@ -875,13 +803,12 @@ namespace l2func {
 
   // ==== Interface ====
   void CalcERI_Complex(SymGTOs& i, IB2EInt* eri, ERIMethod method) {
+    SymGTOs_CalcERI(i, i, i, i, eri, method);
+  }
+  void CalcERI_Hermite(SymGTOs& i, IB2EInt* eri, ERIMethod method) {
     SymGTOs j(i.sym_group);
     j.SetComplexConj(i);
     SymGTOs_CalcERI(j, i, j, i, eri, method);
-    
-  }
-  void CalcERI_Hermite(SymGTOs& i, IB2EInt* eri, ERIMethod method) {
-    SymGTOs_CalcERI(i, i, i, i, eri, method);
   }
   void SymGTOs_CalcERI(SymGTOs& gi, SymGTOs& gj, SymGTOs& gk, SymGTOs& gl,
 		       IB2EInt* eri, ERIMethod method) {
@@ -907,5 +834,10 @@ namespace l2func {
       throw runtime_error(msg);
     }
   }
+
+
+
+  // =====  Transform ERI ====
+  
   
 }

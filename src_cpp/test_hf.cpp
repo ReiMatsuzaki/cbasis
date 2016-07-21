@@ -7,12 +7,15 @@
 #include <Eigen/Core>
 #include "gtest_plus.hpp"
 
+#include "one_int.hpp"
 #include "two_int.hpp"
 #include "symmolint.hpp"
 #include "b2eint.hpp"
 #include "symgroup.hpp"
 #include "eigen_plus.hpp"
 #include "mo.hpp"
+#include "timer.hpp"
+#include "trans_eri.hpp"
 
 using namespace std;
 using namespace l2func;
@@ -68,21 +71,22 @@ TEST(Matrix, JK) {
   IB2EInt *eri_h = new B2EIntMem();
   IB2EInt *eri_full = new B2EIntMem();
   
-  gtos.CalcERI(eri, 1);
+  ERIMethod method; method.symmetry = 1;
+  gtos.CalcERI(eri, method);
   JK[i00] = MatrixXcd::Zero(2, 2); JK[i11] = MatrixXcd::Zero(2, 2);
-  AddJK(eri, C, 0, 0, 1.0, 1.0, JK);
+  AddJK(eri, C, 0, 0, 1.1, 1.2, JK);
   
-  gtos_cc.CalcERI(eri_cc, 1);
+  gtos_cc.CalcERI(eri_cc, method);
   JK_cc[i00] = MatrixXcd::Zero(2, 2); JK_cc[i11] = MatrixXcd::Zero(2, 2);
-  AddJK(eri_cc, C, 0, 0, 1.0, 1.0, JK_cc);
+  AddJK(eri_cc, C, 0, 0, 1.1, 1.2, JK_cc);
 
-  SymGTOs_CalcERI(gtos_cc, gtos, gtos_cc, gtos, eri_h);
+  SymGTOs_CalcERI(gtos_cc, gtos, gtos_cc, gtos, eri_h, method);
   JK_h[i00] = MatrixXcd::Zero(2, 2); JK_h[i11] = MatrixXcd::Zero(2, 2);
-  AddJK(eri_h, C, 0, 0, 1.0, 1.0, JK_h);
+  AddJK(eri_h,    C, 0, 0, 1.1, 1.2, JK_h);
   
-  gtos_full.CalcERI(eri_full, 1);
+  gtos_full.CalcERI(eri_full, method);
   JK_full[i00] = MatrixXcd::Zero(4, 4); JK_full[i11] = MatrixXcd::Zero(4, 4);
-  AddJK(eri_full, C, 0, 0, 1.0, 1.0, JK_full);
+  AddJK(eri_full, C, 0, 0, 1.1, 1.2, JK_full);
 
   // Check values
   EXPECT_C_EQ(JK[i11](0, 0), JK_full[i11](0, 0));
@@ -94,18 +98,104 @@ TEST(Matrix, JK) {
   EXPECT_C_EQ(JK_h[i11](0, 1), JK_full[i11](2, 1));
   EXPECT_C_EQ(JK_h[i11](1, 0), JK_full[i11](3, 0));
   EXPECT_C_EQ(JK_h[i11](1, 1), JK_full[i11](3, 1));
-  
-  cout << "normal" << endl;
-  cout << JK[i11] << endl;
-  cout << "CC" << endl;
-  cout << JK_cc[i11] << endl;
-  cout << "H" << endl;
-  cout << JK_h[i11] << endl;
-  cout << "Full" << endl;
-  cout << JK_full[i11] << endl;
 
   delete eri; delete eri_cc; delete eri_full;
   
+}
+TEST(Matrix, JK2) {
+
+  // set symmetry
+  pSymmetryGroup sym = SymmetryGroup::Cs();
+  
+  // GTO
+  SymGTOs gtos(sym);
+
+  VectorXcd zeta1(2); zeta1 << 0.4, 1.0;
+  SubSymGTOs sub_s(Sub_mono(sym, 0, Vector3cd(0, 0, 0), Vector3i(0, 0, 0), zeta1));
+  gtos.AddSub(     sub_s);
+
+  VectorXcd zeta2(2); zeta2 << dcomplex(1.0, 0.4), dcomplex(0.4, 0.1);
+  SubSymGTOs sub_z(Sub_mono(sym, 1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1), zeta2));
+  gtos.AddSub(   sub_z);
+
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 2.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();  
+
+  BMatSet mat;
+  CalcMatrix_Complex(gtos, false, &mat);
+
+  IB2EInt *eri = new B2EIntMem();
+  ERIMethod m; m.set_symmetry(1);
+  CalcERI_Complex(gtos, eri, m);
+  
+  BMat H_slow = mat.GetBlockMatrix("t");
+  BMat H_fast = mat.GetBlockMatrix("t");
+
+  BMat C;
+  MatrixXcd c00(2, 2); c00 << 1.1, 1.2, 1.3, 1.4;
+  MatrixXcd c11(2, 2); c11 << 2.1, 2.2, 2.3, 2.4;
+  C[make_pair(0, 0)] = c00;
+  C[make_pair(1, 1)] = c11;
+
+  AddJK(     eri, C, 0, 0, 1.1, 1.2, H_fast);
+  AddJK_Slow(eri, C, 0, 0, 1.1, 1.2, H_slow);
+
+  pair<Irrep, Irrep> ii(0, 0);
+  pair<Irrep, Irrep> jj(1, 1);
+  EXPECT_MATXCD_EQ(H_slow[ii], H_fast[ii]);
+  EXPECT_MATXCD_EQ(H_slow[jj], H_fast[jj]);
+  
+}
+TEST(Trans, Slow) {
+
+  cout << "Trans test is comment out now" << endl;
+
+  /*
+  IB2EInt *eri_ao = new B2EIntMem();
+  IB2EInt *eri_mo = new B2EIntMem();
+  
+  cout << 0 << endl;
+
+  MO mo(new _MO());
+  MatrixXcd C1(1, 1); C1 << 1.2;
+  MatrixXcd C2(2, 2); C1 << 2.0, 2.1, 2.2, 2.3;
+  mo->C[make_pair(0, 0)] = C1;
+  mo->C[make_pair(1, 1)] = C2;
+
+  // set symmetry
+  pSymmetryGroup sym = SymmetryGroup::D2h();
+
+  // sub set (S orbital)
+  SubSymGTOs sub_s(sym);
+  sub_s.AddXyz(Vector3cd(0, 0, 0));
+  sub_s.AddNs(Vector3i(0, 0, 0));
+  VectorXcd zeta_s(1);
+  zeta_s << 0.107951;
+  sub_s.AddZeta(zeta_s);
+  sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
+  sub_s.SetUp();
+
+  // GTO set
+  SymGTOs gtos(sym);
+  gtos.AddSub(sub_s);
+  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 2.0;
+  gtos.SetAtoms(xyzq);
+  gtos.SetUp();
+
+  cout << 1 << endl;
+  CalcERI_Complex(gtos, eri_ao, ERIMethod());
+  cout << 2 << endl;
+  TransformERI_Slow(eri_ao, mo, eri_mo);
+  cout << 3 << endl;
+  BMat jk_mo;
+  CalcJK_MO(eri_ao, mo->C, 0, 0, 0, 0, 1.0, 0.0, &jk_mo);
+  
+  pair<Irrep, Irrep> II(0, 0);
+  EXPECT_C_EQ(jk_mo[II](0, 0),
+	      eri_mo->At(0, 0, 0, 0, 0, 0, 0, 0));
+  */
+
 }
 TEST(HF, first) {
 
@@ -363,7 +453,8 @@ TEST(HF, H2) {
   double eps(pow(10.0, -5.0));
   int num(gtos.size_basis());
   BMatSet mat_set; gtos.CalcMat(&mat_set);
-  IB2EInt *eri = new B2EIntMem(pow(num, 4)); gtos.CalcERI(eri, 1);
+  ERIMethod method; method.symmetry = 1;
+  IB2EInt *eri = new B2EIntMem(pow(num, 4)); gtos.CalcERI(eri, method);
 
   MO mo = CalcRHF(sym, mat_set, eri, 2, 50, eps, &conv, 0);
   EXPECT_TRUE(conv);
@@ -672,7 +763,8 @@ TEST(STEX, small) {
   // compute basic matrix
   BMatSet mat_set; gtos.CalcMat(&mat_set);
   IB2EInt *eri = new B2EIntMem();
-  gtos.CalcERI(eri, 1);
+  ERIMethod method; method.symmetry = 1;
+  gtos.CalcERI(eri, method);
   
   // RHF
   MO mo = CalcOneEle(sym, mat_set, 0);
@@ -752,8 +844,9 @@ TEST(STEX, He) {
   // compute basic matrix
   BMatSet mat_set;  
   IB2EInt *eri;
+  ERIMethod method; method.symmetry = 1;
   gtos.CalcMat(&mat_set);
-
+  
   string fn("eri_hf.bin");
   FILE *fp;  
   fp = fopen(fn.c_str(), "r");
@@ -761,7 +854,7 @@ TEST(STEX, He) {
     // If ERI file is not exist:
     cout << "calculate ERI" << endl;
     eri = new B2EIntMem(pow(gtos.size_basis(), 4));
-    gtos.CalcERI(eri, 1);
+    gtos.CalcERI(eri, method);
     eri->Write(fn);
   } else {
     // If ERI file is exist:
@@ -853,7 +946,8 @@ TEST(STEX, He_one_gto) {
   // compute basic matrix
    BMatSet mat_set; gtos.CalcMat(&mat_set);
   IB2EInt *eri = new B2EIntMem();
-  gtos.CalcERI(eri, 1);
+  ERIMethod method; method.symmetry = 1;
+  gtos.CalcERI(eri, method);
 
   // RHF
   bool conv;
@@ -898,11 +992,11 @@ TEST(STEX, He_one_gto) {
   delete eri;
 	   
 }
-TEST(STEX, H2) {
+SymGTOs* CreateGTOs_H2() {
 
   double R0 = 1.4;
   pSymmetryGroup sym = SymmetryGroup::D2h();
-  SymGTOs gtos(sym);
+  SymGTOs *gtos = new SymGTOs(sym);
 
   SubSymGTOs sub_s(sym);
   sub_s.AddXyz(Vector3cd(0, 0,+R0/2.0));
@@ -915,7 +1009,7 @@ TEST(STEX, H2) {
   MatrixXcd c(2, 1); c << 1, 1;
   sub_s.AddRds(Reduction(sym->irrep_s, c));
   sub_s.SetUp(); 
-  gtos.AddSub(sub_s); 
+  gtos->AddSub(sub_s); 
 
   SubSymGTOs sub_p(sym);
   sub_p.AddXyz(Vector3cd(0, 0, +R0/2.0));
@@ -926,16 +1020,14 @@ TEST(STEX, H2) {
   MatrixXcd cp(2, 1); cp << 1, -1;
   sub_p.AddRds(Reduction(sym->irrep_s, cp));
   sub_p.SetUp();
-  gtos.AddSub(sub_p);
+  gtos->AddSub(sub_p);
 
-  /*
   SubSymGTOs sub_p_cen(sym);
   sub_p_cen.AddXyz(Vector3cd(0, 0, 0));
   sub_p_cen.AddNs( Vector3i( 1, 0, 0));
   sub_p_cen.AddNs( Vector3i( 0, 1, 0));
   sub_p_cen.AddNs( Vector3i( 0, 0, 1));
-  int num_zeta_cen(19);
-  VectorXcd zeta_cen(num_zeta_cen);
+  VectorXcd zeta_cen(19);
   zeta_cen << 
     dcomplex(0.00256226, -0.01559939),
     dcomplex(0.00389597, -0.02240632),
@@ -964,30 +1056,49 @@ TEST(STEX, H2) {
   sub_p_cen.AddRds(Reduction(sym->irrep_y, cy));
   sub_p_cen.AddRds(Reduction(sym->irrep_z, cz));
   sub_p_cen.SetUp();
-  gtos.AddSub(sub_p_cen);
-  */
+  gtos->AddSub(sub_p_cen);
 
   MatrixXcd xyzq(4, 2); xyzq <<
 			  0.0,      0.0,
 			  0.0,      0.0,
 			  +R0/2.0, -R0/2.0,
 			  1.0,      1.0;
-  gtos.SetAtoms(xyzq);
-  gtos.SetUp();
+  gtos->SetAtoms(xyzq);
+  gtos->SetUp();
+
+  return gtos;
+
+}
+TEST(STEX, H2) {
+
+  Timer timer;
+
+  SymGTOs *gtos = CreateGTOs_H2();
+  double R0 = 1.4;
 
   bool conv;
   double eps(pow(10.0, -5.0));
-  int num(gtos.size_basis());
-  BMatSet mat_set; gtos.CalcMat(&mat_set);
-  IB2EInt *eri = new B2EIntMem(pow(num, 4)); gtos.CalcERI(eri, 1);
+  BMatSet mat_set; gtos->CalcMat(&mat_set);
+  ERIMethod method; method.symmetry = 1;
+  IB2EInt *eri = new B2EIntMem();
 
-  MO mo = CalcRHF(sym, mat_set, eri, 2, 50, eps, &conv, 0);
+  timer.Start("ERI");
+  gtos->CalcERI(eri, method);
+  timer.End("ERI");
+
+  pSymmetryGroup sym = gtos->sym_group;
+  MO mo;
+  timer.Start("HF");
+  mo = CalcRHF(sym, mat_set, eri, 2, 50, eps, &conv, 0);
+  timer.End("HF");
+
   EXPECT_TRUE(conv);
   EXPECT_C_NEAR(mo->energy + 1.0/R0, -1.11881323240, 0.00001);
   EXPECT_C_NEAR(mo->eigs[0](0), -0.59012, 0.00004);
   EXPECT_C_NEAR(mo->eigs[0](1), +0.02339, 0.00004);
 
   // Build Static exchange Hamiltonian
+  timer.Start("STEX");
   BMat hmat;
   CalcSEHamiltonian(mo, eri, 0, 0, &hmat);
   
@@ -999,7 +1110,10 @@ TEST(STEX, H2) {
   dcomplex alpha_x = CalcAlpha(mo, mat_set, 0, 0, hmat, w, CoordX, 0);
   dcomplex alpha_y = CalcAlpha(mo, mat_set, 0, 0, hmat, w, CoordY, 0);
   dcomplex alpha_z = CalcAlpha(mo, mat_set, 0, 0, hmat, w, CoordZ, 0);
-  cout << PITotalCrossSection(alpha_x + alpha_y + alpha_z, w, 2) << endl;
+  cout << PITotalCrossSection(alpha_x + alpha_y + alpha_z, w, 2)/3.0 << endl;
+  timer.End("STEX");
+  
+  timer.Display();
   delete eri;
   
 }

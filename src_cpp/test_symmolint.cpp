@@ -9,6 +9,7 @@
 #include "two_int.hpp"
 #include "symmolint.hpp"
 
+
 using namespace std;
 using namespace l2func;
 using namespace Eigen;
@@ -307,7 +308,8 @@ void test_SymGTOsTwoInt(CartGTO a, CartGTO b, CartGTO c, CartGTO d) {
 
   IB2EInt *eri;
   eri = new B2EIntMem(100);
-  gtos.CalcERI(eri);
+  ERIMethod m; m.symmetry = 1;
+  gtos.CalcERI(eri, m);
 
   dcomplex eri_sym  = eri->At(0, 0, 0, 0, 0, 1, 2, 3) * c_sym;  
 
@@ -816,7 +818,8 @@ TEST(CompareCColumbus, small_he) {
   // compute basic matrix
   BMatSet mat_set; gtos.CalcMat(&mat_set);
   IB2EInt *eri = new B2EIntMem();
-  gtos.CalcERI(eri, 1);
+  ERIMethod m; m.symmetry = 1;
+  gtos.CalcERI(eri, m);
   
   const MatrixXcd& S00 = mat_set.GetMatrix("s", 0, 0);
   EXPECT_C_EQ(dcomplex(1.00000000000000,0.000000000000000), S00(0, 0));
@@ -924,9 +927,11 @@ TEST(CompareCColumbus, small_h2_2) {
   gtos.SetAtoms(xyzq);
   gtos.SetUp();
 
-  BMatSet mat_set; gtos.CalcMat(&mat_set);
+  //  BMatSet mat_set; gtos.CalcMat(&mat_set);
+  BMatSet mat_set; CalcMatrix_Complex(gtos, true, &mat_set);
   IB2EInt *eri = new B2EIntMem();
-  gtos.CalcERI(eri, 1);
+  ERIMethod m; m.symmetry = 1;
+  gtos.CalcERI(eri, m);
   
   const MatrixXcd& S00 = mat_set.GetMatrix("s", 0, 0);
   //  const MatrixXcd& S11 = mat_set.GetMatrix("s", 1, 1);

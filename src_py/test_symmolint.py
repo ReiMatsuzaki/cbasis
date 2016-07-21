@@ -143,7 +143,7 @@ class Test_H_atom(unittest.TestCase):
                           .rds(Reduction(App, [[0, 1]]))
                           .zeta([2.0**n for n in range(-10, 10)]))
                      .atom(xatom, 1.0))
-        mat = self.gtos.calc_mat()
+        mat = calc_matrix_complex(self.gtos, True)
         
         s = mat["s", Ap, Ap]
         t = mat["t", Ap, Ap]
@@ -308,31 +308,37 @@ class Test_H_photoionization(unittest.TestCase):
 
 
 class Test_He(unittest.TestCase):
-    def test_ERI(self):
-        print ""
-        print "Test He"
+    def setUp(self):
         xatom = (0, 0, 0)
-        sym = Cs()
+        self.sym = Cs()
+        sym = self.sym
         Ap = sym.get_irrep("A'")
         App= sym.get_irrep("A''")
         zeta0 = [0.107951, 0.240920, 0.552610, 1.352436, 3.522261, 9.789053, 30.17990, 108.7723, 488.8941, 3293.694]
         zeta1 = zeta0
 
-        gtos = (SymGTOs(sym)
-                .sub(SubSymGTOs(sym)
-                     .xyz(xatom)
-                     .ns((0, 0, 0))
-                     .rds(Reduction(Ap,  [[1]]))
-                     .zeta(zeta0))
-                .sub(SubSymGTOs(sym)
-                     .xyz(xatom)
-                     .ns((0, 0, 1))
-                     .rds(Reduction(App, [[1]]))
-                     .zeta(zeta1))
-                .atom(xatom, 2.0)
-                .setup())
-        mat_set = gtos.calc_mat()
-        eri = gtos.calc_eri(1)
+        self.gtos = (SymGTOs(sym)
+                     .sub(SubSymGTOs(sym)
+                          .xyz(xatom)
+                          .ns((0, 0, 0))
+                          .rds(Reduction(Ap,  [[1]]))
+                          .zeta(zeta0))
+                     .sub(SubSymGTOs(sym)
+                          .xyz(xatom)
+                          .ns((0, 0, 1))
+                          .rds(Reduction(App, [[1]]))
+                          .zeta(zeta1))
+                     .atom(xatom, 2.0)
+                     .setup())
+        
+    def test_ERI(self):
+        print ""
+        print "Test He"
+        gtos = self.gtos
+        sym = self.sym
+        mat_set = calc_matrix_complex(gtos, True)
+        eri = calc_ERI_complex(gtos, ERI_method().use_symmetry(1))
+
         w = 1.0
         mo = calc_RHF(sym, mat_set, eri, 2, 20, 0.00001,  0)
         self.assertAlmostEqual(-2.8617, mo.energy, 4)
@@ -340,15 +346,31 @@ class Test_He(unittest.TestCase):
         # alpha = calc_alpha(mo, mat_set, 0, 0, h_se, w)
         # cs = pi_total_crosssection(alpha, w, 2)
 
+        self.assertEqual([1, 0], mo.num_occ())
+        self.assertAlmostEqual(-0.91795, mo.eigs[0][0], 4)
+        print mo.eigs[0]
+
         eri.write("eri.bin")
         eri2 = B2EIntMem()
         eri2.read("eri.bin")
-        print mo.H[0, 0]
-        print mo.num_occ()
-        print mo.eigs[0]
+
+        # ==== check for JK ====
+        jk = calc_JK(eri, mo.C, 0, 0, 1.0, 1.0)
+        h0 = calc_SEHamiltonian(mo, eri, 0, 0)[1, 1]
+        h1 = (mat_set.get_matrix("t", 1, 1) +
+              mat_set.get_matrix("v", 1, 1) +
+              jk[1, 1])
         
-        gtos_c = SymGTOs(sym)
-        gtos_c.set_cc(gtos)
+
+class Test_Angmoment(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_cg_coef(self):
+        print "cg coef:"
+        print cg_coef(1, 1, 0,
+                      0, 0, 0)
+
         
 if __name__ == '__main__':
     unittest.main()
