@@ -77,18 +77,23 @@ namespace l2func {
   }
 
   // ==== BlockMatrixSets ====
-  BMatSet::BMatSet(): block_num_(1) {}
-  BMatSet::BMatSet(int _block_num): block_num_(_block_num) {}
-  void BMatSet::SetMatrix(string name, int i, int j, MatrixXcd& mat) {
+  _BMatSet::_BMatSet(): block_num_(1) {}
+  _BMatSet::_BMatSet(int _block_num): block_num_(_block_num) {}
+  void _BMatSet::SetMatrix(string name, int i, int j, MatrixXcd& mat) {
 #ifndef ARG_NO_CHECK
 #endif
 
     MatrixXcd tmp;
     mat_map_[name][make_pair(i, j)] = tmp;
     mat_map_[name][make_pair(i, j)].swap(mat);
+    
+    if(block_num_ <= i)
+      block_num_ = i+1;
+    if(block_num_ <= j)
+      block_num_ = j+1;    
 
   }
-  bool BMatSet::Exist(string name, int i, int j) {
+  bool _BMatSet::Exist(string name, int i, int j) {
 
     if(i < 0 || block_num_ <= i ||
        j < 0 || block_num_ <= j) {
@@ -114,13 +119,25 @@ namespace l2func {
     
     return true;
   }
-  const MatrixXcd& BMatSet::GetMatrix(string name, int i, int j) {
+  const MatrixXcd& _BMatSet::GetMatrix(string name, int i, int j) {
+#ifndef ARG_NO_CHECK
+    if(mat_map_.find(name) == mat_map_.end()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": failed to find index.";
+      throw runtime_error(msg);
+    }
+    if(mat_map_[name].find(make_pair(i, j)) == mat_map_[name].end()) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": failed to find index.";
+      throw runtime_error(msg);
+    }
+#endif
     return mat_map_[name][make_pair(i, j)];
   }
-  const BMat& BMatSet::GetBlockMatrix(std::string name) {
+  const BMat& _BMatSet::GetBlockMatrix(std::string name) {
     return mat_map_[name];
   }
-  void BMatSet::SelfAdd(string name, int i, int j, int a, int b, dcomplex v) {
+  void _BMatSet::SelfAdd(string name, int i, int j, int a, int b, dcomplex v) {
 
 #ifndef ARG_NO_CHECK
     if(i < 0 || block_num_ <= i ||
@@ -146,7 +163,7 @@ namespace l2func {
 
     mat_map_[name][make_pair(i, j)](a, b) += v;
   }
-  dcomplex BMatSet::GetValue(string name, int i, int j, int a, int b) {
+  dcomplex _BMatSet::GetValue(string name, int i, int j, int a, int b) {
 
 #ifndef ARG_NO_CHECK
     if(mat_map_.find(name) == mat_map_.end()) {
@@ -176,7 +193,7 @@ namespace l2func {
 
     return mat_map_[name][make_pair(i, j)](a, b);
   } 
-  void BMatSet::swap(BMatSet& o) {
+  void _BMatSet::swap(_BMatSet& o) {
     
     typedef BMatMap::iterator It;
     BMatMap tmp_o;
@@ -203,7 +220,7 @@ namespace l2func {
     this->block_num_ = tmp;
 
   }
-  string BMatSet::str() const {
+  string _BMatSet::str() const {
     ostringstream oss;
     for(BMatMap::const_iterator it = mat_map_.begin(); it != mat_map_.end(); ++it) {
       oss << it->first << endl;
@@ -238,9 +255,6 @@ namespace l2func {
       b[it_tmp->first].swap(it_tmp->second);
       it_tmp++;
     }
-  }
-  void swap(BMatSet& a, BMatSet& b) {
-    a.swap(b);
   }
 
 }

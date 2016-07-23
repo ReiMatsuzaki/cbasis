@@ -3,6 +3,7 @@
 
 #include <map>
 #include <Eigen/Core>
+#include <boost/shared_ptr.hpp>
 #include "typedef.hpp"
 
 /**
@@ -19,13 +20,13 @@ namespace l2func {
   void BMatRead(BMat& bmat, std::string fn);
   void BMatWrite(BMat& bmat, std::string fn);
 
-  class BMatSet {
+  class _BMatSet {
   private:
     int     block_num_;
     BMatMap mat_map_;
   public:
-    BMatSet();
-    BMatSet(int _block_num);
+    _BMatSet();
+    _BMatSet(int _block_num);
     int block_num() const { return block_num_; }
     void SetMatrix(std::string name, int i, int j, Eigen::MatrixXcd& a);
     bool Exist(std::string, int i, int j);
@@ -33,13 +34,13 @@ namespace l2func {
     const BMat& GetBlockMatrix(std::string name);
     void SelfAdd(std::string name, int ib, int jb, int i, int j, dcomplex v);
     dcomplex GetValue(std::string name, int ib, int jb, int i, int j);
-    void swap(BMatSet& o);
+    void swap(_BMatSet& o);
     std::string str() const;
-
   };
-  
+
+  typedef boost::shared_ptr<_BMatSet> BMatSet;
+
   void swap(BMat& a, BMat& b);
-  void swap(BMatSet& a, BMatSet& b);  
 }
 
 #endif

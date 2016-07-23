@@ -1,6 +1,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include "mo.hpp"
+#include "one_int.hpp"
+#include "two_int.hpp"
 #include "eigen_plus.hpp"
 
 using namespace Eigen;
@@ -52,17 +54,17 @@ namespace l2func {
     }
     return res;
   }
-  vector<Irrep> CalcIrrepList(BMatSet& mat_set) {
+  vector<Irrep> CalcIrrepList(BMatSet mat_set) {
     vector<Irrep> irrep_list;
-    int num_block(mat_set.block_num());
+    int num_block(mat_set->block_num());
     for(Irrep irrep = 0; irrep < num_block; irrep++) {
-      if(mat_set.Exist("t", irrep, irrep)) {
+      if(mat_set->Exist("t", irrep, irrep)) {
 	irrep_list.push_back(irrep);
       }
     }    
     return irrep_list;
   }
-  MO CalcOneEle(pSymmetryGroup sym, BMatSet& mat_set, int) {
+  MO CalcOneEle(pSymmetryGroup sym, BMatSet mat_set, int) {
 
     MO mo(new _MO);
 
@@ -73,9 +75,9 @@ namespace l2func {
 	it != end; ++it) {
       Irrep irrep(*it);
       pair<Irrep, Irrep> ii(irrep, irrep);
-      mo->H[ii] = (mat_set.GetMatrix("t", irrep, irrep) +
-		   mat_set.GetMatrix("v", irrep, irrep));
-      mo->S[ii] = mat_set.GetMatrix("s", irrep, irrep);
+      mo->H[ii] = (mat_set->GetMatrix("t", irrep, irrep) +
+		   mat_set->GetMatrix("v", irrep, irrep));
+      mo->S[ii] = mat_set->GetMatrix("s", irrep, irrep);
       mo->C[ii] = MatrixXcd::Zero(1, 1);
       mo->eigs[irrep] = VectorXcd::Zero(1);
       generalizedComplexEigenSolve(mo->H[ii], mo->S[ii], &mo->C[ii],
@@ -92,7 +94,7 @@ namespace l2func {
     }
     return mo;
   }
-  void AddJK(IB2EInt* eri, BMat& C, int I0, int i0,
+  void AddJK(B2EInt eri, BMat& C, int I0, int i0,
 	     dcomplex coef_J, dcomplex coef_K, BMat& H) {
 
     /*
@@ -119,7 +121,7 @@ namespace l2func {
       }
     }      
   }
-  void AddJK_Slow(IB2EInt* eri, BMat& C, int I0, int i0,
+  void AddJK_Slow(B2EInt eri, BMat& C, int I0, int i0,
 		  dcomplex coef_J, dcomplex coef_K, BMat& H) {
 
     VectorXcd c0 = C[make_pair(I0, I0)].col(i0);
@@ -149,21 +151,18 @@ namespace l2func {
       }
     }
   }
-  MO CalcRHF(SymGTOs& gtos, int nele, int max_iter, double eps,
-	     bool *is_conv, int debug_lvl) {
-    int num_basis(gtos.size_basis());
+  MO CalcRHF(SymGTOs gtos, int nele, int max_iter, double eps, bool *is_conv,
+	     int debug_lvl) {
+
     ERIMethod method; method.symmetry = 1;
-    BMatSet mat_set; 
-    IB2EInt *eri = new B2EIntMem(pow(num_basis, 4));
+    BMatSet mat_set = CalcMat_Complex(gtos, true);
+    B2EInt eri      = CalcERI_Complex(gtos, method);
 
-    gtos.CalcMat(&mat_set);
-    gtos.CalcERI(eri, method);
-
-    return CalcRHF(gtos.sym_group, mat_set, eri, nele, max_iter,
+    return CalcRHF(gtos->sym_group, mat_set, eri, nele, max_iter,
 		   eps, is_conv, debug_lvl);
 
   }
-  MO CalcRHF(pSymmetryGroup sym, BMatSet& mat_set, IB2EInt* eri,
+  MO CalcRHF(pSymmetryGroup sym, BMatSet mat_set, B2EInt eri,
 	     int nele, int max_iter, double eps, bool *is_conv, int debug_lvl) {
     
     if(nele == 1) {
@@ -191,9 +190,9 @@ namespace l2func {
     for(It it = mo->irrep_list.begin(); it != mo->irrep_list.end(); ++it ) {
       Irrep irrep = *it;      
       pair<Irrep, Irrep> ii(irrep, irrep);
-      mo->H[ii] = (mat_set.GetMatrix("t", irrep, irrep) +
-		   mat_set.GetMatrix("v", irrep, irrep));
-      mo->S[ii] = mat_set.GetMatrix("s", irrep, irrep);
+      mo->H[ii] = (mat_set->GetMatrix("t", irrep, irrep) +
+		   mat_set->GetMatrix("v", irrep, irrep));
+      mo->S[ii] = mat_set->GetMatrix("s", irrep, irrep);
       mo->F[ii] = mo->H[ii];
       int n(mo->H[ii].rows());
       num_irrep[irrep] = n;
@@ -296,7 +295,7 @@ namespace l2func {
     }
     return mo;
   }
-  void CalcSEHamiltonian(MO mo, IB2EInt* eri, Irrep I0, int i0, BMat* h_stex, int method) {
+  void CalcSEHamiltonian(MO mo, B2EInt eri, Irrep I0, int i0, BMat* h_stex, int method) {
 
     typedef vector<Irrep>::iterator It;
     BMat res;
@@ -404,7 +403,7 @@ namespace l2func {
     // swap
     h_stex->swap(res);
   }
-  dcomplex CalcAlpha(MO mo, BMatSet& mat_set, Irrep I0, int i0, BMat& h_stex,
+  dcomplex CalcAlpha(MO mo, BMatSet mat_set, Irrep I0, int i0, BMat& h_stex,
 		     double w, Coord coord, int method) {
 
     typedef vector<Irrep>::const_iterator It;
@@ -435,11 +434,11 @@ namespace l2func {
     It end= mo->irrep_list.end();
     for(it = mo->irrep_list.begin(); it != end; ++it) {      
       Irrep irrep = *it;
-      if(mat_set.Exist(mat_name, irrep, I0)) {
+      if(mat_set->Exist(mat_name, irrep, I0)) {
 	pair<Irrep, Irrep> ii(irrep, irrep);
-	const MatrixXcd& S = mat_set.GetMatrix("s", irrep, irrep);
+	const MatrixXcd& S = mat_set->GetMatrix("s", irrep, irrep);
 	const MatrixXcd& H = h_stex[ii];
-	const MatrixXcd& Z = mat_set.GetMatrix(mat_name, irrep, I0);
+	const MatrixXcd& Z = mat_set->GetMatrix(mat_name, irrep, I0);
 	
 	MatrixXcd L = S * ene - H;
 	VectorXcd m = Z * mo->C[make_pair(I0, I0)].col(i0);

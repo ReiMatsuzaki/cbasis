@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <Eigen/Core>
+#include <boost/shared_ptr.hpp>
 #include "typedef.hpp"
 #include "bmatset.hpp"
 #include "symgroup.hpp"
@@ -121,7 +122,9 @@ namespace l2func {
 		      Eigen::Vector3cd xyz, Eigen::Vector3i ns, Eigen::VectorXcd zs);
 
   // ==== SymGTOs ====
-  class SymGTOs {
+  class _SymGTOs;
+  typedef boost::shared_ptr<_SymGTOs> SymGTOs;
+  class _SymGTOs {
   public:
     pSymmetryGroup sym_group;
     std::vector<SubSymGTOs> subs;
@@ -129,7 +132,8 @@ namespace l2func {
     bool setupq;
   public:
     // ---- Constructors ----
-    SymGTOs(pSymmetryGroup _sym_group);
+    _SymGTOs();
+    //_SymGTOs(pSymmetryGroup _sym_group);
 
     // ---- Accessors ----    
     int size_atom() const;
@@ -143,10 +147,14 @@ namespace l2func {
     int max_num_prim() const;
 
     // ---- Add information ----
+    void SetSym(pSymmetryGroup sym);
     void SetAtoms(Eigen::MatrixXcd _xyzq_iat);
     void AddAtom(Eigen::Vector3cd _xyz, dcomplex q);
     void AddSub(SubSymGTOs);
-    void SetComplexConj(SymGTOs&);
+    
+    // ---- Other basis ----
+    SymGTOs Clone() const;
+    SymGTOs ComplexConj() const;
 
     // ---- SetUp ----
     void SetUp();
@@ -160,10 +168,6 @@ namespace l2func {
     void loop();
     // -- not uesd now --
     int max_n() const;
-    // -- matrix calculation --
-    void CalcMatOther(SymGTOs& o, bool calc_coulomb, BMatSet*);
-    void CalcMat(BMatSet* res);
-    void CalcERI(IB2EInt* eri, ERIMethod method);
     // -- Radial wave function --
     void AtR_Ylm(int L, int M,  int irrep,
 		 const Eigen::VectorXcd& cs_ibasis,
@@ -173,8 +177,6 @@ namespace l2func {
     // -- Correction of wave function sign --
     void CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs);
   };
-  
-  //  void CalcERI(SymGTOs& gi, SymGTOs& gj,SymGTOs& gk,SymGTOs& gl, IB2EInt* eri);
 }
 
 #endif

@@ -4,6 +4,7 @@
 //#include "symmolint.hpp"
 #include <vector>
 #include <string>
+#include <boost/shared_ptr.hpp>
 #include "macros.hpp"
 #include "typedef.hpp"
 
@@ -46,7 +47,6 @@ namespace l2func {
     /*
       Write to file
      */
-    virtual void Read(std::string fn) = 0;
     virtual void Write(std::string fn) = 0;
 
     /*
@@ -79,13 +79,14 @@ namespace l2func {
     dcomplex At(int ib, int jb, int kb, int lb,
 		int i, int j, int k, int l);    
     void Reset();
-    void Read(std::string fn);
     void Write(std::string fn);
     int size() const;
     int capacity() const;
-
     
   };
 
+  typedef boost::shared_ptr<IB2EInt> B2EInt;
+
+  B2EInt ERIRead(std::string fn);
 }
 #endif

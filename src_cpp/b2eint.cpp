@@ -40,11 +40,6 @@ namespace l2func {
   B2EIntMem::B2EIntMem(int n) {
     this->Init(n);
   }
-  B2EIntMem::B2EIntMem(string fn) {
-
-    this->Read(fn);
-    
-  }  
   
   B2EIntMem::~B2EIntMem() {}
 
@@ -104,40 +99,6 @@ namespace l2func {
   void B2EIntMem::Reset() {
     idx_ = 0;
   }
-  void B2EIntMem::Read(string fn) {
-
-    ifstream f(fn, ios::in|ios::binary);
-    
-    if(!f) {
-      string msg; SUB_LOCATION(msg);
-      msg += ": file not found";
-      throw runtime_error(msg);
-    }
-
-    int num;
-    f.read((char*)&num, sizeof(int));
-
-    this->Init(num);
-
-    for(int idx = 0; idx < num; idx++) {
-      int ib,jb,kb,lb,i,j,k,l,t;
-      dcomplex v;      
-      f.read((char*)&ib, sizeof(int));
-      f.read((char*)&jb, sizeof(int));
-      f.read((char*)&kb, sizeof(int));
-      f.read((char*)&lb, sizeof(int));
-
-      f.read((char*)&i, sizeof(int));
-      f.read((char*)&j, sizeof(int));
-      f.read((char*)&k, sizeof(int));
-      f.read((char*)&l, sizeof(int));
-
-      f.read((char*)&t, sizeof(int));
-      f.read((char*)&v, sizeof(dcomplex));
-      this->Set(ib, jb, kb, lb, i, j, k, l, v);
-    }
-
-  }
   void B2EIntMem::Write(string fn) {
 
     ofstream f;
@@ -175,6 +136,47 @@ namespace l2func {
   }
   int B2EIntMem::capacity() const {
     return this->capacity_;
+  }
+
+  // ==== ERI read ====
+  B2EInt ERIRead(string fn) {
+
+    B2EInt eri(new B2EIntMem);
+
+    ifstream f(fn, ios::in|ios::binary);
+    
+    if(!f) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": file not found";
+      throw runtime_error(msg);
+    }
+
+    int num;
+    f.read((char*)&num, sizeof(int));
+
+    //this->Init(num);
+    eri->Init(num);
+
+    for(int idx = 0; idx < num; idx++) {
+      int ib,jb,kb,lb,i,j,k,l,t;
+      dcomplex v;      
+      f.read((char*)&ib, sizeof(int));
+      f.read((char*)&jb, sizeof(int));
+      f.read((char*)&kb, sizeof(int));
+      f.read((char*)&lb, sizeof(int));
+
+      f.read((char*)&i, sizeof(int));
+      f.read((char*)&j, sizeof(int));
+      f.read((char*)&k, sizeof(int));
+      f.read((char*)&l, sizeof(int));
+
+      f.read((char*)&t, sizeof(int));
+      f.read((char*)&v, sizeof(dcomplex));
+      eri->Set(ib, jb, kb, lb, i, j, k, l, v);
+    }
+
+    return eri;
+    
   }
 
 }

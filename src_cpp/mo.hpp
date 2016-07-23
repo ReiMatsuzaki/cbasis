@@ -33,18 +33,18 @@ namespace l2func {
 
   // ---- RHF ----
   vector<int> CalcOccNum(const BVec& eigs, int num_sym, int num_orb);
-  MO CalcOneEle(pSymmetryGroup sym, BMatSet& mat_set, int debug_lvl = 0);
-  void AddJK(IB2EInt* eri,  BMat& C, int I0, int i0,
+  MO CalcOneEle(pSymmetryGroup sym, BMatSet mat_set, int debug_lvl = 0);
+  void AddJK(B2EInt eri,  BMat& C, int I0, int i0,
 	     dcomplex coef_J, dcomplex coef_K, BMat& JK);
-  void AddJK_Slow(IB2EInt* eri, BMat& C, int I0, int i0,
+  void AddJK_Slow(B2EInt eri, BMat& C, int I0, int i0,
 		  dcomplex coef_J, dcomplex coef_K, BMat& H);
-  MO CalcRHF(SymGTOs& gtos, int nele, int max_iter, double eps, bool *is_conv,
+  MO CalcRHF(SymGTOs gtos, int nele, int max_iter, double eps, bool *is_conv,
 	     int debug_lvl = 0);
-  MO CalcRHF(pSymmetryGroup sym, BMatSet& mat_set, IB2EInt* eri, int nele, 
+  MO CalcRHF(pSymmetryGroup sym, BMatSet mat_set, B2EInt eri, int nele, 
 	     int max_iter, double eps, bool *is_conv, int debug_lvl=0);
-  void CalcSEHamiltonian(MO mo, IB2EInt* eri, Irrep I0, int i0, BMat* hmat,
+  void CalcSEHamiltonian(MO mo, B2EInt eri, Irrep I0, int i0, BMat* hmat,
 			 int method = 0);
-  dcomplex CalcAlpha(MO mo, BMatSet& mat_set, Irrep I0, int i0, BMat& h_stex, double w, Coord coord, int method=0);
+  dcomplex CalcAlpha(MO mo, BMatSet mat_set, Irrep I0, int i0, BMat& h_stex, double w, Coord coord, int method=0);
   double PITotalCrossSection(dcomplex alpha, double w, int num_occ_ele);  
 }
 

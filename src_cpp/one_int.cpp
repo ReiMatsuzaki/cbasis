@@ -179,7 +179,7 @@ namespace l2func {
     return t_ele;
 
   }
-  dcomplex calc_vele(const SymGTOs& gtos, SubIt isub, SubIt jsub, int ipn, int jpn,
+  dcomplex calc_vele(const SymGTOs gtos, SubIt isub, SubIt jsub, int ipn, int jpn,
 		     A3dc& dxmap, A3dc& dymap, A3dc& dzmap, A4dc& rmap) {
 
     int nxi, nxj, nyi, nyj, nzi, nzj;
@@ -191,9 +191,9 @@ namespace l2func {
     for(int nx = 0; nx <= nxi + nxj; nx++)
       for(int ny = 0; ny <= nyi + nyj; ny++)
 	for(int nz = 0; nz <= nzi + nzj; nz++)
-	  for(int kat = 0; kat < gtos.size_atom(); kat++) {
+	  for(int kat = 0; kat < gtos->size_atom(); kat++) {
 
-	    v_ele += (gtos.q_at(kat) *
+	    v_ele += (gtos->q_at(kat) *
 		      dxmap(nxi, nxj, nx) *
 		      dymap(nyi, nyj, ny) *
 		      dzmap(nzi, nzj, nz) *
@@ -215,7 +215,7 @@ namespace l2func {
     A2dc Fjs_iat(num);
 
     prim.SetRange(niat, nipn, njat, njpn);
-    Fjs_iat.SetRange(0, gtos.size_atom(), 0, isub->maxn+jsub->maxn);
+    Fjs_iat.SetRange(0, gtos->size_atom(), 0, isub->maxn+jsub->maxn);
 
     for(int iat = 0; iat < niat; iat++) {
       // int jat0 = (isub == jsub && iz == jz ? iat : 0);
@@ -235,9 +235,9 @@ namespace l2func {
 	  calc_d_coef(mi,mj+2,mi+mj,zetaP,wPx,xi,xj,dxmap);
 	  calc_d_coef(mi,mj+2,mi+mj,zetaP,wPy,yi,yj,dymap);
 	  calc_d_coef(mi,mj+2,mi+mj,zetaP,wPz,zi,zj,dzmap);
-	  for(int kat = 0; kat < gtos.size_atom(); kat++) {
-	    dcomplex d2p = dist2(wPx-gtos.x_at(kat), wPy-gtos.y_at(kat),
-				 wPz-gtos.z_at(kat));
+	  for(int kat = 0; kat < gtos->size_atom(); kat++) {
+	    dcomplex d2p = dist2(wPx-gtos->x_at(kat), wPy-gtos->y_at(kat),
+				 wPz-gtos->z_at(kat));
 	    dcomplex arg = zetaP * d2p;
 	    double delta(0.0000000000001);
 	    if(real(arg)+delta > 0.0) {
@@ -273,17 +273,17 @@ namespace l2func {
 	    prim.x(iat, ipn, jat, jpn) =  ce*x_ele;
 	    prim.y(iat, ipn, jat, jpn) =  ce*y_ele;
 	    prim.z(iat, ipn, jat, jpn) =  ce*z_ele;
-	    rmap.SetRange(0, nxi+nxj, 0, nyi+nyj, 0, nzi+nzj, 0, gtos.size_atom());
+	    rmap.SetRange(0, nxi+nxj, 0, nyi+nyj, 0, nzi+nzj, 0, gtos->size_atom());
 
 	    if(calc_coulomb) {	      
-	      for(int kat = 0; kat < gtos.size_atom(); kat++) {
-		dcomplex d2p = dist2(wPx-gtos.x_at(kat), wPy-gtos.y_at(kat),
-				     wPz-gtos.z_at(kat));
+	      for(int kat = 0; kat < gtos->size_atom(); kat++) {
+		dcomplex d2p = dist2(wPx-gtos->x_at(kat), wPy-gtos->y_at(kat),
+				     wPz-gtos->z_at(kat));
 		dcomplex arg = zetaP * d2p;
 		double delta(0.0000000000001);
-		dcomplex wKx = gtos.x_at(kat);
-		dcomplex wKy = gtos.y_at(kat);
-		dcomplex wKz = gtos.z_at(kat);
+		dcomplex wKx = gtos->x_at(kat);
+		dcomplex wKy = gtos->y_at(kat);
+		dcomplex wKz = gtos->z_at(kat);
 		if(real(arg)+delta > 0.0) {
 		  for(int nx = 0; nx <= nxi + nxj; nx++)
 		    for(int ny = 0; ny <= nyi + nyj; ny++)
@@ -313,7 +313,7 @@ namespace l2func {
 
   }
   void CalcTrans(SubIt isub, SubIt jsub, int iz, int jz,
-		 PrimBasis& prim, BMatSet& mat_map) {
+		 PrimBasis& prim, BMatSet mat_map) {
 
     int niat(isub->size_at()); int njat(jsub->size_at());
     int nipn(isub->size_pn()); int njpn(jsub->size_pn());
@@ -342,73 +342,72 @@ namespace l2func {
 	int i(irds->offset + iz); int j(jrds->offset + jz);
 	int isym(irds->irrep); int jsym(jrds->irrep);
 	
-	mat_map.SelfAdd("s", isym, jsym, i, j, cumsum_s);
-	mat_map.SelfAdd("t", isym, jsym, i, j, cumsum_t);
-	mat_map.SelfAdd("v", isym, jsym, i, j, cumsum_v);
-	mat_map.SelfAdd("x", isym, jsym, i, j, cumsum_x);
-	mat_map.SelfAdd("y", isym, jsym, i, j, cumsum_y);
-	mat_map.SelfAdd("z", isym, jsym, i, j, cumsum_z);
+	mat_map->SelfAdd("s", isym, jsym, i, j, cumsum_s);
+	mat_map->SelfAdd("t", isym, jsym, i, j, cumsum_t);
+	mat_map->SelfAdd("v", isym, jsym, i, j, cumsum_v);
+	mat_map->SelfAdd("x", isym, jsym, i, j, cumsum_x);
+	mat_map->SelfAdd("y", isym, jsym, i, j, cumsum_y);
+	mat_map->SelfAdd("z", isym, jsym, i, j, cumsum_z);
       }
     }
 
   }
-  void SymGTOs_CalcMatrix(SymGTOs& a, SymGTOs& b, bool calc_coulomb, BMatSet* res) {
+  BMatSet CalcMat(SymGTOs a, SymGTOs b, bool calc_coulomb) {
 
-    if(not a.setupq)
-      a.SetUp();
+    BMatSet bmat(new _BMatSet);
+   
+    if(not a->setupq)
+      a->SetUp();
 
-    if(not b.setupq)
-      b.SetUp();
+    if(not b->setupq)
+      b->SetUp();
 
-    int num_sym(a.sym_group->num_class());
+    int num_sym(a->sym_group->num_class());
 
-    BMatSet mat_map(num_sym);
     for(Irrep isym = 0; isym < num_sym; isym++) {
       for(Irrep jsym = 0; jsym < num_sym; jsym++) {
-	int numi = a.size_basis_isym(isym);
-	int numj = b.size_basis_isym(jsym);
+	int numi = a->size_basis_isym(isym);
+	int numj = b->size_basis_isym(jsym);
 	MatrixXcd s = MatrixXcd::Zero(numi, numj);
-	mat_map.SetMatrix("s", isym, jsym, s);
+	bmat->SetMatrix("s", isym, jsym, s);
 	MatrixXcd t = MatrixXcd::Zero(numi, numj); 
-	mat_map.SetMatrix("t", isym, jsym, t);
+	bmat->SetMatrix("t", isym, jsym, t);
 	MatrixXcd v = MatrixXcd::Zero(numi, numj); 
-	mat_map.SetMatrix("v", isym, jsym, v);
+	bmat->SetMatrix("v", isym, jsym, v);
 
 	MatrixXcd x = MatrixXcd::Zero(numi, numj); 
-	mat_map.SetMatrix("x", isym, jsym, x);
+	bmat->SetMatrix("x", isym, jsym, x);
 	MatrixXcd y = MatrixXcd::Zero(numi, numj); 
-	mat_map.SetMatrix("y", isym, jsym, y);
+	bmat->SetMatrix("y", isym, jsym, y);
 	MatrixXcd z = MatrixXcd::Zero(numi, numj); 
-	mat_map.SetMatrix("z", isym, jsym, z);
+	bmat->SetMatrix("z", isym, jsym, z);
       }
     }
 
     PrimBasis prim(100);
     
-    for(SubIt isub = a.subs.begin(); isub != a.subs.end(); ++isub) {
-      for(SubIt jsub = b.subs.begin(); jsub != b.subs.end(); ++jsub) {
+    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
+      for(SubIt jsub = b->subs.begin(); jsub != b->subs.end(); ++jsub) {
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
 	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
 	    CalcPrim(a, isub, jsub, iz, jz, prim, calc_coulomb);
-	    CalcTrans(isub, jsub, iz, jz, prim, mat_map);
+	    CalcTrans(isub, jsub, iz, jz, prim, bmat);
 	  }
 	}
       }
     }
-    *res = mat_map;    
 
+    return bmat;
 
   }
-  void CalcMatrix_Complex(SymGTOs& g, bool calc_coulomb, BMatSet* res) {
+  BMatSet CalcMat_Complex(SymGTOs g, bool calc_coulomb) {
 
-    SymGTOs_CalcMatrix(g, g, calc_coulomb, res);
+    return CalcMat(g, g, calc_coulomb);
     
   }
-  void CalcMatrix_Hermite(SymGTOs& g, bool calc_coulomb, BMatSet* res) {
-    SymGTOs c(g.sym_group);
-    c.SetComplexConj(g);
-    SymGTOs_CalcMatrix(c, g, calc_coulomb, res);
-
+  BMatSet CalcMat_Hermite(SymGTOs g, bool calc_coulomb) {
+    SymGTOs c = g->ComplexConj();
+    return CalcMat(c, g, calc_coulomb);
   }
   
 }

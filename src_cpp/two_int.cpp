@@ -473,7 +473,7 @@ namespace l2func {
     mi = isub->maxn; mj = jsub->maxn; mk = ksub->maxn; ml = lsub->maxn;
     buf.lambda = 2.0*pow(M_PI, 2.5)/(zetaP * zetaPp * sqrt(zetaP + zetaPp));    
 
-    int numI(gtos.sym_group->order());
+    int numI(gtos->sym_group->order());
 
     prim.SetValue(0.0);
 
@@ -642,7 +642,7 @@ namespace l2func {
   // ==== Transform ====
   void CalcTransERI(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
 		   int iz, int jz, int kz, int lz,
-		    A4dc& prim, IB2EInt* eri, bool use_perm=false) {
+		    A4dc& prim, B2EInt eri, bool use_perm=false) {
 
     int nati, natj, natk, natl;
     nati = isub->size_at(); natj = jsub->size_at();
@@ -696,7 +696,7 @@ namespace l2func {
   }
   void CalcTransERI0(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
 		   int iz, int jz, int kz, int lz,
-		     A4dc& prim, IB2EInt* eri) {
+		     A4dc& prim, B2EInt eri) {
 
     int nati, natj, natk, natl;
     nati = isub->size_at(); natj = jsub->size_at();
@@ -745,7 +745,7 @@ namespace l2func {
   // ==== calc for Sub  ====
   // -- simple --
   void CalcERI0(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
-		A4dc& prim, IB2EInt* eri, ERIMethod method) {
+		A4dc& prim, ERIMethod method, B2EInt eri) {
     for(int iz = 0; iz < isub->size_zeta(); ++iz)
     for(int jz = 0; jz < jsub->size_zeta(); ++jz)
     for(int kz = 0; kz < ksub->size_zeta(); ++kz)
@@ -759,14 +759,14 @@ namespace l2func {
   // -- Symmetry --
   void CalcERI1(SymGTOs& gi, SymGTOs& gj,SymGTOs& gk,SymGTOs& gl,
 		SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
-		A4dc& prim, IB2EInt* eri, ERIMethod method) {
+		A4dc& prim, ERIMethod method, B2EInt eri) {
     if(!ExistNon0(isub, jsub, ksub, lsub))
       return;
 
-    int n_ij = (distance(gi.subs.begin(), isub) +
-		distance(gj.subs.begin(), jsub) * gi.subs.size());
-    int n_kl = (distance(gk.subs.begin(), ksub) +
-		distance(gl.subs.begin(), lsub) * gk.subs.size());    
+    int n_ij = (distance(gi->subs.begin(), isub) +
+		distance(gj->subs.begin(), jsub) * gi->subs.size());
+    int n_kl = (distance(gk->subs.begin(), ksub) +
+		distance(gl->subs.begin(), lsub) * gk->subs.size());    
 
     if(isub == ksub && jsub == lsub) {
       for(int iz = 0; iz < isub->size_zeta(); ++iz)
@@ -802,37 +802,40 @@ namespace l2func {
   }
 
   // ==== Interface ====
-  void CalcERI_Complex(SymGTOs& i, IB2EInt* eri, ERIMethod method) {
-    SymGTOs_CalcERI(i, i, i, i, eri, method);
+  B2EInt CalcERI_Complex(SymGTOs i, ERIMethod method) {
+    return CalcERI(i, i, i, i, method);
   }
-  void CalcERI_Hermite(SymGTOs& i, IB2EInt* eri, ERIMethod method) {
-    SymGTOs j(i.sym_group);
-    j.SetComplexConj(i);
-    SymGTOs_CalcERI(j, i, j, i, eri, method);
+  B2EInt CalcERI_Hermite(SymGTOs i, ERIMethod method) {
+    SymGTOs ci = i->ComplexConj();
+    return CalcERI(ci, i, ci, i, method);
   }
-  void SymGTOs_CalcERI(SymGTOs& gi, SymGTOs& gj, SymGTOs& gk, SymGTOs& gl,
-		       IB2EInt* eri, ERIMethod method) {
-
-    eri->Init(gi.size_basis() * gj.size_basis() * gk.size_basis() * gl.size_basis());
-    A4dc prim(gi.max_num_prim() * gj.max_num_prim() *
-	      gk.max_num_prim() * gl.max_num_prim());
+  B2EInt CalcERI(SymGTOs gi, SymGTOs gj, SymGTOs gk, SymGTOs gl,
+		 ERIMethod method) {
+    
+    B2EInt eri(new B2EIntMem);
+    eri->Init(gi->size_basis() * gj->size_basis() * gk->size_basis() * gl->size_basis());
+    A4dc prim(gi->max_num_prim() * gj->max_num_prim() *
+	      gk->max_num_prim() * gl->max_num_prim());
     if(method.symmetry == 0) {
-      for(SubIt isub = gi.subs.begin(); isub != gi.subs.end(); ++isub) 
-	for(SubIt jsub = gj.subs.begin(); jsub != gj.subs.end(); ++jsub)
-	  for(SubIt ksub = gk.subs.begin(); ksub != gk.subs.end(); ++ksub)
-	    for(SubIt lsub = gl.subs.begin(); lsub != gl.subs.end(); ++lsub)
-	      CalcERI0(isub, jsub, ksub, lsub, prim, eri, method);
+      for(SubIt isub = gi->subs.begin(); isub != gi->subs.end(); ++isub) 
+	for(SubIt jsub = gj->subs.begin(); jsub != gj->subs.end(); ++jsub)
+	  for(SubIt ksub = gk->subs.begin(); ksub != gk->subs.end(); ++ksub)
+	    for(SubIt lsub = gl->subs.begin(); lsub != gl->subs.end(); ++lsub)
+	      CalcERI0(isub, jsub, ksub, lsub, prim, method, eri);
     } else if(method.symmetry == 1) {
-      for(SubIt isub = gi.subs.begin(); isub != gi.subs.end(); ++isub) 
-	for(SubIt jsub = gj.subs.begin(); jsub != gj.subs.end(); ++jsub)
-	  for(SubIt ksub = gk.subs.begin(); ksub != gk.subs.end(); ++ksub)
-	    for(SubIt lsub = gl.subs.begin(); lsub != gl.subs.end(); ++lsub)
-	      CalcERI1(gi, gj, gk, gl, isub, jsub, ksub, lsub, prim, eri, method);
+      for(SubIt isub = gi->subs.begin(); isub != gi->subs.end(); ++isub) 
+	for(SubIt jsub = gj->subs.begin(); jsub != gj->subs.end(); ++jsub)
+	  for(SubIt ksub = gk->subs.begin(); ksub != gk->subs.end(); ++ksub)
+	    for(SubIt lsub = gl->subs.begin(); lsub != gl->subs.end(); ++lsub)
+	      CalcERI1(gi, gj, gk, gl, isub, jsub, ksub, lsub, prim, method, eri);
     } else {
       string msg; SUB_LOCATION(msg);
       msg += ": invalid method";
       throw runtime_error(msg);
     }
+
+    return eri;
+
   }
 
 

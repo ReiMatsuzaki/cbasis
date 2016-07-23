@@ -48,6 +48,12 @@ namespace l2func {
   void SubSymGTOs::SetUp() {
 
     // ---- check values ----
+    if(sym_group.get() == NULL) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": sym_group is not set.";
+      throw runtime_error(msg);
+    }
+
     if(this->size_at() * this->size_pn() == 0) {
       string msg; SUB_LOCATION(msg);
       msg += ": primitive GTO is not set.";
@@ -242,21 +248,21 @@ namespace l2func {
   
   // ==== SymGTOs ====
   // ---- Constructors ----
-  SymGTOs::SymGTOs(pSymmetryGroup _sym_group):
-    sym_group(_sym_group), setupq(false)  {
+  _SymGTOs::_SymGTOs():
+    setupq(false)  {
     xyzq_iat = MatrixXcd::Zero(4, 0);
   }
 
   // ---- Accessors ----
-  int SymGTOs::size_atom() const {return xyzq_iat.cols(); }
-  int SymGTOs::size_basis() const {
+  int _SymGTOs::size_atom() const {return xyzq_iat.cols(); }
+  int _SymGTOs::size_basis() const {
     int cumsum(0);
     for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
       cumsum += isub->size_zeta() * isub->rds.size();
     }
     return cumsum;
   }
-  int SymGTOs::size_basis_isym(Irrep isym) const {
+  int _SymGTOs::size_basis_isym(Irrep isym) const {
 
     int cumsum(0);
     for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
@@ -271,7 +277,7 @@ namespace l2func {
     return cumsum;
 
   }
-  string SymGTOs::str() const {
+  string _SymGTOs::str() const {
     ostringstream oss;
     oss << "==== SymGTOs ====" << endl;
     oss << "Set Up?" << (setupq ? "Yes" : "No") << endl;
@@ -284,7 +290,10 @@ namespace l2func {
   }
 
   // ---- Add ----
-  void SymGTOs::SetAtoms(MatrixXcd _xyzq_iat) {
+  void _SymGTOs::SetSym(pSymmetryGroup sym) {
+    sym_group = sym;
+  }
+  void _SymGTOs::SetAtoms(MatrixXcd _xyzq_iat) {
 
     if(_xyzq_iat.rows() != 4) {
       string msg; SUB_LOCATION(msg);
@@ -295,7 +304,7 @@ namespace l2func {
     xyzq_iat = _xyzq_iat;
 
   }
-  void SymGTOs::AddAtom(Eigen::Vector3cd _xyz, dcomplex q) {
+  void _SymGTOs::AddAtom(Eigen::Vector3cd _xyz, dcomplex q) {
 
     int num_atom = xyzq_iat.cols();
     MatrixXcd res(4, num_atom + 1);
@@ -313,22 +322,27 @@ namespace l2func {
     xyzq_iat.swap(res);
 
   }
-  void SymGTOs::AddSub(SubSymGTOs sub) {
+  void _SymGTOs::AddSub(SubSymGTOs sub) {
 
     subs.push_back(sub);
 
   }
-  void SymGTOs::SetComplexConj(SymGTOs& o) {
-    if(!o.setupq) {
-      string msg; SUB_LOCATION(msg); 
-      msg += ": o is not setup";
-      throw runtime_error(msg);
-    }
+  
+  // ---- Other ----
+  SymGTOs _SymGTOs::Clone() const {
 
-    this->sym_group = o.sym_group;
-    this->xyzq_iat = o.xyzq_iat;
-    this->subs = o.subs;
-    for(SubIt isub = this->subs.begin(); isub != this->subs.end(); ++isub) {
+    SymGTOs gtos = SymGTOs(new _SymGTOs());
+    gtos->SetSym(this->sym_group);
+    gtos->xyzq_iat = this->xyzq_iat;
+    gtos->subs = this->subs;
+    gtos->SetUp();
+    return gtos;
+
+  }
+  SymGTOs _SymGTOs::ComplexConj() const {
+
+    SymGTOs gtos = this->Clone();
+    for(SubIt isub = gtos->subs.begin(); isub != gtos->subs.end(); ++isub) {
       isub->zeta_iz = isub->zeta_iz.conjugate();
       for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 	irds->coef_iat_ipn = irds->coef_iat_ipn.conjugate();
@@ -336,11 +350,18 @@ namespace l2func {
       }
       isub->SetUp();
     }
-    this->SetUp();
+    gtos->SetUp();
+    return gtos;
   }
 
   // ---- SetUp ----
-  void SymGTOs::SetUp() {
+  void _SymGTOs::SetUp() {
+
+    if(sym_group.get() == NULL) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": symmetry_group is not set";
+      throw runtime_error(msg);
+    }
     
     for(SubIt it = subs.begin(); it != subs.end(); ++it) {
 
@@ -369,7 +390,7 @@ namespace l2func {
     this->Normalize();
     setupq = true;
   }
-  void SymGTOs::SetOffset() {
+  void _SymGTOs::SetOffset() {
     
     vector<int> num_irrep(10, 0);
     
@@ -382,7 +403,7 @@ namespace l2func {
     }
 
   }
-  void SymGTOs::Normalize() {
+  void _SymGTOs::Normalize() {
 
     /*
   A3dc dxmap(100), dymap(100), dzmap(100);
@@ -490,7 +511,7 @@ namespace l2func {
 
   // ---- utils ----
   // -- not used now --
-  int SymGTOs::max_n() const {
+  int _SymGTOs::max_n() const {
     int max_n(0);
     for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
       for(int ipn = 0; ipn < isub->size_pn(); ipn++) {
@@ -509,7 +530,7 @@ namespace l2func {
   }
   
   // ---- CalcMat ---- 
-  void SymGTOs::loop() {
+  void _SymGTOs::loop() {
 
     for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
       for(SubIt jsub = subs.begin(); jsub != subs.end(); ++jsub) {
@@ -538,7 +559,7 @@ namespace l2func {
 	  }}
       }}
     }
-  int SymGTOs::max_num_prim() const {
+  int _SymGTOs::max_num_prim() const {
     
     int max_num_prim(0);
     for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
@@ -547,23 +568,7 @@ namespace l2func {
     return max_num_prim;
 
   }
-  void SymGTOs::CalcMatOther(SymGTOs& o, bool calc_coulomb, BMatSet* res) {
 
-    SymGTOs_CalcMatrix(*this, o, calc_coulomb, res);
-
-  }
-  void SymGTOs::CalcMat(BMatSet* res) {
-    
-    CalcMatrix_Complex(*this, true, res);
-
-  }
-  void SymGTOs::CalcERI(IB2EInt* eri, ERIMethod method) {
-    
-    //SymGTOs_CalcERI(*this, *this, *this, *this, eri, method);
-    CalcERI_Complex(*this, eri, method);
-
-  }
-  
   // ---- AtR ----
   bool IsCenter(SubIt isub, int iat, double eps) {
     dcomplex x  = isub->x(iat);
@@ -662,7 +667,7 @@ namespace l2func {
     delete[] ylm;
     
   }      
-  void SymGTOs::AtR_Ylm(int L, int M, int irrep, const VectorXcd& cs_ibasis,
+  void _SymGTOs::AtR_Ylm(int L, int M, int irrep, const VectorXcd& cs_ibasis,
 			const VectorXcd& rs,
 			VectorXcd* res_vs, VectorXcd* res_dvs ) {
 
@@ -738,7 +743,7 @@ namespace l2func {
   }
 
   // ---- Correct Sign ----
-  void SymGTOs::CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs) {
+  void _SymGTOs::CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs) {
 			    
 
     if(not setupq) {

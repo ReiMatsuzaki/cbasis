@@ -25,9 +25,9 @@ namespace l2func {
   dcomplex VMatEle(CartGTO& a, Eigen::Vector3cd at, CartGTO& b);
 
   // ==== SymGTOs ====
-  void SymGTOs_CalcMatrix(SymGTOs& a, SymGTOs& b, bool calc_coulomb, BMatSet* res);
-  void CalcMatrix_Complex(SymGTOs& g, bool calc_coulomb, BMatSet* res);
-  void CalcMatrix_Hermite(SymGTOs& g, bool calc_coulomb, BMatSet* res);
+  BMatSet CalcMat(SymGTOs a, SymGTOs b, bool calc_coulomb);
+  BMatSet CalcMat_Complex(SymGTOs g, bool calc_coulomb);
+  BMatSet CalcMat_Hermite(SymGTOs g, bool calc_coulomb);
 
 }
 

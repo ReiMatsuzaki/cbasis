@@ -18,9 +18,9 @@ namespace l2func {
 			 
 
   // ==== SymGTOs ====
-  void CalcERI_Complex(SymGTOs& i, IB2EInt* eri, ERIMethod m);
-  void CalcERI_Hermite(SymGTOs& i, IB2EInt* eri, ERIMethod m);
-  void SymGTOs_CalcERI(SymGTOs& i, SymGTOs& j, SymGTOs& k, SymGTOs& l, IB2EInt* eri, ERIMethod method);  
+  B2EInt CalcERI_Complex(SymGTOs i, ERIMethod m);
+  B2EInt CalcERI_Hermite(SymGTOs i, ERIMethod m);
+  B2EInt CalcERI(SymGTOs i, SymGTOs j, SymGTOs k, SymGTOs l, ERIMethod method);  
 	       
 }
 
