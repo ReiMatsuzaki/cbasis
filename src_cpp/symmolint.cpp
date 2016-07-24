@@ -40,8 +40,7 @@ namespace l2func {
   }
   
   // ==== Sub ====
-  SubSymGTOs::SubSymGTOs(pSymmetryGroup g) {
-    sym_group = g;
+  SubSymGTOs::SubSymGTOs() {
     zeta_iz = VectorXcd::Zero(0);
     setupq = false;
   }
@@ -170,40 +169,41 @@ namespace l2func {
   void SubSymGTOs::Display() const {
     cout << this->str();
   }
-  SubSymGTOs Sub_s(pSymmetryGroup sym, Irrep irrep, Vector3cd xyz, VectorXcd zs) {
+  SubSymGTOs Sub_s(Irrep irrep, Vector3cd xyz, VectorXcd zs) {
 
     MatrixXcd cs = MatrixXcd::Ones(1,1);
     Reduction rds(irrep, cs);
     MatrixXi symmat = MatrixXi::Ones(1, 1);
     MatrixXi signmat= MatrixXi::Ones(1, 1);
 
-    SubSymGTOs sub(sym);
+    SubSymGTOs sub;
     sub.AddXyz(xyz);
     sub.AddNs(Vector3i(0, 0, 0));
     sub.AddZeta(zs);
     sub.AddRds(rds);
-    sub.SetUp();
+
     return sub;
   }
-  SubSymGTOs Sub_pz(pSymmetryGroup sym, Irrep irrep, Vector3cd xyz, VectorXcd zs) {
+  SubSymGTOs Sub_pz(Irrep irrep, Vector3cd xyz, VectorXcd zs) {
 
     MatrixXcd cs = MatrixXcd::Ones(1,1);
     Reduction rds(irrep, cs);
 
-    SubSymGTOs sub(sym);
+    SubSymGTOs sub;
     sub.AddXyz(xyz);
     sub.AddNs(Vector3i(0, 0, 1));
     sub.AddRds(rds);
     sub.AddZeta(zs);
-    //sub.SetSym(MatrixXi::Ones(1, 1), MatrixXi::Ones(1, 1));
-    sub.SetUp();
+
     return sub;    
   }
   SubSymGTOs Sub_TwoSGTO(pSymmetryGroup sym, Irrep irrep,
 			 Vector3cd xyz, VectorXcd zs) {
 
     sym->CheckIrrep(irrep);
-    SubSymGTOs sub(sym);
+    SubSymGTOs sub;
+    
+    sub.SetSym(sym);
 
     if(sym->name() == "Cs") {
       dcomplex x = xyz[0];
@@ -232,17 +232,16 @@ namespace l2func {
       throw runtime_error(msg);
     }
   }
-  SubSymGTOs Sub_mono(pSymmetryGroup sym, Irrep irrep,
+  SubSymGTOs Sub_mono(Irrep irrep,
 		      Vector3cd xyz, Vector3i ns, VectorXcd zs) {
 
-    sym->CheckIrrep(irrep);
-    SubSymGTOs sub(sym);
+    SubSymGTOs sub;
 
     sub.AddXyz(xyz);
     sub.AddNs(ns);
     sub.AddZeta(zs);
     sub.AddRds(Reduction(irrep, MatrixXcd::Ones(1, 1)));
-    sub.SetUp();
+
     return sub;
   }
   
@@ -348,7 +347,6 @@ namespace l2func {
 	irds->coef_iat_ipn = irds->coef_iat_ipn.conjugate();
 	irds->coef_iz = irds->coef_iz.conjugate();
       }
-      isub->SetUp();
     }
     gtos->SetUp();
     return gtos;
@@ -366,6 +364,7 @@ namespace l2func {
     for(SubIt it = subs.begin(); it != subs.end(); ++it) {
 
       // -- setup sub --
+      it->sym_group = this->sym_group;
       if(it->setupq == false)
 	it->SetUp();
 
@@ -377,7 +376,6 @@ namespace l2func {
 	cout << it->ip_jg_kp << endl;
 	throw runtime_error(msg);
       }
-      
       
       // -- init offset --
       for(RdsIt irds = it->begin_rds(); irds != it->end_rds(); ++irds) {
@@ -744,7 +742,6 @@ namespace l2func {
 
   // ---- Correct Sign ----
   void _SymGTOs::CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs) {
-			    
 
     if(not setupq) {
       string msg; SUB_LOCATION(msg);
@@ -780,6 +777,11 @@ namespace l2func {
       cs = -cs;
     }
   }
+
+  SymGTOs CreateSymGTOs() {
+    SymGTOs ptr(new _SymGTOs);
+    return ptr;
+  }  
   
 }
 

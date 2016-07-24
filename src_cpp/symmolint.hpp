@@ -72,7 +72,7 @@ namespace l2func {
     //    int maxnx;
 
     // ---- Constructors ----
-    SubSymGTOs(pSymmetryGroup);
+    SubSymGTOs();
 
     // ---- Accessors ----
     std::string str() const;
@@ -87,6 +87,9 @@ namespace l2func {
     inline cRdsIt end_rds() const { return rds.end(); }
     inline RdsIt begin_rds() { return rds.begin(); }
     inline RdsIt end_rds() { return rds.end(); }
+    inline void SetSym(pSymmetryGroup _sym_group) {
+      sym_group = _sym_group;
+    }
     void AddXyz(Eigen::Vector3cd xyz);
     void AddNs(Eigen::Vector3i ns);
     void AddZeta(const Eigen::VectorXcd& zs);
@@ -112,13 +115,13 @@ namespace l2func {
   };
 
   // ---- Helper ----
-  SubSymGTOs Sub_s(pSymmetryGroup sym, Irrep irrep,
+  SubSymGTOs Sub_s(Irrep irrep,
 		   Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_pz(pSymmetryGroup sym, Irrep irrep,
+  SubSymGTOs Sub_pz(Irrep irrep,
 		    Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
   SubSymGTOs Sub_TwoSGTO(pSymmetryGroup sym, Irrep irrep,
 			 Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_mono(pSymmetryGroup sym, Irrep irrep,
+  SubSymGTOs Sub_mono(Irrep irrep,
 		      Eigen::Vector3cd xyz, Eigen::Vector3i ns, Eigen::VectorXcd zs);
 
   // ==== SymGTOs ====
@@ -177,6 +180,7 @@ namespace l2func {
     // -- Correction of wave function sign --
     void CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs);
   };
+  SymGTOs CreateSymGTOs();
 }
 
 #endif

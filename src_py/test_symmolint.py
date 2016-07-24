@@ -97,7 +97,7 @@ class Test_SymMolInt(unittest.TestCase):
         sym = Cs()
         Ap = sym.get_irrep("A'")
         App= sym.get_irrep("A''")
-        sub = (SubSymGTOs(sym)
+        sub = (SubSymGTOs()
                .xyz((0, 0.1, 0.2))
                .xyz((2, 1, 0))
                .ns((0, 1, 2))
@@ -113,15 +113,16 @@ class Test_SymMolInt(unittest.TestCase):
         Ap = sym.get_irrep("A'")
         
         zs = [2.0**n-0.1j for n in range(-2, 2)]
-        gtos = (SymGTOs(sym)
-                .sub(SubSymGTOs(sym)
+        gtos = (SymGTOs.create()
+                .sym(sym)
+                .sub(SubSymGTOs()
                      .xyz((0, 0, 0))
                      .ns( (0, 0, 0))
                      .rds(Reduction(Ap, [[1]]))
                      .zeta(zs))
                 .atom([0, 0, 0], 1.1)
                 .setup())
-        mat_set = gtos.calc_mat()
+        mat_set = calc_mat_complex(gtos, True)
 
         cs = [1.0, 1.1, 1.2, 1.3]
         rs = [1.0, 2.0]
@@ -129,13 +130,15 @@ class Test_SymMolInt(unittest.TestCase):
 
 
 class Test_H_atom(unittest.TestCase):
+
     def setUp(self):
         xatom = (0, 0, 0)
         sym = Cs()
         Ap = sym.get_irrep("A'")
         App= sym.get_irrep("A''")
-        self.gtos = (SymGTOs(sym)
-                     .sub(SubSymGTOs(sym)
+        self.gtos = (SymGTOs.create()
+                     .sym(sym)
+                     .sub(SubSymGTOs()
                           .xyz(xatom)
                           .ns((0, 0, 0))
                           .ns((0, 0, 1))
@@ -143,7 +146,7 @@ class Test_H_atom(unittest.TestCase):
                           .rds(Reduction(App, [[0, 1]]))
                           .zeta([2.0**n for n in range(-10, 10)]))
                      .atom(xatom, 1.0))
-        mat = calc_matrix_complex(self.gtos, True)
+        mat = calc_mat_complex(self.gtos, True)
         
         s = mat["s", Ap, Ap]
         t = mat["t", Ap, Ap]
@@ -169,7 +172,7 @@ class Test_H_atom(unittest.TestCase):
 
     def test_2p(self):
         App= Cs().get_irrep("A''")
-        mat = self.gtos.calc_mat()
+        mat = calc_mat_complex(self.gtos, True)
         s = mat["s", App, App]
         t = mat["t", App, App]
         v = mat["v", App, App]        
@@ -178,6 +181,7 @@ class Test_H_atom(unittest.TestCase):
         self.assertTrue(abs(eigs[0]+0.125) < 0.000001)
 
         c = self.gtos.correct_sign(1, 0, App, eigenvecs.col(0))
+        print "c: ", c
         rs = [1.1]
         (ys_calc, ds_calc) = self.gtos.at_r_ylm(1, 0, App, c, rs)
 
@@ -186,11 +190,13 @@ class Test_H_atom(unittest.TestCase):
         
 
 class Test_H2_plus(unittest.TestCase):
+
     def setUp(self):
         self.sym = Cs()
         Ap = self.sym.get_irrep("A'")
-        self.gtos = (SymGTOs(self.sym)
-                     .sub(SubSymGTOs(self.sym)
+        self.gtos = (SymGTOs.create()
+                     .sym(self.sym)
+                     .sub(SubSymGTOs()
                           .xyz((0, 0, 0.7))
                           .xyz((0, 0,-0.7))
                           .ns((0, 0, 0))
@@ -210,7 +216,7 @@ class Test_H2_plus(unittest.TestCase):
         in rcclsc
         """
         self.gtos.setup()
-        mat = self.gtos.calc_mat()
+        mat = calc_mat_complex(self.gtos, True)
         Ap = self.sym.get_irrep("A'")
         s = mat["s", Ap, Ap]
         t = mat["t", Ap, Ap]
@@ -222,6 +228,7 @@ class Test_H2_plus(unittest.TestCase):
 
 
 class Test_H_photoionization(unittest.TestCase):
+
     def calc_full(self):
         xatom = (0, 0, 0)
         sym = Cs()
@@ -229,20 +236,21 @@ class Test_H_photoionization(unittest.TestCase):
         App= sym.get_irrep("A''")
         zeta0 = [2.0**n for n in range(-10, 10)]
         zeta1 = [2.0**n-0.02j for n in range(-15, 5)]
-        self.gtos = (SymGTOs(sym)
-                     .sub(SubSymGTOs(sym)
+        self.gtos = (SymGTOs.create()
+                     .sym(sym)
+                     .sub(SubSymGTOs()
                           .xyz(xatom)
                           .ns((0, 0, 0))
                           .rds(Reduction(Ap,  [[1]]))
                           .zeta(zeta0))
-                     .sub(SubSymGTOs(sym)
+                     .sub(SubSymGTOs()
                           .xyz(xatom)
                           .ns((0, 0, 1))
                           .rds(Reduction(App, [[1]]))
                           .zeta(zeta1))
                      .atom(xatom, 1.0))
         self.gtos.setup()
-        mat = self.gtos.calc_mat()
+        mat = calc_mat_complex(self.gtos, True)
         h0 = mat["t", Ap, Ap] + mat["v", Ap, Ap]
         s0 = mat["s", Ap, Ap]
         (eigs0, eigvecs0) = ceig(h0, s0)
@@ -266,23 +274,27 @@ class Test_H_photoionization(unittest.TestCase):
         App= sym.get_irrep("A''")
         zeta0 = [2.0**n for n in range(-10, 10)]
         zeta1 = [2.0**n-0.02j for n in range(-15, 5)]
-        self.gtos0 = (SymGTOs(sym)
-                      .sub(SubSymGTOs(sym)
+        self.gtos0 = (SymGTOs.create()
+                      .sym(sym)
+                      .sub(SubSymGTOs()
                            .xyz(xatom)
                            .ns((0, 0, 0))
                            .rds(Reduction(Ap, [[1]]))
                            .zeta(zeta0))
                       .atom(xatom, 1.0))
-        self.gtos1 = (SymGTOs(Cs())
-                      .sub(SubSymGTOs(sym)
+        self.gtos1 = (SymGTOs.create()
+                      .sym(sym)
+                      .sub(SubSymGTOs()
                            .xyz(xatom)
                            .ns((0, 0, 0))
                            .rds(Reduction(App, [[1]]))
                            .zeta(zeta1))
-                      .atom(xatom, 1.0))
-        mat0 = self.gtos0.calc_mat()
-        mat1 = self.gtos1.calc_mat()
-        mat10= self.gtos1.calc_mat(self.gtos0, False)
+                      .atom(xatom, 1.0)
+                      .setup())
+
+        mat0 = calc_mat_complex(self.gtos0, True)
+        mat1 = calc_mat_complex(self.gtos1, True)
+        mat10= calc_mat(self.gtos1, self.gtos0, False)
         h0 = mat0["t", Ap, Ap] + mat0["v", Ap, Ap]
         s0 = mat0["s", Ap, Ap]
         (eigs0, eigvecs) = ceig(h0, s0)
@@ -308,6 +320,7 @@ class Test_H_photoionization(unittest.TestCase):
 
 
 class Test_He(unittest.TestCase):
+
     def setUp(self):
         xatom = (0, 0, 0)
         self.sym = Cs()
@@ -317,13 +330,14 @@ class Test_He(unittest.TestCase):
         zeta0 = [0.107951, 0.240920, 0.552610, 1.352436, 3.522261, 9.789053, 30.17990, 108.7723, 488.8941, 3293.694]
         zeta1 = zeta0
 
-        self.gtos = (SymGTOs(sym)
-                     .sub(SubSymGTOs(sym)
+        self.gtos = (SymGTOs.create()
+                     .sym(sym)
+                     .sub(SubSymGTOs()
                           .xyz(xatom)
                           .ns((0, 0, 0))
                           .rds(Reduction(Ap,  [[1]]))
                           .zeta(zeta0))
-                     .sub(SubSymGTOs(sym)
+                     .sub(SubSymGTOs()
                           .xyz(xatom)
                           .ns((0, 0, 1))
                           .rds(Reduction(App, [[1]]))
@@ -336,7 +350,7 @@ class Test_He(unittest.TestCase):
         print "Test He"
         gtos = self.gtos
         sym = self.sym
-        mat_set = calc_matrix_complex(gtos, True)
+        mat_set = calc_mat_complex(gtos, True)
         eri = calc_ERI_complex(gtos, ERI_method().use_symmetry(1))
 
         w = 1.0
@@ -351,8 +365,7 @@ class Test_He(unittest.TestCase):
         print mo.eigs[0]
 
         eri.write("eri.bin")
-        eri2 = B2EIntMem()
-        eri2.read("eri.bin")
+        eri2 = ERI_read("eri.bin")
 
         # ==== check for JK ====
         jk = calc_JK(eri, mo.C, 0, 0, 1.0, 1.0)
