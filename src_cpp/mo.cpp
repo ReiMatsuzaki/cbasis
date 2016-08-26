@@ -100,6 +100,7 @@ namespace l2func {
     /*
       Add coef_J J + coef_K K to matrix H.
       J and K is build from I0 symmetry i0 th MO.
+      eri is assumed from CalcERIComplex or CalcERIHermite.
     */
     
     int ib,jb,kb,lb,i,j,k,l,t;
@@ -120,6 +121,7 @@ namespace l2func {
 	H[il](i, l) += coef_K * CC(j, i0) * CC(k, i0) * v;
       }
     }      
+
   }
   void AddJK_Slow(B2EInt eri, BMat& C, int I0, int i0,
 		  dcomplex coef_J, dcomplex coef_K, BMat& H) {
@@ -150,6 +152,53 @@ namespace l2func {
 	}
       }
     }
+  }
+  void AddJ(B2EInt eri,VectorXcd& Ca, Irrep ir_a, BMat& J) {
+
+    /**
+       Add 
+       (u_i| J_a |v_j) = (u_i(1)^* v_j(1) phi_a(2)^* phi_a(2))
+       .               = (u_i(1)^* v_j(1) w_k(2)^* w_l(2)) C_ka C_la
+       to mat J.
+
+       In this function complex conjugate(*) is ignored.
+       
+       eri is calculated from
+       .     eri = CalcERI(g_u, g_a, g_v, g_a, method)
+     */
+    int ib,jb,kb,lb,i,j,k,l,t;
+    dcomplex v;
+
+    eri->Reset();
+
+    while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+      if(ib == jb && kb == ir_a && lb == ir_a) {
+	pair<Irrep, Irrep> ij(ib, jb);
+	J[ij](i, j) += v * Ca(k) * Ca(l);
+      }
+    }
+
+  }
+  void AddK(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, BMat& K) {
+    
+    /**
+       Add
+       (u_i | K_a | v_l) = (u_i(1)* phi_a(1) phi_a(2)* v_l(2) )
+       .                 = (u_i(1)* w_j(1) w_k(2)* v_l(2)) C_ja C_ka
+     */
+    
+    int ib,jb,kb,lb,i,j,k,l,t;
+    dcomplex v;
+
+    eri->Reset();
+    while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+
+      if(ib == lb && jb == ir_a && kb == ir_a) {
+	pair<Irrep, Irrep> il(ib, lb);
+	K[il](i, l) += v * Ca(j) * Ca(k);
+      }
+    }    
+
   }
   MO CalcRHF(SymGTOs gtos, int nele, int max_iter, double eps, bool *is_conv,
 	     int debug_lvl) {

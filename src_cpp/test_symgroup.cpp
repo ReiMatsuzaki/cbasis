@@ -319,6 +319,29 @@ TEST(SymGroup, C4) {
   EXPECT_TRUE(!C4->prod_table_(E, E, E));
   
 }
+TEST(SymGroup, Equality) {
+
+  vector<pSymmetryGroup> syms;
+  syms.push_back(SymmetryGroup::C1());
+  syms.push_back(SymmetryGroup::Cs());
+  syms.push_back(SymmetryGroup::C2h());
+  syms.push_back(SymmetryGroup::C2v());
+  syms.push_back(SymmetryGroup::D2h());
+  syms.push_back(SymmetryGroup::C4());
+  
+  typedef vector<pSymmetryGroup>::iterator It;
+  for(It it = syms.begin(); it != syms.end(); ++it)
+    for(It jt = syms.begin(); jt != syms.end(); ++jt) {
+
+      if(it == jt)
+	EXPECT_TRUE((*it)->IsSame(*jt));
+      else
+	EXPECT_FALSE((*it)->IsSame(*jt));
+
+    }
+    
+
+}
 
 int main (int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);

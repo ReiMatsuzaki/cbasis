@@ -157,7 +157,7 @@ namespace l2func {
     
     // ---- Other basis ----
     SymGTOs Clone() const;
-    SymGTOs ComplexConj() const;
+    SymGTOs Conj() const;
 
     // ---- SetUp ----
     void SetUp();

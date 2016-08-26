@@ -300,6 +300,12 @@ namespace l2func {
       throw runtime_error(msg);
     }
 
+    if(_xyzq_iat.cols() < 1) {
+      string msg; SUB_LOCATION(msg);
+      msg += "xyzq_iat.cols() must be gerater or equal to 1 ";
+      throw runtime_error(msg);
+    }    
+
     xyzq_iat = _xyzq_iat;
 
   }
@@ -338,7 +344,7 @@ namespace l2func {
     return gtos;
 
   }
-  SymGTOs _SymGTOs::ComplexConj() const {
+  SymGTOs _SymGTOs::Conj() const {
 
     SymGTOs gtos = this->Clone();
     for(SubIt isub = gtos->subs.begin(); isub != gtos->subs.end(); ++isub) {
@@ -596,16 +602,13 @@ namespace l2func {
       }
     } else if(L == 1) {
       // -- p-GTO --
-      if(nx == 0 && ny == 0 && nz == 1 && M == 0) {
+      if((nx == 0 && ny == 0 && nz == 1 && M == 0) ||
+	 (nx == 0 && ny == 1 && nz == 0 && M ==-1) ||
+	 (nx == 1 && ny == 0 && nz == 0 && M ==+1)) {
 	dcomplex c(sqrt(4.0*M_PI/3.0));
 	*v = c*r*r*exp(-zeta*r*r);
 	*dv= c*(2.0*r - 2.0*zeta*r*r*r )*exp(-zeta*r*r);
-      }	  
-      else if(nx == 0 && ny == 1 && nz == 0 && M == 1)
-	throw runtime_error("0101 is not implemented");
-      else if(nx == 1 && ny == 0 && nz == 0 && M ==-1)
-	throw runtime_error("0101 is not implemented");	
-      else {
+      }	else {
 	*v = 0.0;
 	*dv= 0.0;
       }

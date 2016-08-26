@@ -52,6 +52,11 @@ namespace l2func {
     /*
       Accessor for size and capacity
      */
+    //    int basis_size_irrep_i(int irrep) const;
+    //    int basis_size_irrep_j(int irrep) const;
+    //    int basis_size_irrep_k(int irrep) const;
+    //    int basis_size_irrep_l(int irrep) const;
+    //    int num_irrep() const;
     virtual int size() const = 0;
     virtual int capacity() const = 0;
   };
@@ -68,7 +73,6 @@ namespace l2func {
   public:
     B2EIntMem();
     B2EIntMem(int num);
-    B2EIntMem(std::string fn);
     ~B2EIntMem();
 
     void Init(int num);

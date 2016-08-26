@@ -45,6 +45,9 @@ MatrixXcd& BMat_get(BMat* bmat, tuple args) {
   int j = extract<int>(args[1]);
   return (*bmat)[make_pair(i, j)];
 }
+void BMat_set(BMat* bmat, int i, int j, MatrixXcd& mat) {
+  (*bmat)[make_pair(i, j)] = mat;
+}
 BMat* py_CalcSEHamiltonian(MO mo, B2EInt eri, Irrep I0, int i0) {
 
   BMat *res = new BMat();
@@ -52,20 +55,67 @@ BMat* py_CalcSEHamiltonian(MO mo, B2EInt eri, Irrep I0, int i0) {
   return res;
 
 }
-BMat* py_JK(B2EInt eri, BMat& C, Irrep I0, int i0, dcomplex c_J, dcomplex c_K) {
+void BMatSetZero(BMat& C, BMat& mat) {
 
-  BMat *mat = new BMat();
   for(int I = 0; I < (int)C.size(); I++) {
     pair<Irrep, Irrep> II(I, I);
     MatrixXcd& CII = C[II];
-    (*mat)[II] = MatrixXcd::Zero(CII.rows(), CII.cols());
+    mat[II] = MatrixXcd::Zero(CII.rows(), CII.cols());
   }
+  
+}
+void BMatSetZero(SymGTOs g0, SymGTOs g1, BMat& bmat) {
+
+  /*
+    g0 and g1 are assumed to have same symmetry
+   */
+
+  if(! g0->sym_group->IsSame(g1->sym_group)) {
+    string msg; SUB_LOCATION(msg);
+    msg += ": symmetry group of g0 and g1 are different";
+    throw runtime_error(msg);
+  }
+  
+  for(int irrep = 0; irrep < g0->sym_group->order(); irrep++) {
+    
+    int n0(g0->size_basis_isym(irrep));
+    int n1(g1->size_basis_isym(irrep));
+    bmat[make_pair(irrep, irrep)] = MatrixXcd::Zero(n0, n1);
+  }
+
+}
+BMat* py_JK(B2EInt eri, BMat& C, Irrep I0, int i0, dcomplex c_J, dcomplex c_K) {
+
+  BMat *mat = new BMat();
+  BMatSetZero(C, *mat);
   
   AddJK(eri, C, I0, i0, c_J, c_K, *mat);
 
   return mat;
+}
+BMat* py_J(B2EInt eri, VectorXcd& ca, Irrep irrep_a, 
+	   SymGTOs g0, SymGTOs g1) {
+
+  BMat *mat = new BMat();
+  BMatSetZero(g0, g1, *mat);
+  
+  AddJ(eri, ca, irrep_a, *mat);
+
+  return mat;
 
 }
+BMat* py_K(B2EInt eri, VectorXcd& ca, Irrep ir_a,
+	   SymGTOs g0, SymGTOs g1) {
+
+  BMat *mat = new BMat();
+  BMatSetZero(g0, g1, *mat);
+  
+  AddK(eri, ca, ir_a, *mat);
+
+  return mat;
+
+}
+
 tuple SymGTOs_AtR_Ylm(SymGTOs gtos,
 		      int L, int M,  int irrep,
 		      const VectorXcd& cs_ibasis,
@@ -83,11 +133,8 @@ VectorXcd* SymGTOs_CorrectSign(SymGTOs gtos, int L, int M,  int irrep,
   gtos->CorrectSign(L, M, irrep, *cs);
   return cs;
 }
-const MatrixXcd& BMatSets_getitem(BMatSet self, tuple name_i_j) {
-  string name = extract<string>(name_i_j[0]);
-  Irrep i = extract<int>(name_i_j[1]);
-  Irrep j = extract<int>(name_i_j[2]);
-  return self->GetMatrix(name, i, j);  
+const BMat& BMatSets_getitem(BMatSet self, string name) {
+  return self->GetBlockMatrix(name);  
 }
 tuple generalizedComplexEigenSolve_py(const CM& F, const CM& S) {
 
@@ -151,6 +198,8 @@ void AddMO() {
   def("calc_SEHamiltonian", py_CalcSEHamiltonian,
       return_value_policy<manage_new_object>());
   def("calc_JK", py_JK, return_value_policy<manage_new_object>());
+  def("calc_J", py_J, return_value_policy<manage_new_object>());
+  def("calc_K", py_K, return_value_policy<manage_new_object>());
   def("calc_alpha", CalcAlpha);
   def("pi_total_crosssection", PITotalCrossSection);
 
@@ -188,15 +237,16 @@ void AddLinearAlgebra() {
   class_<BVec>("BVec", no_init)
     .def(map_indexing_suite<BVec>());
 
-  class_<BMat>("BMat", no_init)
+  class_<BMat>("BMat", init<>())
     .def("write", BMatWrite)
     .def("read", BMatRead)
+    .def("set_matrix", BMat_set)
     .def("__getitem__", BMat_get, return_internal_reference<>());
 
   register_ptr_to_python<BMatSet>();
   class_<_BMatSet>("BMatSet", init<int>())
     .def("get_matrix",  &_BMatSet::GetMatrix, return_internal_reference<>())
-    .def("__getitem__", BMatSets_getitem, return_internal_reference<>())
+    .def("__getitem__", &_BMatSet::GetBlockMatrix, return_internal_reference<>())
     .def("set_matrix", &_BMatSet::SetMatrix);
 
 }
@@ -249,8 +299,11 @@ void AddSymMolInt() {
     .def("create", CreateSymGTOs).staticmethod("create")
     .add_property("sym_group", &_SymGTOs::sym_group)
     .def("sym", &_SymGTOs::SetSym, return_self<>())
-    .def("sub", &_SymGTOs::AddSub, return_self<>())
     .def("atom", &_SymGTOs::AddAtom, return_self<>())
+    .def("sub", &_SymGTOs::AddSub, return_self<>())
+    .def("set_atoms", &_SymGTOs::SetAtoms, return_self<>())
+    .def("clone", &_SymGTOs::Clone)
+    .def("conj", &_SymGTOs::Conj)
     .def("setup", &_SymGTOs::SetUp, return_self<>())
     .def("at_r_ylm_cpp", SymGTOs_AtR_Ylm)
     .def("correct_sign", SymGTOs_CorrectSign,

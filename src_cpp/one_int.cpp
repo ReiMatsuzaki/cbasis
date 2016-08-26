@@ -406,8 +406,19 @@ namespace l2func {
     
   }
   BMatSet CalcMat_Hermite(SymGTOs g, bool calc_coulomb) {
-    SymGTOs c = g->ComplexConj();
+    SymGTOs c = g->Conj();
     return CalcMat(c, g, calc_coulomb);
   }
-  
+
+  /*
+  BMatSet CalcMat_V(SymGTOs a, SymGTOs b, Eigen::Vector3cd xyz, dcomplex q) {
+    MatrixXcd xyzq(4,1);
+    xyzq << xyz[0], xyz[1], xyz[2], q;
+
+    SymGTOs aa = a->Clone();
+    aa->SetAtoms(xyzq);
+    aa->SetUp();
+
+  }
+  */
 }

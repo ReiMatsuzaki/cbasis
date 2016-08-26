@@ -126,6 +126,7 @@ namespace l2func {
   class SymmetryGroup {
   public:
     std::string name_;
+    int id_num_; 
     std::vector<SymOp> sym_op_;    
     std::vector<SymOpClass> sym_op_class_;    
     std::vector<std::string> irrep_name_;
@@ -140,11 +141,12 @@ namespace l2func {
     typedef std::vector<SymOp>::const_iterator ItSymOp;
 
     // ---- Constructors ----
-    SymmetryGroup(int num_class, std::string name);
+    SymmetryGroup(int num_class, std::string name, int id_num);
 
     // ---- Accessor ----
     int order()  const { return sym_op_.size(); }
     int num_class()  const { return sym_op_class_.size(); }
+    int id_num() const { return id_num_;}
     std::string name() const { return name_; }
     std::string str() const;
     void Display() const;
@@ -155,6 +157,7 @@ namespace l2func {
     void setProdTable();
     void setSymOp();
     void CheckIrrep(Irrep a);
+    bool IsSame(pSymmetryGroup o);
     bool Non0_Scalar(Irrep a, Irrep b);
     bool Non0_Z(Irrep a, Irrep b);
     bool Non0_4(Irrep a, Irrep b, Irrep c, Irrep d);
@@ -175,5 +178,6 @@ namespace l2func {
     static pSymmetryGroup C4();
     //    static SymmetryGroup C4v();
   };
+
 }
 #endif

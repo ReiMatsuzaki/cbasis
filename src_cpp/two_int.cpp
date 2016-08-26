@@ -755,6 +755,7 @@ namespace l2func {
 		   ksub->zeta_iz[kz], lsub->zeta_iz[lz], prim, method);
       CalcTransERI0(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
     }
+    
   }
   // -- Symmetry --
   void CalcERI1(SymGTOs& gi, SymGTOs& gj,SymGTOs& gk,SymGTOs& gl,
@@ -806,11 +807,23 @@ namespace l2func {
     return CalcERI(i, i, i, i, method);
   }
   B2EInt CalcERI_Hermite(SymGTOs i, ERIMethod method) {
-    SymGTOs ci = i->ComplexConj();
+    SymGTOs ci = i->Conj();
     return CalcERI(ci, i, ci, i, method);
   }
   B2EInt CalcERI(SymGTOs gi, SymGTOs gj, SymGTOs gk, SymGTOs gl,
 		 ERIMethod method) {
+
+    if(not gi->setupq)
+      gi->SetUp();
+    
+    if(not gj->setupq)
+      gj->SetUp();
+
+    if(not gk->setupq)
+      gk->SetUp();
+
+    if(not gl->setupq)
+      gl->SetUp();
     
     B2EInt eri(new B2EIntMem);
     eri->Init(gi->size_basis() * gj->size_basis() * gk->size_basis() * gl->size_basis());
@@ -820,8 +833,9 @@ namespace l2func {
       for(SubIt isub = gi->subs.begin(); isub != gi->subs.end(); ++isub) 
 	for(SubIt jsub = gj->subs.begin(); jsub != gj->subs.end(); ++jsub)
 	  for(SubIt ksub = gk->subs.begin(); ksub != gk->subs.end(); ++ksub)
-	    for(SubIt lsub = gl->subs.begin(); lsub != gl->subs.end(); ++lsub)
+	    for(SubIt lsub = gl->subs.begin(); lsub != gl->subs.end(); ++lsub) {
 	      CalcERI0(isub, jsub, ksub, lsub, prim, method, eri);
+	    }
     } else if(method.symmetry == 1) {
       for(SubIt isub = gi->subs.begin(); isub != gi->subs.end(); ++isub) 
 	for(SubIt jsub = gj->subs.begin(); jsub != gj->subs.end(); ++jsub)

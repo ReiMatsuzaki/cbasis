@@ -59,11 +59,11 @@ namespace l2func {
       num_irrep[irrep] = Ci.rows();
     }
 
-    int ib,jb,kb,lb,i,j,k,l,t;
-    dcomplex v;
-    ao->Reset();
-    
-
+    /*
+      int ib,jb,kb,lb,i,j,k,l,t;
+      dcomplex v;
+      ao->Reset();
+    */
 
   }
   void CalcJK_MO(IB2EInt* eri_ao, BMat& C, int A0, int a0, int B0, int b0,

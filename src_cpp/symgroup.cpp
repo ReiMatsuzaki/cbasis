@@ -287,8 +287,9 @@ namespace l2func {
   }
 
   // ==== Symmmetry Group ====
-  SymmetryGroup::SymmetryGroup(int num_class, string name):
+  SymmetryGroup::SymmetryGroup(int num_class, string name, int id_num):
     name_(name),
+    id_num_(id_num),
     prod_table_(num_class * num_class * num_class) {
 
     character_table_ = MatrixXi::Zero(num_class, num_class);
@@ -310,6 +311,9 @@ namespace l2func {
       std::string msg; SUB_LOCATION(msg);
       throw runtime_error(msg);
     }
+  }
+  bool SymmetryGroup::IsSame(pSymmetryGroup o) {
+    return this->id_num() == o->id_num();
   }
   bool SymmetryGroup::Non0_Scalar(Irrep a, Irrep b) {
     this->CheckIrrep(a);
@@ -426,7 +430,7 @@ namespace l2func {
 
   // ---- Specific symmetry group ----
   pSymmetryGroup SymmetryGroup::C1() {
-    pSymmetryGroup g(new SymmetryGroup(1, "C1"));
+    pSymmetryGroup g(new SymmetryGroup(1, "C1", 0));
     g->sym_op_class_.push_back(ClassMono(id()));
     g->irrep_name_.push_back("A");
     g->character_table_(0, 0) = 1;
@@ -441,7 +445,7 @@ namespace l2func {
     return g;
   }
   pSymmetryGroup SymmetryGroup::Cs() {
-    pSymmetryGroup g(new SymmetryGroup(2, "Cs"));
+    pSymmetryGroup g(new SymmetryGroup(2, "Cs", 1));
 
     g->sym_op_class_.push_back(ClassMono(id()));
     g->sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
@@ -472,7 +476,7 @@ namespace l2func {
     return g;
   }
   pSymmetryGroup SymmetryGroup::C2h() {
-    pSymmetryGroup g(new SymmetryGroup(4, "C2h"));
+    pSymmetryGroup g(new SymmetryGroup(4, "C2h", 2));
 
     g->sym_op_class_.push_back(ClassMono(id()));
     g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
@@ -523,7 +527,7 @@ namespace l2func {
     return g;
   }
   pSymmetryGroup SymmetryGroup::C2v() {
-    pSymmetryGroup g(new SymmetryGroup(4, "C2v"));
+    pSymmetryGroup g(new SymmetryGroup(4, "C2v", 3));
 
     g->sym_op_class_.push_back(ClassMono(id()));
     g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
@@ -552,7 +556,7 @@ namespace l2func {
     return g;
   }
   pSymmetryGroup SymmetryGroup::D2h() {
-    pSymmetryGroup g(new SymmetryGroup(8, "D2h"));
+    pSymmetryGroup g(new SymmetryGroup(8, "D2h", 4));
     
     g->sym_op_class_.push_back(ClassMono(id()));
     g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
@@ -593,7 +597,7 @@ namespace l2func {
     return g;
   }
   pSymmetryGroup SymmetryGroup::C4() {
-    pSymmetryGroup g(new SymmetryGroup(3, "C4"));
+    pSymmetryGroup g(new SymmetryGroup(3, "C4", 5));
     
     g->sym_op_class_.push_back(ClassMono(id()));
     g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));

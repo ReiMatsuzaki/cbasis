@@ -389,6 +389,42 @@ TEST(SymGTOs, at_r_ylm_nd_s) {
   test_SymGTOs_at_r_ylm_nd(gtos, 1.1, cs, "s-GTO on center");
 
 }
+TEST(SymGTOs, at_r_ylm_p) {
+
+  VectorXcd zeta(2); zeta << 1.1, 1.2;
+
+  SymGTOs gtos_y = CreateSymGTOs();
+  gtos_y->SetSym(SymmetryGroup::C1());
+  SubSymGTOs sub_y;
+  sub_y.AddXyz(Vector3cd(0, 0, 0));
+  sub_y.AddNs( Vector3i( 0, 1, 0));
+  sub_y.AddRds(Reduction(0, MatrixXcd::Ones(1, 1)));
+  sub_y.AddZeta(zeta);
+  gtos_y->AddSub(sub_y);
+  gtos_y->SetUp();
+
+  SymGTOs gtos_z = CreateSymGTOs();
+  gtos_z->SetSym(SymmetryGroup::C1());
+  SubSymGTOs sub_z;
+  sub_z.AddXyz(Vector3cd(0,0,0));
+  sub_z.AddNs( Vector3i( 0,0,1));
+  sub_z.AddRds(Reduction(0, MatrixXcd::Ones(1, 1)));
+  sub_z.AddZeta(zeta);
+  gtos_z->AddSub(sub_z);
+  gtos_z->SetUp();
+
+  VectorXcd cs(2); cs << 0.2, 1.1;
+  VectorXcd rs(1); rs << 1.0;
+  Irrep irrep(0);
+  VectorXcd vs_y(1), dvs_y(1);
+  VectorXcd vs_z(1), dvs_z(1);
+
+  gtos_y->AtR_Ylm(1,-1, irrep, cs, rs, &vs_y, &dvs_y);
+  gtos_z->AtR_Ylm(1, 0, irrep, cs, rs, &vs_z, &dvs_z);
+
+  cout << vs_y << vs_z << endl;
+
+}
 TEST(SymGTOs, at_r_ylm_nd) {
 
   pSymmetryGroup C1 = SymmetryGroup::C1();
@@ -549,7 +585,7 @@ TEST(SymGTOs, conjugate) {
   
   gtos_1->SetUp();
   gtos_2->SetUp();
-  SymGTOs gtos_3 = gtos_1->ComplexConj();
+  SymGTOs gtos_3 = gtos_1->Conj();
 
   BMatSet mat2 = CalcMat_Complex(gtos_2, false);
   BMatSet mat3 = CalcMat_Complex(gtos_3, false);

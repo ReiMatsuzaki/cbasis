@@ -5,6 +5,118 @@ import unittest
 import minieigen as me
 import scipy.linalg as la
 
+class Test_JK(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def _test_jk0(self):
+        ## this test is for checking segmentation error
+        xatom = (0, 0, 0)
+        sym = Cs()
+        Ap = sym.get_irrep("A'")
+        App= sym.get_irrep("A''")
+        zeta0 = [0.107951, 0.240920, 0.552610, 1.352436, 3.522261, 9.789053, 30.17990, 108.7723, 488.8941, 3293.694]
+        zeta1 = zeta0
+
+        gtos = (SymGTOs.create()
+                .sym(sym)
+                .sub(SubSymGTOs()
+                     .xyz(xatom).ns((0, 0, 0))
+                     .rds(Reduction(Ap,  [[1]]))
+                     .zeta(zeta0))
+                .sub(SubSymGTOs()
+                     .xyz(xatom).ns((0, 0, 1))
+                     .rds(Reduction(App, [[1]]))
+                     .zeta(zeta1))
+                .atom(xatom, 2.0)
+                .setup())
+
+        print ""
+        print "Jk0"
+        mat_set = calc_mat_complex(gtos, True)
+        eri = calc_ERI_complex(gtos, ERI_method().use_symmetry(1))
+
+        w = 1.0
+        # mo = calc_RHF(sym, mat_set, eri, 2, 20, 0.00001,  0)
+        # jk = calc_JK(eri, mo.C, 0, 0, 1.0, 1.0)
+        C = BMat()
+        c00 = me.MatrixXc.Zero(len(zeta0), len(zeta0))
+        C.set_matrix(0, 0, c00)
+        c11 = me.MatrixXc.Zero(len(zeta1), len(zeta1))
+        C.set_matrix(1, 1, c11)
+        jk = calc_JK(eri, C, 0, 0, 1.0, 1.0)
+    
+    def test_jk(self):
+        sym = Cs()
+        g_i = SymGTOs.create().sym(sym)
+        g_0 = SymGTOs.create().sym(sym)
+        g_1 = SymGTOs.create().sym(sym)
+        g_f = SymGTOs.create().sym(sym)
+        
+        zeta_i = [0.4, 1.0]
+        sub_i = (SubSymGTOs()
+                 .xyz((0,0,0))
+                 .ns((0,0,0))
+                 .zeta(zeta_i)
+                 .rds(Reduction(0, [[1]])))
+        g_i.sub(sub_i)
+        g_f.sub(sub_i)
+        
+        zeta_0 = [0.1, 0.2]
+        sub_0 = (SubSymGTOs()
+                 .xyz((0,0,0))
+                 .ns((0,0,1))
+                 .zeta(zeta_0)
+                 .rds(Reduction(1, [[1]])))
+        g_0.sub(sub_0)
+        g_f.sub(sub_0)
+
+        zeta_1 = [0.03, 1.1]
+        sub_1 = (SubSymGTOs()
+                 .xyz((0,0,0))
+                 .ns((0,0,1))
+                 .zeta(zeta_1)
+                 .rds(Reduction(1, [[1]])))
+        g_1.sub(sub_1)
+        g_f.sub(sub_1)        
+
+        g_i.setup()
+        g_0.setup()
+        g_1.setup()
+        g_f.setup()
+        
+        C = BMat()
+        c00 = me.MatrixXc.Zero(2, 2)
+        c00[0,0] = 1.0; c00[0,1] = 1.2
+        c00[1,0] = 0.2; c00[1,1] = 0.3
+        C.set_matrix(0, 0, c00)
+        c11 = me.MatrixXc.Zero(4, 4)
+        c11[0,0] = 1.0; c11[0,1] = 1.2
+        c11[1,0] = 0.2; c11[1,1] = 0.3
+        C.set_matrix(1, 1, c11)
+        
+        method = ERI_method()
+
+        coef_J = 1.1
+        coef_K = 1.2
+
+        eri_f = calc_ERI_complex(g_f, method)
+        J_f = calc_JK(eri_f, C, 0, 0, coef_J, coef_K)
+
+        eri_J = calc_ERI(g_0, g_1, g_i, g_i, method)
+        J_01 = calc_J(eri_J, C[0,0].col(0), 0, g_0, g_1)
+
+        eri_K = calc_ERI(g_0, g_i, g_i, g_1, method)
+        K_01 = calc_K(eri_K, C[0,0].col(0), 0, g_0, g_1)
+
+        for i in range(2):
+            for j in range(2):
+                self.assertAlmostEqual(J_f[1,1][i,j+2],
+                                       coef_J * J_01[1,1][i,j] +
+                                       coef_K * K_01[1,1][i,j],
+                                       msg = "{0}, {1}".format(i,j))
+
+
 class Test_minieigen(unittest.TestCase):
     def setUp(self):
         pass
@@ -48,14 +160,15 @@ class Test_BMatSet(unittest.TestCase):
         s00[0, 1] = 1.1; s00[1, 0] = 1.2
         Ap = cs.get_irrep("A'")
         bmat.set_matrix("s", Ap, Ap, s00)
-        s00_get1 = bmat["s", Ap, Ap]
-        s00_get2 = bmat["s", Ap, Ap]
+        s00_get1 = bmat.get_matrix("s", Ap, Ap)
+        s00_get2 = bmat.get_matrix("s", Ap, Ap)
         s00_get1[0, 1] = 2.1
         self.assertAlmostEqual(1.2, s00_get2[1, 0])
         self.assertAlmostEqual(2.1, s00_get2[0, 1])
         
         
 class Test_SymMolInt(unittest.TestCase):
+
     def setUp(self):
         pass
     
@@ -128,6 +241,56 @@ class Test_SymMolInt(unittest.TestCase):
         rs = [1.0, 2.0]
         ys = gtos.at_r_ylm(0, 0, Ap, cs, rs)
 
+    def test_clone(self):
+        sym = Cs()
+        Ap = sym.get_irrep("A'")
+        zs = [2.0**n-0.1j for n in range(-2,2)]
+        gtos = (SymGTOs.create()
+                .sym(sym)
+                .sub(SubSymGTOs()
+                     .xyz((0, 0, 0))
+                     .ns( (0, 0, 0))
+                     .rds(Reduction(Ap, [[1]]))
+                     .zeta(zs))
+                .atom((0, 0, 0), 1.1)
+                .setup())
+        gtos_copy = gtos.clone()
+        gtos_cc   = gtos.conj()
+        mat = calc_mat_complex(gtos, False)
+        mat_copy = calc_mat_complex(gtos, False)
+        mat_cc = calc_mat_complex(gtos, False)
+        self.assertAlmostEqual(mat.get_matrix("v", 0, 0)[0, 1], 
+                               mat_copy.get_matrix("v", 0, 0)[0, 1])
+        self.assertAlmostEqual(mat_cc.get_matrix("v", 0, 0)[0, 1].conjugate(), 
+                               mat_copy.get_matrix("v", 0, 0)[0, 1])
+
+        
+    def test_calc_v(self):
+        xyz = (0.3, 0.4, 0.1)
+        q = 1.1
+        zs = [2.0**n-0.1j for n in range(-2, 2)]
+        gtos = (SymGTOs.create()
+                .sym(Cs())
+                .sub(SubSymGTOs()
+                     .xyz((0, 0.2, 0))
+                     .ns( (1, 0, 0))
+                     .rds(Reduction(0, [[1]]))
+                     .zeta(zs))
+                .atom(xyz, q)
+                .setup())
+        gtos2 = (SymGTOs.create()
+                 .sym(Cs())
+                 .sub(SubSymGTOs()
+                      .xyz((0, 0.2, 0))
+                      .ns( (1, 0, 0))
+                      .rds(Reduction(0, [[1]]))
+                      .zeta(zs))
+                 .atom((0,0,0), 0)
+                 .setup())
+        v1 = calc_mat_hermite(gtos, True)["v"][0, 0]
+        v2 = calc_v_mat(gtos2.conj(), gtos2, xyz, q)[0, 0]
+        self.assertAlmostEqual(v1[1, 2], v2[1, 2])
+
 
 class Test_H_atom(unittest.TestCase):
 
@@ -148,9 +311,9 @@ class Test_H_atom(unittest.TestCase):
                      .atom(xatom, 1.0))
         mat = calc_mat_complex(self.gtos, True)
         
-        s = mat["s", Ap, Ap]
-        t = mat["t", Ap, Ap]
-        v = mat["v", Ap, Ap]
+        s = mat.get_matrix("s", Ap, Ap)
+        t = mat.get_matrix("t", Ap, Ap)
+        v = mat.get_matrix("v", Ap, Ap)
         h = t + v
         (self.eigs, self.eigvecs) = ceig(h, s)
      
@@ -173,9 +336,9 @@ class Test_H_atom(unittest.TestCase):
     def test_2p(self):
         App= Cs().get_irrep("A''")
         mat = calc_mat_complex(self.gtos, True)
-        s = mat["s", App, App]
-        t = mat["t", App, App]
-        v = mat["v", App, App]        
+        s = mat.get_matrix("s", App, App)
+        t = mat.get_matrix("t", App, App)
+        v = mat.get_matrix("v", App, App)
         (eigs, eigenvecs) = ceig(t+v, s)
 
         self.assertTrue(abs(eigs[0]+0.125) < 0.000001)
@@ -218,9 +381,9 @@ class Test_H2_plus(unittest.TestCase):
         self.gtos.setup()
         mat = calc_mat_complex(self.gtos, True)
         Ap = self.sym.get_irrep("A'")
-        s = mat["s", Ap, Ap]
-        t = mat["t", Ap, Ap]
-        v = mat["v", Ap, Ap]
+        s = mat.get_matrix("s", Ap, Ap)
+        t = mat.get_matrix("t", Ap, Ap)
+        v = mat.get_matrix("v", Ap, Ap)
         h = t + v
         (eigs, eigvecs) = ceig(h, s)
         self.assertAlmostEqual(-1.284146, eigs[0], places=4,
@@ -251,17 +414,17 @@ class Test_H_photoionization(unittest.TestCase):
                      .atom(xatom, 1.0))
         self.gtos.setup()
         mat = calc_mat_complex(self.gtos, True)
-        h0 = mat["t", Ap, Ap] + mat["v", Ap, Ap]
-        s0 = mat["s", Ap, Ap]
+        h0 = mat.get_matrix("t", Ap, Ap) + mat.get_matrix("v", Ap, Ap)
+        s0 = mat.get_matrix("s", Ap, Ap)
         (eigs0, eigvecs0) = ceig(h0, s0)
         ene0 = eigs0[0]
         c0 = self.gtos.correct_sign(0, 0, Ap, eigvecs0.col(0))
         self.assertAlmostEqual(ene0, -0.5, places=4)
         
-        h1 = mat["t", App, App] + mat["v", App, App]
-        s1 = mat["s", App, App]
+        h1 = mat.get_matrix("t", App, App) + mat.get_matrix("v", App, App)
+        s1 = mat.get_matrix("s", App, App)
 
-        z10 = mat["z", App, Ap]
+        z10 = mat.get_matrix("z", App, Ap)
         w = 1.0
         m1 = z10 * c0
         c1 = la.solve(h1 - (w+ene0)*s1, m1)
@@ -295,14 +458,14 @@ class Test_H_photoionization(unittest.TestCase):
         mat0 = calc_mat_complex(self.gtos0, True)
         mat1 = calc_mat_complex(self.gtos1, True)
         mat10= calc_mat(self.gtos1, self.gtos0, False)
-        h0 = mat0["t", Ap, Ap] + mat0["v", Ap, Ap]
-        s0 = mat0["s", Ap, Ap]
+        h0 = mat0.get_matrix("t", Ap, Ap) + mat0.get_matrix("v", Ap, Ap)
+        s0 = mat0.get_matrix("s", Ap, Ap)
         (eigs0, eigvecs) = ceig(h0, s0)
         ene0 = eigs0[0]
         c0 = eigvecs.col(0)
-        h1 = mat1["t", App, App] + mat1["v", App, App]
-        s1 = mat1["s", App, App]
-        z10 = mat10["z", App, Ap]
+        h1 = mat1.get_matrix("t", App, App) + mat1.get_matrix("v", App, App)
+        s1 = mat1.get_matrix("s", App, App)
+        z10 = mat10.get_matrix("z", App, Ap)
         m1 = z10 * c0
         w = 1.0
         c1 = la.solve(h1 - (w+ene0)*s1, m1)
@@ -347,7 +510,7 @@ class Test_He(unittest.TestCase):
         
     def test_ERI(self):
         print ""
-        print "Test He"
+        print "test He"
         gtos = self.gtos
         sym = self.sym
         mat_set = calc_mat_complex(gtos, True)

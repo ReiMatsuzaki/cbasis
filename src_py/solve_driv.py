@@ -79,8 +79,8 @@ class TwoPotDrivEq():
         y0p_v_yp = np.dot(c0.conj(), np.dot(v1H,c1))
         y0m_v_yp = np.dot(c0,        np.dot(v1, c1))
         imy0p_v_yp = (y0p_v_yp - y0m_v_yp)/(2.0j)
-        j_plmx = np.sqrt(-k*plmx_y0p.imag)
-        amp = 2.0/k*(y0p_muphi.imag + imy0p_v_yp)/j_plmx
+        j_plmx = np.sqrt(-np.pi*plmx_y0p.imag)
+        amp = (y0p_muphi.imag + imy0p_v_yp)/j_plmx
         return amp        
 
     def amp_c_matching(self, r0):

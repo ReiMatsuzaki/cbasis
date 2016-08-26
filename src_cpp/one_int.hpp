@@ -28,6 +28,7 @@ namespace l2func {
   BMatSet CalcMat(SymGTOs a, SymGTOs b, bool calc_coulomb);
   BMatSet CalcMat_Complex(SymGTOs g, bool calc_coulomb);
   BMatSet CalcMat_Hermite(SymGTOs g, bool calc_coulomb);
+  //  BMatSet CalcMat_V(SymGTOs a, SymGTOs b, Eigen::Vector3cd xyz, dcomplex q);
 
 }
 

@@ -20,7 +20,74 @@
 using namespace std;
 using namespace l2func;
 using namespace Eigen;
+TEST(Matrix, J) {
 
+  // set symmetry
+  pSymmetryGroup sym = SymmetryGroup::Cs();
+  
+  // GTO
+  SymGTOs g_i(new _SymGTOs); g_i->SetSym(sym);
+  SymGTOs g_1(new _SymGTOs); g_1->SetSym(sym);
+  SymGTOs g_0(new _SymGTOs); g_0->SetSym(sym);
+  SymGTOs g_full(new _SymGTOs); g_full->SetSym(sym);
+
+  VectorXcd zeta_i(2); zeta_i << 0.4, 1.0;
+  SubSymGTOs sub_i(Sub_mono(0,
+			    Vector3cd(0, 0, 0), Vector3i(0, 0, 0), zeta_i));
+  g_i->AddSub(     sub_i);
+  g_full->AddSub(  sub_i);
+
+  VectorXcd zeta0(2); zeta0 << dcomplex(0.5, 0.0), dcomplex(0.4, 0.1);
+  SubSymGTOs sub_0(Sub_mono(1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1), zeta0));
+  g_0->AddSub(sub_0);
+  g_full->AddSub(sub_0);
+
+  VectorXcd zeta1(2); zeta1 << dcomplex(1.0, 0.4), dcomplex(0.4, 0.1);
+  SubSymGTOs sub_1(Sub_mono(1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1), zeta1));
+  g_1->AddSub(sub_1);
+  g_full->AddSub(sub_1);
+
+  g_i->SetUp(); g_1->SetUp(); g_0->SetUp(); g_full->SetUp();
+  
+  // Set coefficient
+  BMat C;
+  C[make_pair(0, 0)] = MatrixXcd::Zero(2, 2);
+  C[make_pair(0, 0)] <<
+    1.0, 1.5,
+    0.3, 0.2;
+  C[make_pair(1, 1)] = MatrixXcd::Zero(2, 2);
+  C[make_pair(1, 1)] <<
+    0.2, 0.5,
+    1.1, 1.4;
+
+  
+  pair<int, int> i00(0, 0), i11(1, 1);
+
+  // compute J/K
+  BMat J_full;
+  
+  ERIMethod method_sym; method_sym.symmetry = 1;
+  ERIMethod method; method.coef_R_memo = 1;
+
+  B2EInt eri_full = CalcERI_Complex(g_full, method_sym);
+  J_full[i00] = MatrixXcd::Zero(2, 2); J_full[i11] = MatrixXcd::Zero(4, 4);
+  AddJK(eri_full, C, 0, 0, 1.0, 0.0, J_full);
+  
+  BMat J; 
+  J[i00] = MatrixXcd::Zero(2, 2); J[i11] = MatrixXcd::Zero(2, 2);
+  B2EInt eri_J = CalcERI(g_0, g_1, g_i, g_i, method);
+  cout << eri_J->size() << endl;
+  VectorXcd C0 = C[make_pair(0, 0)].col(0);
+  AddJ(eri_J, C0, 0, J);
+  cout << J[i11](0, 0) << J_full[i11](0, 0+2) << endl;
+
+  // Check values
+  EXPECT_C_EQ(J[i11](0, 0), J_full[i11](0, 0+2));
+  EXPECT_C_EQ(J[i11](0, 1), J_full[i11](0, 1+2));
+  EXPECT_C_EQ(J[i11](1, 0), J_full[i11](1, 0+2));
+  EXPECT_C_EQ(J[i11](1, 1), J_full[i11](1, 1+2));
+
+}
 TEST(Matrix, JK) {
 
   // set symmetry
@@ -32,14 +99,14 @@ TEST(Matrix, JK) {
   SymGTOs gtos_full = gtos->Clone();
 
   VectorXcd zeta1(2); zeta1 << 0.4, 1.0;
-  SubSymGTOs sub_s(Sub_mono(sym, 0, Vector3cd(0, 0, 0), Vector3i(0, 0, 0), zeta1));
+  SubSymGTOs sub_s(Sub_mono(0, Vector3cd(0, 0, 0), Vector3i(0, 0, 0), zeta1));
   gtos->AddSub(     sub_s);
   gtos_cc->AddSub(  sub_s);
   gtos_full->AddSub(sub_s);
 
   VectorXcd zeta2(2); zeta2 << dcomplex(1.0, 0.4), dcomplex(0.4, 0.1);
-  SubSymGTOs sub_z(Sub_mono(sym, 1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1), zeta2));
-  SubSymGTOs sub_zc(Sub_mono(sym, 1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1),
+  SubSymGTOs sub_z(Sub_mono(1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1), zeta2));
+  SubSymGTOs sub_zc(Sub_mono(1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1),
 			     zeta2.conjugate()));
   gtos->AddSub(   sub_z);
   gtos_cc->AddSub(sub_zc);
@@ -105,11 +172,11 @@ TEST(Matrix, JK2) {
   gtos->SetSym(sym);
 
   VectorXcd zeta1(2); zeta1 << 0.4, 1.0;
-  SubSymGTOs sub_s(Sub_mono(sym, 0, Vector3cd(0, 0, 0), Vector3i(0, 0, 0), zeta1));
+  SubSymGTOs sub_s(Sub_mono(0, Vector3cd(0, 0, 0), Vector3i(0, 0, 0), zeta1));
   gtos->AddSub(     sub_s);
 
   VectorXcd zeta2(2); zeta2 << dcomplex(1.0, 0.4), dcomplex(0.4, 0.1);
-  SubSymGTOs sub_z(Sub_mono(sym, 1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1), zeta2));
+  SubSymGTOs sub_z(Sub_mono(1, Vector3cd(0, 0, 0), Vector3i(0, 0, 1), zeta2));
   gtos->AddSub(   sub_z);
 
   MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 2.0;
@@ -360,14 +427,13 @@ TEST(HF, He) {
   pSymmetryGroup sym = SymmetryGroup::D2h();
 
   // sub set (S orbital)
-  SubSymGTOs sub_s(sym);
+  SubSymGTOs sub_s;
   sub_s.AddXyz(Vector3cd(0, 0, 0));
   sub_s.AddNs(Vector3i(0, 0, 0));
     VectorXcd zeta_s(10);
   zeta_s << 0.107951, 0.240920, 0.552610, 1.352436, 3.522261, 9.789053, 30.17990, 108.7723, 488.8941, 3293.694;
   sub_s.AddZeta(zeta_s);
   sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s.SetUp();
 
   // GTO set
   SymGTOs gtos(new _SymGTOs);
@@ -409,7 +475,7 @@ TEST(HF, H2) {
   Irrep irrep_s  = 0;
 
   // see calculation result in ylcls
-  SubSymGTOs sub_s(sym);
+  SubSymGTOs sub_s;
   sub_s.AddXyz(Vector3cd(0, 0,+R0/2.0));
   sub_s.AddXyz(Vector3cd(0, 0,-R0/2.0));
   sub_s.AddNs(Vector3i(0, 0, 0));
@@ -419,9 +485,8 @@ TEST(HF, H2) {
   sub_s.AddZeta(zetas); 
   MatrixXcd c(2, 1); c << 1, 1;
   sub_s.AddRds(Reduction(irrep_s, c));
-  sub_s.SetUp(); 
   
-  SubSymGTOs sub_p(sym);
+  SubSymGTOs sub_p;
   sub_p.AddXyz(Vector3cd(0, 0, +R0/2.0));
   sub_p.AddXyz(Vector3cd(0, 0, -R0/2.0));
   sub_p.AddNs(Vector3i(  0, 0, 1));
@@ -429,7 +494,6 @@ TEST(HF, H2) {
   sub_p.AddZeta(zeta_p);
   MatrixXcd cp(2, 1); cp << 1, -1;
   sub_p.AddRds(Reduction(irrep_s, cp));
-  sub_p.SetUp();
   
   SymGTOs gtos(new _SymGTOs);
   gtos->SetSym(sym);
@@ -456,6 +520,7 @@ TEST(HF, H2) {
   EXPECT_C_NEAR(mo->eigs[0](1), +0.02339, 0.00002);
 }
 TEST(HF, H2_eig) {
+
 /*
   // ==== Symmetry ====
   pSymmetryGroup D2h = SymmetryGroup::D2h();
@@ -666,7 +731,7 @@ TEST(HF, H) {
   pSymmetryGroup sym = SymmetryGroup::D2h();
 
   // sub set (S orbital)
-  SubSymGTOs sub_s(sym);
+  SubSymGTOs sub_s;
   sub_s.AddXyz(Vector3cd(0, 0, 0));
   sub_s.AddNs(Vector3i(0, 0, 0));
   int num_zeta(10);
@@ -676,10 +741,9 @@ TEST(HF, H) {
   }
   sub_s.AddZeta(zetas);
   sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s.SetUp();
 
   // sub set (Pz orbital)
-  SubSymGTOs sub_pz(sym);
+  SubSymGTOs sub_pz;
   sub_pz.AddXyz(Vector3cd(0, 0, 0));
   sub_pz.AddNs(Vector3i(0, 0, 1));
   int num_zeta_pz(12);
@@ -689,7 +753,6 @@ TEST(HF, H) {
     zetas_pz[i] = pow(2.0, num_zeta_pz/2-i) * dcomplex(cos(theta), -sin(theta));
   sub_pz.AddZeta(zetas_pz);
   sub_pz.AddRds(Reduction(sym->irrep_z, MatrixXcd::Ones(1, 1)));
-  sub_pz.SetUp();
 
   // GTO set
   SymGTOs gtos(new _SymGTOs);
@@ -726,24 +789,22 @@ TEST(STEX, small) {
   pSymmetryGroup sym = SymmetryGroup::D2h();
 
   // sub set (S orbital)
-  SubSymGTOs sub_s(sym);
+  SubSymGTOs sub_s;
   sub_s.AddXyz(Vector3cd(0, 0, 0));
   sub_s.AddNs(Vector3i(0, 0, 0));
   VectorXcd zeta_s(2);
   zeta_s << 0.1, 0.5;
   sub_s.AddZeta(zeta_s);
   sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s.SetUp();
 
   // sub set (P orbital)
-  SubSymGTOs sub_z(sym);
+  SubSymGTOs sub_z;
   sub_z.AddXyz(Vector3cd(0, 0, 0));
   sub_z.AddNs(Vector3i(0, 0, 1));
   VectorXcd zeta_z(2);
   zeta_z << dcomplex(1.0, 0.1), dcomplex(3.0, 0.2);
   sub_z.AddZeta(zeta_z);
   sub_z.AddRds(Reduction(sym->irrep_z, MatrixXcd::Ones(1, 1)));
-  sub_z.SetUp();
 
   // GTO set
   SymGTOs gtos(new _SymGTOs);
@@ -786,17 +847,16 @@ TEST(STEX, He) {
   pSymmetryGroup sym = SymmetryGroup::D2h();
 
   // sub set (S orbital)
-  SubSymGTOs sub_s(sym);
+  SubSymGTOs sub_s;
   sub_s.AddXyz(Vector3cd(0, 0, 0));
   sub_s.AddNs(Vector3i(0, 0, 0));
   VectorXcd zeta_s(10);
   zeta_s << 0.107951, 0.240920, 0.552610, 1.352436, 3.522261, 9.789053, 30.17990, 108.7723, 488.8941, 3293.694;
   sub_s.AddZeta(zeta_s);
   sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s.SetUp();
 
   // sub set (P orbital)
-  SubSymGTOs sub_z(sym);
+  SubSymGTOs sub_z;
   sub_z.AddXyz(Vector3cd(0, 0, 0));
   sub_z.AddNs(Vector3i(0, 0, 1));
   int num_zeta(19);
@@ -824,7 +884,6 @@ TEST(STEX, He) {
 
   sub_z.AddZeta(zetas);
   sub_z.AddRds(Reduction(sym->irrep_z, MatrixXcd::Ones(1, 1)));
-  sub_z.SetUp();
 
   // GTO set
   SymGTOs gtos(new _SymGTOs);
@@ -914,23 +973,21 @@ TEST(STEX, He_one_gto) {
   pSymmetryGroup sym = SymmetryGroup::Cs();
 
   // sub set (S orbital)
-  SubSymGTOs sub_s(sym);
+  SubSymGTOs sub_s;
   sub_s.AddXyz(Vector3cd(0, 0, 0));
   sub_s.AddNs(Vector3i(0, 0, 0));
   VectorXcd zeta_s(10);
   zeta_s << 0.107951, 0.240920, 0.552610, 1.352436, 3.522261, 9.789053, 30.17990, 108.7723, 488.8941, 3293.694;
   sub_s.AddZeta(zeta_s);
   sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s.SetUp();
 
   // sub set (P orbital)
-  SubSymGTOs sub_z(sym);
+  SubSymGTOs sub_z;
   sub_z.AddXyz(Vector3cd(0, 0, 0));
   sub_z.AddNs(Vector3i(0, 0, 1));
   VectorXcd zeta_z(1); zeta_z << z1;
   sub_z.AddZeta(zeta_z);
   sub_z.AddRds(Reduction(sym->irrep_z, MatrixXcd::Ones(1, 1)));
-  sub_z.SetUp();
 
   // GTO set
   SymGTOs gtos(new _SymGTOs);
@@ -995,7 +1052,7 @@ SymGTOs CreateGTOs_H2() {
   SymGTOs gtos(new _SymGTOs);
   gtos->SetSym(sym);
 
-  SubSymGTOs sub_s(sym);
+  SubSymGTOs sub_s;
   sub_s.AddXyz(Vector3cd(0, 0,+R0/2.0));
   sub_s.AddXyz(Vector3cd(0, 0,-R0/2.0));
   sub_s.AddNs(Vector3i(0, 0, 0));
@@ -1005,10 +1062,9 @@ SymGTOs CreateGTOs_H2() {
   sub_s.AddZeta(zetas); 
   MatrixXcd c(2, 1); c << 1, 1;
   sub_s.AddRds(Reduction(sym->irrep_s, c));
-  sub_s.SetUp(); 
   gtos->AddSub(sub_s); 
 
-  SubSymGTOs sub_p(sym);
+  SubSymGTOs sub_p;
   sub_p.AddXyz(Vector3cd(0, 0, +R0/2.0));
   sub_p.AddXyz(Vector3cd(0, 0, -R0/2.0));
   sub_p.AddNs(Vector3i(  0, 0, 1));
@@ -1016,10 +1072,9 @@ SymGTOs CreateGTOs_H2() {
   sub_p.AddZeta(zeta_p);
   MatrixXcd cp(2, 1); cp << 1, -1;
   sub_p.AddRds(Reduction(sym->irrep_s, cp));
-  sub_p.SetUp();
   gtos->AddSub(sub_p);
 
-  SubSymGTOs sub_p_cen(sym);
+  SubSymGTOs sub_p_cen;
   sub_p_cen.AddXyz(Vector3cd(0, 0, 0));
   sub_p_cen.AddNs( Vector3i( 1, 0, 0));
   sub_p_cen.AddNs( Vector3i( 0, 1, 0));
@@ -1052,7 +1107,6 @@ SymGTOs CreateGTOs_H2() {
   sub_p_cen.AddRds(Reduction(sym->irrep_x, cx));
   sub_p_cen.AddRds(Reduction(sym->irrep_y, cy));
   sub_p_cen.AddRds(Reduction(sym->irrep_z, cz));
-  sub_p_cen.SetUp();
   gtos->AddSub(sub_p_cen);
 
   MatrixXcd xyzq(4, 2); xyzq <<
