@@ -21,9 +21,10 @@ namespace l2func {
 
 
   // ==== ERI method ====
-  ERIMethod::ERIMethod(): symmetry(0), coef_R_memo(0) {}
+  ERIMethod::ERIMethod(): symmetry(0), coef_R_memo(0), perm(0) {}
   void ERIMethod::set_symmetry(int s) {symmetry = s; }
   void ERIMethod::set_coef_R_memo(int s) {coef_R_memo = s; }
+  void ERIMethod::set_perm(int s) {perm = s; }
 
   // ==== Reduction Sets ====
   string Reduction::str() const {

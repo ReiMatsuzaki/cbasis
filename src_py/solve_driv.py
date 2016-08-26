@@ -132,3 +132,5 @@ class TwoPotDrivEq():
         # solve driven eq
         c1 = la.solve(self.energy*s-v0-v1-t, m)
         return c1
+
+

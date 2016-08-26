@@ -152,12 +152,36 @@ TEST(coef_R, method1) {
 
 }
 
+TEST(CalcPrim, Sym0122) {
+
+  SubSymGTOs sub_s;
+  sub_s.AddXyz(Vector3cd(0.0, 0.2, 0.3));
+  sub_s.AddNs( Vector3i( 0,   0,   0));
+  VectorXcd zeta_s(2); zeta_s << dcomplex(0.3, 0.02), dcomplex(0.5, 0.01);
+  sub_s.AddZeta(zeta_s);
+  sub_s.AddRds(Reduction(0, MatrixXcd::Ones(1, 1)));
+
+  SubSymGTOs sub_p;
+  sub_p.AddXyz(Vector3cd(+1.0, 0.0, 0.0));
+  sub_p.AddXyz(Vector3cd(-1.0, 0.0, 0.0));
+  sub_p.AddNs(Vector3i(1, 0, 0));
+  sub_p.AddNs(Vector3i(0, 1, 0));
+  sub_p.AddNs(Vector3i(0, 0, 1));
+  VectorXcd zeta_p(2); zeta_p << dcomplex(1.1, 0.2), dcomplex(1.5, 0.1);
+  sub_p.AddZeta(zeta_p);
+  MatrixXcd c(2, 3);
+  c(0, 0) = 1.0; c(0, 1) = 2.0; c(0, 2) = 0.1;
+  c(1, 0) = 0.4; c(1, 1) = 2.1; c(1, 2) = 0.1;
+  sub_p.AddRds(Reduction(0, c));
+
+}
+
 TEST(SymGTOs, CalcERI_differenct) {
 
   pSymmetryGroup Cs = SymmetryGroup::Cs();
-  SymGTOs gtos_full(new _SymGTOs); gtos_full->SetSym(Cs);
   SymGTOs gtos_1(   new _SymGTOs); gtos_1->SetSym(Cs);
   SymGTOs gtos_2(   new _SymGTOs); gtos_2->SetSym(Cs);
+  SymGTOs gtos_3(   new _SymGTOs); gtos_3->SetSym(Cs);
 
   Irrep Ap = Cs->GetIrrep("A'");
   Irrep App= Cs->GetIrrep("A''");
@@ -167,32 +191,32 @@ TEST(SymGTOs, CalcERI_differenct) {
   zeta_h << dcomplex(0.4, 0.1), dcomplex(1.4, 0.6);
   SubSymGTOs sub_1(Sub_mono(Ap, Vector3cd(0, 0, 0),
 			    Vector3i(0, 0, 0), zeta_h));
-  gtos_full->AddSub(sub_1);
   gtos_1->AddSub(   sub_1);
 
    // -- A'' symmetry, Center --
   VectorXcd zeta_gh = VectorXcd::Zero(3); zeta_gh << 0.6, 1.2, dcomplex(2.4, 1.0);
   SubSymGTOs sub_2(Sub_mono(App, Vector3cd(0, 0, 0), Vector3i(0, 0, 0), zeta_gh));
-  gtos_full->AddSub(sub_2);
   gtos_2->AddSub(   sub_2);
+  gtos_2->AddSub(   sub_1);
+  
+  gtos_3->AddSub(sub_2);
 
-  // -- potential --
-  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
-  gtos_full->SetAtoms(xyzq); gtos_full->SetUp();
-  gtos_1->SetAtoms(xyzq);    gtos_1->SetUp();
-  gtos_2->SetAtoms(xyzq);    gtos_2->SetUp();
+  gtos_1->SetUp();
+  gtos_2->SetUp();
+  gtos_3->SetUp();
 
   // -- Compute ERI --
-  ERIMethod method; method.symmetry = 0; method.coef_R_memo = 0; 
-  B2EInt eri_full = CalcERI_Complex(gtos_full, method);
-  B2EInt eri_J    = CalcERI(gtos_1, gtos_1, gtos_2, gtos_2, method);
+  ERIMethod method; method.perm = 0; method.symmetry = 0;
+  B2EInt eri_0 = CalcERI(gtos_1, gtos_2, gtos_3, gtos_3, method);
+  ERIMethod method1; method1.perm = 0; method1.symmetry = 1; method1.coef_R_memo=1;
+  B2EInt eri_1 = CalcERI(gtos_1, gtos_2, gtos_3, gtos_3, method1);
 
   for(int i = 0; i < 2; i++)
-    for(int j = 0; j < 2; j++)
+    for(int j = 0; j < 3; j++)
       for(int k = 0; k < 3; k++)
 	for(int l = 0; l < 3; l++) {
-	  EXPECT_C_EQ(eri_full->At(0, 0, 1, 1, i, j, k, l),
-		      eri_J->At(   0, 0, 1, 1, i, j, k, l));
+	  EXPECT_C_EQ(eri_0->At(0, 1, 1, 1, i, j, k, l),
+		      eri_1->At(0, 1, 1, 1, i, j, k, l)) << i<<j<<k<<l;
 	}
 
 }
@@ -342,7 +366,6 @@ TEST(SymGTOs, CalcERI_sym_p) {
   c(0, 0) = 0.0; c(0, 1) = 1.0;
   sub_p.AddRds(Reduction(1, c));
 
-  sub_p.SetUp();
   gtos->AddSub(sub_p);
 
   // -- potential --
@@ -383,7 +406,6 @@ TEST(SymGTOs, CalcERI_sym) {
   VectorXcd zs(num_z); zs << 1.1;
   sub_s.AddZeta(zs);
   sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s.SetUp();
   gtos->AddSub(sub_s);
 
   // ---- p orbital ----
@@ -396,7 +418,6 @@ TEST(SymGTOs, CalcERI_sym) {
   MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_x, c1));
   MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_y, c2));
   MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(sym->irrep_z, c3));
-  sub_p.SetUp();
   gtos->AddSub(sub_p);
 
   // -- potential --
@@ -449,7 +470,6 @@ TEST(SymGTOs, method_time) {
 
   sub_s.AddZeta(zs);
   sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s.SetUp();
   gtos->AddSub(sub_s);
 
   // ---- p orbital ----
@@ -464,7 +484,6 @@ TEST(SymGTOs, method_time) {
   MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_x, c1));
   MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_y, c2));
   MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(sym->irrep_z, c3));
-  sub_p.SetUp();
   gtos->AddSub(sub_p);
 
   // -- potential --
@@ -516,7 +535,6 @@ TEST(SymGTOs, method_check) {
   VectorXcd zs(num_z); zs << 1.1;
   sub_s.AddZeta(zs);
   sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_s.SetUp();
   gtos->AddSub(sub_s);
 
   // ---- p orbital ----
@@ -529,7 +547,6 @@ TEST(SymGTOs, method_check) {
   MatrixXcd c1(1, 3); c1 << 1.0, 0.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_x, c1));
   MatrixXcd c2(1, 3); c2 << 0.0, 1.0, 0.0; sub_p.AddRds(Reduction(sym->irrep_y, c2));
   MatrixXcd c3(1, 3); c3 << 0.0, 0.0, 1.0; sub_p.AddRds(Reduction(sym->irrep_z, c3));
-  sub_p.SetUp();
   gtos->AddSub(sub_p);
 
   // -- potential --

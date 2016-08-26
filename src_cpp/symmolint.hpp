@@ -17,9 +17,11 @@ namespace l2func {
   public:
     int symmetry;
     int coef_R_memo;
+    int perm;
     ERIMethod();
     void set_symmetry(int s);
     void set_coef_R_memo(int s);
+    void set_perm(int s);
   };
 
   // ==== AO Reduction ====
