@@ -207,7 +207,7 @@ def solid_part_waves(sym, L, Ms, zeta):
         if abs(M) > 1:
             raise(Exception("|M|>1 case is not supported "))
         
-    if L not in range(0, 4):
+    if L not in [0,1,2,3,5]:
         raise(Exception("implemented  for L=0,1,2,3 only"))
 
     if(sym.irrep_x == sym.irrep_y or
@@ -262,6 +262,29 @@ def solid_part_waves(sym, L, Ms, zeta):
             sub.rds(Reduction(sym.irrep_y, [[0,0,0,
                                              0,0,0,
                                              4,-1,-1]]))
+    elif L == 5:
+        sub.ns((5,0,0)).ns((3,2,0)).ns((1,4,0))
+        sub.ns((3,0,2)).ns((1,2,2)).ns((1,0,4))
+
+        sub.ns((4,0,1)).ns((2,2,1)).ns((0,4,1))
+        sub.ns((2,0,3)).ns((0,2,3)).ns((0,0,5))
+
+        sub.ns((4,1,0)).ns((2,3,0)).ns((0,5,0))
+        sub.ns((2,1,2)).ns((0,3,2)).ns((0,1,4))
+
+        if 1 in Ms:
+            sub.rds(Reduction(sym.irrep_x, [[1, 2, 1,-12,-12,8,
+                                             0, 0, 0, 0, 0,0,
+                                             0, 0, 0, 0, 0,0]]))
+        if 0 in Ms:
+            sub.rds(Reduction(sym.irrep_z, [[0, 0, 0, 0, 0,0,
+                                             15,30,15,-40,-40,8,
+                                             0, 0, 0, 0, 0,0]]))
+        if -1 in Ms:
+            sub.rds(Reduction(sym.irrep_y, [[0, 0, 0, 0, 0,0,
+                                             0, 0, 0, 0, 0,0,
+                                             1,2,1,-12,-12,8]]))
+        
     else:
         raise(Exception("not implemented yet"))
 

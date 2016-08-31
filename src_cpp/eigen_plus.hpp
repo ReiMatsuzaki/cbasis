@@ -17,6 +17,8 @@ void SortEigs(Eigen::VectorXcd& eigs, Eigen::MatrixXcd& eigvecs);
 void generalizedComplexEigenSolve(const CM& f, const CM& s, CM* c, CV* eig);
 void CanonicalMatrix(const CM& S, double eps, CM* res);
 void CEigenSolveCanonical(const CM& f, const CM& s, double eps, CM* c, CV* eig);
+void CEigenSolveCarnonicalNum(const CM& F, const CM& S, int num0,
+			      CM* c, CV* eig);
 
 class SymGenComplexEigenSolver {
 private:

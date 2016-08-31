@@ -6,6 +6,7 @@ LDFLAGS=-lgsl -lblas
 BIN_ORIG=bin
 ARCH=debug
 BINDIR=bin/${ARCH}
+PY_DIR=~/local/Python
 $(shell mkdir -p ${BINDIR})
 
 ifeq (${ARCH},fast)
@@ -40,7 +41,7 @@ check_l2: ${BINDIR}/l2func_bind.so
 	python test.py
 	rm l2func_bind.so
 install_l2: ${BINDIR}/l2func_bind.so
-	cp $< ~/local/Python
+	cp $< ${PY_DIR}
 
 # ==== SymMolInt ====
 SYMMOLINT_OBJS=mo.o symmolint.o one_int.o two_int.o fact.o mol_func.o bmatset.o angmoment.o eigen_plus.o b2eint.o symgroup.o 
@@ -50,11 +51,15 @@ check_symmolint: ${BINDIR}/symmolint_bind.so
 	rm -f symmolint_bind.so
 	ln -s ${BINDIR}/symmolint_bind.so .
 	python test_symmolint.py
+	python test_part_wave.py
 	rm symmolint_bind.so
 install_symmolint: ${BINDIR}/symmolint_bind.so
-	cp $< ~/local/Python/
-	cp symmolint_plus.py ~/local/Python/
-	cp symmolint.py ~/local/Python/
+	cp $< ${PY_DIR}
+	cp symmolint_plus.py ${PY_DIR}
+	cp symmolint.py ${PY_DIR}
+	cp coulomb.py ${PY_DIR}
+	cp part_wave.py ${PY_DIR}
+	cp solve_pi.py ${PY_DIR}
 
 # ==== R1GTOs ====
 R1GTOINT_OBJS=fact.o erfc.o lgamma.o exp_int.o eigen_plus.o opt_alpha.o r1gtoint.o l_algebra.o op_driv.o

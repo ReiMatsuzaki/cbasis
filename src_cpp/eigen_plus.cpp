@@ -1,4 +1,5 @@
 #include <sstream>
+#include <iostream>
 
 #include <Eigen/Eigenvalues>
 #include <Eigen/Core>
@@ -138,6 +139,41 @@ void CanonicalMatrix(const CM& S, double eps, CM* res) {
   res->swap(X);
 
 }
+void CanonicalMatrixNum(const CM& S, int num0, CM* res) {
+
+  int num1(S.rows());
+  
+  if(num1 != S.cols()) {
+    string msg; SUB_LOCATION(msg);
+    msg += ": size mismatch."; 
+    throw runtime_error(msg);
+  }
+  
+  if(num1 < num0) {
+    string msg; SUB_LOCATION(msg);
+    msg += "num0 must be lesser than num1";
+    throw runtime_error(msg);
+  }
+
+  ComplexEigenSolver<CM> es;
+  es.compute(S, true);
+  CV s;
+  CM U;
+  s.swap(es.eigenvalues());
+  U.swap(es.eigenvectors());
+  SortEigs(s, U);
+  
+  MatrixXcd X(num1, num0);
+  for(int j = 0; j < num0; j++) {
+    for(int i = 0; i < num1; i++ ) {
+      X(i, j) = U(i, j) / sqrt(s(j));
+    }
+  }
+  
+  *res = CM::Zero(1, 1);
+  res->swap(X);
+  
+}
 void CEigenSolveCanonical(const CM& F, const CM& S, double eps, CM* c, CV* eig) {
 
   MatrixXcd X;
@@ -150,7 +186,25 @@ void CEigenSolveCanonical(const CM& F, const CM& S, double eps, CM* c, CV* eig) 
   eig->swap(es.eigenvalues());
   SortEigs(*eig, *c);
 }
+void CEigenSolveCarnonicalNum(const CM& F, const CM& S, int num0,
+			      CM* c, CV* eig) {
 
+  cout << 1 << endl;
+  MatrixXcd X;
+  CanonicalMatrixNum(S, num0, &X);
+  cout << 1.5 << endl;
+  CM Fp = X.transpose() * F * X;
+
+  cout << 2 << endl;
+  ComplexEigenSolver<CM> es;
+  es.compute(Fp, true);
+  cout << 3 << endl;
+  *c = X * es.eigenvectors();
+  eig->swap(es.eigenvalues());
+  cout << 4 << endl;
+  SortEigs(*eig, *c);
+  
+}
 
 SymGenComplexEigenSolver::SymGenComplexEigenSolver() {}
 SymGenComplexEigenSolver::SymGenComplexEigenSolver(const CM& A, const CM& B) {

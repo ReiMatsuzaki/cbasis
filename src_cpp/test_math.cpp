@@ -18,6 +18,47 @@ using namespace std;
 using namespace l2func;
 using namespace Eigen;
 
+TEST(EigenPlus, Canonical) {
+
+  MatrixXcd A2(2,2);
+  A2 <<
+    1.0, 0.5,
+    0.5, 1.5;
+
+  double eps(0.00001);
+  MatrixXcd A3(3,3);
+  A3 <<
+    1.0,     0.5,     0.5+eps,
+    0.5,     1.5,     1.5+eps,
+    0.5+eps, 1.5+eps, 1.5+eps;
+  MatrixXcd F2(2,2); 
+  F2 <<
+    1.4, 0.2,
+    0.2, 0.4;
+  MatrixXcd F3(3,3);
+  F3 <<
+    1.4,     0.2,     0.2+eps,
+    0.2,     0.4,     0.4+eps,
+    0.2+eps, 0.4+eps, 0.4+eps;
+  
+  CM C2, C3, C2_c;
+  CV eig2, eig3, eig2_c;
+  generalizedComplexEigenSolve(F2, A2, &C2, &eig2);
+  generalizedComplexEigenSolve(F3, A3, &C3, &eig3);
+  //CEigenSolveCarnonicalNum(F3, A3, 2, &C2_c, &eig2_c);
+  CEigenSolveCanonical(F3, A3, 0.00001, &C2_c, &eig2_c);
+  
+  cout << eig2 << endl;
+  cout << endl;
+  cout << eig3 << endl;
+  cout << endl;
+  cout << eig2_c << endl;
+
+  EXPECT_C_NEAR(eig2[0], eig2_c[0], eps);
+  EXPECT_C_NEAR(eig2[1], eig2_c[1], eps);
+
+}
+
 TEST(BMat, ReadWrite) {
 
   BMat bmat1;

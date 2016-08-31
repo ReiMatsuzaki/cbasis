@@ -74,11 +74,14 @@ namespace l2func {
 	 it->size_pn() != this->size_pn()) {
 	string msg; SUB_LOCATION(msg);
 	ostringstream oss; oss << msg;
-	oss << ": size mismatch.\n"
-	    << "size_at (ReductionSets, SubSymGTOs) = "
-	    << it->size_at() << this->size_at()
-	    << "size_pn (ReductionSets, SubSymGTOs) = "
-	    << it->size_pn() << this->size_pn() << endl;
+	oss << ": size mismatch."
+	    << endl
+	    << "size_at (Reduction, xyz) = "
+	    << "(" << it->size_at() << ", " << this->size_at() << ")"
+	    << endl
+	    << "size_pn (Reduction, ns) = "
+	    << "(" << it->size_pn() << "," << this->size_pn() << ")"
+	    << endl;
 	throw runtime_error(oss.str());
       }
     }
