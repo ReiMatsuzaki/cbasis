@@ -2,6 +2,7 @@
 #include <ostream>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include "macros.hpp"
 #include "bmatset.hpp"
 
@@ -123,12 +124,21 @@ namespace l2func {
 #ifndef ARG_NO_CHECK
     if(mat_map_.find(name) == mat_map_.end()) {
       string msg; SUB_LOCATION(msg);
-      msg += ": failed to find index.";
+      stringstream ss;
+      ss << ": failed to find name." << endl
+	 << "name : " << name <<endl;
+      msg += ss.str();
       throw runtime_error(msg);
     }
     if(mat_map_[name].find(make_pair(i, j)) == mat_map_[name].end()) {
       string msg; SUB_LOCATION(msg);
-      msg += ": failed to find index.";
+      stringstream ss;
+      ss << ": failed to find index.\n"
+	 << "i : " << i << endl
+	 << "j : " << j << endl;
+      
+      msg += ": failed to find index.\n";
+      msg += ss.str();
       throw runtime_error(msg);
     }
 #endif

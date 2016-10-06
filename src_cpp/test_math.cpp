@@ -45,20 +45,19 @@ TEST(EigenPlus, Canonical) {
   CV eig2, eig3, eig2_c;
   generalizedComplexEigenSolve(F2, A2, &C2, &eig2);
   generalizedComplexEigenSolve(F3, A3, &C3, &eig3);
-  //CEigenSolveCarnonicalNum(F3, A3, 2, &C2_c, &eig2_c);
-  CEigenSolveCanonical(F3, A3, 0.00001, &C2_c, &eig2_c);
+  CEigenSolveCanonicalNum(F3, A3, 2, &C2_c, &eig2_c);
   
-  cout << eig2 << endl;
-  cout << endl;
-  cout << eig3 << endl;
-  cout << endl;
-  cout << eig2_c << endl;
-
-  EXPECT_C_NEAR(eig2[0], eig2_c[0], eps);
-  EXPECT_C_NEAR(eig2[1], eig2_c[1], eps);
+  CV resid = F3 * C2_c.col(0) - A3 * C2_c.col(0) * eig2_c[0];
+  EXPECT_C_NEAR(0.0, resid(0), eps);
+  EXPECT_C_NEAR(0.0, resid(1), eps);
+  EXPECT_C_NEAR(0.0, resid(2), eps);
+  
+  resid = F3 * C2_c.col(1) - A3 * C2_c.col(1) * eig2_c[1];
+  EXPECT_C_NEAR(0.0, resid(0), eps);
+  EXPECT_C_NEAR(0.0, resid(1), eps);
+  EXPECT_C_NEAR(0.0, resid(2), eps);
 
 }
-
 TEST(BMat, ReadWrite) {
 
   BMat bmat1;
@@ -88,6 +87,10 @@ TEST(BMat, ReadWrite) {
 }
 
 TEST(BMatSet, SetGet) {
+
+  cout << "real,abs:" << endl;
+  cout << real(dcomplex(1.1, 0.3)) << endl;
+  cout << abs(dcomplex(1.1, 0.3)) << endl;
 
   BMatSet sets(new _BMatSet());
 
@@ -846,11 +849,24 @@ TEST(Eigen, sort) {
   VectorXcd xs = VectorXcd::Random(num);
   MatrixXcd cs = MatrixXcd::Random(num, num);
   
-  SortEigs(xs, cs);
+  SortEigs(xs, cs, TakeReal);
 
   for(int i = 0; i < num-1; i++) 
     EXPECT_TRUE(xs(i).real() < xs(i+1).real());
 
+}
+TEST(Eigen, sort_reverse) {
+
+  int num(10);
+  VectorXcd xs = VectorXcd::Random(num);
+  MatrixXcd cs = MatrixXcd::Random(num, num);
+  
+  SortEigs(xs, cs, TakeReal, true);
+
+  for(int i = 0; i < num-1; i++) 
+    EXPECT_TRUE(xs(i).real() > xs(i+1).real());
+
+  
 }
 
 

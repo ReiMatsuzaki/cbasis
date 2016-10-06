@@ -131,12 +131,75 @@ namespace l2func {
     return vele;
 
   }
+  dcomplex DXMatEle(CartGTO& a, CartGTO& b) {
+    
+    /**
+       Dx [ (x-x0)^n exp(-z(x-x0)^2) ] 
+       =  { n(x-x0)^(n-1) -2z(x-x0)^(n+1)} exp(-z(x-x0)^2)
+     */
+
+    dcomplex ele(0);
+    
+    if(b.nx != 0) {
+      
+      CartGTO b1 = b;
+      b1.nx--;
+      ele += dcomplex(b.nx) * SMatEle(a, b1);
+      
+    }
+    
+    CartGTO b2 = b;
+    b2.nx++;
+    ele += -2.0 * b.zeta * SMatEle(a, b2);
+    
+    return ele;
+    
+  }
+  dcomplex DYMatEle(CartGTO& a, CartGTO& b) {
+    
+    dcomplex ele(0);
+    
+    if(b.ny != 0) {
+      
+      CartGTO b1 = b;
+      b1.ny--;
+      ele += dcomplex(b.ny) * SMatEle(a, b1);
+      
+    }
+    
+    CartGTO b2 = b;
+    b2.ny++;
+    ele += -2.0 * b.zeta * SMatEle(a, b2);
+    
+    return ele;
+
+  }
+  dcomplex DZMatEle(CartGTO& a, CartGTO& b) {
+
+    dcomplex ele(0);
+    
+    if(b.nz != 0) {
+      
+      CartGTO b1 = b;
+      b1.nz--;
+      ele += dcomplex(b.nz) * SMatEle(a, b1);
+      
+    }
+    
+    CartGTO b2 = b;
+    b2.nz++;
+    ele += -2.0 * b.zeta * SMatEle(a, b2);
+    
+    return ele;
+
+  }
 
   // ==== SymGTOs ====
   struct PrimBasis {
-    A4dc s, t, v, x, y, z;
+    A4dc s, t, v, x, y, z, dx, dy, dz;
     PrimBasis(int num):
-      s(num), t(num), v(num), x(num), y(num), z(num) {}
+      s(num), t(num), v(num), x(num), y(num), z(num),
+      dx(num), dy(num), dz(num) {}
     void SetRange(int niat, int nipn, int njat, int njpn) {
       s.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
       t.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
@@ -144,6 +207,9 @@ namespace l2func {
       x.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
       y.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
       z.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+      dx.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+      dy.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+      dz.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
     }
   };
   dcomplex calc_tele(SubIt isub, SubIt jsub, dcomplex zetaj, 
@@ -268,12 +334,28 @@ namespace l2func {
 	      (dzmap(nzi,nzj+1,0)+zj*dzmap(nzi,nzj,0));
 	    dcomplex t_ele = calc_tele(isub, jsub, zetaj, ipn, jpn,
 				       dxmap, dymap, dzmap);	    
+	    dcomplex dx_ele = -2.0*zetaj*dxmap(nxi,nxj+1,0);
+	    if(nxj>0)
+	      dx_ele += dcomplex(nxj)*dxmap(nxi,nxj-1,0);
+	    dx_ele *= dymap(nyi,nyj,0) * dzmap(nzi,nzj,0);
+	    dcomplex dy_ele = -2.0*zetaj*dymap(nyi,nyj+1,0);
+	    if(nyj>0)
+	      dy_ele += dcomplex(nyj)*dymap(nyi,nyj-1,0);
+	    dy_ele *= dxmap(nxi,nxj,0) * dzmap(nzi,nzj,0);
+	    dcomplex dz_ele = -2.0*zetaj*dzmap(nzi,nzj+1,0);
+	    dz_ele += dcomplex(nzj)*dzmap(nzi,nzj-1,0);
+	    dz_ele *= dymap(nyi,nyj,0) * dxmap(nxi,nxj,0);
+	      
 	    prim.s(iat, ipn, jat, jpn) =  ce * s_ele;
 	    prim.t(iat, ipn, jat, jpn) =  -0.5* ce * t_ele;
 	    prim.x(iat, ipn, jat, jpn) =  ce*x_ele;
 	    prim.y(iat, ipn, jat, jpn) =  ce*y_ele;
 	    prim.z(iat, ipn, jat, jpn) =  ce*z_ele;
-	    rmap.SetRange(0, nxi+nxj, 0, nyi+nyj, 0, nzi+nzj, 0, gtos->size_atom());
+	    prim.dx(iat, ipn, jat, jpn) = ce*dx_ele;
+	    prim.dy(iat, ipn, jat, jpn) = ce*dy_ele;
+	    prim.dz(iat, ipn, jat, jpn) = ce*dz_ele;
+	    rmap.SetRange(0, nxi+nxj, 0, nyi+nyj,
+			  0, nzi+nzj, 0, gtos->size_atom());
 
 	    if(calc_coulomb) {	      
 	      for(int kat = 0; kat < gtos->size_atom(); kat++) {
@@ -323,6 +405,7 @@ namespace l2func {
       for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
 	dcomplex cumsum_s(0.0), cumsum_t(0.0), cumsum_v(0.0);
 	dcomplex cumsum_x(0.0), cumsum_y(0.0), cumsum_z(0.0);
+	dcomplex cumsum_dx(0.0), cumsum_dy(0.0), cumsum_dz(0.0);
 	for(int iat = 0; iat < niat; iat++) {
 	  for(int ipn = 0; ipn < nipn; ipn++) {
 	    for(int jat = 0; jat < njat; jat++) { 
@@ -338,6 +421,9 @@ namespace l2func {
 		cumsum_x += cc*prim.x(iat, ipn, jat, jpn);
 		cumsum_y += cc*prim.y(iat, ipn, jat, jpn);
 		cumsum_z += cc*prim.z(iat, ipn, jat, jpn);
+		cumsum_dx += cc*prim.dx(iat, ipn, jat, jpn);
+		cumsum_dy += cc*prim.dy(iat, ipn, jat, jpn);
+		cumsum_dz += cc*prim.dz(iat, ipn, jat, jpn);
 	      }}}}
 	int i(irds->offset + iz); int j(jrds->offset + jz);
 	int isym(irds->irrep); int jsym(jrds->irrep);
@@ -348,6 +434,9 @@ namespace l2func {
 	mat_map->SelfAdd("x", isym, jsym, i, j, cumsum_x);
 	mat_map->SelfAdd("y", isym, jsym, i, j, cumsum_y);
 	mat_map->SelfAdd("z", isym, jsym, i, j, cumsum_z);
+	mat_map->SelfAdd("dx", isym, jsym, i, j, cumsum_dx);
+	mat_map->SelfAdd("dy", isym, jsym, i, j, cumsum_dy);
+	mat_map->SelfAdd("dz", isym, jsym, i, j, cumsum_dz);	
       }
     }
 
@@ -381,6 +470,13 @@ namespace l2func {
 	bmat->SetMatrix("y", isym, jsym, y);
 	MatrixXcd z = MatrixXcd::Zero(numi, numj); 
 	bmat->SetMatrix("z", isym, jsym, z);
+	
+	MatrixXcd dx = MatrixXcd::Zero(numi, numj);
+	bmat->SetMatrix("dx", isym, jsym, dx);
+	MatrixXcd dy = MatrixXcd::Zero(numi, numj);
+	bmat->SetMatrix("dy", isym, jsym, dy);
+	MatrixXcd dz = MatrixXcd::Zero(numi, numj);
+	bmat->SetMatrix("dz", isym, jsym, dz);
       }
     }
 

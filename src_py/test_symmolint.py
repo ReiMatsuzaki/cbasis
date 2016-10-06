@@ -104,16 +104,16 @@ class Test_JK(unittest.TestCase):
         J_f = calc_JK(eri_f, C, 0, 0, coef_J, coef_K)
 
         eri_J = calc_ERI(g_0, g_1, g_i, g_i, method)
-        J_01 = calc_J(eri_J, C[0,0].col(0), 0, g_0, g_1)
+        J_01 = calc_J(eri_J, C[0,0].col(0), 0, g_0, g_1, coef_J)
 
         eri_K = calc_ERI(g_0, g_i, g_i, g_1, method)
-        K_01 = calc_K(eri_K, C[0,0].col(0), 0, g_0, g_1)
+        K_01 = calc_K(eri_K, C[0,0].col(0), 0, g_0, g_1, coef_K)
 
         for i in range(2):
             for j in range(2):
                 self.assertAlmostEqual(J_f[1,1][i,j+2],
-                                       coef_J * J_01[1,1][i,j] +
-                                       coef_K * K_01[1,1][i,j],
+                                       J_01[1,1][i,j] +
+                                       K_01[1,1][i,j],
                                        msg = "{0}, {1}".format(i,j))
 
 
@@ -147,6 +147,28 @@ class Test_ceig(unittest.TestCase):
 
         for i in range(eigs.rows()-1):
             self.assertTrue(eigs[i].real < eigs[i+1].real)
+
+    def test_ceig_canonical(self):
+        eps = 0.000001
+        h2 = me.MatrixXc([[1.0, 0.5],
+                          [0.5, 1.5]])
+        s2 = me.MatrixXc([[1.4, 0.2],
+                          [0.2, 0.4]])
+        h3 = me.MatrixXc([[1.0,     0.5,     0.5+eps],
+                          [0.5,     1.5,     1.5+eps],
+                          [0.5+eps, 1.5+eps, 1.5+eps]])
+        s3 = me.MatrixXc([[1.4,     0.2,     0.2+eps],
+                          [0.2,     0.4,     0.4+eps],
+                          [0.2+eps, 0.4+eps, 0.4+eps]])
+        (eigs, eigvec) = ceig_canonical(h3, s3, 2)
+        print ""
+        print "eigvec:", eigvec.col(0)
+        for i in range(2):
+            lexp = h3 * eigvec.col(i)
+            rexp = s3 * eigvec.col(i)*eigs[i]
+            for j in range(2):
+                msg = "{0}, {1}\n lexp={2}\nrexp={3}".format(i,j,lexp[j],rexp[j])
+                self.assertAlmostEqual(lexp[j], rexp[j], msg=msg, places=5)
 
             
 class Test_BMatSet(unittest.TestCase):
@@ -424,11 +446,68 @@ class Test_H_photoionization(unittest.TestCase):
         h1 = mat.get_matrix("t", App, App) + mat.get_matrix("v", App, App)
         s1 = mat.get_matrix("s", App, App)
 
+        ## length form
         z10 = mat.get_matrix("z", App, Ap)
         w = 1.0
         m1 = z10 * c0
         c1 = la.solve(h1 - (w+ene0)*s1, m1)
         self.alpha_full = (m1 * c1).sum()
+        
+        ## velocity form
+        dz10 = mat.get_matrix("dz", App, Ap)
+        w = 1.0
+        m1 = dz10 * c0
+        c1 = la.solve(h1-(w+ene0)*s1, m1)
+        self.alpha_full_v = (m1 * c1).sum()
+
+    def calc_velocity(self):
+        """
+        zeta1 = [1.0077661957-0.0607175960j,
+                 0.9981154775-0.3197694486j,
+                 0.8322149866-0.7139232919j,
+                 0.4725011517-1.0053572493j,
+                 0.1390344817-1.0655848809j]
+        """
+        zeta1 = [2.0**n-0.02j for n in range(-15, 5)]
+        xatom = (0, 0, 0)
+        sym = Cs()
+        Ap = sym.get_irrep("A'")
+        App= sym.get_irrep("A''")
+        zeta0 = [2.0**n for n in range(-10, 10)]
+        gtos = (SymGTOs.create()
+                .sym(sym)
+                .sub(SubSymGTOs()
+                     .xyz(xatom)
+                     .ns((0, 0, 0))
+                     .rds(Reduction(Ap,  [[1]]))
+                     .zeta(zeta0))
+                .sub(SubSymGTOs()
+                     .xyz(xatom)
+                     .ns((0, 0, 1))
+                     .rds(Reduction(App, [[1]]))
+                     .zeta(zeta1))
+                .atom(xatom, 1.0)
+                .setup())
+
+        mat = calc_mat_complex(gtos, True)
+        h0 = mat.get_matrix("t", Ap, Ap) + mat.get_matrix("v", Ap, Ap)
+        s0 = mat.get_matrix("s", Ap, Ap)
+        (eigs0, eigvecs0) = ceig(h0, s0)
+        ene0 = eigs0[0]
+        c0 = gtos.correct_sign(0, 0, Ap, eigvecs0.col(0))
+        self.assertAlmostEqual(ene0, -0.5, places=4)
+        
+        h1 = mat.get_matrix("t", App, App) + mat.get_matrix("v", App, App)
+        s1 = mat.get_matrix("s", App, App)
+        
+        ## velocity form
+        dz10 = mat.get_matrix("dz", App, Ap)
+        w = 1.0
+        m1 = dz10 * c0
+        c1 = la.solve(h1-(w+ene0)*s1, m1)
+        #print self.gtos
+
+        return (m1 * c1).sum()
 
     def calc_part(self):
         xatom = (0, 0, 0)
@@ -473,13 +552,19 @@ class Test_H_photoionization(unittest.TestCase):
         
     def setUp(self):
         self.calc_full()
-        self.calc_part()
+        #self.calc_part()
 
     def test_1skp(self):
-        # see calc/stoh/1skp/l_5 in rcclsc (E=1)
+        # see calc/stoh/1skp/l_5 in rcclsc
         alpha_ref = -1.88562800720386+0.362705406693342j
         self.assertAlmostEqual(self.alpha_full, alpha_ref, places=3)
-        self.assertAlmostEqual(self.alpha_part, self.alpha_part)
+        #self.assertAlmostEqual(self.alpha_part, self.alpha_part)
+        
+        # see calc/stoh/1skp/l_5 in rcclsc (E=0.5)
+        alpha_ref_v = 0.385628007210641-0.362705406667124j
+        self.assertAlmostEqual(self.calc_velocity(),
+                               -alpha_ref_v,
+                               places=3)
 
 
 class Test_He(unittest.TestCase):

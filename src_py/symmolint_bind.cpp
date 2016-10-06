@@ -94,23 +94,23 @@ BMat* py_JK(B2EInt eri, BMat& C, Irrep I0, int i0, dcomplex c_J, dcomplex c_K) {
   return mat;
 }
 BMat* py_J(B2EInt eri, VectorXcd& ca, Irrep irrep_a, 
-	   SymGTOs g0, SymGTOs g1) {
+	   SymGTOs g0, SymGTOs g1, dcomplex coef_J) {
 
   BMat *mat = new BMat();
   BMatSetZero(g0, g1, *mat);
   
-  AddJ(eri, ca, irrep_a, *mat);
+  AddJ(eri, ca, irrep_a, coef_J, *mat);
 
   return mat;
 
 }
 BMat* py_K(B2EInt eri, VectorXcd& ca, Irrep ir_a,
-	   SymGTOs g0, SymGTOs g1) {
+	   SymGTOs g0, SymGTOs g1, dcomplex coef_K) {
 
   BMat *mat = new BMat();
   BMatSetZero(g0, g1, *mat);
   
-  AddK(eri, ca, ir_a, *mat);
+  AddK(eri, ca, ir_a, coef_K, *mat);
 
   return mat;
 
@@ -153,6 +153,14 @@ tuple generalizedComplexEigenSolve_py(const CM& F, const CM& S) {
     throw runtime_error(msg);
   }
   */
+}
+tuple CEigenSolveCanonicalNum_py(const CM& F, const CM& S, int num0) {
+
+  MatrixXcd C;
+  VectorXcd eig;
+  CEigenSolveCanonicalNum(F, S, num0, &C, &eig);
+  return make_tuple(eig, C);
+
 }
 MatrixXcd* CanonicalMatrix_py(const MatrixXcd& S, double eps) {
 
@@ -230,6 +238,7 @@ void AddLinearAlgebra() {
   def("canonical_matrix", CanonicalMatrix_py,
       return_value_policy<manage_new_object>());
   def("ceig", generalizedComplexEigenSolve_py);
+  def("ceig_canonical", CEigenSolveCanonicalNum_py);
 
   class_<vector<int> >("vector_i")
     .def(vector_indexing_suite<vector<int> >());

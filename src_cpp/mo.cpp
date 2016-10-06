@@ -153,7 +153,7 @@ namespace l2func {
       }
     }
   }
-  void AddJ(B2EInt eri,VectorXcd& Ca, Irrep ir_a, BMat& J) {
+  void AddJ(B2EInt eri,VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& J) {
 
     /**
        Add 
@@ -174,12 +174,12 @@ namespace l2func {
     while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
       if(ib == jb && kb == ir_a && lb == ir_a) {
 	pair<Irrep, Irrep> ij(ib, jb);
-	J[ij](i, j) += v * Ca(k) * Ca(l);
+	J[ij](i, j) += v * Ca(k) * Ca(l) * coef;
       }
     }
 
   }
-  void AddK(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, BMat& K) {
+  void AddK(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K) {
     
     /**
        Add
@@ -195,7 +195,7 @@ namespace l2func {
 
       if(ib == lb && jb == ir_a && kb == ir_a) {
 	pair<Irrep, Irrep> il(ib, lb);
-	K[il](i, l) += v * Ca(j) * Ca(k);
+	K[il](i, l) += v * Ca(j) * Ca(k) * coef;
       }
     }    
 
@@ -284,6 +284,10 @@ namespace l2func {
 	FOld[ii].swap(mo->F[ii]);
 	mo->F[ii] = mo->H[ii];
       }
+      VectorXcd ca = mo->C[make_pair(0,0)].col(0);
+      AddJ(eri, ca, 0, 2.0,  mo->F);
+      AddK(eri, ca, 0, -1.0, mo->F);
+      /*
       int ib,jb,kb,lb,i,j,k,l,t;
       dcomplex v;
       eri->Reset();
@@ -299,6 +303,7 @@ namespace l2func {
 	  mo->F[il](i, l) -= 0.5 * mo->P[jk](k, j) * v;
 	}
       }
+      */
 
       // -- Convergence check --
       bool conv(true);

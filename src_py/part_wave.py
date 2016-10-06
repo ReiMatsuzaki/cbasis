@@ -123,13 +123,94 @@ def ss0_2_yy0_old(ss0, L, Lp):
 
 
 ## ==== partial wave (Solid Spherical Harmonics) ====
-def sub_solid_sh(L, M, zeta, irrep):
-    """ gives solid spherical harmonics
-    see http://www.f-denshi.com/000TokiwaJPN/14bibnh/436cub.html
-    S_l0 = Y_l0
-    S_lm = ((-)^m Y_lm + Y_l-m)/sqrt(2) = sqrt(2)(-)^m Re[Y_lm]            (m>0)
-    S_lm = i^-1 {(-1)^|m| - Y_{l,-|m|}}/sqrt(2) = sqrt(2) (-)^m Im[Y_l|m|] (m<0)
-    """
+def sub_solid_sh_Ms(L, Ms, zeta, sym):
+
+    for M in Ms:
+        if abs(M) > 1:
+            raise(Exception("|M|>1 case is not supported "))
+        
+    if L not in [0,1,2,3,5]:
+        raise(Exception("implemented  for L=0,1,2,3 only"))
+
+    if(sym.irrep_x == sym.irrep_y or
+       sym.irrep_y == sym.irrep_z or
+       sym.irrep_x == sym.irrep_z):
+        raise(Exception("this symmetry can not be separate x,y,z"))
+
+    irrep_map = {-1: sym.irrep_y,
+                 0:  sym.irrep_z,
+                 1:  sym.irrep_x}    
+    sub = SubSymGTOs().xyz((0, 0, 0)).zeta(zeta)
+    
+    if L == 0:
+        sub.ns((0, 0, 0))
+        sub.rds(Reduction(sym.irrep_x, [[1]]))
+         
+    elif L == 1:
+        sub.ns((1, 0, 0)).ns((0, 1, 0)).ns((0, 0, 1))
+        if 1 in Ms:
+            sub.rds(Reduction(sym.irrep_x, [[1, 0, 0]]))
+        if -1 in Ms:
+            sub.rds(Reduction(sym.irrep_y, [[0, 1, 0]]))
+        if 0 in Ms:
+            sub.rds(Reduction(sym.irrep_z, [[0, 0, 1]]))
+
+    elif L == 2:
+        sub.ns((2,0,0)).ns((0,2,0)).ns((0,0,2))
+        sub.ns((1,1,0)).ns((0,1,1)).ns((1,0,1))
+        if 1 in Ms:
+            sub.rds(Reduction(sym.irrep_x, [[0,0,0,
+                                             0,0,1]]))
+        if 0 in Ms:
+            sub.rds(Reduction(sym.irrep_z, [[-1,-1,2,
+                                             0,0,0]]))
+        if -1 in Ms:
+            sub.rds(Reduction(sym.irrep_y, [[0,0,0,
+                                             0,1,0]]))
+    elif L == 3:
+        sub.ns((1,0,2)).ns((3,0,0)).ns((1,2,0))
+        sub.ns((0,0,3)).ns((2,0,1)).ns((0,2,1))
+        sub.ns((0,1,2)).ns((2,1,0)).ns((0,3,0))
+        if 1 in Ms:
+            sub.rds(Reduction(sym.irrep_x, [[4,-1,-1,
+                                             0,0,0,
+                                             0,0,0]]))
+        if 0 in Ms:
+            sub.rds(Reduction(sym.irrep_z, [[0,0,0,
+                                             2,-3,-3,
+                                             0,0,0]]))
+        if -1 in Ms:
+            sub.rds(Reduction(sym.irrep_y, [[0,0,0,
+                                             0,0,0,
+                                             4,-1,-1]]))
+    elif L == 5:
+        sub.ns((5,0,0)).ns((3,2,0)).ns((1,4,0))
+        sub.ns((3,0,2)).ns((1,2,2)).ns((1,0,4))
+
+        sub.ns((4,0,1)).ns((2,2,1)).ns((0,4,1))
+        sub.ns((2,0,3)).ns((0,2,3)).ns((0,0,5))
+
+        sub.ns((4,1,0)).ns((2,3,0)).ns((0,5,0))
+        sub.ns((2,1,2)).ns((0,3,2)).ns((0,1,4))
+
+        if 1 in Ms:
+            sub.rds(Reduction(sym.irrep_x, [[1, 2, 1,-12,-12,8,
+                                             0, 0, 0, 0, 0,0,
+                                             0, 0, 0, 0, 0,0]]))
+        if 0 in Ms:
+            sub.rds(Reduction(sym.irrep_z, [[0, 0, 0, 0, 0,0,
+                                             15,30,15,-40,-40,8,
+                                             0, 0, 0, 0, 0,0]]))
+        if -1 in Ms:
+            sub.rds(Reduction(sym.irrep_y, [[0, 0, 0, 0, 0,0,
+                                             0, 0, 0, 0, 0,0,
+                                             1,2,1,-12,-12,8]]))
+        
+    else:
+        raise(Exception("not implemented yet"))
+    return sub
+    
+def sub_solid_sh_M(L, M, zeta, irrep):
 
     sub = SubSymGTOs().xyz((0,0,0)).zeta(zeta)
     
@@ -200,95 +281,28 @@ def sub_solid_sh(L, M, zeta, irrep):
         raise(Exception("not implemented yet"))
 
     return sub
+    
+def sub_solid_sh(L, M_or_Ms, zeta, irrep_or_sym):
+    """ gives solid spherical harmonics
+    see http://www.f-denshi.com/000TokiwaJPN/14bibnh/436cub.html
+    S_l0 = Y_l0
+    S_lm = ((-)^m Y_lm + Y_l-m)/sqrt(2) = sqrt(2)(-)^m Re[Y_lm]            (m>0)
+    S_lm = i^-1 {(-1)^|m| - Y_{l,-|m|}}/sqrt(2) = sqrt(2) (-)^m Im[Y_l|m|] (m<0)
+    """
+    
+    if(type(M_or_Ms) == list):
+        Ms = M_or_Ms
+        sym = irrep_or_sym
+        return sub_solid_sh_Ms(L, Ms, zeta, sym)
+    else:
+        M = M_or_Ms
+        irrep = irrep_or_sym
+        return sub_solid_sh_M(L, M, zeta, irrep)
 
 def solid_part_waves(sym, L, Ms, zeta):
 
-    for M in Ms:
-        if abs(M) > 1:
-            raise(Exception("|M|>1 case is not supported "))
-        
-    if L not in [0,1,2,3,5]:
-        raise(Exception("implemented  for L=0,1,2,3 only"))
-
-    if(sym.irrep_x == sym.irrep_y or
-       sym.irrep_y == sym.irrep_z or
-       sym.irrep_x == sym.irrep_z):
-        raise(Exception("this symmetry can not be separate x,y,z"))
-
-    irrep_map = {-1: sym.irrep_y,
-                 0:  sym.irrep_z,
-                 1:  sym.irrep_x}
-    gtos = SymGTOs.create().sym(sym)
-    sub = SubSymGTOs().xyz((0, 0, 0)).zeta(zeta)
-    
-    if L == 0:
-        sub.ns((0, 0, 0))
-        sub.rds(Reduction(sym.irrep_x, [[1]]))
-         
-    elif L == 1:
-        sub.ns((1, 0, 0)).ns((0, 1, 0)).ns((0, 0, 1))
-        if 1 in Ms:
-            sub.rds(Reduction(sym.irrep_x, [[1, 0, 0]]))
-        if -1 in Ms:
-            sub.rds(Reduction(sym.irrep_y, [[0, 1, 0]]))
-        if 0 in Ms:
-            sub.rds(Reduction(sym.irrep_z, [[0, 0, 1]]))
-
-    elif L == 2:
-        sub.ns((2,0,0)).ns((0,2,0)).ns((0,0,2))
-        sub.ns((1,1,0)).ns((0,1,1)).ns((1,0,1))
-        if 1 in Ms:
-            sub.rds(Reduction(sym.irrep_x, [[0,0,0,
-                                             0,0,1]]))
-        if 0 in Ms:
-            sub.rds(Reduction(sym.irrep_z, [[-1,-1,2,
-                                             0,0,0]]))
-        if -1 in Ms:
-            sub.rds(Reduction(sym.irrep_y, [[0,0,0,
-                                             0,1,0]]))
-    elif L == 3:
-        sub.ns((1,0,2)).ns((3,0,0)).ns((1,2,0))
-        sub.ns((0,0,3)).ns((2,0,1)).ns((0,2,1))
-        sub.ns((0,1,2)).ns((2,1,0)).ns((0,3,0))
-        if 1 in Ms:
-            sub.rds(Reduction(sym.irrep_x, [[4,-1,-1,
-                                             0,0,0,
-                                             0,0,0]]))
-        if 0 in Ms:
-            sub.rds(Reduction(sym.irrep_z, [[0,0,0,
-                                             2,-3,-3,
-                                             0,0,0]]))
-        if -1 in Ms:
-            sub.rds(Reduction(sym.irrep_y, [[0,0,0,
-                                             0,0,0,
-                                             4,-1,-1]]))
-    elif L == 5:
-        sub.ns((5,0,0)).ns((3,2,0)).ns((1,4,0))
-        sub.ns((3,0,2)).ns((1,2,2)).ns((1,0,4))
-
-        sub.ns((4,0,1)).ns((2,2,1)).ns((0,4,1))
-        sub.ns((2,0,3)).ns((0,2,3)).ns((0,0,5))
-
-        sub.ns((4,1,0)).ns((2,3,0)).ns((0,5,0))
-        sub.ns((2,1,2)).ns((0,3,2)).ns((0,1,4))
-
-        if 1 in Ms:
-            sub.rds(Reduction(sym.irrep_x, [[1, 2, 1,-12,-12,8,
-                                             0, 0, 0, 0, 0,0,
-                                             0, 0, 0, 0, 0,0]]))
-        if 0 in Ms:
-            sub.rds(Reduction(sym.irrep_z, [[0, 0, 0, 0, 0,0,
-                                             15,30,15,-40,-40,8,
-                                             0, 0, 0, 0, 0,0]]))
-        if -1 in Ms:
-            sub.rds(Reduction(sym.irrep_y, [[0, 0, 0, 0, 0,0,
-                                             0, 0, 0, 0, 0,0,
-                                             1,2,1,-12,-12,8]]))
-        
-    else:
-        raise(Exception("not implemented yet"))
-
-    gtos.sub(sub)
+    gtos = SymGTOs.create().sym(sym)    
+    gtos.sub(sub_solid_sh(L, Ms, zeta, sym))
     gtos.setup()
     return gtos
         

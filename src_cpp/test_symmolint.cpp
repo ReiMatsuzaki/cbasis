@@ -98,6 +98,7 @@ public:
     
   }
 };
+
 TEST_F(TestValue, OneInt) {
 
   MatrixXcd S(3, 3), T(3, 3), V(3, 3);
@@ -134,6 +135,82 @@ TEST_F(TestValue, TwoInt) {
     EXPECT_C_EQ(cr*v, cc*eri_c) << i << j << k << l;
   }
     
+}
+
+TEST(OneInt, Dx) {
+
+  dcomplex zeta0(1.1, -0.3);
+  dcomplex x0(0.3, 0.1);
+  double eps(0.000001);
+  dcomplex ii(0, 1);
+  dcomplex ieps(ii * eps);
+  CartGTO b0(1, 1, 0,  0.3,   0.13, 0.3, dcomplex(0.4, 0.2));
+
+  CartGTO a0(2, 3, 1,  x0,    0.1, 0.4, zeta0);
+  CartGTO ap(2, 3, 1, x0+eps, 0.1, 0.4, zeta0);
+  CartGTO am(2, 3, 1, x0-eps, 0.1, 0.4, zeta0);
+  CartGTO aip(2, 3, 1, x0+ieps, 0.1, 0.4, zeta0);
+  CartGTO aim(2, 3, 1, x0-ieps, 0.1, 0.4, zeta0);
+  
+  dcomplex dx0 = DXMatEle(b0, a0);
+
+  dcomplex dx1 = -(SMatEle(b0, ap)
+		  -SMatEle(b0, am)
+		  -ii * SMatEle(b0, aip)
+		  +ii * SMatEle(b0, aim)) / (4.0 * eps);
+
+  EXPECT_C_NEAR(dx0, dx1, eps);
+  
+}
+TEST(OneInt, Dy) {
+
+  dcomplex zeta0(1.1, -0.3);
+  dcomplex y0(0.3, 0.1);
+  double eps(0.000001);
+  dcomplex ii(0, 1);
+  dcomplex ieps(ii * eps);
+  CartGTO b0(1, 1, 0,  0.3,   0.13, 0.3, dcomplex(0.4, 0.2));
+
+  CartGTO a0(2, 3, 1,  0.1, y0,      0.4, zeta0);
+  CartGTO ap(2, 3, 1,  0.1, y0+eps,  0.4, zeta0);
+  CartGTO am(2, 3, 1,  0.1, y0-eps,  0.4, zeta0);
+  CartGTO aip(2, 3, 1, 0.1, y0+ieps, 0.4, zeta0);
+  CartGTO aim(2, 3, 1, 0.1, y0-ieps, 0.4, zeta0);
+  
+  dcomplex d0 = DYMatEle(b0, a0);
+
+  dcomplex d1 = -(SMatEle(b0, ap)
+		  -SMatEle(b0, am)
+		  -ii * SMatEle(b0, aip)
+		  +ii * SMatEle(b0, aim)) / (4.0 * eps);
+
+  EXPECT_C_NEAR(d0, d1, eps);
+  
+}
+TEST(OneInt, Dz) {
+
+  dcomplex zeta0(1.1, -0.3);
+  dcomplex z0(0.3, 0.1);
+  double eps(0.000001);
+  dcomplex ii(0, 1);
+  dcomplex ieps(ii * eps);
+  CartGTO b0(1, 1, 0,  0.3,   0.13, 0.3, dcomplex(0.4, 0.2));
+
+  CartGTO a0(2, 3, 1,  0.1, 0.4, z0,       zeta0);
+  CartGTO ap(2, 3, 1,  0.1, 0.4, z0+eps,   zeta0);
+  CartGTO am(2, 3, 1,  0.1, 0.4, z0-eps,   zeta0);
+  CartGTO aip(2, 3, 1, 0.1, 0.4, z0+ieps,  zeta0);
+  CartGTO aim(2, 3, 1, 0.1, 0.4, z0-ieps,  zeta0);
+  
+  dcomplex d0 = DZMatEle(b0, a0);
+
+  dcomplex d1 = -(SMatEle(b0, ap)
+		  -SMatEle(b0, am)
+		  -ii * SMatEle(b0, aip)
+		  +ii * SMatEle(b0, aim)) / (4.0 * eps);
+
+  EXPECT_C_NEAR(d0, d1, eps);
+  
 }
 
 void SymGTOs_AtR_Ylm_NDeriv(SymGTOs gtos, int L, int M, int irrep,
@@ -240,6 +317,26 @@ void test_SymGTOsOneInt(CartGTO a, Vector3cd at, CartGTO b) {
 			     << "V matrix" << endl
 			     << "a: " << a.str() << endl
 			     << "b: " << b.str() << endl;
+  
+  dcomplex DX_sym = mat->GetMatrix("dx", 0, 0)(0, 1)*c_sym;
+  dcomplex DX_cart= DXMatEle(a, b)*c_cart;
+  EXPECT_C_EQ(DX_cart, DX_sym) << endl
+			     << "Dx matrix" << endl
+			     << "a: " << a.str() << endl
+			     << "b: " << b.str() << endl;
+  dcomplex DY_sym = mat->GetMatrix("dy", 0, 0)(0, 1)*c_sym;
+  dcomplex DY_cart= DYMatEle(a, b)*c_cart;
+  EXPECT_C_EQ(DY_cart, DY_sym) << endl
+			     << "Dy matrix" << endl
+			     << "a: " << a.str() << endl
+			     << "b: " << b.str() << endl;
+  dcomplex DZ_sym = mat->GetMatrix("dz", 0, 0)(0, 1)*c_sym;
+  dcomplex DZ_cart= DZMatEle(a, b)*c_cart;
+  EXPECT_C_EQ(DZ_cart, DZ_sym) << endl
+			     << "Dz matrix" << endl
+			     << "a: " << a.str() << endl
+			     << "b: " << b.str() << endl;
+
   
 }
 TEST(SymGTOsMatrix, OneInt) {

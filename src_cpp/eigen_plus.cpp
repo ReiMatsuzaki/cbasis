@@ -12,6 +12,12 @@
 using namespace std;
 using namespace Eigen;
 
+double TakeReal(dcomplex x) {
+  return x.real();
+}
+double TakeAbs(dcomplex x) {
+  return abs(x);
+}
 std::complex<double> cnorm(const CV& v) {
   Eigen::ArrayXcd a = v.array();
   return sqrt((a*a).sum());}
@@ -52,7 +58,8 @@ void matrix_inv_sqrt(const CM& s, CM* s_inv_sqrt) {
   c_tr.transposeInPlace();
   *s_inv_sqrt = c * lambda_mat * c_tr;
 }
-void SortEigs(VectorXcd& eigs, MatrixXcd& eigvecs) {
+void SortEigs(Eigen::VectorXcd& eigs, Eigen::MatrixXcd& eigvecs,
+	      double (*to_real)(dcomplex), bool reverse) {
   
   int n = eigs.size();
   if(n != eigvecs.cols()) {
@@ -63,8 +70,13 @@ void SortEigs(VectorXcd& eigs, MatrixXcd& eigvecs) {
 
   for(int i = 1; i < n; i++) {
     for(int j = i-1; j > -1; j--) {
-      if(eigs[j].real() > eigs[j+1].real()) {
-
+      if(not reverse && to_real(eigs[j]) > to_real(eigs[j+1])) {
+	dcomplex tmp = eigs[j];
+	eigs[j] = eigs[j+1];
+	eigs[j+1] = tmp;
+	eigvecs.col(j).swap(eigvecs.col(j+1));
+      }
+      if(reverse && to_real(eigs[j]) < to_real(eigs[j+1])) {
 	dcomplex tmp = eigs[j];
 	eigs[j] = eigs[j+1];
 	eigs[j+1] = tmp;
@@ -98,7 +110,7 @@ void generalizedComplexEigenSolve(const CM& f, const CM& s, CM* c, CV* eig){
   *c = s2inv *  es.eigenvectors();
   *eig = es.eigenvalues();
 
-  SortEigs(*eig, *c);
+  SortEigs(*eig, *c, TakeReal);
     
 }
 void CanonicalMatrix(const CM& S, double eps, CM* res) {
@@ -116,7 +128,7 @@ void CanonicalMatrix(const CM& S, double eps, CM* res) {
   CM U;
   s.swap(es.eigenvalues());
   U.swap(es.eigenvectors());
-  SortEigs(s, U);
+  SortEigs(s, U, TakeAbs, true);
   
   int num_non0(0);
   for(int j = 0; j < num; j++)
@@ -141,17 +153,17 @@ void CanonicalMatrix(const CM& S, double eps, CM* res) {
 }
 void CanonicalMatrixNum(const CM& S, int num0, CM* res) {
 
-  int num1(S.rows());
+  int num_all(S.rows());
   
-  if(num1 != S.cols()) {
+  if(num_all != S.cols()) {
     string msg; SUB_LOCATION(msg);
     msg += ": size mismatch."; 
     throw runtime_error(msg);
   }
   
-  if(num1 < num0) {
+  if(num_all < num0) {
     string msg; SUB_LOCATION(msg);
-    msg += "num0 must be lesser than num1";
+    msg += "num0 must be lesser than num_all";
     throw runtime_error(msg);
   }
 
@@ -161,11 +173,11 @@ void CanonicalMatrixNum(const CM& S, int num0, CM* res) {
   CM U;
   s.swap(es.eigenvalues());
   U.swap(es.eigenvectors());
-  SortEigs(s, U);
-  
-  MatrixXcd X(num1, num0);
+  SortEigs(s, U, TakeAbs, true);
+
+  MatrixXcd X = MatrixXcd::Zero(num_all, num0);
   for(int j = 0; j < num0; j++) {
-    for(int i = 0; i < num1; i++ ) {
+    for(int i = 0; i < num_all; i++ ) {
       X(i, j) = U(i, j) / sqrt(s(j));
     }
   }
@@ -184,25 +196,21 @@ void CEigenSolveCanonical(const CM& F, const CM& S, double eps, CM* c, CV* eig) 
   es.compute(Fp, true);
   *c = X * es.eigenvectors();
   eig->swap(es.eigenvalues());
-  SortEigs(*eig, *c);
+  SortEigs(*eig, *c, TakeReal, false);
+
 }
-void CEigenSolveCarnonicalNum(const CM& F, const CM& S, int num0,
+void CEigenSolveCanonicalNum(const CM& F, const CM& S, int num0,
 			      CM* c, CV* eig) {
 
-  cout << 1 << endl;
   MatrixXcd X;
   CanonicalMatrixNum(S, num0, &X);
-  cout << 1.5 << endl;
   CM Fp = X.transpose() * F * X;
 
-  cout << 2 << endl;
   ComplexEigenSolver<CM> es;
   es.compute(Fp, true);
-  cout << 3 << endl;
   *c = X * es.eigenvectors();
   eig->swap(es.eigenvalues());
-  cout << 4 << endl;
-  SortEigs(*eig, *c);
+  SortEigs(*eig, *c, TakeReal, false);
   
 }
 

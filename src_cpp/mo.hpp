@@ -38,8 +38,8 @@ namespace l2func {
 	     dcomplex coef_J, dcomplex coef_K, BMat& JK);
   void AddJK_Slow(B2EInt eri, BMat& C, int I0, int i0,
 		  dcomplex coef_J, dcomplex coef_K, BMat& H);
-  void AddJ(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, BMat& J);
-  void AddK(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, BMat& K);
+  void AddJ(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& J);
+  void AddK(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K);
   MO CalcRHF(SymGTOs gtos, int nele, int max_iter, double eps, bool *is_conv,
 	     int debug_lvl = 0);
   MO CalcRHF(pSymmetryGroup sym, BMatSet mat_set, B2EInt eri, int nele, 

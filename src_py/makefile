@@ -50,6 +50,7 @@ ${BINDIR}/symmolint_bind.so: symmolint_bind.cpp $(foreach o, ${SYMMOLINT_OBJS}, 
 check_symmolint: ${BINDIR}/symmolint_bind.so
 	rm -f symmolint_bind.so
 	ln -s ${BINDIR}/symmolint_bind.so .
+	python test_solve_pi.py
 	python test_symmolint.py
 	python test_part_wave.py
 	rm symmolint_bind.so
@@ -57,7 +58,6 @@ install_symmolint: ${BINDIR}/symmolint_bind.so
 	cp $< ${PY_DIR}
 	cp symmolint_plus.py ${PY_DIR}
 	cp symmolint.py ${PY_DIR}
-	cp coulomb.py ${PY_DIR}
 	cp part_wave.py ${PY_DIR}
 	cp solve_pi.py ${PY_DIR}
 

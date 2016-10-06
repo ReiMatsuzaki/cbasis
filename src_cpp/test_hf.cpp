@@ -78,7 +78,7 @@ TEST(Matrix, J) {
   B2EInt eri_J = CalcERI(g_0, g_1, g_i, g_i, method);
   cout << eri_J->size() << endl;
   VectorXcd C0 = C[make_pair(0, 0)].col(0);
-  AddJ(eri_J, C0, 0, J);
+  AddJ(eri_J, C0, 0, 1.0, J);
   cout << J[i11](0, 0) << J_full[i11](0, 0+2) << endl;
 
   // Check values
@@ -450,6 +450,7 @@ TEST(HF, He) {
 		0.0001);
 
   // Coef check
+  // see ylcls:~/gaussian/he/
   VectorXcd c = mo->C[make_pair(0, 0)].col(0);
   double eps(0.00001);
   EXPECT_C_NEAR(-0.91795 , mo->eigs[0][0], eps);
@@ -917,17 +918,14 @@ TEST(STEX, He) {
     fclose(fp);
   }
 
-  cout << 1 << endl;
   // RHF
   bool conv;
   MO mo = CalcRHF(sym, mat_set, eri, 2, 10, 0.0000001, &conv);
   EXPECT_TRUE(conv);
-  cout << 2 << endl;
 
   // build Static Exchange Hamiltonian
   BMat hmat;
   CalcSEHamiltonian(mo, eri, 0, 0, &hmat, 0);
-  cout << 3 << endl;
   
   // Compute alpha
   double au2ev(27.2114);

@@ -23,6 +23,9 @@ namespace l2func {
   dcomplex SMatEle(CartGTO& a, CartGTO& b);
   dcomplex TMatEle(CartGTO& a, CartGTO& b);
   dcomplex VMatEle(CartGTO& a, Eigen::Vector3cd at, CartGTO& b);
+  dcomplex DXMatEle(CartGTO& a, CartGTO& b);
+  dcomplex DYMatEle(CartGTO& a, CartGTO& b);
+  dcomplex DZMatEle(CartGTO& a, CartGTO& b);
 
   // ==== SymGTOs ====
   BMatSet CalcMat(SymGTOs a, SymGTOs b, bool calc_coulomb);
