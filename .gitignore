@@ -6,4 +6,4 @@
 *.pyc
 bin/
 local.mk
-
+*.bin
