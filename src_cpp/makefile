@@ -1,6 +1,5 @@
 include local.mk
 ARCH=debug
-$(shell mkdir -p ${BINDIR})
 VALGRIND=valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no 
 
 ifeq (${ARCH},fast)
@@ -24,11 +23,15 @@ ifeq (${ARCH},time)
   RUN=iprofiler -timeprofiler -T 30
 endif
 BINDIR=bin/${ARCH}
+$(shell mkdir -p ${BINDIR})
 
 
 SRCS:=$(wildcard *.cpp)
 DEPS:=$(SRCS:%.cpp=${BINDIR}/%.d)
 -include ${DEPS}
+
+# -- google test --
+GTEST=-isystem -pthread libgtest.a
 
 # -- basic relation --
 ${BINDIR}/%.o: %.cpp
@@ -38,15 +41,15 @@ ${BINDIR}/%.o: %.cpp
 MATH_OBJS = \
 	test_math.o fact.o erfc.o lgamma.o mol_func.o \
 	angmoment.o eigen_plus.o bmatset.o 
-${BINDIR}/test_math: $(foreach o, ${MATH_OBJS}, ${BINDIR}/$o)
-	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
+${BINDIR}/test_math: libgtest.a $(foreach o, ${MATH_OBJS}, ${BINDIR}/$o) 
+	${CXX} -o $@ $^  ${CXXFLAGS} ${GTEST} -lgsl
 .PHONY: check_math
 check_math: ${BINDIR}/test_math
 	${RUN} ./$<
 
 # -- test symgroup --
 SYMGROUP_OBJS=test_symgroup.o symgroup.o
-${BINDIR}/test_symgroup: $(foreach o, ${SYMGROUP_OBJS}, ${BINDIR}/$o)
+${BINDIR}/test_symgroup: $(foreach o, ${SYMGROUP_OBJS}, ${BINDIR}/$o) libgtest.a
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest
 .PHONY: check_symgroup
 check_symgroup: ${BINDIR}/test_symgroup
@@ -56,7 +59,7 @@ check_symgroup: ${BINDIR}/test_symgroup
 SYMMOLINT_OBJS = \
 	test_symmolint.o symmolint.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o \
 	eigen_plus.o fact.o mol_func.o b2eint.o 
-${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
+${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o) libgtest.a
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_symmolint
 check_symmolint: ${BINDIR}/test_symmolint
@@ -65,7 +68,7 @@ check_symmolint: ${BINDIR}/test_symmolint
 # -- test 2e int --
 TWOINT_OBJS = test_2eint.o b2eint.o symmolint.o symgroup.o one_int.o two_int.o bmatset.o angmoment.o  \
 	eigen_plus.o fact.o mol_func.o timer.o
-${BINDIR}/test_2eint:  $(foreach o, ${TWOINT_OBJS}, ${BINDIR}/$o)
+${BINDIR}/test_2eint:  $(foreach o, ${TWOINT_OBJS}, ${BINDIR}/$o) libgtest.a
 	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
 .PHONY: check_2eint
 check_2eint: ${BINDIR}/test_2eint

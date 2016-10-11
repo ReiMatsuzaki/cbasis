@@ -752,7 +752,7 @@ TEST(MolFunc, IncGamma) {
   EXPECT_C_EQ(1.0/3.0, us[1]);
   EXPECT_C_EQ(1.0/5.0, us[2]);
 
-  delete us;
+  delete[] us;
 
 }
 TEST(MolFunc, ExpIncGamma) {
@@ -786,7 +786,7 @@ TEST(MolFunc, ExpIncGamma) {
   ref = dcomplex(0.0540860523735, 0.0334636392627);
   EXPECT_C_EQ(ref, us[2]);
 
-  delete us;
+  delete[] us;
 
 }
 

@@ -104,7 +104,9 @@ namespace l2func {
     for(int m = 0; m <= max_m; m++) 
       res_list[m] = dcomplex(fmR[m]+bmR[m], fmI[m]+bmI[m]);
 
-    delete anR; delete anI; delete fmR; delete fmI; delete bmR; delete bmI;
+    delete[] anR; delete[] anI;
+    delete[] fmR; delete[] fmI;
+    delete[] bmR; delete[] bmI;
   }
   void IncompleteGamma_F2(int max_m, dcomplex z, dcomplex* res) {
 
