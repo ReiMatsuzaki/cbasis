@@ -2,7 +2,7 @@
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <boost/python/suite/indexing/map_indexing_suite.hpp>
-#include <boost/numpy.hpp>
+// #include <boost/numpy.hpp>
 #include <Eigen/Core>
 
 #include "../src_cpp/macros.hpp"
@@ -25,7 +25,7 @@ namespace {
   typedef std::complex<double> F;
 
   namespace bp = boost::python;
-  namespace np = boost::numpy;
+  // namespace np = boost::numpy;
 }
 
 // ==== Boost/Python utilities ====
@@ -342,7 +342,7 @@ void AddOneTwoInt() {
 BOOST_PYTHON_MODULE(symmolint_bind) {
 
   Py_Initialize();
-  np::initialize();
+  // np::initialize();
 
   AddAngmoemnt();
   AddMO();

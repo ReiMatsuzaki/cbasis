@@ -1,6 +1,9 @@
 # ==== Common settings ====
 CXXFLAGS=-Wall
-PY_FLAGS=-I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -lboost_python -lboost_numpy  -DPIC -bundle -fPIC -framework Python
+#PY_FLAGS=-I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -lboost_python -lboost_numpy  -DPIC -bundle -fPIC -framework Python -I/usr/local/Cellar/python3/3.5.2_2/Frameworks/Python.framework/Versions/3.5/include/python3.5m/
+#PY_FLAGS=-I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -lboost_python -DPIC -bundle -fPIC -framework Python 
+#PY_FLAGS= -lboost_python -DPIC -bundle -fPIC -framework Python -I/usr/local/Cellar/python3/3.5.2_2/Frameworks/Python.framework/Versions/3.5/include/python3.5m/
+PY_FLAGS= -lboost_python -DPIC -bundle -fPIC -framework Python 
 LDFLAGS=-lgsl -lblas
 
 BIN_ORIG=bin
