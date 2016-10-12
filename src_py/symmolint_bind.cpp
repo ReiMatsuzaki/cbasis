@@ -6,7 +6,6 @@
 #include <Eigen/Core>
 
 #include "../src_cpp/macros.hpp"
-
 #include "../src_cpp/eigen_plus.hpp"
 #include "../src_cpp/angmoment.hpp"
 #include "../src_cpp/b2eint.hpp"
