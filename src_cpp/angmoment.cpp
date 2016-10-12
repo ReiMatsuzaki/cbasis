@@ -43,7 +43,7 @@ namespace l2func {
 
   }
   bool is_lm_pair(int L, int M) {
-    return 0<=L &&abs(M) <= L;
+    return 0<=L && iabs(M) <= L;
   }
   
   // -- not used now
@@ -229,7 +229,7 @@ namespace l2func {
       
       res[lm_index(l, 0)] = sqrt((2*l+1)/(4.0*M_PI)) * res[lm_index(l, 0)];
       for(int m = 1; m <= l; m++) {
-	int am = abs(m);
+	int am = iabs(m);
 	dcomplex plm = res[lm_index(l, am)];
 	dcomplex t0 = ipow(-1, m)*sqrt(2.0)*
 	  sqrt((2*l+1) / (4.0*M_PI)*DFactorial(l-am)*1.0/DFactorial(l+am));
@@ -316,7 +316,7 @@ namespace l2func {
       dcomplex cumsum(0);
       for(int lp = 0; lp <= l; lp++)
 	for(int lppp = 0; lppp <= lppp_max; lppp++)
-	  for(int Jp = abs(l-lp-lppp); Jp <= l+lp+lppp; Jp++) 
+	  for(int Jp = iabs(l-lp-lppp); Jp <= l+lp+lppp; Jp++) 
 	    for(int Mp = -Jp; Mp <= Jp; Mp++)
 	      cumsum += GTOExpansionCoef(l, m, lp, lppp, Jp, Mp, Jpp, Mpp) *
 		pow(A, l) * pow(r/A, lp) * e_term * il[lppp] *

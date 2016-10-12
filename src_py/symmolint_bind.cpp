@@ -27,8 +27,6 @@ namespace {
   // namespace np = boost::numpy;
 }
 
-// ==== Boost/Python utilities ====
-// http://nonbiri-tereka.hatenablog.com/entry/2014/02/02/104717
 template<class T>
 boost::python::list PyListFromCppVector(vector<T>& cpp_vector) {
   boost::python::list py_list;
@@ -39,6 +37,7 @@ boost::python::list PyListFromCppVector(vector<T>& cpp_vector) {
   return py_list;
 }
 
+
 MatrixXcd& BMat_get(BMat* bmat, tuple args) {
   int i = extract<int>(args[0]);
   int j = extract<int>(args[1]);
@@ -46,13 +45,6 @@ MatrixXcd& BMat_get(BMat* bmat, tuple args) {
 }
 void BMat_set(BMat* bmat, int i, int j, MatrixXcd& mat) {
   (*bmat)[make_pair(i, j)] = mat;
-}
-BMat* py_CalcSEHamiltonian(MO mo, B2EInt eri, Irrep I0, int i0) {
-
-  BMat *res = new BMat();
-  CalcSEHamiltonian(mo, eri, I0, i0, res);
-  return res;
-
 }
 void BMatSetZero(BMat& C, BMat& mat) {
 
@@ -65,9 +57,9 @@ void BMatSetZero(BMat& C, BMat& mat) {
 }
 void BMatSetZero(SymGTOs g0, SymGTOs g1, BMat& bmat) {
 
-  /*
-    g0 and g1 are assumed to have same symmetry
-   */
+  //
+  // g0 and g1 are assumed to have same symmetry
+  //
 
   if(! g0->sym_group->IsSame(g1->sym_group)) {
     string msg; SUB_LOCATION(msg);
@@ -81,6 +73,35 @@ void BMatSetZero(SymGTOs g0, SymGTOs g1, BMat& bmat) {
     int n1(g1->size_basis_isym(irrep));
     bmat[make_pair(irrep, irrep)] = MatrixXcd::Zero(n0, n1);
   }
+
+}
+
+void AddAngmoemnt() {
+
+  def("cg_coef", cg_coef);
+
+}
+
+boost::python::list MO_get_num_occ(MO mo) {
+  boost::python::list num_occ = PyListFromCppVector(mo->num_occ_irrep);
+  return num_occ;
+}
+MO CalcRHF1(SymGTOs gtos, int nele, int max_iter, double eps, int debug_lvl) {
+  bool is_conv;
+  MO mo = CalcRHF(gtos, nele, max_iter, eps, &is_conv, debug_lvl);
+  return mo;
+}
+MO CalcRHF2(pSymmetryGroup sym, BMatSet mat_set, B2EInt eri, int nele, 
+	    int max_iter, double eps, int debug_lvl) {
+  bool is_conv;
+  MO mo = CalcRHF(sym, mat_set, eri, nele, max_iter, eps, &is_conv, debug_lvl);
+  return mo;
+}
+BMat* py_CalcSEHamiltonian(MO mo, B2EInt eri, Irrep I0, int i0) {
+
+  BMat *res = new BMat();
+  CalcSEHamiltonian(mo, eri, I0, i0, res);
+  return res;
 
 }
 BMat* py_JK(B2EInt eri, BMat& C, Irrep I0, int i0, dcomplex c_J, dcomplex c_K) {
@@ -115,80 +136,6 @@ BMat* py_K(B2EInt eri, VectorXcd& ca, Irrep ir_a,
 
 }
 
-tuple SymGTOs_AtR_Ylm(SymGTOs gtos,
-		      int L, int M,  int irrep,
-		      const VectorXcd& cs_ibasis,
-		      VectorXcd rs) {
-  
-  VectorXcd* ys = new VectorXcd();
-  VectorXcd* ds = new VectorXcd();
-  gtos->AtR_Ylm(L, M, irrep, cs_ibasis, rs, ys, ds);
-  return make_tuple(ys, ds);
-  
-}
-VectorXcd* SymGTOs_CorrectSign(SymGTOs gtos, int L, int M,  int irrep,
-			       const VectorXcd& cs_ibasis) {
-  VectorXcd* cs = new VectorXcd(cs_ibasis); // call copy constructor
-  gtos->CorrectSign(L, M, irrep, *cs);
-  return cs;
-}
-const BMat& BMatSets_getitem(BMatSet self, string name) {
-  return self->GetBlockMatrix(name);  
-}
-tuple generalizedComplexEigenSolve_py(const CM& F, const CM& S) {
-
-  MatrixXcd C;
-  VectorXcd eig;
-  generalizedComplexEigenSolve(F, S, &C, &eig);
-  return make_tuple(eig, C);
-
-  /*
-  int n(F.cols());
-  if((F.rows() != n) ||
-     (S.cols() != n) ||
-     (S.rows() != n)) {
-    string msg; SUB_LOCATION(msg); 
-    msg += ": matrix F and S must be same size square matrix. ";
-    throw runtime_error(msg);
-  }
-  */
-}
-tuple CEigenSolveCanonicalNum_py(const CM& F, const CM& S, int num0) {
-
-  MatrixXcd C;
-  VectorXcd eig;
-  CEigenSolveCanonicalNum(F, S, num0, &C, &eig);
-  return make_tuple(eig, C);
-
-}
-MatrixXcd* CanonicalMatrix_py(const MatrixXcd& S, double eps) {
-
-  MatrixXcd* X = new MatrixXcd();
-  CanonicalMatrix(S, eps, X);
-  return X;
-}
-
-MO CalcRHF1(SymGTOs gtos, int nele, int max_iter, double eps, int debug_lvl) {
-  bool is_conv;
-  MO mo = CalcRHF(gtos, nele, max_iter, eps, &is_conv, debug_lvl);
-  return mo;
-}
-MO CalcRHF2(pSymmetryGroup sym, BMatSet mat_set, B2EInt eri, int nele, 
-	    int max_iter, double eps, int debug_lvl) {
-  bool is_conv;
-  MO mo = CalcRHF(sym, mat_set, eri, nele, max_iter, eps, &is_conv, debug_lvl);
-  return mo;
-}
-boost::python::list MO_get_num_occ(MO mo) {
-  boost::python::list num_occ = PyListFromCppVector(mo->num_occ_irrep);
-  return num_occ;
-}
-
-void AddAngmoemnt() {
-
-  def("cg_coef", cg_coef);
-
-}
 void AddMO() {
 
   register_ptr_to_python<MO>();
@@ -199,18 +146,24 @@ void AddMO() {
     .def_readonly("eigs", &_MO::eigs)
     .def("num_occ", MO_get_num_occ)
     .def_readonly("energy", &_MO::energy);
-  
+
+
   def("calc_RHF", CalcRHF1);
   def("calc_RHF", CalcRHF2);
+
   def("calc_SEHamiltonian", py_CalcSEHamiltonian,
       return_value_policy<manage_new_object>());
+
   def("calc_JK", py_JK, return_value_policy<manage_new_object>());
+
   def("calc_J", py_J, return_value_policy<manage_new_object>());
   def("calc_K", py_K, return_value_policy<manage_new_object>());
+
   def("calc_alpha", CalcAlpha);
   def("pi_total_crosssection", PITotalCrossSection);
 
 }
+
 void AddSymmetryGroup() {
 
   register_ptr_to_python<pSymmetryGroup>();
@@ -232,6 +185,31 @@ void AddSymmetryGroup() {
   def("C4", SymmetryGroup::C4);
 
 }
+
+MatrixXcd* CanonicalMatrix_py(const MatrixXcd& S, double eps) {
+
+  MatrixXcd* X = new MatrixXcd();
+  CanonicalMatrix(S, eps, X);
+  return X;
+}
+
+tuple CEigenSolveCanonicalNum_py(const CM& F, const CM& S, int num0) {
+
+  MatrixXcd C;
+  VectorXcd eig;
+  CEigenSolveCanonicalNum(F, S, num0, &C, &eig);
+  return make_tuple(eig, C);
+
+}
+
+tuple generalizedComplexEigenSolve_py(const CM& F, const CM& S) {
+
+  MatrixXcd C;
+  VectorXcd eig;
+  generalizedComplexEigenSolve(F, S, &C, &eig);
+  return make_tuple(eig, C);
+}
+
 void AddLinearAlgebra() {
 
   def("canonical_matrix", CanonicalMatrix_py,
@@ -258,6 +236,7 @@ void AddLinearAlgebra() {
     .def("set_matrix", &_BMatSet::SetMatrix);
 
 }
+
 void AddB2EInt() {
 
   register_ptr_to_python<B2EInt>();
@@ -273,6 +252,24 @@ void AddB2EInt() {
     .def("capacity", &IB2EInt::capacity);
   def("ERI_read", ERIRead);
   
+}
+
+tuple SymGTOs_AtR_Ylm(SymGTOs gtos,
+		      int L, int M,  int irrep,
+		      const VectorXcd& cs_ibasis,
+		      VectorXcd rs) {
+  
+  VectorXcd* ys = new VectorXcd();
+  VectorXcd* ds = new VectorXcd();
+  gtos->AtR_Ylm(L, M, irrep, cs_ibasis, rs, ys, ds);
+  return make_tuple(ys, ds);
+  
+}
+VectorXcd* SymGTOs_CorrectSign(SymGTOs gtos, int L, int M,  int irrep,
+			       const VectorXcd& cs_ibasis) {
+  VectorXcd* cs = new VectorXcd(cs_ibasis); // call copy constructor
+  gtos->CorrectSign(L, M, irrep, *cs);
+  return cs;
 }
 void AddSymMolInt() {
 
@@ -321,6 +318,7 @@ void AddSymMolInt() {
     .def("__repr__", &_SymGTOs::str);
 
 }
+
 void AddOneTwoInt() {
 
   class_<ERIMethod>("ERI_method", init<>())
@@ -338,15 +336,16 @@ void AddOneTwoInt() {
   def("calc_ERI", CalcERI);
 
 }
+
+
 BOOST_PYTHON_MODULE(symmolint_bind) {
 
   Py_Initialize();
   // np::initialize();
-
   AddAngmoemnt();
   AddMO();
   AddSymmetryGroup();
-  AddLinearAlgebra();  
+  AddLinearAlgebra();
   AddB2EInt();
   AddSymMolInt();
   AddOneTwoInt();

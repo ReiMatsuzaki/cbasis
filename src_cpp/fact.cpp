@@ -3,6 +3,10 @@
 #include "fact.hpp"
 
 namespace l2func {
+  
+  int iabs(int a) {
+    return a > 0 ? a : -a;
+  }
 
   int ipow(int a, int n) {
 

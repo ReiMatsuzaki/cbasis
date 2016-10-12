@@ -9,7 +9,7 @@ ifeq (${ARCH},fast)
 endif
 ifeq (${ARCH},debug)
   # debug mode
-  CXXFLAGS=${INC_PATH} -Wa
+  CXXFLAGS=${INC_PATH} -Wall
   RUN=VALGRIND
 endif
 ifeq (${ARCH},mem)
@@ -128,8 +128,8 @@ check_r1gtoint_deriv: ${BINDIR}/test_r1gtoint_deriv
 
 clean:
 	rm -f ${BINDIR}/*.o
-	rm -f ${BINDIR}*.a
-	rm -f ${BINDIR}*.d
+	rm -f ${BINDIR}/*.a
+	rm -f ${BINDIR}/*.d
 
 # ==== old ====
 

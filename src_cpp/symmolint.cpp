@@ -72,7 +72,7 @@ namespace l2func {
       throw runtime_error(msg);
     }
     for(RdsIt it = rds.begin(); it != rds.end(); ++it) {
-      if(it->size_at() != this->size_at() |
+      if(it->size_at() != this->size_at() ||
 	 it->size_pn() != this->size_pn()) {
 	string msg; SUB_LOCATION(msg);
 	ostringstream oss; oss << msg;

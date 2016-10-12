@@ -4,6 +4,7 @@
 #include <string>
 #include <ostream>
 #include <iostream>
+#include <stdexcept>
 #include "macros.hpp"
 
 /**

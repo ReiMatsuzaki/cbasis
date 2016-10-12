@@ -1,26 +1,35 @@
+include local.mk
+
 # ==== Common settings ====
-CXXFLAGS=-Wall
+CXXFLAGS=-Wall -fPIC
+
+#ifeq (\$(OS),Linux)
+PY_FLAGS=-I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -DPIC -shared -fPIC -lboost_python 
+#endif
+
+ifeq (\$(OS), Darwin)
 #PY_FLAGS=-I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -lboost_python -DPIC -bundle -fPIC -framework Python 
 PY_FLAGS= -lboost_python -DPIC -bundle -fPIC -framework Python 
-LDFLAGS=-lgsl -lblas
+endif
+
 
 BIN_ORIG=bin
 ARCH=debug
 BINDIR=bin/${ARCH}
-PY_DIR=~/local/Python
+
 $(shell mkdir -p ${BINDIR})
 
 ifeq (${ARCH},fast)
   # calculation speed
-  CXXFLAGS=${INC_PATH} -Wall -O3 -DARG_NO_CHECK -DEIGEN_NO_DEBUG
+  CXXFLAGS=${INC_PATH} -Wall -O3 -DARG_NO_CHECK -DEIGEN_NO_DEBUG  -fPIC
 endif
 ifeq (${ARCH},debug)
   # debug mode
-  CXXFLAGS=${INC_PATH} -Wall -g 
+  CXXFLAGS=${INC_PATH} -Wall -g  -fPIC
 endif
 ifeq (${ARCH},mem)
   # for memory check. (very slow)
-  CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline -DARG_NO_CHECK -DEIGEN_NO_DEBUG
+  CXXFLAGS=${INC_PATH} -Wall -pg -g -fno-inline -DARG_NO_CHECK -DEIGEN_NO_DEBUG  -fPIC
 endif
 
 
@@ -35,7 +44,7 @@ ${BINDIR}/%.o: ../src_cpp/%.cpp
 # ==== L2(R1) ====
 L2_OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o cip_exp.o delta.o
 ${BINDIR}/l2func_bind.so: l2func_bind.cpp $(foreach o, ${L2_OBJS}, ${BINDIR}/$o)
-	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS} ${LDFLAGS}
+	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS}
 .PHONY: check_l2
 check_l2: ${BINDIR}/l2func_bind.so
 	ln -s ${BINDIR}/l2func_bind.so .
@@ -45,15 +54,16 @@ install_l2: ${BINDIR}/l2func_bind.so
 	cp $< ${PY_DIR}
 
 # ==== SymMolInt ====
-SYMMOLINT_OBJS=mo.o symmolint.o one_int.o two_int.o fact.o mol_func.o bmatset.o angmoment.o eigen_plus.o b2eint.o symgroup.o 
+SYMMOLINT_OBJS=mo.o symmolint.o one_int.o two_int.o fact.o cfunc.o mol_func.o bmatset.o angmoment.o eigen_plus.o b2eint.o symgroup.o 
 ${BINDIR}/symmolint_bind.so: symmolint_bind.cpp $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
-	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS} ${LDFLAGS}
+	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS} ${LIBS} -lgsl -lgslcblas
 check_symmolint: ${BINDIR}/symmolint_bind.so
+	python -c 'import symmolint_bind as mol; print mol.cg_coef(0,0,0,0,0,0)'
 	rm -f symmolint_bind.so
 	ln -s ${BINDIR}/symmolint_bind.so .
-	python test_solve_pi.py
+#	python test_solve_pi.py
 	python test_symmolint.py
-	python test_part_wave.py
+#	python test_part_wave.py
 	rm symmolint_bind.so
 install_symmolint: ${BINDIR}/symmolint_bind.so
 	cp $< ${PY_DIR}

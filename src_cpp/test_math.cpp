@@ -287,6 +287,15 @@ TEST(MultArray, MultArray4) {
 
 }
 
+TEST(Fact, iabs) {
+
+  EXPECT_EQ(0, iabs(0));
+  EXPECT_EQ(1, iabs(1));
+  EXPECT_EQ(1, iabs(-1));
+  EXPECT_EQ(4, iabs(4));
+  EXPECT_EQ(4, iabs(-4));
+  
+}
 TEST(Fact, ipow) {
   
   EXPECT_EQ(-1, ipow(-1, 1));
