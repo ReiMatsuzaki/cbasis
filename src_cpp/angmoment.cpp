@@ -6,6 +6,7 @@
 #include "typedef.hpp"
 #include "macros.hpp"
 
+#include "cfunc.hpp"
 #include "fact.hpp"
 
 #include "angmoment.hpp"
@@ -258,8 +259,8 @@ namespace l2func {
 
     dcomplex a2= x*x+y*y+z*z;
     dcomplex a = sqrt(a2);
-    dcomplex theta = acos(z / a);
-    dcomplex phi   = acos(x/sqrt(x*x+y*y));
+    dcomplex theta = cacos(z / a);
+    dcomplex phi   = cacos(x/sqrt(x*x+y*y));
 
     dcomplex* ylm = &work[0];
     dcomplex* il =  &work[num_lm_pair(Jpp)];
@@ -270,7 +271,7 @@ namespace l2func {
       dcomplex r(rs[i]);
       ModSphericalBessel(2.0*zeta*a*r, Jpp, il);
       res[i] = (4.0*M_PI * exp(-zeta*(r*r+a2)) * il[Jpp] *
-		ipow(-1, Mpp) * ylm[lm_index(Jpp, -Mpp)]);
+		pow(-1.0, Mpp) * ylm[lm_index(Jpp, -Mpp)]);
     }
   }
   void gto_lm_r_center(int l, int m, int Jpp, int Mpp, dcomplex zeta,
@@ -302,8 +303,8 @@ namespace l2func {
 
     dcomplex *ylm = &work[0];
     dcomplex *il  = &work[num_r];
-    dcomplex theta = acos(z / sqrt(x*x+y*y+z*z));
-    dcomplex phi = acos(x / sqrt(x*x+y*y));
+    dcomplex theta = cacos(z / sqrt(x*x+y*y+z*z));
+    dcomplex phi = cacos(x / sqrt(x*x+y*y));
     dcomplex A = sqrt(x*x + y*y + z*z);
     RealSphericalHarmonics(theta, phi, 2*l+lppp_max, ylm);
 

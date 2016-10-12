@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include "macros.hpp"
 #include "bmatset.hpp"
 
@@ -15,8 +16,7 @@ namespace l2func {
   // ==== BMat ====
   // typedef map<pair<int, int>, Matrix> BMat 
   void BMatRead(BMat& bmat, string fn) {
-
-    ifstream f(fn, ios::in|ios::binary);
+    ifstream f(fn.c_str(), ios::in|ios::binary);
     
     if(!f) {
       string msg; SUB_LOCATION(msg);
@@ -49,7 +49,7 @@ namespace l2func {
   void BMatWrite(BMat& bmat, string fn) {
 
     ofstream f;
-    f.open(fn, ios::out|ios::binary|ios::trunc);
+    f.open(fn.c_str(), ios::out|ios::binary|ios::trunc);
     
     if(!f) {
       string msg; SUB_LOCATION(msg); msg+=": file not found";

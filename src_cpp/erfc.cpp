@@ -29,7 +29,7 @@ namespace erfc_mori {
   template<class F>
   int ErfcAtN(F x, unsigned int n, F& y, F& yn ) {
 
-    F y0, yn0, one;
+    F y0(0), yn0(0), one;
     F nnhh, h, xx, t2;
 
     one = F(1);
@@ -92,7 +92,7 @@ namespace erfc_mori {
   template<class F>
   int Exp2ErfcAtN(F x, unsigned int n, F& y, F& yn) {
 
-    F y0, yn0;
+    F y0(0), yn0(0);
     F nnhh, h, xx, t2, one;
     xx = x * x;
     h = sqrt(M_PI / (int)n);
