@@ -1,11 +1,43 @@
 #include <string>
+#include <stdexcept>
 #include "fact.hpp"
 
 namespace l2func {
+
+  int ipow(int a, int n) {
+
+    if(a == 1) {
+      return 1;
+    }
+
+    if(a == -1) {
+      if(n % 2 == 0)
+	return 1;
+      else
+	return -1;
+    }
+    
+    if(n < 0) {
+      throw std::runtime_error("n must be non negative integer");
+    }
+
+    if(n == 0) {
+      return 1;
+    }
+
+    int acc = 1;
+    for (int i = 0; i < n; i++) {
+      acc *= a;
+    }
+    
+    return acc;
+    
+  }
+
   int Factorial(int n) {
 
     if(n < 0) {
-      throw std::invalid_argument("n must be zero or positive in Factorial.");
+      throw std::runtime_error("n must be zero or positive in Factorial.");
     }
 
     int acc = 1;

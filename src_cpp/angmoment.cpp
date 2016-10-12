@@ -1,5 +1,6 @@
 #include <math.h>
 #include <iostream>
+#include <stdexcept>
 #include <gsl/gsl_sf_coupling.h>
 
 #include "typedef.hpp"
@@ -29,7 +30,7 @@ namespace l2func {
 
   // ==== Utilities ====
   double cg_coef(int j1, int j2, int m1, int m2, int j3, int m3) {
-    return pow(-1, j1-j2+m3) * sqrt(2*j3+1.0) *
+    return ipow(-1, j1-j2+m3) * sqrt(2*j3+1.0) *
       gsl_sf_coupling_3j(2*j1, 2*j2, 2*j3, 2*m1, 2*m2, -2*m3);
   }
   int lm_index(int L, int M) {
@@ -60,7 +61,7 @@ namespace l2func {
 	for(int J = l-lp; J <= l+lp; J++)
 	  for(int M = -J; M <= J; M++)
 	    for(int mppp = -lppp; mppp <= lppp; mppp++) {
-	      double t1 = pow(-1, l+m-(lp+mp)) * (2.0*lppp+1) / DFactorial(l-lp);
+	      double t1 = ipow(-1, l+m-(lp+mp)) * (2.0*lppp+1) / DFactorial(l-lp);
 	      double t2 = sqrt((4.0 * M_PI * (2*l+1)*DFactorial(l-mp)*DFactorial(l+mp)) /
 			       ((2.0*Jp+1)*(2.0*Jpp+1)*DFactorial(lp-mp)*DFactorial(lp+mp)));
 	      double t3 = (cg_coef(lp,l,mpp,-m,J,M) *
@@ -229,11 +230,11 @@ namespace l2func {
       for(int m = 1; m <= l; m++) {
 	int am = abs(m);
 	dcomplex plm = res[lm_index(l, am)];
-	dcomplex t0 = pow(-1, m)*sqrt(2.0)*
+	dcomplex t0 = ipow(-1, m)*sqrt(2.0)*
 	  sqrt((2*l+1) / (4.0*M_PI)*DFactorial(l-am)*1.0/DFactorial(l+am));
 	res[lm_index(l, -m)] = t0 * plm * sin(am*1.0*phi);
 	
-	dcomplex t1 = (pow(-1, m) * sqrt(2.0) *
+	dcomplex t1 = (ipow(-1, m) * sqrt(2.0) *
 		       sqrt((2.0*l+1)/(4.0*M_PI) * DFactorial(l-m)/DFactorial(l+m)));
 	res[lm_index(l,m)] = t1 * plm * cos(m*1.0*phi);
       }
@@ -269,7 +270,7 @@ namespace l2func {
       dcomplex r(rs[i]);
       ModSphericalBessel(2.0*zeta*a*r, Jpp, il);
       res[i] = (4.0*M_PI * exp(-zeta*(r*r+a2)) * il[Jpp] *
-		pow(-1.0, Mpp) * ylm[lm_index(Jpp, -Mpp)]);
+		ipow(-1, Mpp) * ylm[lm_index(Jpp, -Mpp)]);
     }
   }
   void gto_lm_r_center(int l, int m, int Jpp, int Mpp, dcomplex zeta,

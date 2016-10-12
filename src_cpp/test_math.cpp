@@ -148,17 +148,13 @@ TEST(BMatSet, Exception) {
   } catch(const runtime_error& e) {
     cout << e.what() << endl;
   }
-
-}
+ }
 TEST(BMatSet, BMat_swap) {
-
-  BMat s0;
+   BMat s0;
   s0[make_pair(0, 0)] = MatrixXcd::Ones(4, 5);
   s0[make_pair(1, 1)] = MatrixXcd::Zero(4, 5);
-
-  BMat s1;
+   BMat s1;
   swap(s0, s1);
-  
   EXPECT_MATXCD_EQ(MatrixXcd::Ones(4, 5), s1[make_pair(0, 0)]);
   EXPECT_MATXCD_EQ(MatrixXcd::Zero(4, 5), s1[make_pair(1, 1)]);
 
@@ -280,6 +276,19 @@ TEST(MultArray, MultArray4) {
 
 }
 
+TEST(Fact, ipow) {
+  
+  EXPECT_EQ(-1, ipow(-1, 1));
+  EXPECT_EQ(-1, ipow(-1, -3));
+  EXPECT_EQ(1, ipow(-1, -6));
+  EXPECT_EQ(1, ipow(-1, 0));
+
+  EXPECT_EQ(1, ipow(3, 0));
+  EXPECT_EQ(2, ipow(2, 1));
+  EXPECT_EQ(9, ipow(3, 2));
+  EXPECT_EQ(81, ipow(3, 4));
+  
+}
 TEST(Fact, Factorial) {
 
   EXPECT_ANY_THROW(Factorial(-1));
@@ -641,7 +650,7 @@ TEST(Angmoment, cg_coef) {
   int m1 = 1;
   EXPECT_DOUBLE_EQ(-1.0/sqrt(2*j1+1),
 		   cg_coef(j1,j1,m1,-m1, 0,0));
-  EXPECT_NEAR(pow(Factorial(2*j1),2)/(6 * sqrt(Factorial(8)*1.0)),
+  EXPECT_NEAR(pow(Factorial(2*j1),2.0)/(6 * sqrt(Factorial(8)*1.0)),
 	      cg_coef(j1,j1,m1,-m1,2*j1,0),
 	      0.0000000001);
   std::cout << cg_coef(1,1,1,0,0,0) << std::endl;

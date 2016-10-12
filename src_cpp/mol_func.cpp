@@ -1,4 +1,5 @@
 #include <string>
+#include <stdexcept>
 #include <sstream>
 #include "mol_func.hpp"
 #include "fact.hpp"
