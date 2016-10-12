@@ -1,5 +1,6 @@
 #include <iostream>
 #include <gtest/gtest.h>
+#include "fact.hpp"
 #include "gtest_plus.hpp"
 #include "b2eint.hpp"
 #include "one_int.hpp"
@@ -253,7 +254,7 @@ TEST(SymGTOs, CalcERI) {
   B2EInt eri = CalcERI_Complex(gtos, method);
 
   // -- size check --
-  EXPECT_EQ(pow(4, 4), eri->size());
+  EXPECT_EQ(ipow(4, 4), eri->size());
 
   // -- Symmetry check --
   // eri is chemist's notation.

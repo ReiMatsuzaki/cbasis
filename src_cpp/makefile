@@ -31,7 +31,7 @@ DEPS:=$(SRCS:%.cpp=${BINDIR}/%.d)
 -include ${DEPS}
 
 # -- google test --
-GTEST_DIR=${HOME}/local/src/googletest/googletest
+# read README in googletest
 CPPFLAGS += -isystem ${GTEST_DIR}/include
 CXXFLAGS += -pthread
 GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
@@ -61,8 +61,8 @@ check_math: ${BINDIR}/test_math
 
 # -- test symgroup --
 SYMGROUP_OBJS=test_symgroup.o symgroup.o
-${BINDIR}/test_symgroup: $(foreach o, ${SYMGROUP_OBJS}, ${BINDIR}/$o) libgtest.a
-	${CXX} -o $@ $^ ${CXXFLAGS} ${LIBS} -lgtest
+${BINDIR}/test_symgroup: $(foreach o, ${SYMGROUP_OBJS}, ${BINDIR}/$o)
+	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST}
 .PHONY: check_symgroup
 check_symgroup: ${BINDIR}/test_symgroup
 	${RUN} ./$<
@@ -70,18 +70,18 @@ check_symgroup: ${BINDIR}/test_symgroup
 # -- test symmolint --
 SYMMOLINT_OBJS = \
 	test_symmolint.o symmolint.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o \
-	eigen_plus.o fact.o mol_func.o b2eint.o 
+	eigen_plus.o fact.o cfunc.o mol_func.o b2eint.o gtest.a
 ${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
-	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
+	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
 .PHONY: check_symmolint
 check_symmolint: ${BINDIR}/test_symmolint
 	${RUN} ./$<
 
 # -- test 2e int --
 TWOINT_OBJS = test_2eint.o b2eint.o symmolint.o symgroup.o one_int.o two_int.o bmatset.o angmoment.o  \
-	eigen_plus.o fact.o mol_func.o timer.o
+	eigen_plus.o fact.o cfunc.o mol_func.o timer.o gtest.a
 ${BINDIR}/test_2eint:  $(foreach o, ${TWOINT_OBJS}, ${BINDIR}/$o) 
-	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
+	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
 .PHONY: check_2eint
 check_2eint: ${BINDIR}/test_2eint
 	${RUN} ./$<
@@ -91,9 +91,9 @@ time_2eint: ${BINDIR}/test_2eint
 # -- test hf --
 HF_OBJS = test_hf.o trans_eri.o mo.o b2eint.o symmolint.o one_int.o two_int.o \
 	symgroup.o bmatset.o angmoment.o eigen_plus.o \
-	fact.o mol_func.o timer.o
+	fact.o cfunc.o mol_func.o timer.o gtest.a
 ${BINDIR}/test_hf: $(foreach o, ${HF_OBJS}, ${BINDIR}/$o)
-	${CXX} -o $@ $^ ${CXXFLAGS} -lgtest -lgsl
+	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
 .PHONY: check_hf
 check_hf: ${BINDIR}/test_hf
 	${RUNE} ./$<

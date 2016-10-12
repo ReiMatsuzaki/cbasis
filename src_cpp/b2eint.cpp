@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include "b2eint.hpp"
 
 namespace l2func {
@@ -102,7 +103,7 @@ namespace l2func {
   void B2EIntMem::Write(string fn) {
 
     ofstream f;
-    f.open(fn, ios::out|ios::binary|ios::trunc);
+    f.open(fn.c_str(), ios::out|ios::binary|ios::trunc);
     
     if(!f) {
       string msg; SUB_LOCATION(msg); msg+=": file not found";
@@ -143,7 +144,7 @@ namespace l2func {
 
     B2EInt eri(new B2EIntMem);
 
-    ifstream f(fn, ios::in|ios::binary);
+    ifstream f(fn.c_str(), ios::in|ios::binary);
     
     if(!f) {
       string msg; SUB_LOCATION(msg);

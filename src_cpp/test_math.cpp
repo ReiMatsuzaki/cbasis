@@ -6,6 +6,7 @@
 #include "mult_array.hpp"
 
 // mathematical functions
+#include "cfunc.hpp"
 #include "fact.hpp"
 #include "erfc.hpp"
 #include "lgamma.hpp"
@@ -17,6 +18,16 @@
 using namespace std;
 using namespace l2func;
 using namespace Eigen;
+
+/*
+TEST(cfunc, acos) {
+  
+  dcomplex z(1.1, 0.3);
+  EXPECT_C_EQ(cacos(z),  M_PI/2.0 - casin(z));
+  EXPECT_C_EQ(casin(-z), -casin(z));
+  
+}
+*/  
 
 TEST(EigenPlus, Canonical) {
 

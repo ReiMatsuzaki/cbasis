@@ -1,3 +1,4 @@
+#include <stdexcept>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include "mo.hpp"

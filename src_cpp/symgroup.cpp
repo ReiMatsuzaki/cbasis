@@ -1,5 +1,7 @@
 #include <ostream>
+#include <stdexcept>
 #include "symgroup.hpp"
+#include "fact.hpp"
 #include "macros.hpp"
 
 using namespace std;
@@ -165,19 +167,19 @@ namespace l2func {
       *b = a;
       b->y = -a.y;
       b->z = -a.z;
-      *sig = pow(-1, a.ny + a.nz);
+      *sig = ipow(-1, a.ny + a.nz);
       *prim = true;
     } else if(coord == CoordY && n == 2) {
       *b = a;
       b->x = -a.x;
       b->z = -a.z;
-      *sig = pow(-1, a.nx + a.nz);
+      *sig = ipow(-1, a.nx + a.nz);
       *prim = true;
     } else if(coord == CoordZ && n == 2) {
       *b = a;
       b->x = -a.x;
       b->y = -a.y;
-      *sig = pow(-1, a.nx + a.ny);
+      *sig = ipow(-1, a.nx + a.ny);
       *prim = true;
     } else if(coord == CoordX && n == 4) {
       *b = a;
@@ -185,7 +187,7 @@ namespace l2func {
       b->z = +a.y;
       b->ny = a.nz;
       b->nz = a.ny;
-      *sig = pow(-1, a.nz);
+      *sig = ipow(-1, a.nz);
       *prim = true;      
     } else if(coord == CoordY && n == 4) {
       *b = a;
@@ -193,7 +195,7 @@ namespace l2func {
       b->x = +a.z;
       b->nz = a.nx;
       b->nx = a.nz;
-      *sig = pow(-1, a.nx);
+      *sig = ipow(-1, a.nx);
       *prim = true;
     } else if(coord == CoordZ && n == 4) {
       *b = a;
@@ -201,7 +203,7 @@ namespace l2func {
       b->y = +a.x;
       b->nx = a.ny;
       b->ny = a.nx;
-      *sig = pow(-1, a.ny);
+      *sig = ipow(-1, a.ny);
       *prim = true;
     } else {
       string msg; SUB_LOCATION(msg);
@@ -235,14 +237,14 @@ namespace l2func {
 
     if(coord == CoordX) {
       b->x = -a.x;
-      *sig = pow(-1, a.nx);
+      *sig = ipow(-1, a.nx);
     } 
     else if(coord == CoordY) {
       b->y = -a.y;
-      *sig = pow(-1, a.ny);
+      *sig = ipow(-1, a.ny);
     } else if(coord == CoordZ) {
       b->z = -a.z;
-      *sig = pow(-1, a.nz);
+      *sig = ipow(-1, a.nz);
     }
     
   }
@@ -268,7 +270,7 @@ namespace l2func {
     b->x = -a.x;
     b->y = -a.y;
     b->z = -a.z;
-    *sig = pow(-1, a.nx + a.ny + a.nz);
+    *sig = ipow(-1, a.nx + a.ny + a.nz);
     *prim = true;    
   }
   string InvCent::str() const {

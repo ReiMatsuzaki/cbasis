@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 #include "typedef.hpp"
 #include "two_int.hpp"
 

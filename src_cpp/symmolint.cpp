@@ -1,5 +1,7 @@
 #include <iostream>
+#include <stdexcept>
 #include <numeric>
+#include "cfunc.hpp"
 #include "angmoment.hpp"
 #include "mol_func.hpp"
 #include "one_int.hpp"
@@ -651,8 +653,8 @@ namespace l2func {
     }
 
     dcomplex expz = exp(-zeta*(r*r+a2));
-    dcomplex theta = acos(z / a);
-    dcomplex phi   = (abs(xxyy) < 0.00001) ? 0.0 : acos(x / sqrt(xxyy));
+    dcomplex theta = cacos(z / a);
+    dcomplex phi   = (abs(xxyy) < 0.00001) ? 0.0 : cacos(x / sqrt(xxyy));
     ModSphericalBessel(2.0*zeta*a*r, L, il_ipl);
     RealSphericalHarmonics(theta, phi, L, ylm);
     if(nn == 0) {
