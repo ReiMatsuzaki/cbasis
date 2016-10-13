@@ -155,8 +155,13 @@ namespace l2func {
 	std::string msg;
 	std::stringstream ss;
 	SUB_LOCATION(msg);
-	ss << "index: (" << nx << ", " << ny << ", " << nz << ") "
-	   << index << std::endl;
+	ss << std::endl;
+	ss << "(nx,ny,nz) = " << nx << ", " << ny << ", " << nz << ") " << std::endl;
+	ss << "index = " << index << std::endl;
+	ss << "xlim = " << n0_[0] << " " << n1_[0] << std::endl;
+	ss << "ylim = " << n0_[1] << " " << n1_[1] << std::endl;
+	ss << "zlim = " << n0_[2] << " " << n1_[2] << std::endl;
+	   
 	msg += ss.str();
 	throw std::runtime_error(msg);
       }

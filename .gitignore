@@ -7,3 +7,4 @@
 bin/
 local.mk
 *.bin
+*.csv
