@@ -4,7 +4,7 @@
 #include <exception>
 #include "typedef.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Exception class ====
   // -- to be removed

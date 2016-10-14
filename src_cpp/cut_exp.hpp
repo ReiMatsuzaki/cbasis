@@ -7,7 +7,7 @@
    Cutted STO/GTO
 */
 
-namespace l2func {
+namespace cbasis {
 
   template<class Field, int m>
   class CutExpFunc :public Func<Field, double> {

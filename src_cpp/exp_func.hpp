@@ -6,7 +6,7 @@
 #include "linspace.hpp"
 #include "op.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   // ==== STO or GTO ====
   template<class F, int m>

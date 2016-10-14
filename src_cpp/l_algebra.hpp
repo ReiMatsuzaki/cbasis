@@ -3,7 +3,7 @@
 
 #include <Eigen/Core>
 
-namespace l2func {
+namespace cbasis {
 
   // compute aA^(1,0)b
   // aA^(10)b = { \sum(i)  a_kA^(10)_ki b_i   | k }

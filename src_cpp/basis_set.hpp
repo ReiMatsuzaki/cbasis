@@ -4,7 +4,7 @@
 #include <vector>
 #include <Eigen/Core>
 
-namespace l2func {
+namespace cbasis {
 
   template<class FuncT>
   class BasisSet {

@@ -11,7 +11,7 @@
    MultArray gives multi indexed array. This file is header library for inline optimization.
 */
 
-namespace l2func {
+namespace cbasis {
 
   template<class F, int N>
   class MultArray {};

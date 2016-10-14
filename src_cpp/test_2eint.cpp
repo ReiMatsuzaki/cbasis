@@ -10,7 +10,7 @@
 
 using namespace std;
 using namespace Eigen;
-using namespace l2func;
+using namespace cbasis;
 /*
 TEST(Many, Many) {
   

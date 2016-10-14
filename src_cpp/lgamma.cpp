@@ -2,7 +2,7 @@
 
 #include "lgamma.hpp"
 
-namespace l2func {
+namespace cbasis {
   template<class F> F LowerGamma(int n, F z) {
     if(n <= 0)
       throw "n must be positive";

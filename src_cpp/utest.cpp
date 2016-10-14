@@ -15,7 +15,7 @@ To be removed
 #include "hatom.hpp"
 
 using namespace erfc_mori;
-using namespace l2func;
+using namespace cbasis;
 using namespace fact;
 using namespace std;
 

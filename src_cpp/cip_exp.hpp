@@ -6,7 +6,7 @@
 #include "normal_exp.hpp"
 #include "exp_int.hpp"
 
-namespace l2func {
+namespace cbasis {
   
   // ==== static dispatch ====
   // ---- ExpFunc ----

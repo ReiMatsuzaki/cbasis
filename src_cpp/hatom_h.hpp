@@ -4,7 +4,7 @@
 #include "exp_func.hpp"
 #include "op.hpp"
 
-namespace l2func { namespace h_atom_rad {
+namespace cbasis { namespace h_atom_rad {
 
   // ==== radial hamiltonian ====
   template<class Field, int l>

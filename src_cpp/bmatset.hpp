@@ -11,7 +11,7 @@
    if ARG_NO_CHECK is defined, given argument for map and vector is not checked.
 */
 
-namespace l2func {
+namespace cbasis {
 
   typedef std::map<int, Eigen::VectorXcd> BVec;
   typedef std::map<std::pair<int, int>, Eigen::MatrixXcd> BMat;

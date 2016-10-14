@@ -8,7 +8,7 @@
 #include "mult_array.hpp"
 #include <Eigen/Core>
 
-namespace l2func {
+namespace cbasis {
   // ==== primitive GTO ====
   class PrimGTO {
   public:

@@ -3,7 +3,7 @@
 
 typedef std::complex<double> CD;
 
-namespace l2func {
+namespace cbasis {
 
   template<class F> F ConjugateIfPossible(F x) { return x; }
   template<> double ConjugateIfPossible(double x) { return x; }

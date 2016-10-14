@@ -8,7 +8,7 @@
 #include "two_int.hpp"
 #include "symmolint.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   using namespace std;
   using namespace Eigen;

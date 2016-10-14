@@ -5,7 +5,7 @@
 #include "exp_func.hpp"
 #include "math_utils.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Constructors ====
   template<class F, int m>

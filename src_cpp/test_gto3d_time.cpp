@@ -6,7 +6,7 @@
 #include "timer.hpp"
 #include "molint.hpp"
 
-using namespace l2func;
+using namespace cbasis;
 
 void gto_set() {
   /*

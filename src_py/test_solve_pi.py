@@ -1,3 +1,6 @@
+import sys
+sys.path.append("coulomb/")
+
 import unittest
 import random
 from part_wave import *

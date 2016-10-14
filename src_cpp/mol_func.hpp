@@ -5,7 +5,7 @@
 #include "typedef.hpp"
 #include "mult_array.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   class CartGTO {
   public:

@@ -1,7 +1,7 @@
 #ifndef MATH_UTILS_TEMPLATE_H
 #define MATH_UTILS_TEMPLATE_H
 
-namespace l2func {
+namespace cbasis {
 
   // -- to be removed
   template<class F>

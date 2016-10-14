@@ -3,7 +3,7 @@
 #include <fstream>
 #include "molint.hpp"
 using namespace std;
-using namespace l2func;
+using namespace cbasis;
 
 int main ()
 {

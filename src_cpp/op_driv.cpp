@@ -5,7 +5,7 @@
 
 using namespace Eigen;
 
-namespace l2func {
+namespace cbasis {
   
   // ==== Driven term ====
   IDriv::~IDriv() {}

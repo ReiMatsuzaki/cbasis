@@ -10,7 +10,7 @@
 
 using namespace std;
 
-namespace l2func {
+namespace cbasis {
 
   /**
     Interface for store of two electron integrals.

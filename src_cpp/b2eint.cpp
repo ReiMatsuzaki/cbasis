@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include "b2eint.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Interface ====
   IB2EInt::~IB2EInt() {}

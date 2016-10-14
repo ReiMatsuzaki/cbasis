@@ -10,7 +10,7 @@
 
 using namespace Eigen;
 using namespace std;
-using namespace l2func;
+using namespace cbasis;
 using namespace boost::python;
 
 void PrintMatrixXi(const MatrixXi& x) {

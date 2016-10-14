@@ -7,7 +7,7 @@
 #include "typedef.hpp"
 #include <map>
 
-namespace l2func {
+namespace cbasis {
 
   using std::vector;
 

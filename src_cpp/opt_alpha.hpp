@@ -4,7 +4,7 @@
 #include <Eigen/Core>
 #include "typedef.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   /*
   void AlphaGrad(const Eigen::VectorXcd& d, const Eigen::VectorXcd& c,

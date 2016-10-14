@@ -1,6 +1,6 @@
 #include "gto3dset.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   // typedef std::complex<double> dcmplx;
   // typedef SphericalGTO<dcmplx, array3<dcmplx> > Basis;

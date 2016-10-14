@@ -16,7 +16,7 @@
 #include "bmatset.hpp"
 
 using namespace std;
-using namespace l2func;
+using namespace cbasis;
 using namespace Eigen;
 
 /*

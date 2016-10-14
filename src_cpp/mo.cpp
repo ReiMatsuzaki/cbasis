@@ -8,7 +8,7 @@
 
 using namespace Eigen;
 
-namespace l2func {
+namespace cbasis {
   _MO::_MO() {}
 
   typedef pair<Irrep, dcomplex> IrrepComplex;

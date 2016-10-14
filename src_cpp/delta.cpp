@@ -1,6 +1,6 @@
 #include "delta.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Constructors ====
   template<class F, class C>

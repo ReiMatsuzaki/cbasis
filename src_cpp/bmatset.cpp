@@ -10,7 +10,7 @@
 using namespace std;
 using namespace Eigen;
 
-namespace l2func {
+namespace cbasis {
 
 
   // ==== BMat ====

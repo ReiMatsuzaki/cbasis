@@ -5,7 +5,7 @@
 #include "angmoment.hpp"
 #include "spec_func.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   using namespace std;
   typedef MultArray<dcomplex, 3> A3dc;

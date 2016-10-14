@@ -6,7 +6,7 @@
 
 using namespace std;
 using namespace Eigen;
-using namespace l2func;
+using namespace cbasis;
 
 dcomplex random_complex() {
 

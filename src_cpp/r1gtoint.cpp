@@ -9,7 +9,7 @@
 using namespace Eigen;
 using namespace std;
 
-namespace l2func {  
+namespace cbasis {  
 
   typedef MultArray<dcomplex, 2> A2;
 

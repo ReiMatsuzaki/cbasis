@@ -11,7 +11,7 @@
 using namespace std;
 using namespace erfc_mori;
 
-namespace l2func {
+namespace cbasis {
 
   int int_pow(int base, unsigned int expo) {
 

@@ -9,7 +9,7 @@
 
 #include "exp_func.hpp"
 
-namespace l2func {
+namespace cbasis {
   
   // N th derivative of normalization constant over normalization constant
   template<class FuncT, int N>

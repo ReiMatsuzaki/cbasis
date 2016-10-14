@@ -8,7 +8,7 @@
 #include "symgroup.hpp"
 #include "symmolint.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   class _MO {
   public:

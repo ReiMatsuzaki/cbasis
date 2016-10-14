@@ -6,7 +6,7 @@
 #include "mol_func.hpp"
 #include "symmolint.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Definition ====
   typedef vector<SubSymGTOs>::iterator SubIt;

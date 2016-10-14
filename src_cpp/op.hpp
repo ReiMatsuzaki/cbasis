@@ -10,7 +10,7 @@
 
 #include "linspace.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   template<int N, class OpT>
   struct NTermOp {

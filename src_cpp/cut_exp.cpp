@@ -1,7 +1,7 @@
 #include "cut_exp.hpp"
 #include <limits>
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Constructors ====
   template<class F, int m> 

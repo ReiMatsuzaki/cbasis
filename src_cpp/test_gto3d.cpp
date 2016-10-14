@@ -18,7 +18,7 @@
 #include "spec_func.hpp"
 
 using namespace std;
-using namespace l2func;
+using namespace cbasis;
 
 int lm(int l, int m) {
   return lm_index(l, m);

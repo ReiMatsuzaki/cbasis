@@ -7,7 +7,7 @@
 using namespace std;
 using namespace Eigen;
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Utilities ====
   bool IsNear(const dcomplex& a, const dcomplex& b) {

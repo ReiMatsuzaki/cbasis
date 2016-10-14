@@ -2,7 +2,7 @@
 
 using namespace Eigen;
 
-namespace l2func {
+namespace cbasis {
 
   void TransformERI_Slow(IB2EInt* ao, MO mo, IB2EInt* res) {
     

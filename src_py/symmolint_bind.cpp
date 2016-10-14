@@ -18,7 +18,7 @@
 
 namespace {
   using namespace boost::python;
-  using namespace l2func;
+  using namespace cbasis;
   using namespace std;
   using namespace Eigen;
   typedef std::complex<double> F;

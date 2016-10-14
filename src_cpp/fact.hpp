@@ -1,7 +1,7 @@
 #ifndef FACT_H
 #define FACT_H
 
-namespace l2func {
+namespace cbasis {
   int iabs(int a);
   int ipow(int a, int n);
   int Factorial(int n);

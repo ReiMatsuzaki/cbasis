@@ -2,7 +2,7 @@
 #include "typedef.hpp"
 using namespace Eigen;
 
-namespace l2func {
+namespace cbasis {
 
 
   void Calc_a_A10_b(const VectorXcd& a,

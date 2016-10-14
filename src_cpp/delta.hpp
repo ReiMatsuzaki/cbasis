@@ -10,7 +10,7 @@
    whose width is very small value h.
 */
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Delta function ====
   template<class Field, class Coord>

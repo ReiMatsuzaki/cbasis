@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include "fact.hpp"
 
-namespace l2func {
+namespace cbasis {
   
   int iabs(int a) {
     return a > 0 ? a : -a;

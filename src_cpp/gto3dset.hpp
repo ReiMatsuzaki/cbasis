@@ -4,7 +4,7 @@
 #include <vector>
 #include "gto3d.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   typedef SphericalGTO<dcomplex, dcomplex> SGTO;
 

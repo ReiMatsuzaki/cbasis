@@ -7,7 +7,7 @@ using namespace std;
 
 namespace {
   using namespace boost::python;
-  using namespace l2func;
+  using namespace cbasis;
   typedef std::complex<double> F;
 
   namespace bp = boost::python;
@@ -167,7 +167,7 @@ bp::tuple sym_eig(np::ndarray A, np::ndarray B) {
   return bp::make_tuple(CMat, Eig);
 }
 
-BOOST_PYTHON_MODULE(l2func_molint_bind) {
+BOOST_PYTHON_MODULE(cbasis_molint_bind) {
 
   Py_Initialize();
   np::initialize();

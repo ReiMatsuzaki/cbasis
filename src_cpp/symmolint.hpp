@@ -10,7 +10,7 @@
 #include "symgroup.hpp"
 #include "b2eint.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   // ==== ERI method ====
   class ERIMethod {

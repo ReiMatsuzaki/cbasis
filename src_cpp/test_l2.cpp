@@ -18,7 +18,7 @@
 // #include "hatom_h.hpp"
 
 using namespace std;
-using namespace l2func;
+using namespace cbasis;
 typedef std::complex<double> CD;
 
 TEST(Func, NTermFunc) {
@@ -379,7 +379,7 @@ TEST(CIP, Func_algebra) {
 
 }
 TEST(CIP, symmetry) {
-  using namespace l2func::h_atom_rad;
+  using namespace cbasis::h_atom_rad;
 
   RSTO s1(1.1, 2, 0.3);
   RSTO s2(1.2, 2, 0.4);
@@ -400,7 +400,7 @@ TEST(CIP, symmetry) {
 
 }
 TEST(HAtom, hop) {
-  using namespace l2func::h_atom_rad;
+  using namespace cbasis::h_atom_rad;
   EXPECT_DOUBLE_EQ(1.0, CNorm2(EigenFunc<double, 1, 0>()()));
   EXPECT_DOUBLE_EQ(0.0, CIP(EigenFunc<double, 1, 0>()(),
 			    EigenFunc<double, 2, 0>()()));
@@ -429,7 +429,7 @@ TEST(HAtom, hop) {
 			    
 }
 TEST(HAtom, length) {
-  using namespace l2func::h_atom_rad;
+  using namespace cbasis::h_atom_rad;
   typedef Length<double, 1, 0, 1> LengthForm;
   LengthForm::type s = LengthForm()();
   EXPECT_EQ(2, s.n());

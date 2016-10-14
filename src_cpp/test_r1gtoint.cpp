@@ -13,7 +13,7 @@
 //#include "opt_alpha.hpp"
 #include "exp_int.hpp"
 
-using namespace l2func;
+using namespace cbasis;
 using namespace Eigen;
 using namespace std;
 

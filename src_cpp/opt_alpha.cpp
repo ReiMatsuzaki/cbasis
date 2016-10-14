@@ -12,7 +12,7 @@
 #include "opt_alpha.hpp"
 
 
-namespace l2func {
+namespace cbasis {
   
   using namespace Eigen;
   using namespace std;

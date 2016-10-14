@@ -12,11 +12,11 @@
 #include "cints.hpp"
 #include "molint.hpp"
 
-namespace l2func {
+namespace cbasis {
 
-  typedef l2func::array3<double> d3;
-  typedef l2func::array3<int>    i3;
-  typedef l2func::array3<dcomplex> c3;
+  typedef cbasis::array3<double> d3;
+  typedef cbasis::array3<int>    i3;
+  typedef cbasis::array3<dcomplex> c3;
 
   // ==== Operators ====
   template<class Field, class Coord>
@@ -57,7 +57,7 @@ namespace l2func {
     typedef F Field;
     typedef FC FieldCoord;
     typedef typename FC::Field CoordRad;
-    //typedef l2func::array3<FC> FC3;
+    //typedef cbasis::array3<FC> FC3;
     
   private:
     // ---- Member Field ----
@@ -272,12 +272,12 @@ namespace l2func {
 
   // ---- class ----
   template<class F, class FC1>
-  class SphericalGTO :public Func<F, l2func::array3<FC1> > {
+  class SphericalGTO :public Func<F, cbasis::array3<FC1> > {
   public:
     // ---- type ----
     typedef F Field;
     typedef FC1 FieldCoord;
-    typedef l2func::array3<FC1> FC3;
+    typedef cbasis::array3<FC1> FC3;
 
   private:
     // ---- Member Field ----

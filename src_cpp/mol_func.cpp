@@ -6,7 +6,7 @@
 
 using namespace std;
 
-namespace l2func {
+namespace cbasis {
 
   typedef MultArray<dcomplex, 3> A3dc;
 

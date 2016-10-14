@@ -13,7 +13,7 @@
 
 using namespace std;
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Exception class ====
   // -- to be removed

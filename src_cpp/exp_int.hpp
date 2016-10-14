@@ -1,7 +1,7 @@
 #ifndef EXP_INT_H
 #define EXP_INT_H
 
-namespace l2func {
+namespace cbasis {
 
   template<class F> F STO_Int(F z, int n);
   template<class F> F GTO_Int(F z, int n);

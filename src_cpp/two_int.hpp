@@ -4,7 +4,7 @@
 #include "mol_func.hpp"
 #include "symmolint.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Slow routines ====
   dcomplex ERIEle(CartGTO& a, CartGTO& b, CartGTO& c, CartGTO& d);

@@ -11,7 +11,7 @@
 // それぞれのメッソドをAccessor等に分けて書く。
 
 
-namespace l2func {
+namespace cbasis {
 
   dcomplex NPrimeGTO(dcomplex nterm, int n, dcomplex z);
   dcomplex NDoublePrimeGTO(dcomplex nterm, int n, dcomplex z);

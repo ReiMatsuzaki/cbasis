@@ -5,7 +5,7 @@
 #include "op_func.hpp"
 
 
-namespace l2func {
+namespace cbasis {
 
   template<class F>
   HLikeAtom<F>::HLikeAtom(): n_(1), l_(0), z_() {}

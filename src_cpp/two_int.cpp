@@ -5,7 +5,7 @@
 
 using namespace std;
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Definition ====
   typedef vector<SubSymGTOs>::iterator SubIt;

@@ -3,7 +3,7 @@
 
 #include "linspace.hpp"
 
-namespace l2func {
+namespace cbasis {
 
   // ==== Sheraical Harmonics ====
   template<class RadFunc>

@@ -10,7 +10,7 @@
 
 namespace {
   using namespace boost::python;
-  using namespace l2func;
+  using namespace cbasis;
   typedef std::complex<double> F;
 
   namespace bp = boost::python;
@@ -54,7 +54,7 @@ np::ndarray CalcXyzMat(const SphericalGTOSet& a,
   return array_transform(vs, a.size() * b.size());
 }
 */
-BOOST_PYTHON_MODULE(l2func_bind) {
+BOOST_PYTHON_MODULE(cbasis_bind) {
 
   Py_Initialize();
   np::initialize();

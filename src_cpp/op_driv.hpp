@@ -6,7 +6,7 @@
 
 
 
-namespace l2func {
+namespace cbasis {
 
   class R1GTOs;
   class R1STOs;

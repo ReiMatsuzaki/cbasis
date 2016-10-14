@@ -8,5 +8,5 @@ namespace {
   using namespace erfc_mori;
 }
 
-namespace l2func {
+namespace cbasis {
 }

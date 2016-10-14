@@ -9,7 +9,7 @@
 #include <boost/mpl/or.hpp>
 #include <boost/static_assert.hpp>
 
-namespace l2func {
+namespace cbasis {
 
   // ==== L2 function space ====  
   // ---- base class ----
