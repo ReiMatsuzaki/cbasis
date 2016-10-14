@@ -80,6 +80,14 @@ namespace cbasis {
   }
   LC_STOs _LC_STOs::Conj() const {
     LC_STOs stos = create_LC_STOs();
+
+    for(int i = 0; i < this->size(); i++) {
+      dcomplex c(this->cs[i]);
+      int      n(this->ns[i]);
+      dcomplex z(this->zs[i]);
+      stos->Add(conj(c), n, conj(z));
+    }
+
     return stos;
   }
   string _LC_STOs::str() const {

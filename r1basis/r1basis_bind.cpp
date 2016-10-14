@@ -25,10 +25,11 @@ void BindR1LC() {
     .def("size", &_LC_STOs::size)
     .def("add", &_LC_STOs::Add, return_self<>())
     .def("str",     &_LC_STOs::str)
-    .def("at_r", &_LC_STOs::AtR);
+    .def("at_r", &_LC_STOs::AtR)
+    .def("conj",     &_LC_STOs::Conj);
 
   /* 
-     .def("conj",     &_LC_STOs::Conj);
+     
      
     .def("d_at_r", &_LC_STOs::DAtR)
     .def("d2_at_r", &_LC_STOs::D2AtR)

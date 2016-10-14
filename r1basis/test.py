@@ -54,6 +54,22 @@ class Test_r1_linear_comb(unittest.TestCase):
                      c1*r**n1*np.exp(-z1*r**m))
             self.assertAlmostEqual(y_ref, ys[0])
 
+    def test_conj(self):
+        
+        r = 1.4
+        c0 = 1.1; n0 = 1; z0 = 0.35; 
+        c1 = 1.2; n1 = 2; z1 = 0.3; 
+
+        #for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
+        for (m, fs) in zip([1], [LC_STOs()]): 
+            fs.add(c0, n0, z0)
+            fs.add(c1, n1, z1)
+            c_fs = fs.conj()
+            y = fs.at_r([r])[0]
+            cy= c_fs.at_r([r])[0]
+            self.assertAlmostEqual(y.conjugate(), cy)
+        
+
 """
 class Test_r1gtos(unittest.TestCase):
     def setUp(self):
