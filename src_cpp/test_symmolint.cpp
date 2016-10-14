@@ -16,6 +16,7 @@ using namespace Eigen;
 // other calculation:
 // 2016/3/22
 
+  
 class TestValue : public ::testing::Test {
 public:
   MatrixXcd S_ref, T_ref, V_ref;
@@ -98,7 +99,6 @@ public:
     
   }
 };
-
 TEST_F(TestValue, OneInt) {
 
   MatrixXcd S(3, 3), T(3, 3), V(3, 3);
@@ -350,9 +350,26 @@ TEST(SymGTOsMatrix, OneInt) {
   CartGTO dy(0, 2, 0, 0.0, 0.0, 0.0, zeta_d);
   CartGTO dz(0, 0, 2, 0.0, 0.0, 0.0, zeta_d);
 
-  test_SymGTOsOneInt(s0, Vector3cd(0, 0, 0.35), s1);
-  test_SymGTOsOneInt(s0, Vector3cd(0, 0, 0.35), dz);
-  test_SymGTOsOneInt(p0, Vector3cd(0, 0, 0.35), dz);
+  try {
+    test_SymGTOsOneInt(s0, Vector3cd(0, 0, 0.35), s1);
+  } catch(runtime_error& e) {
+    cout << "s,s" << endl;
+    cout << e.what() << endl;
+    throw runtime_error("exception");
+  }  
+  try {
+    test_SymGTOsOneInt(s0, Vector3cd(0, 0, 0.35), dz);
+  } catch(runtime_error& e) {
+    cout << "s,zz" << endl;
+    cout << e.what() << endl;
+    throw runtime_error("exception");
+  }
+  try {
+    test_SymGTOsOneInt(p0, Vector3cd(0, 0, 0.35), dz);
+  } catch(runtime_error& e) {
+    cout << "z,zz" << endl;
+    cout << e.what() << endl;
+  }
   test_SymGTOsOneInt(CartGTO(2, 1, 3, 0.1, 0.2, 0.3, dcomplex(1.0, -0.4)),
 		     Vector3cd(-0.1, 0, 0.35),
 		     CartGTO(0, 2, 2, 0.4, 0.3, 0.0, dcomplex(0.1, -0.1)));
@@ -1107,6 +1124,48 @@ TEST(H2Plus, matrix) {
   
 }
 
+TEST(ExceptCheck, OneInt) {
+
+  pSymmetryGroup sym = SymmetryGroup::C1();
+  VectorXcd zeta(1); zeta << 1.336;
+  
+  SubSymGTOs sub_a;
+  sub_a.AddXyz(Vector3cd(0, 0, +0.7));
+  sub_a.AddNs( Vector3i( 0, 0, 0));
+  sub_a.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
+  sub_a.AddZeta(zeta);
+
+  SubSymGTOs sub_b;
+  sub_b.AddXyz(Vector3cd(0, 0, -0.7));
+  sub_b.AddNs( Vector3i( 0, 0, 0));
+  sub_b.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
+  sub_b.AddZeta(zeta);
+
+  SymGTOs gtos(new _SymGTOs);
+  gtos->SetSym(sym);
+  gtos->AddSub(sub_a);
+  gtos->AddSub(sub_b);
+  gtos->AddAtom(Vector3cd(0, 0, 0), 1.0);
+  gtos->SetUp();
+
+  BMatSet mat;
+  try {
+    mat = CalcMat_Complex(gtos, false);
+  } catch(runtime_error& e) {
+    cout << "error on non coulomb" << endl;
+    cout << e.what() << endl;
+    throw runtime_error("exception!");
+  }
+  /*
+  try {
+    mat = CalcMat_Complex(gtos, true);
+  } catch(runtime_error& e) {
+    cout << "error on oulomb" << endl;
+    cout << e.what() << endl;
+    throw runtime_error("exception!");
+  }
+  */
+}
 
 int main(int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);

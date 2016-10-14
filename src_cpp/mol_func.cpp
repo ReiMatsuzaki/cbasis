@@ -394,6 +394,13 @@ namespace l2func {
 		   dcomplex zetaP, dcomplex wPx,
 		   dcomplex xi, dcomplex xj,
 		   MultArray<dcomplex, 3>& res) {
+    
+    //
+    //  compute coef d by recursion formula.
+    //
+    //  d(nAk+1, nBk,   Nk) = (2zetaP)^-1 d(nAk,nBk,Nk-1) + (WPk-WAk)d(nAk,nBk,Nk) + (Nk+1)d(nAk,nBk,Nk+1)
+    //  d(nAk,   nBk+1, Nk) = (2zetaP)^-1 d(nAk,nBk,Nk-1) + (WPk-WBk)d(nAk,nBk,Nk) + (Nk+1)d(nAk,nBk,Nk+1)
+    //
 
     res.SetRange(0, max_ni,
 		 0, max_nj,

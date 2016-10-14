@@ -317,14 +317,12 @@ namespace l2func {
 	  calc_d_coef(mi,mj+2,0,zetaP,wPy,yi,yj,dymap);
 	  calc_d_coef(mi,mj+2,0,zetaP,wPz,zi,zj,dzmap);	  
 	}
-	
 	for(int ipn = 0; ipn < nipn; ipn++) {
 	  for(int jpn = 0; jpn < njpn; jpn++) {
 	    int nxi, nxj, nyi, nyj, nzi, nzj;
 	    nxi = isub->nx(ipn); nxj = jsub->nx(jpn);
 	    nyi = isub->ny(ipn); nyj = jsub->ny(jpn);
 	    nzi = isub->nz(ipn); nzj = jsub->nz(jpn);
-
 	    dcomplex s_ele = dxmap(nxi,nxj,0) * dymap(nyi,nyj,0) * dzmap(nzi,nzj,0);
 	    dcomplex x_ele = dymap(nyi,nyj,0)*dzmap(nzi,nzj,0)*
 	      (dxmap(nxi,nxj+1,0)+xj*dxmap(nxi,nxj,0));
@@ -343,7 +341,8 @@ namespace l2func {
 	      dy_ele += dcomplex(nyj)*dymap(nyi,nyj-1,0);
 	    dy_ele *= dxmap(nxi,nxj,0) * dzmap(nzi,nzj,0);
 	    dcomplex dz_ele = -2.0*zetaj*dzmap(nzi,nzj+1,0);
-	    dz_ele += dcomplex(nzj)*dzmap(nzi,nzj-1,0);
+	    if(nzj>0)
+	      dz_ele += dcomplex(nzj)*dzmap(nzi,nzj-1,0);
 	    dz_ele *= dymap(nyi,nyj,0) * dxmap(nxi,nxj,0);
 	      
 	    prim.s(iat, ipn, jat, jpn) =  ce * s_ele;

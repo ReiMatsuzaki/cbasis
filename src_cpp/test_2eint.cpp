@@ -143,12 +143,23 @@ TEST(coef_R, method1) {
   dcomplex zeta(0.1, 0.001);
   MultArray<dcomplex, 3> res0(1000); ERIMethod m0;
   MultArray<dcomplex, 3> res1(1000); ERIMethod m1; m1.coef_R_memo = 1;
+
+  try {
+    coef_R_eri_switch(zeta, 0.1, 0.2, 0.3, 0.11, 0.22, 0.33, 2, Fjs, 1, res0, m0);
+  } catch(runtime_error& e) {
+    cout << "exception on non speedy method" << endl;
+    cout << e.what() << endl;
+  }
+  try {
+    coef_R_eri_switch(zeta, 0.1, 0.2, 0.3, 0.11, 0.22, 0.33, 2, Fjs, 1, res1, m1);
+  } catch(runtime_error& e) {
+    cout << "exception on memorize method" << endl;
+    cout << e.what() << endl;
+  }
+
   
-  coef_R_eri_switch(zeta, 0.1, 0.2, 0.3, 0.11, 0.22, 0.33, 2, Fjs, 1, res0, m0);
-  coef_R_eri_switch(zeta, 0.1, 0.2, 0.3, 0.11, 0.22, 0.33, 2, Fjs, 1, res1, m1);
-  
-  for(int i = 0; i < nn; i++)
-    for(int j = 0; j < nn; j++)
+  for(int i = 0; i < 2; i++)
+    for(int j = 0; j < 2; j++)
       EXPECT_C_EQ(res0(i, j, 0), res1(i, j, 0)) << i << j;
 
 }

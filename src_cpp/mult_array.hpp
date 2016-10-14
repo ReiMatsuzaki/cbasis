@@ -169,6 +169,13 @@ namespace l2func {
 
       return data_[index];
     }
+    void Show() const {
+      std::cout << "MultArray<3>" << std::endl;
+      for(int n = 0; n < N; n++) {
+	std::cout << n << ": " << n0_[n] << ", " << n1_[n] << std::endl;
+      }
+      
+    }
   };
 
   template<class F>
