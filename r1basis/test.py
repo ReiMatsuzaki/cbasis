@@ -1,10 +1,11 @@
 import numpy as np
-ls#from r1gtoint import *
-from r1gtoint import *
+#from r1gtoint import *
+from r1basis import *
 
 import unittest
 from minieigen import *
 
+"""
 class Test_Eigen(unittest.TestCase):
     def setUp(self):
         pass
@@ -14,6 +15,15 @@ class Test_Eigen(unittest.TestCase):
         ivec[0] = 1; ivec[1] = 2; ivec[2] = 3;
         print_vectorxi(ivec)
         print_vectorxi([4, 3, 3])
+
+"""
+
+class Test_first(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_add(self):
+        print add(1,2)
 
 
 class Test_r1_linear_comb(unittest.TestCase):
@@ -26,14 +36,17 @@ class Test_r1_linear_comb(unittest.TestCase):
         c0 = 1.1; n0 = 1; z0 = 0.35; 
         c1 = 1.2; n1 = 2; z1 = 0.3; 
 
-        for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
+        #for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
+        for (m, fs) in zip([1], [LC_STOs()]): 
             fs.add(c0, n0, z0)
             fs.add(c1, n1, z1)
+            print fs.str()
             ys = fs.at_r([r])
             y_ref = (c0*r**n0*np.exp(-z0*r**m) + 
                      c1*r**n1*np.exp(-z1*r**m))
             self.assertAlmostEqual(y_ref, ys[0])
-        
+
+"""
 class Test_r1gtos(unittest.TestCase):
     def setUp(self):
         self.gtos = GTOs()
@@ -173,6 +186,6 @@ class Test_Opt(unittest.TestCase):
         alpha_ref = -5.6568937518988989+1.0882823480377297j
         self.assertAlmostEqual(alpha_ref, res.val)
 
- 
+"""         
 if __name__ == '__main__':
     unittest.main()

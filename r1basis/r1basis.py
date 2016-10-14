@@ -1,5 +1,7 @@
 import numpy as np
-from r1gtoint_bind import *
+from r1basis_bind import *
+
+"""
 def R1GTOs_at_r(gtos, cs, rs):
     ys = gtos.at_r_cpp(cs, rs)
     return np.array(ys)
@@ -26,3 +28,4 @@ def R1STOs_at_r(stos, rs):
     return np.array(ys)
 
 R1STOs.at_r = R1STOs_at_r
+"""
