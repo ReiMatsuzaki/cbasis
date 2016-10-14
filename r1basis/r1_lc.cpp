@@ -8,7 +8,20 @@ using namespace boost;
 
 namespace cbasis {
 
+  // ==== Create ====
+  template<int M>
+  shared_ptr<_LC_EXPs<M> > Create_LC_EXPs() {
+    shared_ptr<_LC_EXPs<M> > ptr(new _LC_EXPs<M>());
+    return ptr;
+  }
+  LC_STOs Create_LC_STOs() {
+    return Create_LC_EXPs<1>();
+  }
+  LC_GTOs Create_LC_GTOs() {
+    return Create_LC_EXPs<2>();
+  }
 
+  // ==== Member functions ====
   template<int M>
   int _LC_EXPs<M>::max_n() const {
     return *max_element(this->ns.begin(), this->ns.end());
@@ -41,7 +54,6 @@ namespace cbasis {
     return ys;
 
   }
-
   template<int M> dcomplex Exp_DAtR(dcomplex r, dcomplex c, int n, dcomplex z);
   template<>
   dcomplex Exp_DAtR<1>(dcomplex r, dcomplex c, int n, dcomplex z) {
@@ -82,8 +94,6 @@ namespace cbasis {
     return ys;
 
   }
-  //VectorXcd _LC_STOs::D2AtR(const VectorXcd& rs, VectorXcd& ys) const 
-  //  void _LC_STOs::AddOne(dcomplex c, int n, dcomplex z) {}
   template<int M>
   _LC_EXPs<M>* _LC_EXPs<M>::Add(dcomplex c, int n, dcomplex z) {
     
@@ -137,36 +147,9 @@ namespace cbasis {
     return oss.str();
   }
 
-  template<int M>
-  shared_ptr<_LC_EXPs<M> > Create_LC_EXPs() {
-    shared_ptr<_LC_EXPs<M> > ptr(new _LC_EXPs<M>());
-    return ptr;
-  }
-  LC_STOs Create_LC_STOs() {
-    return Create_LC_EXPs<1>();
-    // LC_STOs ptr(new _LC_EXPs<1>());
-    //    return ptr;
-  }
-  LC_GTOs Create_LC_GTOs() {
-    return Create_LC_EXPs<2>();
-    //LC_GTOs ptr(new _LC_EXPs<2>());
-    //return ptr;
-  }
-  
-  template int _LC_EXPs<1>::max_n() const;
-  template int _LC_EXPs<1>::size() const;
-  template VectorXcd _LC_EXPs<1>::AtR(const VectorXcd& rs) const;
-  template VectorXcd _LC_EXPs<1>::DAtR(const VectorXcd& rs) const;
-  template _LC_EXPs<1>* _LC_EXPs<1>::Add(dcomplex c, int n, dcomplex z);
-  template shared_ptr<_LC_EXPs<1> > _LC_EXPs<1>::Conj() const;
-  template string _LC_EXPs<1>::str() const;  
+  // ==== Realize ====
+  template class _LC_EXPs<1>;
+  template class _LC_EXPs<2>;
 
-  template int _LC_EXPs<2>::max_n() const;
-  template int _LC_EXPs<2>::size() const;
-  template VectorXcd _LC_EXPs<2>::AtR(const VectorXcd& rs) const;
-  template VectorXcd _LC_EXPs<2>::DAtR(const VectorXcd& rs) const;
-  template _LC_EXPs<2>* _LC_EXPs<2>::Add(dcomplex c, int n, dcomplex z);
-  template shared_ptr<_LC_EXPs<2> > _LC_EXPs<2>::Conj() const;
-  template string _LC_EXPs<2>::str() const;
 
 }
