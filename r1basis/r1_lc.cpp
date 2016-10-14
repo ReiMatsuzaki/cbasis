@@ -17,19 +17,65 @@ namespace cbasis {
   int _LC_STOs::size() const {
     return this->ns.size();
   }
-  void _LC_STOs::AtR(const VectorXcd& rs, VectorXcd& ys) const {
+  VectorXcd _LC_STOs::AtR(const VectorXcd& rs) const {
+
+    int num_rs(rs.size());
+    VectorXcd ys = VectorXcd::Zero(num_rs);
+    
+    for(int i_r = 0; i_r < num_rs; i_r++) {
+      
+      dcomplex r(rs[i_r]);
+      dcomplex y(0);
+      for(int j_b = 0; j_b < this->size(); j_b++) {
+	dcomplex c(this->cs[j_b]);
+	int      n(this->ns[j_b]);
+	dcomplex z(this->zs[j_b]);
+	y += c * pow(r, n) * exp(-z * r);
+      }
+      ys[i_r] = y;
+
+    }
+
+    return ys;
 
   }
-  void _LC_STOs::DAtR(const VectorXcd& rs, VectorXcd& ys) const {
+  VectorXcd _LC_STOs::DAtR(const VectorXcd& rs) const {
+    
+    int num_rs(rs.size());
+    VectorXcd ys = VectorXcd::Zero(num_rs);
+    
+    for(int i_r = 0; i_r < num_rs; i_r++) {
+      
+      dcomplex r(rs[i_r]);
+      dcomplex y(0);
+      for(int j_b = 0; j_b < this->size(); j_b++) {
+	dcomplex c(this->cs[j_b]);
+	int      n(this->ns[j_b]);
+	double  dn(n);
+	dcomplex z(this->zs[j_b]);
+	y += c * pow(r, n) * exp(-z * r) * (-z);
+	if (n != 0) 
+	  y += c * dn * pow(r, n-1) * exp(-z * r) * (-z);
+	
+      }
+      ys[i_r] = y;
+
+    }
+
+    return ys;
 
   }
-  void _LC_STOs::D2AtR(const VectorXcd& rs, VectorXcd& ys) const {
+  //VectorXcd _LC_STOs::D2AtR(const VectorXcd& rs, VectorXcd& ys) const 
 
-  }
-  void _LC_STOs::AddOne(dcomplex c, int n, dcomplex z) {
+  //  void _LC_STOs::AddOne(dcomplex c, int n, dcomplex z) {
 
-  }
+  
   _LC_STOs* _LC_STOs::Add(dcomplex c, int n, dcomplex z) {
+    
+    this->cs.push_back(c);
+    this->ns.push_back(n);
+    this->zs.push_back(z);
+    
     return this;
   }
   LC_STOs _LC_STOs::Conj() const {

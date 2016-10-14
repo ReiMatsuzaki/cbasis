@@ -4,7 +4,7 @@ CXXFLAGS+=-Wall -PIC
 #ifeq (\$(OS),Linux)
 PY_FLAGS=-I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -DPIC -shared -fPIC -lboost_python 
 
-BINORIG=build
+BINORIG=bin
 ARCH=fast
 BINDIR=${BINORIG}/${ARCH}
 

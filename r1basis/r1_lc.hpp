@@ -32,12 +32,12 @@ namespace cbasis {
 
     // ---- Getter ----
     int size() const;
-    void AtR(const Eigen::VectorXcd&, Eigen::VectorXcd&) const;
-    void DAtR(const Eigen::VectorXcd&, Eigen::VectorXcd&) const;
-    void D2AtR(const Eigen::VectorXcd&, Eigen::VectorXcd&) const;
+    Eigen::VectorXcd AtR(const Eigen::VectorXcd&) const;
+    Eigen::VectorXcd DAtR(const Eigen::VectorXcd&) const;
+    //Eigen::VectorXcd D2AtR(const Eigen::VectorXcd&) const;
 
     // ---- Setter ----
-    void AddOne(dcomplex c, int n, dcomplex z);
+    //    void AddOne(dcomplex c, int n, dcomplex z);
     _LC_STOs* Add(dcomplex c, int n, dcomplex z);
 
     // ---- Generate other ----

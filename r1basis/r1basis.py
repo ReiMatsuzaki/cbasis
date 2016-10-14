@@ -1,4 +1,5 @@
 import numpy as np
+from minieigen import *
 from r1basis_bind import *
 
 """

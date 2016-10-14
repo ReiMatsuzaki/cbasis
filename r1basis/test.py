@@ -1,9 +1,8 @@
 import numpy as np
-#from r1gtoint import *
 from r1basis import *
 
 import unittest
-from minieigen import *
+
 
 """
 class Test_Eigen(unittest.TestCase):
@@ -30,6 +29,15 @@ class Test_r1_linear_comb(unittest.TestCase):
     def setUp(self):
         pass
 
+    def test_size(self):
+
+        for (m, fs) in zip([1], [LC_STOs()]): 
+            fs.add(1.1, 2, 1.3-0.2j)
+            fs.add(0.1, 1, 1.2-0.2j)
+            fs.add(0.2, 3, 1.4-0.1j)
+            self.assertEqual(3, fs.size())
+        
+        
     def test_at_r(self):
         
         r = 1.4

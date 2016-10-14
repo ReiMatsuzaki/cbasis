@@ -24,12 +24,12 @@ void BindR1LC() {
   class_<_LC_STOs>("_LC_STOs", init<>())
     .def("size", &_LC_STOs::size)
     .def("add", &_LC_STOs::Add, return_self<>())
-    //    .def("add_one",     &_LC_STOs::AddOne)
-    .def("str",     &_LC_STOs::str);
+    .def("str",     &_LC_STOs::str)
+    .def("at_r", &_LC_STOs::AtR);
 
   /* 
      .def("conj",     &_LC_STOs::Conj);
-    .def("at_r", &_LC_STOs::AtR)
+     
     .def("d_at_r", &_LC_STOs::DAtR)
     .def("d2_at_r", &_LC_STOs::D2AtR)
   */
