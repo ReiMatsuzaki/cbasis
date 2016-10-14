@@ -16,41 +16,53 @@ class Test_Eigen(unittest.TestCase):
         print_vectorxi([4, 3, 3])
 
 
-class Test_r1stos(unittest.TestCase):
+class Test_r1_linear_comb(unittest.TestCase):
     def setUp(self):
         pass
 
     def test_at_r(self):
-        fs = R1STOs()
-        c = 1.1; n = 2; z = 0.3; r = 1.4
-        fs.add(c, n, z)
-        ys = fs.at_r([r])
-        self.assertAlmostEqual(c*r*r*np.exp(-z*r), ys[0])
+        
+        r = 1.4
+        c0 = 1.1; n0 = 1; z0 = 0.35; 
+        c1 = 1.2; n1 = 2; z1 = 0.3; 
+
+        for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
+            fs.add(c0, n0, z0)
+            fs.add(c1, n1, z1)
+            ys = fs.at_r([r])
+            y_ref = (c0*r**n0*np.exp(-z0*r**m) + 
+                     c1*r**n1*np.exp(-z1*r**m))
+            self.assertAlmostEqual(y_ref, ys[0])
         
 class Test_r1gtos(unittest.TestCase):
     def setUp(self):
-        self.gtos = R1GTOs()
-        self.gtos.add( 2, 1.1)
+        self.gtos = GTOs()
+        self.gtos.add(2, 1.1)
         self.gtos.add(3, [1.2, 1.3-0.1j])
-        self.gtos.normalize()
-        
-    def test_r1sto_vec(self):
-        stos = vector_R1STO()
-        stos.append(R1STO(1.1, 2, 1.2))
-        stos.append(R1STO(1.1-0.2j, 3, 1.3))
-        self.assertAlmostEqual(1.1-0.2j, stos[1].c)
+        self.gtos.add_lc([(1.0, 1, 1.5), (1.1, 4, 1.4)])
+        self.gtos.setup()
 
-    def test_add(self):
+    def test_size(self):
+        self.assertEqual(5, self.gtos.size_prim())
+        self.assertEqual(4, self.gtos.size_basis())
+
+    def test_param(self):
         self.assertEqual(2, self.gtos.n_prim(0))
-        self.assertAlmostEqual(1.1, self.gtos.z_prim(0))
-        self.assertAlmostEqual(1.2, self.gtos.z_prim(1))
-        self.assertAlmostEqual(1.3-0.1j, self.gtos.z_prim(2))
+        self.assertEqual(3, self.gtos.n_prim(1))
+        self.assertEqual(3, self.gtos.n_prim(2))
+        self.assertEqual(1, self.gtos.n_prim(3))
+        self.assertEqual(4, self.gtos.n_prim(4))
+
+        self.assertEqual(1.1, self.gtos.z_prim(0))
+        self.assertEqual(1.2, self.gtos.z_prim(1))
+        self.assertEqual(1.3-0.1j, self.gtos.z_prim(2))
+        self.assertEqual(1.5, self.gtos.z_prim(3))
+        self.assertEqual(1.4, self.gtos.z_prim(4))
 
     def test_set_conj(self):
-        cg = R1GTOs()
-        cg.set_conj(self.gtos)
-        self.assertAlmostEqual(1.1, cg.z_prim(0))
-        self.assertAlmostEqual(1.3+0.1j, cg.z_prim(2))
+        cg = self.gtos.conj()
+        self.assertAlmostEqual(1.1, cg.z(0))
+        self.assertAlmostEqual(1.3+0.1j, cg.z(2))
         (s, t, v) = cg.calc_mat_stv(self.gtos, 1)
         stos = R1STOs(); 
         stos.add(1.1, 2, 1.2)
