@@ -31,7 +31,7 @@ class Test_r1_linear_comb(unittest.TestCase):
 
     def test_size(self):
 
-        for (m, fs) in zip([1], [LC_STOs()]): 
+        for (m, fs) in zip([1, 2], [LC_STOs(), LC_GTOs()]): 
             fs.add(1.1, 2, 1.3-0.2j)
             fs.add(0.1, 1, 1.2-0.2j)
             fs.add(0.2, 3, 1.4-0.1j)
@@ -44,8 +44,7 @@ class Test_r1_linear_comb(unittest.TestCase):
         c0 = 1.1; n0 = 1; z0 = 0.35; 
         c1 = 1.2; n1 = 2; z1 = 0.3; 
 
-        #for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
-        for (m, fs) in zip([1], [LC_STOs()]): 
+        for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
             fs.add(c0, n0, z0)
             fs.add(c1, n1, z1)
             print fs.str()
@@ -60,8 +59,7 @@ class Test_r1_linear_comb(unittest.TestCase):
         c0 = 1.1; n0 = 1; z0 = 0.35; 
         c1 = 1.2; n1 = 2; z1 = 0.3; 
 
-        #for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
-        for (m, fs) in zip([1], [LC_STOs()]): 
+        for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
             fs.add(c0, n0, z0)
             fs.add(c1, n1, z1)
             c_fs = fs.conj()

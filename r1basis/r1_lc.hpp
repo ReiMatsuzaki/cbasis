@@ -12,23 +12,23 @@
 
 namespace cbasis {
 
-  class _LC_STOs;
-  typedef boost::shared_ptr<_LC_STOs> LC_STOs;
-  LC_STOs create_LC_STOs();
-
-  class _LC_STOs {
+  template<int M>
+  class _LC_EXPs {
   private:
     // ---- Member field ----
     std::vector<dcomplex> cs;
     std::vector<int>      ns;
     std::vector<dcomplex> zs;
     
+    // ---- typedef ----
+    typedef boost::shared_ptr<_LC_EXPs<M> > LC_EXPs;
+    
   public:
     // ---- Constructors ----
 
     // ---- Utils ----
     int max_n() const;
-    // bool IsSameStructure(const LC_STOs& o) const;
+    int power() const;
 
     // ---- Getter ----
     int size() const;
@@ -37,20 +37,22 @@ namespace cbasis {
     //Eigen::VectorXcd D2AtR(const Eigen::VectorXcd&) const;
 
     // ---- Setter ----
-    //    void AddOne(dcomplex c, int n, dcomplex z);
-    _LC_STOs* Add(dcomplex c, int n, dcomplex z);
+    _LC_EXPs<M>* Add(dcomplex c, int n, dcomplex z);
 
     // ---- Generate other ----
-    LC_STOs Conj() const;
+    LC_EXPs Conj() const;
     
     // ---- IO ----
     std::string str() const;
     
   };
 
-  class _LC_GTOs;
-  typedef boost::shared_ptr<_LC_GTOs> LC_GTOs;
-  LC_GTOs create_LC_GTOs();
+  typedef boost::shared_ptr<_LC_EXPs<1> > LC_STOs;
+  typedef boost::shared_ptr<_LC_EXPs<2> > LC_GTOs;
+  template<int M>
+  boost::shared_ptr<_LC_EXPs<M> > Create_LC_EXPs();
+  LC_STOs Create_LC_STOs();
+  LC_GTOs Create_LC_GTOs();
 
   class _LC_GTOs {
   private:

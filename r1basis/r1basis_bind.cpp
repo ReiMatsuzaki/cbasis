@@ -19,14 +19,26 @@ int add(int a, int b) {
 
 void BindR1LC() {
 
+  typedef _LC_EXPs<1> _LC_STOs;
   register_ptr_to_python<LC_STOs>();
-  def("LC_STOs", &create_LC_STOs);
+  def("LC_STOs", &Create_LC_STOs);
   class_<_LC_STOs>("_LC_STOs", init<>())
-    .def("size", &_LC_STOs::size)
-    .def("add", &_LC_STOs::Add, return_self<>())
-    .def("str",     &_LC_STOs::str)
-    .def("at_r", &_LC_STOs::AtR)
-    .def("conj",     &_LC_STOs::Conj);
+    .def("size", &_LC_EXPs<1>::size)
+    .def("add",  &_LC_EXPs<1>::Add, return_self<>())
+    .def("str",  &_LC_EXPs<1>::str)
+    .def("at_r", &_LC_EXPs<1>::AtR)
+    .def("conj", &_LC_EXPs<1>::Conj);
+  
+  typedef _LC_EXPs<2> _LC_GTOs;
+  register_ptr_to_python<LC_GTOs>();
+  def("LC_GTOs", &Create_LC_GTOs);
+  class_<_LC_GTOs>("_LC_GTOs", init<>())
+    .def("size", &_LC_EXPs<2>::size)
+    .def("add",  &_LC_EXPs<2>::Add, return_self<>())
+    .def("str",  &_LC_EXPs<2>::str)
+    .def("at_r", &_LC_EXPs<2>::AtR)
+    .def("conj", &_LC_EXPs<2>::Conj);
+
 
   /* 
      
