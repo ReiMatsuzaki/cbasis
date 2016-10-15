@@ -25,7 +25,7 @@ ${BINDIR}/%.o: %.cpp
 
 
 ## ==== Main build ====
-R1BASIS_OBJS=r1_lc.o
+R1BASIS_OBJS=r1_lc.o r1basis.o
 OBJS=$(foreach o, ${R1BASIS_OBJS}, ${BINDIR}/$o)
 ${BINDIR}/r1basis_bind.so: r1basis_bind.cpp ${OBJS}
 	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS}

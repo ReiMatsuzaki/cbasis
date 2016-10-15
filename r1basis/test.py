@@ -30,7 +30,6 @@ class Test_r1_linear_comb(unittest.TestCase):
         pass
 
     def test_size(self):
-
         for (m, fs) in zip([1, 2], [LC_STOs(), LC_GTOs()]): 
             fs.add(1.1, 2, 1.3-0.2j)
             fs.add(0.1, 1, 1.2-0.2j)
@@ -38,7 +37,6 @@ class Test_r1_linear_comb(unittest.TestCase):
             self.assertEqual(3, fs.size())
 
     def test_getter(self):
-
         for (m, fs) in zip([1, 2], [LC_STOs(), LC_GTOs()]): 
             fs.add(1.1, 2, 1.3-0.2j)
             fs.add(0.1, 1, 1.2-0.2j)
@@ -56,7 +54,7 @@ class Test_r1_linear_comb(unittest.TestCase):
         for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
             fs.add(c0, n0, z0)
             fs.add(c1, n1, z1)
-            print fs.str()
+            # print fs.str()
             ys = fs.at_r([r])
             y_ref = (c0*r**n0*np.exp(-z0*r**m) + 
                      c1*r**n1*np.exp(-z1*r**m))
@@ -78,16 +76,24 @@ class Test_r1_linear_comb(unittest.TestCase):
 
 class Test_basis(unittest.TestCase):
     def setUp(self):
-        pass
-    
-    def test_size(self):
         gtos = GTOs()
         gtos.add(2, 1.1)
         gtos.add(2, 1.1)
         gtos.add(3, [1.2, 1.3-0.1j])
-        gtos.add_lc([(1.0, 1, 1.5), (1.1, 4, 1.4)])
+
+        g1 = LC_GTOs()
+        g1.add(1.1, 5, 1.3-0.2j)
+        g1.add(0.1, 6, 1.2-0.2j)
+        gtos.add_lc(g1)
+
         gtos.setup()
-        self.assertEqual(5, gtos.size_basis())
+        
+        self.gtos = gtos
+    
+    def test_size(self):
+
+        gtos = self.gtos
+        self.assertEqual(5, gtos.size())
         self.assertFalse(gtos.only_prim())
 
         gtos = GTOs()
@@ -95,23 +101,18 @@ class Test_basis(unittest.TestCase):
         gtos.add(2, 1.1)
         gtos.add(3, [1.2, 1.3-0.1j])
         gtos.setup()
-        self.assertEqual(3, gtos.size_basis())
+        self.assertEqual(4, gtos.size())
         self.assertTrue(gtos.only_prim())
-        
-    def test_accessor(self):
-        gtos = GTOs()
-        gtos.add(1, 1.1)
-        gtos.add(2, 1.1)
-        gtos.add(3, [1.2, 1.3-0.1j])
-        gtos.add_lc([(1.0, 4, 1.5), (1.1, 5, 1.4)])        
-        gtos.setup()
-        self.assertEqual(2, gtos.basis(1).n(0))
-        self.assertEqual(5, gtos.basis(3).n(1))
-        
-        gtos.basis(0).n(0) = 8
-        self.assertEqual(2, gtos.basis(1).n(0))
 
-    def test_
+    def test_accessor(self):
+
+        gtos = self.gtos
+        self.assertEqual(2, gtos.basis(1).n(0))
+        self.assertEqual(6, gtos.basis(4).n(1))
+
+    def test_conj(self):
+        pass
+        
 
 """
 class Test_r1gtos(unittest.TestCase):

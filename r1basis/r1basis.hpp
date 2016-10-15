@@ -15,17 +15,30 @@
 
 namespace cbasis {
 
-  class GTOs {
+  class _GTOs {
   private:
     // ---- Member field ----
-    std::vector<LC_GTOs> basis;
+    std::vector<LC_GTOs> basis_;
+    bool setupq_;
     
   public:
     // ---- Constructors ----
+    _GTOs();
     
     // ---- Getter ----
+    int size()  const { return basis_.size(); }
+    LC_GTOs basis(int i) const { return basis_[i]; }
+    bool OnlyPrim() const;
     
+    // ---- Setter ----
+    _GTOs* AddPrim(int n, dcomplex z);
+    _GTOs* AddPrims(int n, Eigen::VectorXcd zs);
+    _GTOs* AddLC(LC_GTOs lc);
+    _GTOs* SetUp();
+
   };
+  typedef boost::shared_ptr<_GTOs> GTOs;
+  GTOs Create_GTOs();
 
   dcomplex NPrimeGTO(dcomplex nterm, int n, dcomplex z);
   dcomplex NDoublePrimeGTO(dcomplex nterm, int n, dcomplex z);
