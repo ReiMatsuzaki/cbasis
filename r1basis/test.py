@@ -36,7 +36,16 @@ class Test_r1_linear_comb(unittest.TestCase):
             fs.add(0.1, 1, 1.2-0.2j)
             fs.add(0.2, 3, 1.4-0.1j)
             self.assertEqual(3, fs.size())
-        
+
+    def test_getter(self):
+
+        for (m, fs) in zip([1, 2], [LC_STOs(), LC_GTOs()]): 
+            fs.add(1.1, 2, 1.3-0.2j)
+            fs.add(0.1, 1, 1.2-0.2j)
+            fs.add(0.2, 3, 1.4-0.1j)
+            self.assertAlmostEqual(1.1, fs.c(0))
+            self.assertAlmostEqual(1.2-0.2j, fs.z(1))
+            self.assertEqual(3, fs.n(2))
         
     def test_at_r(self):
         
@@ -66,13 +75,49 @@ class Test_r1_linear_comb(unittest.TestCase):
             y = fs.at_r([r])[0]
             cy= c_fs.at_r([r])[0]
             self.assertAlmostEqual(y.conjugate(), cy)
+
+class Test_basis(unittest.TestCase):
+    def setUp(self):
+        pass
+    
+    def test_size(self):
+        gtos = GTOs()
+        gtos.add(2, 1.1)
+        gtos.add(2, 1.1)
+        gtos.add(3, [1.2, 1.3-0.1j])
+        gtos.add_lc([(1.0, 1, 1.5), (1.1, 4, 1.4)])
+        gtos.setup()
+        self.assertEqual(5, gtos.size_basis())
+        self.assertFalse(gtos.only_prim())
+
+        gtos = GTOs()
+        gtos.add(2, 1.1)
+        gtos.add(2, 1.1)
+        gtos.add(3, [1.2, 1.3-0.1j])
+        gtos.setup()
+        self.assertEqual(3, gtos.size_basis())
+        self.assertTrue(gtos.only_prim())
         
+    def test_accessor(self):
+        gtos = GTOs()
+        gtos.add(1, 1.1)
+        gtos.add(2, 1.1)
+        gtos.add(3, [1.2, 1.3-0.1j])
+        gtos.add_lc([(1.0, 4, 1.5), (1.1, 5, 1.4)])        
+        gtos.setup()
+        self.assertEqual(2, gtos.basis(1).n(0))
+        self.assertEqual(5, gtos.basis(3).n(1))
+        
+        gtos.basis(0).n(0) = 8
+        self.assertEqual(2, gtos.basis(1).n(0))
+
+    def test_
 
 """
 class Test_r1gtos(unittest.TestCase):
     def setUp(self):
         self.gtos = GTOs()
-        self.gtos.add(2, 1.1)
+self.gtos.add(2, 1.1)
         self.gtos.add(3, [1.2, 1.3-0.1j])
         self.gtos.add_lc([(1.0, 1, 1.5), (1.1, 4, 1.4)])
         self.gtos.setup()

@@ -4,7 +4,9 @@
 #include <vector>
 #include <map>
 #include <Eigen/Core>
-#include "typedef.hpp"
+
+#include "../src_cpp/typedef.hpp"
+#include "r1_lc.hpp"
 
 // TODO
 // CalcVecの引数をR1GTOsから、std::vector<R1GTO>に変更。
@@ -12,6 +14,18 @@
 
 
 namespace cbasis {
+
+  class GTOs {
+  private:
+    // ---- Member field ----
+    std::vector<LC_GTOs> basis;
+    
+  public:
+    // ---- Constructors ----
+    
+    // ---- Getter ----
+    
+  };
 
   dcomplex NPrimeGTO(dcomplex nterm, int n, dcomplex z);
   dcomplex NDoublePrimeGTO(dcomplex nterm, int n, dcomplex z);

@@ -32,6 +32,9 @@ namespace cbasis {
 
     // ---- Getter ----
     int size() const;
+    dcomplex c(int i) const { return cs[i]; }
+    int      n(int i) const { return ns[i]; }
+    dcomplex z(int i) const { return zs[i]; }
     Eigen::VectorXcd AtR(const Eigen::VectorXcd&) const;
     Eigen::VectorXcd DAtR(const Eigen::VectorXcd&) const;
 
