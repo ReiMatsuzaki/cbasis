@@ -15,6 +15,10 @@
 
 namespace cbasis {
 
+  class _GTOs;
+  typedef boost::shared_ptr<_GTOs> GTOs;
+  GTOs Create_GTOs();
+
   class _GTOs {
   private:
     // ---- Member field ----
@@ -29,16 +33,30 @@ namespace cbasis {
     int size()  const { return basis_.size(); }
     LC_GTOs basis(int i) const { return basis_[i]; }
     bool OnlyPrim() const;
+    Eigen::VectorXcd AtR(const Eigen::VectorXcd&, 
+			 const Eigen::VectorXcd&) const;
+    Eigen::VectorXcd DAtR(const Eigen::VectorXcd&,
+			  const Eigen::VectorXcd&) const;
+    std::string str() const;
     
     // ---- Setter ----
     _GTOs* AddPrim(int n, dcomplex z);
     _GTOs* AddPrims(int n, Eigen::VectorXcd zs);
     _GTOs* AddLC(LC_GTOs lc);
     _GTOs* SetUp();
+    
+    // ---- Create ----
+    GTOs Conj() const;
+    GTOs Clone() const;
+    
+    // ---- Calculate ----
+    Eigen::MatrixXcd CalcRmMat(int m) const;
+    Eigen::MatrixXcd CalcD2Mat()      const;
+    Eigen::VectorXcd CalcVecSTO(LC_STOs stos) const;
+    Eigen::VectorXcd CalcVecGTO(LC_GTOs gtos) const;
 
   };
-  typedef boost::shared_ptr<_GTOs> GTOs;
-  GTOs Create_GTOs();
+  
 
   dcomplex NPrimeGTO(dcomplex nterm, int n, dcomplex z);
   dcomplex NDoublePrimeGTO(dcomplex nterm, int n, dcomplex z);

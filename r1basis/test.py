@@ -45,7 +45,7 @@ class Test_r1_linear_comb(unittest.TestCase):
             self.assertAlmostEqual(1.2-0.2j, fs.z(1))
             self.assertEqual(3, fs.n(2))
         
-    def test_at_r(self):
+    def test_conj(self):
         
         r = 1.4
         c0 = 1.1; n0 = 1; z0 = 0.35; 
@@ -54,11 +54,24 @@ class Test_r1_linear_comb(unittest.TestCase):
         for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
             fs.add(c0, n0, z0)
             fs.add(c1, n1, z1)
-            # print fs.str()
-            ys = fs.at_r([r])
-            y_ref = (c0*r**n0*np.exp(-z0*r**m) + 
-                     c1*r**n1*np.exp(-z1*r**m))
-            self.assertAlmostEqual(y_ref, ys[0])
+            y = fs.at_r([r])[0]
+            self.assertAlmostEqual(y,
+                                   c0 * r**n0 * np.exp(-z0**m)+
+                                   c1 * r**n1 * np.exp(-z1**m))
+
+    def test_clone(self):
+        
+        r = 1.4
+        c0 = 1.1; n0 = 1; z0 = 0.35; 
+        c1 = 1.2; n1 = 2; z1 = 0.3; 
+
+        for (m, fs) in zip([1,2], [LC_STOs(), LC_GTOs()]): 
+            fs.add(c0, n0, z0)
+            fs.add(c1, n1, z1)
+            
+            fs2 = fs.clone()
+            fs.add(1.1, 2, 3.3)
+            self.assertEqual(2, fs2.size())
 
     def test_conj(self):
         
@@ -110,8 +123,29 @@ class Test_basis(unittest.TestCase):
         self.assertEqual(2, gtos.basis(1).n(0))
         self.assertEqual(6, gtos.basis(4).n(1))
 
+    def test_clone(self):
+        g = self.gtos.clone()
+        self.gtos.add(2, 3.0)
+        self.gtos.add(2, 3.0)
+        self.gtos.add(2, 3.0)
+        self.assertEqual(5, g.size())
+
     def test_conj(self):
-        pass
+        cg = self.gtos.conj()
+        self.assertAlmostEqual(1.3+0.1j, cg.basis(3).z(0))
+        
+    def test_raise(self):
+        g = GTOs()
+        g.add(2, 1.1)
+        self.assertRaises(RuntimeError, g.calc_rm_mat, 0)
+
+    def test_matrix(self):
+
+        gs = self.gtos
+        s  = gs.calc_rm_mat(0)
+        r2 = gs.calc_rm_mat(2)
+        self.assertAlmostEqual(1.0, s[0, 0])
+        
         
 
 """

@@ -35,17 +35,20 @@ namespace cbasis {
     dcomplex c(int i) const { return cs[i]; }
     int      n(int i) const { return ns[i]; }
     dcomplex z(int i) const { return zs[i]; }
+    dcomplex& c(int i) { return cs[i]; }
+    int&      n(int i) { return ns[i]; }
+    dcomplex& z(int i) { return zs[i]; }
+
     Eigen::VectorXcd AtR(const Eigen::VectorXcd&) const;
     Eigen::VectorXcd DAtR(const Eigen::VectorXcd&) const;
+    std::string str() const;
 
     // ---- Setter ----
     _LC_EXPs<M>* Add(dcomplex c, int n, dcomplex z);
 
     // ---- Generate other ----
-    LC_EXPs Conj() const;
-    
-    // ---- IO ----
-    std::string str() const;
+    LC_EXPs Clone() const;
+    LC_EXPs Conj() const;            
     
   };
 

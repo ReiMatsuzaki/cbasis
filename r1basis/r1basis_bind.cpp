@@ -23,12 +23,13 @@ void BindR1LC() {
   def("LC_STOs", &Create_LC_STOs);
   class_<_LC_STOs>("_LC_STOs", init<>())
     .def("size", &_LC_EXPs<1>::size)
-    .def("c", &_LC_EXPs<1>::c)
-    .def("n", &_LC_EXPs<1>::n)
-    .def("z", &_LC_EXPs<1>::z)
+    .def("c", (dcomplex(_LC_EXPs<1>::*)(int)const)&_LC_EXPs<1>::c)
+    .def("n", (int(_LC_EXPs<1>::*)(int)const)&_LC_EXPs<1>::n)
+    .def("z", (dcomplex(_LC_EXPs<1>::*)(int)const)&_LC_EXPs<1>::z)
     .def("add",  &_LC_EXPs<1>::Add, return_self<>())
     .def("str",  &_LC_EXPs<1>::str)
     .def("at_r", &_LC_EXPs<1>::AtR)
+    .def("clone", &_LC_EXPs<1>::Clone)
     .def("conj", &_LC_EXPs<1>::Conj);
   
   typedef _LC_EXPs<2> _LC_GTOs;
@@ -36,12 +37,13 @@ void BindR1LC() {
   def("LC_GTOs", &Create_LC_GTOs);
   class_<_LC_GTOs>("_LC_GTOs", init<>())
     .def("size", &_LC_EXPs<2>::size)
-    .def("c", &_LC_EXPs<2>::c)
-    .def("n", &_LC_EXPs<2>::n)
-    .def("z", &_LC_EXPs<2>::z)
+    .def("c", (dcomplex(_LC_EXPs<2>::*)(int)const)&_LC_EXPs<2>::c)
+    .def("n", (int(_LC_EXPs<2>::*)(int)const)&_LC_EXPs<2>::n)
+    .def("z", (dcomplex(_LC_EXPs<2>::*)(int)const)&_LC_EXPs<2>::z)
     .def("add",  &_LC_EXPs<2>::Add, return_self<>())
     .def("str",  &_LC_EXPs<2>::str)
     .def("at_r", &_LC_EXPs<2>::AtR)
+    .def("clone", &_LC_EXPs<2>::Clone)
     .def("conj", &_LC_EXPs<2>::Conj);
 
 
@@ -85,11 +87,13 @@ void BindR1Basis() {
     .def("add",       &_GTOs::AddPrim, return_self<>())
     .def("add",       &_GTOs::AddPrims, return_self<>())
     .def("add_lc",    &_GTOs::AddLC, return_self<>())
-    .def("setup",     &_GTOs::SetUp, return_self<>());
-    //    .def("str",  &_GTOs::str)
-    //    .def("at_r", &_GTOs::AtR)
-    //    .def("conj", &_GTOs::Conj);
-  
+    .def("setup",     &_GTOs::SetUp, return_self<>())
+    .def("str",  &_GTOs::str)
+    .def("at_r", &_GTOs::AtR)
+    .def("clone", &_GTOs::Clone)
+    .def("conj", &_GTOs::Conj)
+    .def("calc_rm_mat", &_GTOs::CalcRmMat)
+    .def("calc_d2_mat", &_GTOs::CalcD2Mat);
 
 }
 

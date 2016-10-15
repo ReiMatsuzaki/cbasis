@@ -103,18 +103,30 @@ namespace cbasis {
     
     return this;
   }
+
+  template<int M>
+  shared_ptr<_LC_EXPs<M> > _LC_EXPs<M>::Clone() const {
+    LC_EXPs ptr = Create_LC_EXPs<M>();
+    for(int i = 0; i < this->size(); i++) {
+      dcomplex c(this->cs[i]);
+      int      n(this->ns[i]);
+      dcomplex z(this->zs[i]);
+      ptr->Add(c, n, z);
+    }
+    return ptr;
+  }
   template<int M>
   shared_ptr<_LC_EXPs<M> > _LC_EXPs<M>::Conj() const {
-    LC_EXPs stos = Create_LC_EXPs<M>();
+    LC_EXPs ptr = Create_LC_EXPs<M>();
 
     for(int i = 0; i < this->size(); i++) {
       dcomplex c(this->cs[i]);
       int      n(this->ns[i]);
       dcomplex z(this->zs[i]);
-      stos->Add(conj(c), n, conj(z));
+      ptr->Add(conj(c), n, conj(z));
     }
 
-    return stos;
+    return ptr;
   }
   template<>
   string _LC_EXPs<1>::str() const {

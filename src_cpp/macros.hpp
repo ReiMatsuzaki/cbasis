@@ -5,11 +5,33 @@
 
 #define SUB_LOCATION(msg) msg=__FILE__;\
                           msg+=":";\
+			  char line[10];\
+			  sprintf(line, "%d", __LINE__);\
+                          msg+=line;\
+                          msg+=": error : in ";\
+                          msg+=__FUNCTION__;\
+			  msg+="\n";
+
+/*
+#define SUB_LOCATION(msg) msg=__FILE__;\
+                          msg+=":";\
                           msg+=__FUNCTION__;\
                           msg+=":";\
 			  char line[10];\
 			  sprintf(line, "%d", __LINE__);\
                           msg+=line;
+*/
+/*
+#define SUB_LOCATION(msg) msg="\n";\
+                          msg+="  File \""+__FILE__+"\", line ";\
+			  char line[10];\
+			  sprintf(line, "%d", __LINE__);\
+                          msg+=line;\
+                          msg+=", in ";\
+                          msg+=__FUNCTION__;\
+                          msg+="\n";
+*/
+
 #endif
 
 
