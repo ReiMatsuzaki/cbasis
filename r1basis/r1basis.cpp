@@ -25,6 +25,18 @@ namespace cbasis {
     return dcomplex(n-1)/(2.0*a) * GTOInt(n-2, a);
 
   }
+  dcomplex GTOIntLC(LC_GTOs a, int m, LC_GTOs b) {
+
+    dcomplex acc(0);
+    for(int i = 0; i < a->size(); i++)
+      for(int j = 0; j < b->size(); j++) {
+	dcomplex c(a->c(i) * b->c(j));
+	int      n(a->n(i) + b->n(j));
+	dcomplex z(a->z(i) + b->z(j));
+	acc +=  c * GTOInt(n+m, z);
+      }
+    return acc;
+  }
 
   // ==== member field ====
   _GTOs::_GTOs() {
@@ -116,17 +128,21 @@ namespace cbasis {
     for(int i = 0; i < num; i++) {
 
       LC_GTOs bi = this->basis(i);
+      /*
 
       dcomplex acc(0);
       for(int ii = 0; ii < bi->size(); ii++) {
 	for(int jj = 0; jj < bi->size(); jj++) {
 	  dcomplex c(bi->c(ii) * bi->c(jj));
 	  int      n(bi->n(ii) + bi->n(jj));
-	  dcomplex z(bi->z(ii) * bi->z(jj));
+	  dcomplex z(bi->z(ii) + bi->z(jj));
 	  acc +=  c * GTOInt(n, z);
 	}
       }
+      
       dcomplex nterm(1.0/sqrt(acc));
+      */
+      dcomplex nterm(1.0/sqrt(GTOIntLC(bi, 0, bi)));
       for(int ii = 0; ii < bi->size(); ii++) {
 	bi->c(ii) *= nterm;
       }
@@ -182,15 +198,18 @@ namespace cbasis {
 
 	LC_GTOs bi = this->basis(i);
 	LC_GTOs bj = this->basis(j);
+	/*
 	dcomplex acc(0);
 	for(int ii = 0; ii < bi->size(); ii++)
 	  for(int jj = 0; jj < bj->size(); jj++) {
 	    dcomplex c(bi->c(ii) * bj->c(jj));
-	    int      n(bi->n(ii)+bj->n(jj));
-	    dcomplex z(bi->z(ii) * bj->z(jj));
+	    int      n(bi->n(ii) + bj->n(jj));
+	    dcomplex z(bi->z(ii) + bj->z(jj));
 	    acc +=  c * GTOInt(n+m, z);
 	  }
 	mat(i, j) = acc;
+		  */
+	mat(i, j) = GTOIntLC(bi, m, bj);
       }
 
     return mat;
@@ -203,7 +222,6 @@ namespace cbasis {
       msg = "\n" + msg + "GTO is not setup.";
       throw runtime_error(msg);
     }
-
 
     int num(this->size());
     MatrixXcd mat(num, num);
@@ -221,8 +239,8 @@ namespace cbasis {
 	    int      nj(bj->n(jj));
 	    dcomplex zi(bi->z(ii));
 	    dcomplex zj(bj->z(jj));
-	    acc += c * ( +4.0*zj*zj      * GTOInt(ni+nj+2, zi+zj)
-			 -2.0*(2*nj+1)   * GTOInt(ni+nj, zi+zj));
+	    acc += c * ( +4.0*zj*zj       * GTOInt(ni+nj+2, zi+zj)
+			 -2.0*(2*nj+1)*zj* GTOInt(ni+nj,   zi+zj));
 	    if(nj > 1)
 	      acc += 1.0*(nj*nj-nj) * c * GTOInt(ni+nj-2, zi+zj);
 	  }

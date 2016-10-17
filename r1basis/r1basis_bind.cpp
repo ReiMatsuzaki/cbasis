@@ -17,7 +17,7 @@ int add(int a, int b) {
 }
  
 void BindR1LC() {
-
+  
   typedef _LC_EXPs<1> _LC_STOs;
   register_ptr_to_python<LC_STOs>();
   def("LC_STOs", &Create_LC_STOs);
@@ -77,6 +77,9 @@ void BindR1LC() {
 }
 
 void BindR1Basis() {
+
+  def("int_gto", &GTOInt);
+  def("int_gto_lc", &GTOIntLC);
   
   register_ptr_to_python<GTOs>();
   def("GTOs", &Create_GTOs);

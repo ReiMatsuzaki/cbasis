@@ -15,6 +15,10 @@
 
 namespace cbasis {
 
+
+  dcomplex GTOInt(int n, dcomplex a);
+  dcomplex GTOIntLC(LC_GTOs a, int m, LC_GTOs b);
+
   class _GTOs;
   typedef boost::shared_ptr<_GTOs> GTOs;
   GTOs Create_GTOs();

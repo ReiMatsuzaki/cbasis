@@ -1,21 +1,8 @@
 import numpy as np
 from r1basis import *
-
+from scipy.integrate import quad
+from scipy.linalg import eig
 import unittest
-
-
-"""
-class Test_Eigen(unittest.TestCase):
-    def setUp(self):
-        pass
-    
-    def test_print_matrixxi(self):
-        ivec = VectorXi.Zero(3)
-        ivec[0] = 1; ivec[1] = 2; ivec[2] = 3;
-        print_vectorxi(ivec)
-        print_vectorxi([4, 3, 3])
-
-"""
 
 class Test_first(unittest.TestCase):
     def setUp(self):
@@ -24,12 +11,12 @@ class Test_first(unittest.TestCase):
     def test_add(self):
         print add(1,2)
 
-
 class Test_r1_linear_comb(unittest.TestCase):
     def setUp(self):
         pass
 
     def test_size(self):
+
         for (m, fs) in zip([1, 2], [LC_STOs(), LC_GTOs()]): 
             fs.add(1.1, 2, 1.3-0.2j)
             fs.add(0.1, 1, 1.2-0.2j)
@@ -88,15 +75,16 @@ class Test_r1_linear_comb(unittest.TestCase):
             self.assertAlmostEqual(y.conjugate(), cy)
 
 class Test_basis(unittest.TestCase):
+
     def setUp(self):
         gtos = GTOs()
-        gtos.add(2, 1.1)
-        gtos.add(2, 1.1)
+        gtos.add(1, 1.1)
+        gtos.add(2, 1.4)
         gtos.add(3, [1.2, 1.3-0.1j])
 
         g1 = LC_GTOs()
-        g1.add(1.1, 5, 1.3-0.2j)
-        g1.add(0.1, 6, 1.2-0.2j)
+        g1.add(1.1, 5, 1.3)
+        g1.add(0.1, 6, 1.4)
         gtos.add_lc(g1)
 
         gtos.setup()
@@ -139,14 +127,75 @@ class Test_basis(unittest.TestCase):
         g.add(2, 1.1)
         self.assertRaises(RuntimeError, g.calc_rm_mat, 0)
 
-    def test_matrix(self):
+    def test_int_gto(self):
+        n = 2
+        z = 2.3
+        f = lambda r: r**n*np.exp(-z*r*r)
+        nume, err = quad(f, 0, 4.0)
+        self.assertAlmostEqual(nume, int_gto(n, z))
+
+    def test_int_gto_lc(self):
+        a = LC_GTOs()
+        a.add(1.1, 2, 1.2)
+        b = LC_GTOs()
+        b.add(1.2, 3, 1.4)
+        
+        calc = int_gto_lc(a, 2, b)
+        ref,err  = quad(lambda r: (a.at_r([r])[0]*r*r*b.at_r([r])[0]).real, 0, 4.0)
+        self.assertAlmostEqual(ref, calc)
+        
+    def test_rm_matrix(self):
 
         gs = self.gtos
         s  = gs.calc_rm_mat(0)
         r2 = gs.calc_rm_mat(2)
         self.assertAlmostEqual(1.0, s[0, 0])
+
+        fs = [lambda r: r     * np.exp(-1.1*r*r),
+              lambda r: r*r   * np.exp(-1.4*r*r),
+              lambda r: r*r*r * np.exp(-1.2*r*r),
+              lambda r: r*r*r * np.exp(-(1.3-0.1j)*r*r),
+              lambda r: 1.1*r**5*np.exp(-1.3*r*r) + 
+              0.1*r**6*np.exp(-1.4*r*r)]
         
+        s00, err = quad(lambda r: fs[0](r)*fs[0](r), 0, 10.0)
+        s11, err = quad(lambda r: fs[1](r)*fs[1](r), 0, 10.0)
+        s44, err = quad(lambda r: fs[4](r)*fs[4](r), 0, 10.0)
+        r2_01, err = quad(lambda r: fs[0](r)*fs[1](r)*r*r, 0, 10.0)
+        r2_14, err = quad(lambda r: fs[1](r)*fs[4](r)*r*r, 0, 10.0)
+        self.assertAlmostEqual(r2[0, 1], r2_01/np.sqrt(s00*s11))
+        self.assertAlmostEqual(r2[1, 4], r2_14/np.sqrt(s11*s44))
+
+    def test_d2_mat(self):
+        gs = self.gtos
+        d2 = gs.calc_d2_mat()
+        dif= d2-d2.transpose()
+        self.assertAlmostEqual(0.0, dif[0, 1])
         
+    def test_hydrogen_atom(self):
+        g =  GTOs()
+        g.add(1, [2.5**n for n in range(-5,5)])
+        g.setup()
+        s = g.calc_rm_mat(0)
+        h = -0.5 * g.calc_d2_mat() - g.calc_rm_mat(-1)
+        (val,vec) =  eig(h, s)
+        self.assertAlmostEqual(-0.5, val[5], places=3)
+
+    def test_hydrogen_atom_p(self):
+        g =  GTOs()
+        g.add(2, [2.5**n for n in range(-5,5)])
+        g.setup()
+        s = g.calc_rm_mat(0)
+        h = -0.5 * g.calc_d2_mat() + g.calc_rm_mat(-2) - g.calc_rm_mat(-1)
+        (val,vec) =  eig(h, s)
+        print val
+        self.assertAlmostEqual(-0.125, val[6], places=3)
+
+
+class Test_driv(unittest.TestCase):
+
+    def setUp(self):
+        pass
 
 """
 class Test_r1gtos(unittest.TestCase):
