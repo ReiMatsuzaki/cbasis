@@ -2,7 +2,6 @@ include local.mk
 ARCH=debug
 VALGRIND=valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no 
 
-
 ifeq (${ARCH},fast)
   # calculation speed
   CXXFLAGS=${INC_PATH} -Wall -O3 -DARG_NO_CHECK -DEIGEN_NO_DEBUG 

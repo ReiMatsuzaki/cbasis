@@ -10,7 +10,7 @@ namespace cbasis {
 
   // ==== create =====
   template<int m>
-  typename _EXPs<m>::EXPs Create_EXPs() {
+  boost::shared_ptr<_EXPs<m> > Create_EXPs() {
 
     typedef typename _EXPs<m>::EXPs EXPs;
     EXPs ptr(new _EXPs<m>);
@@ -28,8 +28,12 @@ namespace cbasis {
     
   }
 
-
   // ==== Calculation ====
+  dcomplex STOInt(int n, dcomplex a) {
+
+    return 0.0;
+
+  }
   dcomplex GTOInt(int n, dcomplex a) {
 
     if(n < 0) {
@@ -57,6 +61,28 @@ namespace cbasis {
 	acc +=  c * GTOInt(n+m, z);
       }
     return acc;
+  }
+  dcomplex EXPIntLC(LC_STOs a, int m, LC_STOs b) {
+    dcomplex acc(0);
+    for(int i = 0; i < a->size(); i++)
+      for(int j = 0; j < b->size(); j++) {
+	dcomplex c(a->c(i) * b->c(j));
+	int      n(a->n(i) + b->n(j));
+	dcomplex z(a->z(i) + b->z(j));
+	acc +=  c * STOInt(n+m, z);
+      }
+    return acc;    
+  }
+  dcomplex EXPIntLC(LC_GTOs a, int m, LC_GTOs b) {
+    dcomplex acc(0);
+    for(int i = 0; i < a->size(); i++)
+      for(int j = 0; j < b->size(); j++) {
+	dcomplex c(a->c(i) * b->c(j));
+	int      n(a->n(i) + b->n(j));
+	dcomplex z(a->z(i) + b->z(j));
+	acc +=  c * GTOInt(n+m, z);
+      }
+    return acc;    
   }
 
   template<int m>
@@ -321,7 +347,7 @@ namespace cbasis {
     VectorXcd vec(num);
         
     for(int i = 0; i < num; i++) {
-      LC_GTOs bi = this->basis(i);
+      _EXPs<m>::LC_EXPs bi = this->basis(i);
       dcomplex acc;
       for(int oo = 0; oo < numo; oo++) {
 	for(int ii = 0; ii < num; ii++) {
@@ -341,7 +367,7 @@ namespace cbasis {
   }
 
   // ==== realize ====
-  //  template<> class _EXPs<1>;
-  //  template<> class _EXPs<2>;
+  template class _EXPs<1>;
+  template class _EXPs<2>;
 
 }

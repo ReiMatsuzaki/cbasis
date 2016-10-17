@@ -19,6 +19,20 @@ SRCS:=$(wildcard *.cpp)
 DEPS:=$(SRCS:%.cpp=${BINDIR}/%.d)
 -include ${DEPS}
 
+## ==== Google test ====
+### read README in googletest
+CPPFLAGS += -isystem ${GTEST_DIR}/include
+CXXFLAGS += -pthread
+GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
+                $(GTEST_DIR)/include/gtest/internal/*.h
+
+GTEST_SRCS_ = $(GTEST_DIR)/src/*.cc $(GTEST_DIR)/src/*.h $(GTEST_HEADERS)
+${BINDIR}/gtest-all.o : $(GTEST_SRCS_)
+	$(CXX) $(CPPFLAGS) -I$(GTEST_DIR) $(CXXFLAGS) -c \
+            $(GTEST_DIR)/src/gtest-all.cc -o $@
+${BINDIR}/gtest.a : ${BINDIR}/gtest-all.o
+	$(AR) $(ARFLAGS) $@ $^
+
 ## ==== basic relation ====
 ${BINDIR}/%.o: %.cpp
 	${CXX} -c -o $@ -MMD ${CXXFLAGS} $<
@@ -31,9 +45,14 @@ ${BINDIR}/r1basis_bind.so: r1basis_bind.cpp ${OBJS}
 	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS}
 	cp $@ .
 
+${BINDIR}/r1basis_test: ${BINDIR}/test.o ${OBJS} ${BINDIR}/gtest.a
+	${CXX} -o $@ $^ ${CXXFLAGS} ${GTESTFLAGS}
 
 ## ==== launch unit test ====
-check: ${BINDIR}/r1basis_bind.so
+check_cpp: ${BINDIR}/r1basis_test
+	./$^
+
+check: ${BINDIR}/r1basis_bind.so 
 	python test.py
 
 clean:

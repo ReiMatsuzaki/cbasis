@@ -1,4 +1,5 @@
 #include <sstream>
+#include <boost/shared_ptr.hpp>
 #include "r1_lc.hpp"
 
 
@@ -10,8 +11,8 @@ namespace cbasis {
 
   // ==== Create ====
   template<int M>
-  shared_ptr<_LC_EXPs<M> > Create_LC_EXPs() {
-    shared_ptr<_LC_EXPs<M> > ptr(new _LC_EXPs<M>());
+  boost::shared_ptr<_LC_EXPs<M> > Create_LC_EXPs() {
+    boost::shared_ptr<_LC_EXPs<M> > ptr(new _LC_EXPs<M>());
     return ptr;
   }
   LC_STOs Create_LC_STOs() {
@@ -105,7 +106,7 @@ namespace cbasis {
   }
 
   template<int M>
-  shared_ptr<_LC_EXPs<M> > _LC_EXPs<M>::Clone() const {
+  boost::shared_ptr<_LC_EXPs<M> > _LC_EXPs<M>::Clone() const {
     LC_EXPs ptr = Create_LC_EXPs<M>();
     for(int i = 0; i < this->size(); i++) {
       dcomplex c(this->cs[i]);
@@ -116,7 +117,7 @@ namespace cbasis {
     return ptr;
   }
   template<int M>
-  shared_ptr<_LC_EXPs<M> > _LC_EXPs<M>::Conj() const {
+  boost::shared_ptr<_LC_EXPs<M> > _LC_EXPs<M>::Conj() const {
     LC_EXPs ptr = Create_LC_EXPs<M>();
 
     for(int i = 0; i < this->size(); i++) {
