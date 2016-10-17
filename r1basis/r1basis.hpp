@@ -63,8 +63,8 @@ namespace cbasis {
   typedef boost::shared_ptr<_EXPs<2> > GTOs;
   template<int m>
   boost::shared_ptr<_EXPs<m> > Create_EXPs();
-  STOs Create_LC_STOs();
-  GTOs Create_LC_STOs();
+  STOs Create_STOs();
+  GTOs Create_GTOs();
 
   //  template<int m>
   //  typename _EXPs<m>::EXPs Create_EXPs();
