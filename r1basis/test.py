@@ -197,6 +197,33 @@ class Test_driv(unittest.TestCase):
     def setUp(self):
         pass
 
+    def test_alpha(self):
+        
+        ## from calc/stoh/
+        ss = STOs()
+        ss.add(2, 0.994221270084381-2.865599817596376j*10.0**(-4))
+        ss.add(2, 0.940491735935211-0.279872149229050j)
+        ss.add(2, 0.697783887386322-0.602939188480377j)
+        ss.add(2, 0.341364860534668-0.751810371875763j)
+        ss.add(2, 8.380887657403946*10.0**(-2) -0.723838686943054j)
+        ss.setup()
+
+        driv = LC_STOs()
+        driv.add(2.0, 2, 1.0)
+
+        ene = 0.4
+        
+        lmat = (+g.calc_rm_mat(0) * ene
+                + g.calc_d2_mat() * 0.5
+                - g.calc_rm_mat(-2)
+                + g.calc_rm_mat(-1))
+        mvec = g.calc_vec(driv)
+        cs = la.solve(lmat, mvec)
+        alpha = np.dot(cs, mvec)
+        ref = 2.23413851362002-0.543247835892041j
+        self.assertAlmostEqual(ref, alpha)
+        print alpha
+        
 """
 class Test_r1gtos(unittest.TestCase):
     def setUp(self):

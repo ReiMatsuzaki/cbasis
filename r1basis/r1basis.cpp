@@ -8,6 +8,27 @@ using namespace Eigen;
 
 namespace cbasis {
 
+  // ==== create =====
+  template<int m>
+  typename _EXPs<m>::EXPs Create_EXPs() {
+
+    typedef typename _EXPs<m>::EXPs EXPs;
+    EXPs ptr(new _EXPs<m>);
+    return ptr;
+
+  }
+  STOs Create_STOs() {
+
+    return Create_EXPs<1>();
+    
+  }
+  GTOs Create_GTOs() {
+
+    return Create_EXPs<2>();
+    
+  }
+
+
   // ==== Calculation ====
   dcomplex GTOInt(int n, dcomplex a) {
 
@@ -38,16 +59,30 @@ namespace cbasis {
     return acc;
   }
 
+  template<int m>
+  dcomplex EXPInt(int n, dcomplex a);
+  template<>
+  dcomplex EXPInt<1>(int n, dcomplex a) {
+    return 0.0;
+  }
+  template<>
+  dcomplex EXPInt<2>(int n, dcomplex a) {
+    return GTOInt(n, a);
+  }
+
+
   // ==== member field ====
-  _GTOs::_GTOs() {
+  template<int m>
+  _EXPs<m>::_EXPs() {
     this->setupq_ =false;
   }
-  bool _GTOs::OnlyPrim() const {
+  template<int m>
+  bool _EXPs<m>::OnlyPrim() const {
 
     bool acc(true);
 
-    for(vector<LC_GTOs>::const_iterator
-	  it = this->basis_.begin();
+    typedef typename vector<LC_EXPs>::const_iterator It;
+    for(It it = this->basis_.begin();
 	it != this->basis_.end();
 	++it) {
       acc &= (*it)->size() == 1;
@@ -56,7 +91,8 @@ namespace cbasis {
     return acc;
     
   }
-  VectorXcd _GTOs::AtR(const VectorXcd& rs, const VectorXcd& cs) const {
+  template<int m>
+  VectorXcd _EXPs<m>::AtR(const VectorXcd& rs, const VectorXcd& cs) const {
 
     if(cs.size() != this->size()) {
       string msg;
@@ -76,7 +112,8 @@ namespace cbasis {
     return ys;
 
   }
-  VectorXcd _GTOs::DAtR(const VectorXcd& rs, const VectorXcd& cs) const {
+  template<int m>
+  VectorXcd _EXPs<m>::DAtR(const VectorXcd& rs, const VectorXcd& cs) const {
 
     if(cs.size() != this->size()) {
       string msg;
@@ -96,29 +133,34 @@ namespace cbasis {
     return ys;
 
   }
-  string _GTOs::str() const {
-    return "GTOs";
+  template<int m>
+  string _EXPs<m>::str() const {
+    return "EXPs";
   }
 
-  _GTOs* _GTOs::AddPrim(int n, dcomplex z) {
+  template<int m>
+  _EXPs<m>* _EXPs<m>::AddPrim(int n, dcomplex z) {
     this->setupq_ = false;
-    LC_GTOs g = Create_LC_GTOs();
+    LC_EXPs g = Create_LC_EXPs<m>();
     g->Add(1.0, n, z);
     this->basis_.push_back(g);
     return this;
   }
-  _GTOs* _GTOs::AddPrims(int n, Eigen::VectorXcd zs) {
+  template<int m>
+  _EXPs<m>* _EXPs<m>::AddPrims(int n, Eigen::VectorXcd zs) {
     this->setupq_ = false;
     for(int i = 0; i < zs.size(); i++)
       this->AddPrim(n, zs[i]);
     return this;
   }
-  _GTOs* _GTOs::AddLC(LC_GTOs lc) {
+  template<int m>
+  _EXPs<m>* _EXPs<m>::AddLC(LC_EXPs lc) {
     this->setupq_ =false;
     this->basis_.push_back(lc);
     return this;
   }
-  _GTOs* _GTOs::SetUp() {
+  template<int m>
+  _EXPs<m>* _EXPs<m>::SetUp() {
 
     if(this->setupq_)
       return this;
@@ -127,7 +169,7 @@ namespace cbasis {
     
     for(int i = 0; i < num; i++) {
 
-      LC_GTOs bi = this->basis(i);
+      LC_EXPs bi = this->basis(i);
       /*
 
       dcomplex acc(0);
@@ -136,13 +178,13 @@ namespace cbasis {
 	  dcomplex c(bi->c(ii) * bi->c(jj));
 	  int      n(bi->n(ii) + bi->n(jj));
 	  dcomplex z(bi->z(ii) + bi->z(jj));
-	  acc +=  c * GTOInt(n, z);
+	  acc +=  c * EXPInt(n, z);
 	}
       }
       
       dcomplex nterm(1.0/sqrt(acc));
       */
-      dcomplex nterm(1.0/sqrt(GTOIntLC(bi, 0, bi)));
+      dcomplex nterm(1.0/sqrt(EXPIntLC(bi, 0, bi)));
       for(int ii = 0; ii < bi->size(); ii++) {
 	bi->c(ii) *= nterm;
       }
@@ -153,28 +195,31 @@ namespace cbasis {
     return this;
   }
 
-  GTOs _GTOs::Clone() const {
+  template<int m>
+  typename _EXPs<m>::EXPs _EXPs<m>::Clone() const {
 
-        GTOs ptr = Create_GTOs();
-    typedef vector<LC_GTOs>::const_iterator It;
+    EXPs ptr = Create_EXPs<m>();
+    typedef typename vector<LC_EXPs>::const_iterator It;
+    //typedef vector<_EXPs<m>::LC_EXPs>::const_iterator It;
     for(It it = this->basis_.begin();
 	it != this->basis_.end();
 	++it) {
-      LC_GTOs lc = (*it)->Clone();
+      LC_EXPs lc = (*it)->Clone();
       ptr->AddLC(*it);
     }
     ptr->SetUp();
     return ptr;
 
   }
-  GTOs _GTOs::Conj() const {
+  template<int m>
+  typename _EXPs<m>::EXPs _EXPs<m>::Conj() const {
 
-    GTOs ptr = Create_GTOs();
-    typedef vector<LC_GTOs>::const_iterator It;
+    EXPs ptr = Create_EXPs<m>();
+    typedef typename vector<LC_EXPs>::const_iterator It;
     for(It it = this->basis_.begin();
 	it != this->basis_.end();
 	++it) {
-      LC_GTOs lc = (*it)->Conj();
+      LC_EXPs lc = (*it)->Conj();
       ptr->AddLC(lc);
     }
     ptr->SetUp();
@@ -182,11 +227,12 @@ namespace cbasis {
 
   }
 
-  MatrixXcd _GTOs::CalcRmMat(int m) const {
+  template<int m>
+  MatrixXcd _EXPs<m>::CalcRmMat(int M) const {
     
     if(!this->setupq_) {
       string msg; SUB_LOCATION(msg);
-      msg = "\n" + msg + "GTO is not setup.";
+      msg = "\n" + msg + "EXP is not setup.";
       throw runtime_error(msg);
     }
     
@@ -196,30 +242,30 @@ namespace cbasis {
     for(int i = 0; i < num; i++)
       for(int j = 0; j < num; j++) {
 
-	LC_GTOs bi = this->basis(i);
-	LC_GTOs bj = this->basis(j);
-	/*
+	LC_EXPs bi = this->basis(i);
+	LC_EXPs bj = this->basis(j);
+
 	dcomplex acc(0);
 	for(int ii = 0; ii < bi->size(); ii++)
 	  for(int jj = 0; jj < bj->size(); jj++) {
 	    dcomplex c(bi->c(ii) * bj->c(jj));
 	    int      n(bi->n(ii) + bj->n(jj));
 	    dcomplex z(bi->z(ii) + bj->z(jj));
-	    acc +=  c * GTOInt(n+m, z);
+	    acc +=  c * EXPInt<m>(n+M, z);
 	  }
 	mat(i, j) = acc;
-		  */
-	mat(i, j) = GTOIntLC(bi, m, bj);
+	//mat(i, j) = EXPIntLC<m>(bi, M, bj);
       }
 
     return mat;
 
   }
-  MatrixXcd _GTOs::CalcD2Mat() const {
+  template<int m>
+  MatrixXcd _EXPs<m>::CalcD2Mat() const {
 
     if(!this->setupq_) {
       string msg; SUB_LOCATION(msg);
-      msg = "\n" + msg + "GTO is not setup.";
+      msg = "\n" + msg + "EXP is not setup.";
       throw runtime_error(msg);
     }
 
@@ -229,8 +275,8 @@ namespace cbasis {
     for(int i = 0; i < num; i++)
       for(int j = 0; j < num; j++) {
 
-	LC_GTOs bi = this->basis(i);
-	LC_GTOs bj = this->basis(j);
+	LC_EXPs bi = this->basis(i);
+	LC_EXPs bj = this->basis(j);
 	dcomplex acc(0);
 	for(int ii = 0; ii < bi->size(); ii++)
 	  for(int jj = 0; jj < bj->size(); jj++) {
@@ -239,27 +285,29 @@ namespace cbasis {
 	    int      nj(bj->n(jj));
 	    dcomplex zi(bi->z(ii));
 	    dcomplex zj(bj->z(jj));
-	    acc += c * ( +4.0*zj*zj       * GTOInt(ni+nj+2, zi+zj)
-			 -2.0*(2*nj+1)*zj* GTOInt(ni+nj,   zi+zj));
+	    acc += c * ( +4.0*zj*zj       * EXPInt<2>(ni+nj+2, zi+zj)
+			 -2.0*(2*nj+1)*zj* EXPInt<2>(ni+nj,   zi+zj));
 	    if(nj > 1)
-	      acc += 1.0*(nj*nj-nj) * c * GTOInt(ni+nj-2, zi+zj);
+	      acc += 1.0*(nj*nj-nj) * c * EXPInt<2>(ni+nj-2, zi+zj);
 	  }
 	mat(i, j) = acc;
       }
 
     return mat;
   }
-  VectorXcd _GTOs::CalcVecSTO(LC_STOs stos) const {
+  template<int m>
+  VectorXcd _EXPs<m>::CalcVecSTO(LC_STOs stos) const {
     
     if(!this->setupq_) {
       string msg; SUB_LOCATION(msg);
-      msg += " : GTO is not setup.";
+      msg += " : EXP is not setup.";
       throw runtime_error(msg);
     }
 
     return VectorXcd::Zero(1);
   }
-  VectorXcd _GTOs::CalcVecGTO(LC_GTOs gtos) const {
+  template<int m>
+  VectorXcd _EXPs<m>::CalcVecGTO(LC_GTOs gtos) const {
 
     if(!this->setupq_) {
       string msg; SUB_LOCATION(msg);
@@ -292,12 +340,8 @@ namespace cbasis {
 
   }
 
-  // ==== create =====
-  GTOs Create_GTOs() {
-
-    GTOs ptr(new _GTOs());
-    return ptr;
-    
-  }
+  // ==== realize ====
+  //  template<> class _EXPs<1>;
+  //  template<> class _EXPs<2>;
 
 }

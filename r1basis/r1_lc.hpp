@@ -20,6 +20,7 @@ namespace cbasis {
     std::vector<int>      ns;
     std::vector<dcomplex> zs;
     
+  public:
     // ---- typedef ----
     typedef boost::shared_ptr<_LC_EXPs<M> > LC_EXPs;
     
@@ -54,9 +55,10 @@ namespace cbasis {
 
   typedef boost::shared_ptr<_LC_EXPs<1> > LC_STOs;
   typedef boost::shared_ptr<_LC_EXPs<2> > LC_GTOs;
+  template<int m>
+  boost::shared_ptr<_LC_EXPs<m> > Create_LC_EXPs();
   LC_STOs Create_LC_STOs();
   LC_GTOs Create_LC_GTOs();
-  
 }
 
 

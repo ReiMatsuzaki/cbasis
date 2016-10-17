@@ -15,27 +15,28 @@
 
 namespace cbasis {
 
-
-  dcomplex GTOInt(int n, dcomplex a);
-  dcomplex GTOIntLC(LC_GTOs a, int m, LC_GTOs b);
-
-  class _GTOs;
-  typedef boost::shared_ptr<_GTOs> GTOs;
-  GTOs Create_GTOs();
-
-  class _GTOs {
+  template<class m>
+  dcomplex EXPInt(int n, dcomplex a);
+  
+  template<int m>
+  class _EXPs {
+  public:
+    // ---- typedef ----
+    typedef typename _LC_EXPs<m>::LC_EXPs LC_EXPs;
+    typedef boost::shared_ptr<_EXPs<m> > EXPs;
+    
   private:
     // ---- Member field ----
-    std::vector<LC_GTOs> basis_;
+    std::vector<LC_EXPs> basis_;
     bool setupq_;
     
   public:
     // ---- Constructors ----
-    _GTOs();
+    _EXPs();
     
     // ---- Getter ----
     int size()  const { return basis_.size(); }
-    LC_GTOs basis(int i) const { return basis_[i]; }
+    LC_EXPs basis(int i) const { return basis_[i]; }
     bool OnlyPrim() const;
     Eigen::VectorXcd AtR(const Eigen::VectorXcd&, 
 			 const Eigen::VectorXcd&) const;
@@ -44,22 +45,35 @@ namespace cbasis {
     std::string str() const;
     
     // ---- Setter ----
-    _GTOs* AddPrim(int n, dcomplex z);
-    _GTOs* AddPrims(int n, Eigen::VectorXcd zs);
-    _GTOs* AddLC(LC_GTOs lc);
-    _GTOs* SetUp();
+    _EXPs<m>* AddPrim(int n, dcomplex z);
+    _EXPs<m>* AddPrims(int n, Eigen::VectorXcd zs);
+    _EXPs<m>* AddLC(LC_EXPs lc);
+    _EXPs<m>* SetUp();
     
     // ---- Create ----
-    GTOs Conj() const;
-    GTOs Clone() const;
+    EXPs Conj() const;
+    EXPs Clone() const;
     
     // ---- Calculate ----
-    Eigen::MatrixXcd CalcRmMat(int m) const;
+    Eigen::MatrixXcd CalcRmMat(int M) const;
     Eigen::MatrixXcd CalcD2Mat()      const;
     Eigen::VectorXcd CalcVecSTO(LC_STOs stos) const;
     Eigen::VectorXcd CalcVecGTO(LC_GTOs gtos) const;
 
-  };
+  };    
+
+  template<int m>
+  typename _EXPs<m>::EXPs Create_EXPs();
+  typedef _EXPs<1>::EXPs STOs;
+    typedef _EXPs<2>::EXPs GTOs;
+  boost::shared_ptr<_EXPs<1> > Create_STOs();
+  //  _EXPs<1>::EXPs 
+  _EXPs<2>::EXPs Create_GTOs();
+  
+
+  dcomplex GTOInt(int n, dcomplex a);
+  dcomplex GTOIntLC(LC_GTOs a, int m, LC_GTOs b);
+
   
 
   dcomplex NPrimeGTO(dcomplex nterm, int n, dcomplex z);

@@ -160,6 +160,8 @@ namespace cbasis {
   }
 
   // ==== Realize ====
+  template boost::shared_ptr<_LC_EXPs<1> > Create_LC_EXPs<1>();
+  template boost::shared_ptr<_LC_EXPs<2> > Create_LC_EXPs<2>();
   template class _LC_EXPs<1>;
   template class _LC_EXPs<2>;
 
