@@ -88,46 +88,6 @@ namespace cbasis {
     return 1.0;
 
   }
-  //  template<int m1, int m2>
-  //  dcomplex EXPInt(int n, dcomplex a, dcomplex b);
-  //  template<int m1, int m2>
-  //  dcomplex EXPInt(int n, dcomplex a, dcomplex b);
-  //  template<int m1, int m2>
-  //  dcomplex EXPInt(int n, dcomplex a, dcomplex b);
-
-  dcomplex EXPIntLC(LC_STOs a, int m, LC_STOs b) {
-    dcomplex acc(0);
-    for(int i = 0; i < a->size(); i++)
-      for(int j = 0; j < b->size(); j++) {
-	dcomplex c(a->c(i) * b->c(j));
-	int      n(a->n(i) + b->n(j));
-	dcomplex z(a->z(i) + b->z(j));
-	acc +=  c * STOInt(n+m, z);
-      }
-    return acc;    
-  }
-  dcomplex EXPIntLC(LC_GTOs a, int m, LC_GTOs b) {
-    dcomplex acc(0);
-    for(int i = 0; i < a->size(); i++)
-      for(int j = 0; j < b->size(); j++) {
-	dcomplex c(a->c(i) * b->c(j));
-	int      n(a->n(i) + b->n(j));
-	dcomplex z(a->z(i) + b->z(j));
-	acc +=  c * GTOInt(n+m, z);
-      }
-    return acc;    
-  }
-
-  template<int m>
-  dcomplex EXPInt(int n, dcomplex a);
-  template<>
-  dcomplex EXPInt<1>(int n, dcomplex a) {
-    return STOInt(n, a);
-  }
-  template<>
-  dcomplex EXPInt<2>(int n, dcomplex a) {
-    return GTOInt(n, a);
-  }
 
   template<int m>
   dcomplex EXPIntD2(int na, dcomplex a, int nb, dcomplex b);
@@ -155,13 +115,37 @@ namespace cbasis {
     //
     
     dcomplex acc(0);
-    acc += ( +4.0*zj*zj * EXPInt<2>(ni+nj+2, zi+zj)
-	     -2.0*(2*nj+1)*zj* EXPInt<2>(ni+nj,   zi+zj));
+    acc += ( +4.0*zj*zj * EXPInt<2,2>(ni+nj+2, zi, zj)
+	     -2.0*(2*nj+1)*zj* EXPInt<2,2>(ni+nj, zi, zj));
     if(nj > 1)
-      acc += dcomplex(nj*nj-nj) * EXPInt<2>(ni+nj-2, zi+zj);
+      acc += dcomplex(nj*nj-nj) * EXPInt<2,2>(ni+nj-2, zi, zj);
     return acc;
     
   }
+
+  dcomplex EXPIntLC(LC_STOs a, int m, LC_STOs b) {
+    dcomplex acc(0);
+    for(int i = 0; i < a->size(); i++)
+      for(int j = 0; j < b->size(); j++) {
+	dcomplex c(a->c(i) * b->c(j));
+	int      n(a->n(i) + b->n(j));
+	dcomplex z(a->z(i) + b->z(j));
+	acc +=  c * STOInt(n+m, z);
+      }
+    return acc;    
+  }
+  dcomplex EXPIntLC(LC_GTOs a, int m, LC_GTOs b) {
+    dcomplex acc(0);
+    for(int i = 0; i < a->size(); i++)
+      for(int j = 0; j < b->size(); j++) {
+	dcomplex c(a->c(i) * b->c(j));
+	int      n(a->n(i) + b->n(j));
+	dcomplex z(a->z(i) + b->z(j));
+	acc +=  c * GTOInt(n+m, z);
+      }
+    return acc;    
+  }
+
 
   // ==== member field ====
   template<int m>
@@ -342,8 +326,9 @@ namespace cbasis {
 	  for(int jj = 0; jj < bj->size(); jj++) {
 	    dcomplex c(bi->c(ii) * bj->c(jj));
 	    int      n(bi->n(ii) + bj->n(jj));
-	    dcomplex z(bi->z(ii) + bj->z(jj));
-	    acc +=  c * EXPInt<m>(n+M, z);
+	    dcomplex zi(bi->z(ii));
+	    dcomplex zj(bj->z(jj));
+	    acc +=  c * EXPInt<m,m>(n+M, zi, zj);
 	  }
 	}
 	mat(i, j) = acc;
