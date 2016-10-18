@@ -129,33 +129,18 @@ namespace cbasis {
 
     return ptr;
   }
-  template<>
-  string _LC_EXPs<1>::str() const {
-
+  template<int M>
+  string _LC_EXPs<M>::str() const {
     ostringstream oss;
-    oss << "==== LC_STOs ====" << endl;
-    oss << "number : " << this->size() << endl;
+    string basis_name = (M==1 ? "STO" : "GTO");
     for(int i = 0; i < this->size(); i++) {
-      oss << i << " : ";
+      oss << basis_name << "(";
       oss << this->cs[i] << ", ";
       oss << this->ns[i] << ", ";
-      oss << this->zs[i] << ", ";
-      oss << endl;
-    }
-    return oss.str();
-  }
-  template<>
-  string _LC_EXPs<2>::str() const {
-
-    ostringstream oss;
-    oss << "==== LC_GTOs ====" << endl;
-    oss << "number : " << this->size() << endl;
-    for(int i = 0; i < this->size(); i++) {
-      oss << i << " : ";
-      oss << this->cs[i] << ", ";
-      oss << this->ns[i] << ", ";
-      oss << this->zs[i] << ", ";
-      oss << endl;
+      oss << this->zs[i] << ")";
+      if (i != this->size()-1) {
+	oss << " + ";
+      }
     }
     return oss.str();
   }

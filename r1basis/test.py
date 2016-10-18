@@ -1,7 +1,8 @@
 import numpy as np
 from r1basis import *
 from scipy.integrate import quad
-from scipy.linalg import eig
+from scipy.linalg import eig, solve
+
 import unittest
 
 class Test_first(unittest.TestCase):
@@ -74,7 +75,7 @@ class Test_r1_linear_comb(unittest.TestCase):
             cy= c_fs.at_r([r])[0]
             self.assertAlmostEqual(y.conjugate(), cy)
 
-class Test_basis(unittest.TestCase):
+class _Test_gto(unittest.TestCase):
 
     def setUp(self):
         gtos = GTOs()
@@ -132,7 +133,7 @@ class Test_basis(unittest.TestCase):
         z = 2.3
         f = lambda r: r**n*np.exp(-z*r*r)
         nume, err = quad(f, 0, 4.0)
-        self.assertAlmostEqual(nume, int_gto(n, z))
+        self.assertAlmostEqual(nume, gto_int(n, z))
 
     def test_int_gto_lc(self):
         a = LC_GTOs()
@@ -140,7 +141,7 @@ class Test_basis(unittest.TestCase):
         b = LC_GTOs()
         b.add(1.2, 3, 1.4)
         
-        calc = int_gto_lc(a, 2, b)
+        calc = int_lc(a, 2, b)
         ref,err  = quad(lambda r: (a.at_r([r])[0]*r*r*b.at_r([r])[0]).real, 0, 4.0)
         self.assertAlmostEqual(ref, calc)
         
@@ -180,6 +181,7 @@ class Test_basis(unittest.TestCase):
         h = -0.5 * g.calc_d2_mat() - g.calc_rm_mat(-1)
         (val,vec) =  eig(h, s)
         self.assertAlmostEqual(-0.5, val[5], places=3)
+        print g
 
     def test_hydrogen_atom_p(self):
         g =  GTOs()
@@ -192,37 +194,80 @@ class Test_basis(unittest.TestCase):
         self.assertAlmostEqual(-0.125, val[6], places=3)
 
 
-class Test_driv(unittest.TestCase):
+
+class Test_sto(unittest.TestCase):
+    def setUp(self):
+        pass
+    
+    def test_int_sto(self):
+        z = 2.3
+        for n in [0, 1, 3]:
+            f = lambda r: r**n * np.exp(-z*r)
+            nume, err = quad(f, 0, 15.0)
+            self.assertAlmostEqual(nume, sto_int(n, z))
+
+    def test_calc_vec(self):
+
+        stos = STOs()
+        stos.add(1, 1.1)
+        stos.add(2, 1.2)
+        stos.setup()
+
+        sto1 = LC_STOs()
+        sto1.add(2.0, 2, 1.0)
+        
+        vec = stos.calc_vec(sto1)
+        self.assertEqual(2, len(vec))
+        
+
+    def test_hydrogen(self):
+        s = STOs()
+        s.add(2, 0.5)
+        s.setup()
+        
+        h = -0.5 * s.calc_d2_mat() + s.calc_rm_mat(-2) - s.calc_rm_mat(-1)
+        self.assertAlmostEqual(-0.125, h[0,0])
+
+class _Test_driv(unittest.TestCase):
 
     def setUp(self):
         pass
 
     def test_alpha(self):
-        
-        ## from calc/stoh/
+
+        ## from calc/stoh/l_5/res.d
         ss = STOs()
-        ss.add(2, 0.994221270084381-2.865599817596376j*10.0**(-4))
-        ss.add(2, 0.940491735935211-0.279872149229050j)
-        ss.add(2, 0.697783887386322-0.602939188480377j)
-        ss.add(2, 0.341364860534668-0.751810371875763j)
-        ss.add(2, 8.380887657403946*10.0**(-2) -0.723838686943054j)
+
+        ss.add(2, 0.9965751177-0.0013743026j)
+        ss.add(2, 1.0030366528  -0.2836728004j)
+        ss.add(2, 0.8462928140  -0.6952686244j)
+        ss.add(2, 0.4818046345  -1.0023929406j)
+        ss.add(2, 0.1412093744  -1.0662761427j)
         ss.setup()
 
         driv = LC_STOs()
         driv.add(2.0, 2, 1.0)
 
-        ene = 0.4
-        
-        lmat = (+g.calc_rm_mat(0) * ene
-                + g.calc_d2_mat() * 0.5
-                - g.calc_rm_mat(-2)
-                + g.calc_rm_mat(-1))
-        mvec = g.calc_vec(driv)
-        cs = la.solve(lmat, mvec)
+        ene = 0.5
+
+        s = ss.calc_rm_mat(0)
+        d2= ss.calc_d2_mat()
+        r2= ss.calc_rm_mat(-2)
+        r1= ss.calc_rm_mat(-1)
+        #print "s:",  s
+        #print "d2:", d2
+        lmat = (  s * ene
+                + d2* 0.5
+                + r2* (-1.0)
+                + r1)
+        #print "lmat:", lmat
+        mvec = ss.calc_vec(driv)
+        #print "mvec", mvec
+        cs = solve(lmat, mvec)
         alpha = np.dot(cs, mvec)
-        ref = 2.23413851362002-0.543247835892041j
-        self.assertAlmostEqual(ref, alpha)
-        print alpha
+        w = ene + 0.5
+        ref = 1.88562800720386-0.362705406693342j
+        self.assertAlmostEqual(3.0*ref, alpha)
         
 """
 class Test_r1gtos(unittest.TestCase):

@@ -1,6 +1,6 @@
 include local.mk
 
-CXXFLAGS+=-Wall -PIC
+CPPFLAGS+=-Wall -fPIC
 #ifeq (\$(OS),Linux)
 PY_FLAGS=-I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -DPIC -shared -fPIC -lboost_python 
 
@@ -11,9 +11,8 @@ BINDIR=${BINORIG}/${ARCH}
 $(shell mkdir -p ${BINDIR})
 
 ifeq (${ARCH}, fast)
-  CXXFLAGS=${INC_PATH} -Wall -O3 -DARG_NO_CHECK -DEIGEN_NO_DEBUG  -fPIC
+  CXXFLAGS+= -O3 -DARG_NO_CHECK -DEIGEN_NO_DEBUG
 endif
-
 
 SRCS:=$(wildcard *.cpp)
 DEPS:=$(SRCS:%.cpp=${BINDIR}/%.d)
@@ -35,8 +34,7 @@ ${BINDIR}/gtest.a : ${BINDIR}/gtest-all.o
 
 ## ==== basic relation ====
 ${BINDIR}/%.o: %.cpp
-	${CXX} -c -o $@ -MMD ${CXXFLAGS} $<
-
+	${CXX} -c -o $@ -MMD ${CPPFLAGS} ${CXXFLAGS} $<
 
 ## ==== Main build ====
 R1BASIS_OBJS=r1_lc.o r1basis.o
@@ -46,7 +44,7 @@ ${BINDIR}/r1basis_bind.so: r1basis_bind.cpp ${OBJS}
 	cp $@ .
 
 ${BINDIR}/r1basis_test: ${BINDIR}/test.o ${OBJS} ${BINDIR}/gtest.a
-	${CXX} -o $@ $^ ${CXXFLAGS} ${GTESTFLAGS}
+	${CXX} -o $@ $^ ${CPPFLAGS} ${CXXFLAGS} ${GTESTFLAGS}
 
 ## ==== launch unit test ====
 check_cpp: ${BINDIR}/r1basis_test

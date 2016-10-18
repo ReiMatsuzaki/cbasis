@@ -30,7 +30,9 @@ void BindR1LC() {
     .def("str",  &_LC_EXPs<1>::str)
     .def("at_r", &_LC_EXPs<1>::AtR)
     .def("clone", &_LC_EXPs<1>::Clone)
-    .def("conj", &_LC_EXPs<1>::Conj);
+    .def("conj", &_LC_EXPs<1>::Conj)
+    .def("__str__", &_LC_EXPs<1>::str);
+
   
   typedef _LC_EXPs<2> _LC_GTOs;
   register_ptr_to_python<LC_GTOs>();
@@ -44,48 +46,22 @@ void BindR1LC() {
     .def("str",  &_LC_EXPs<2>::str)
     .def("at_r", &_LC_EXPs<2>::AtR)
     .def("clone", &_LC_EXPs<2>::Clone)
-    .def("conj", &_LC_EXPs<2>::Conj);
+    .def("conj", &_LC_EXPs<2>::Conj)
+    .def("__str__", &_LC_EXPs<2>::str);
 
-
-  /* 
-     
-     
-    .def("d_at_r", &_LC_STOs::DAtR)
-    .def("d2_at_r", &_LC_STOs::D2AtR)
-  */
-
-  /*
-    
-  class_<_LC_STOs>("_LC_STOs", init<>())
-    .def("size", &_LC_STOs::size)
-    .def("at_r", &_LC_STOs::AtR)
-    .def("d_at_r", &_LC_STOs::DAtR)
-    .def("d2_at_r", &_LC_STOs::D2AtR)
-    .def("add",     &_LC_STOs::Add)
-    .def("conj",     &_LC_STOs::Conj);
-
-  register_ptr_to_python<LC_GTOs>();
-  class_<_LC_GTOs>("_LC_GTOs", init<>())
-    .def("size", &_LC_GTOs::size)
-    .def("at_r", &_LC_GTOs::AtR)
-    .def("d_at_r", &_LC_GTOs::DAtR)
-    .def("d2_at_r", &_LC_GTOs::D2AtR)
-    .def("add",     &_LC_GTOs::Add)
-    .def("conj",     &_LC_GTOs::Conj);
-  */
-  
 }
-
 void BindR1Basis() {
 
-  def("int_gto", &GTOInt);
-  def("int_gto_lc", &GTOIntLC);
+  def("sto_int", &STOInt);
+  def("gto_int", &GTOInt);
+  def("int_lc", (dcomplex (*)(LC_STOs, int, LC_STOs))EXPIntLC);
+  def("int_lc", (dcomplex (*)(LC_GTOs, int, LC_GTOs))EXPIntLC);
 
   typedef _EXPs<1> _STOs;
   typedef _EXPs<2> _GTOs;
 
   register_ptr_to_python<STOs>();
-  def("_STOs", &Create_STOs);
+  def("STOs", &Create_STOs);
   class_<_STOs>("_STOs", init<>())
     .def("size",      &_EXPs<1>::size)
     .def("basis",     &_EXPs<1>::basis)
@@ -99,10 +75,13 @@ void BindR1Basis() {
     .def("clone", &_EXPs<1>::Clone)
     .def("conj",  &_EXPs<1>::Conj)
     .def("calc_rm_mat", &_EXPs<1>::CalcRmMat)
-    .def("calc_d2_mat", &_EXPs<1>::CalcD2Mat);
+    .def("calc_d2_mat", &_EXPs<1>::CalcD2Mat)
+    .def("calc_vec",    &_EXPs<1>::CalcVecSTO)
+    .def("calc_vec",    &_EXPs<1>::CalcVecGTO)
+    .def("__str__",     &_EXPs<1>::str);
 
   register_ptr_to_python<GTOs>();
-  def("_STOs", &Create_GTOs);
+  def("GTOs", &Create_GTOs);
   class_<_GTOs>("_STOs", init<>())
     .def("size",      &_EXPs<2>::size)
     .def("basis",     &_EXPs<2>::basis)
@@ -116,25 +95,10 @@ void BindR1Basis() {
     .def("clone", &_EXPs<2>::Clone)
     .def("conj",  &_EXPs<2>::Conj)
     .def("calc_rm_mat", &_EXPs<2>::CalcRmMat)
-    .def("calc_d2_mat", &_EXPs<2>::CalcD2Mat);
-  /*
-  register_ptr_to_python<GTOs>();
-  def("_GTOs", &Create_GTOs);
-  class_<_GTOs>("_GTOs", init<>())
-    .def("size",      &_GTOs::size)
-    .def("basis",     &_GTOs::basis)
-    .def("only_prim", &_GTOs::OnlyPrim)
-    .def("add",       &_GTOs::AddPrim, return_self<>())
-    .def("add",       &_GTOs::AddPrims, return_self<>())
-    .def("add_lc",    &_GTOs::AddLC, return_self<>())
-    .def("setup",     &_GTOs::SetUp, return_self<>())
-    .def("str",  &_GTOs::str)
-    .def("at_r", &_GTOs::AtR)
-    .def("clone", &_GTOs::Clone)
-    .def("conj", &_GTOs::Conj)
-    .def("calc_rm_mat", &_GTOs::CalcRmMat)
-    .def("calc_d2_mat", &_GTOs::CalcD2Mat);
-  */
+    .def("calc_d2_mat", &_EXPs<2>::CalcD2Mat)
+    .def("calc_vec",    &_EXPs<2>::CalcVecSTO)
+    .def("calc_vec",    &_EXPs<2>::CalcVecGTO)
+    .def("__str__",     &_EXPs<2>::str);
 }
 
 BOOST_PYTHON_MODULE(r1basis_bind) {

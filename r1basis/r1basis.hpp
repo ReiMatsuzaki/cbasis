@@ -65,17 +65,10 @@ namespace cbasis {
   boost::shared_ptr<_EXPs<m> > Create_EXPs();
   STOs Create_STOs();
   GTOs Create_GTOs();
-
-  //  template<int m>
-  //  typename _EXPs<m>::EXPs Create_EXPs();
-  //  typedef _EXPs<1>::EXPs STOs;
-  //  typedef _EXPs<2>::EXPs GTOs;
-  //  boost::shared_ptr<_EXPs<1> > Create_STOs();
-  //  _EXPs<1>::EXPs 
-  //  _EXPs<2>::EXPs Create_GTOs();
-  //  template<class m>
-  //  dcomplex EXPInt(int n, dcomplex a);
-
+  dcomplex STOInt(int n, dcomplex a);
+  dcomplex GTOInt(int n, dcomplex a);
+  dcomplex EXPIntLC(LC_STOs a, int m, LC_STOs b);
+  dcomplex EXPIntLC(LC_GTOs a, int m, LC_GTOs b);
  
 }
 

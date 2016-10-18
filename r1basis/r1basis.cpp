@@ -1,4 +1,6 @@
 #include <stdexcept>
+#include <iostream>
+#include "../src_cpp/fact.hpp"
 #include "../src_cpp/macros.hpp"
 #include "r1basis.hpp"
 #include "r1_lc.hpp"
@@ -31,14 +33,25 @@ namespace cbasis {
   // ==== Calculation ====
   dcomplex STOInt(int n, dcomplex a) {
 
-    return 0.0;
+    if(n < 0) {
+      string msg; SUB_LOCATION(msg);
+      msg += "\nn must be bigger than 0";
+      throw runtime_error(msg);
+    }
+
+    if(n == 0)
+      return 1.0/a;
+    
+    return STOInt(n-1, a) * (1.0*n) / a;
+    
+    //    return DFactorial(n)/pow(a, n+1)
 
   }
   dcomplex GTOInt(int n, dcomplex a) {
 
     if(n < 0) {
       std::string msg; SUB_LOCATION(msg);
-      msg += "maxn must be bigger than 0";
+      msg += "\nn must be bigger than 0";
       throw std::runtime_error(msg);
     }
 
@@ -50,18 +63,67 @@ namespace cbasis {
     return dcomplex(n-1)/(2.0*a) * GTOInt(n-2, a);
 
   }
-  dcomplex GTOIntLC(LC_GTOs a, int m, LC_GTOs b) {
+  template<int m1, int m2>
+  dcomplex EXPInt(int n, dcomplex a, dcomplex b);
+  template<>
+  dcomplex EXPInt<1,1>(int n, dcomplex a, dcomplex b) {
+    return STOInt(n, a+b);
+  }
+  template<>
+  dcomplex EXPInt<2,2>(int n, dcomplex a, dcomplex b) {
+    return GTOInt(n, a+b);
+  }
+  template<>
+  dcomplex EXPInt<1,2>(int n, dcomplex a, dcomplex b) {
+
+    string msg; SUB_LOCATION(msg);
+    throw runtime_error(msg);
+    return 1.0;
+
+  }
+  template<>
+  dcomplex EXPInt<2,1>(int n, dcomplex a, dcomplex b) {
+
+    string msg; SUB_LOCATION(msg);
+    throw runtime_error(msg);
+    return 1.0;
+
+  }
+
+  template<int m>
+  dcomplex EXPIntD2(int na, dcomplex a, int nb, dcomplex b);
+  template<>
+  dcomplex EXPIntD2<1>(int ni, dcomplex zi, int nj, dcomplex zj) {
+
+    //
+    // dr2 r^n exp(-zr) = { zz -2nzr^{-1} + (nn-n)r^{-2}} r^n exp[-zr]
+    //
 
     dcomplex acc(0);
-    for(int i = 0; i < a->size(); i++)
-      for(int j = 0; j < b->size(); j++) {
-	dcomplex c(a->c(i) * b->c(j));
-	int      n(a->n(i) + b->n(j));
-	dcomplex z(a->z(i) + b->z(j));
-	acc +=  c * GTOInt(n+m, z);
-      }
+    acc += zj*zj      * EXPInt<1,1>(ni+nj,   zi, zj);
+    acc += -2.0*nj*zj * EXPInt<1,1>(ni+nj-1, zi, zj);
+    if(nj > 1)
+      acc += dcomplex(nj*nj-nj) * EXPInt<1,1>(ni+nj-2, zi, zj);
+
     return acc;
+
   }
+  template<>
+  dcomplex EXPIntD2<2>(int ni, dcomplex zi, int nj, dcomplex zj) {
+    
+    //
+    // dr2 r^n exp(-zr^2) = { 4zz r^{2} -2z(2n+1) + (nn-n)r^{-2}} r^n exp[-zr^2]
+    //
+    
+    dcomplex acc(0);
+    acc += ( +4.0*zj*zj * EXPInt<2,2>(ni+nj+2, zi, zj)
+	     -2.0*(2*nj+1)*zj* EXPInt<2,2>(ni+nj, zi, zj));
+    if(nj > 1)
+      acc += dcomplex(nj*nj-nj) * EXPInt<2,2>(ni+nj-2, zi, zj);
+    return acc;
+    
+  }
+
   dcomplex EXPIntLC(LC_STOs a, int m, LC_STOs b) {
     dcomplex acc(0);
     for(int i = 0; i < a->size(); i++)
@@ -83,17 +145,6 @@ namespace cbasis {
 	acc +=  c * GTOInt(n+m, z);
       }
     return acc;    
-  }
-
-  template<int m>
-  dcomplex EXPInt(int n, dcomplex a);
-  template<>
-  dcomplex EXPInt<1>(int n, dcomplex a) {
-    return 0.0;
-  }
-  template<>
-  dcomplex EXPInt<2>(int n, dcomplex a) {
-    return GTOInt(n, a);
   }
 
 
@@ -161,7 +212,23 @@ namespace cbasis {
   }
   template<int m>
   string _EXPs<m>::str() const {
-    return "EXPs";
+    ostringstream oss; 
+    if(m == 1) {
+      oss << "==== STOs ====" << endl;
+      oss << "STO basis set" << endl;
+    } else if (m == 2) {
+      oss << "==== GTOs ====" << endl;
+      oss << "GTO basis set" << endl;
+    }
+
+    oss << "setupq_:" << (this->setupq_ ? "yes" : "no") << endl;
+    for(int i = 0; i < this->size(); i++) {
+      oss << i << " : " << this->basis(i)->str() << endl;
+    }
+    
+    oss << "==============" << endl;
+    
+    return oss.str();
   }
 
   template<int m>
@@ -272,13 +339,15 @@ namespace cbasis {
 	LC_EXPs bj = this->basis(j);
 
 	dcomplex acc(0);
-	for(int ii = 0; ii < bi->size(); ii++)
+	for(int ii = 0; ii < bi->size(); ii++) {
 	  for(int jj = 0; jj < bj->size(); jj++) {
 	    dcomplex c(bi->c(ii) * bj->c(jj));
 	    int      n(bi->n(ii) + bj->n(jj));
-	    dcomplex z(bi->z(ii) + bj->z(jj));
-	    acc +=  c * EXPInt<m>(n+M, z);
+	    dcomplex zi(bi->z(ii));
+	    dcomplex zj(bj->z(jj));
+	    acc +=  c * EXPInt<m,m>(n+M, zi, zj);
 	  }
+	}
 	mat(i, j) = acc;
 	//mat(i, j) = EXPIntLC<m>(bi, M, bj);
       }
@@ -311,10 +380,7 @@ namespace cbasis {
 	    int      nj(bj->n(jj));
 	    dcomplex zi(bi->z(ii));
 	    dcomplex zj(bj->z(jj));
-	    acc += c * ( +4.0*zj*zj       * EXPInt<2>(ni+nj+2, zi+zj)
-			 -2.0*(2*nj+1)*zj* EXPInt<2>(ni+nj,   zi+zj));
-	    if(nj > 1)
-	      acc += 1.0*(nj*nj-nj) * c * EXPInt<2>(ni+nj-2, zi+zj);
+	    acc += c * EXPIntD2<m>(ni, zi, nj, zj);
 	  }
 	mat(i, j) = acc;
       }
@@ -322,15 +388,36 @@ namespace cbasis {
     return mat;
   }
   template<int m>
-  VectorXcd _EXPs<m>::CalcVecSTO(LC_STOs stos) const {
-    
+  VectorXcd _EXPs<m>::CalcVecSTO(LC_STOs o) const {
+
     if(!this->setupq_) {
       string msg; SUB_LOCATION(msg);
-      msg += " : EXP is not setup.";
+      msg += " : basis is not setup.";
       throw runtime_error(msg);
     }
+    
+    int num(this->size());
+    int numo(o->size());
 
-    return VectorXcd::Zero(1);
+    VectorXcd vec(num);
+        
+    for(int i = 0; i < num; i++) {
+      _EXPs<m>::LC_EXPs bi = this->basis(i);
+      dcomplex acc;
+      for(int oo = 0; oo < numo; oo++) {
+	for(int ii = 0; ii < bi->size(); ii++) {
+	  dcomplex c(bi->c(ii) * o->c(oo));
+	  int      n(bi->n(ii) + o->n(oo));
+	  acc += c * EXPInt<m, 1>(n, bi->z(ii), o->z(oo));
+	}
+      }
+      
+      vec(i) = acc;
+      
+    }
+    
+    return vec;
+
   }
   template<int m>
   VectorXcd _EXPs<m>::CalcVecGTO(LC_GTOs gtos) const {
@@ -350,11 +437,10 @@ namespace cbasis {
       _EXPs<m>::LC_EXPs bi = this->basis(i);
       dcomplex acc;
       for(int oo = 0; oo < numo; oo++) {
-	for(int ii = 0; ii < num; ii++) {
+	for(int ii = 0; ii < bi->size(); ii++) {
 	  dcomplex c(bi->c(ii) * gtos->c(oo));
 	  int      n(bi->n(ii) + gtos->n(oo));
-	  dcomplex z(bi->z(ii) + gtos->z(oo));
-	  acc += c * GTOInt(n, z);
+	  acc += c * EXPInt<m, 2>(n, bi->z(ii), gtos->z(oo));
 	}
       }
       
