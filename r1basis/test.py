@@ -181,6 +181,7 @@ class _Test_gto(unittest.TestCase):
         h = -0.5 * g.calc_d2_mat() - g.calc_rm_mat(-1)
         (val,vec) =  eig(h, s)
         self.assertAlmostEqual(-0.5, val[5], places=3)
+        print g
 
     def test_hydrogen_atom_p(self):
         g =  GTOs()

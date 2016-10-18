@@ -30,7 +30,9 @@ void BindR1LC() {
     .def("str",  &_LC_EXPs<1>::str)
     .def("at_r", &_LC_EXPs<1>::AtR)
     .def("clone", &_LC_EXPs<1>::Clone)
-    .def("conj", &_LC_EXPs<1>::Conj);
+    .def("conj", &_LC_EXPs<1>::Conj)
+    .def("__str__", &_LC_EXPs<1>::str);
+
   
   typedef _LC_EXPs<2> _LC_GTOs;
   register_ptr_to_python<LC_GTOs>();
@@ -44,9 +46,10 @@ void BindR1LC() {
     .def("str",  &_LC_EXPs<2>::str)
     .def("at_r", &_LC_EXPs<2>::AtR)
     .def("clone", &_LC_EXPs<2>::Clone)
-    .def("conj", &_LC_EXPs<2>::Conj);
-}
+    .def("conj", &_LC_EXPs<2>::Conj)
+    .def("__str__", &_LC_EXPs<2>::str);
 
+}
 void BindR1Basis() {
 
   def("sto_int", &STOInt);
@@ -74,7 +77,8 @@ void BindR1Basis() {
     .def("calc_rm_mat", &_EXPs<1>::CalcRmMat)
     .def("calc_d2_mat", &_EXPs<1>::CalcD2Mat)
     .def("calc_vec",    &_EXPs<1>::CalcVecSTO)
-    .def("calc_vec",    &_EXPs<1>::CalcVecGTO);
+    .def("calc_vec",    &_EXPs<1>::CalcVecGTO)
+    .def("__str__",     &_EXPs<1>::str);
 
   register_ptr_to_python<GTOs>();
   def("GTOs", &Create_GTOs);
@@ -93,26 +97,8 @@ void BindR1Basis() {
     .def("calc_rm_mat", &_EXPs<2>::CalcRmMat)
     .def("calc_d2_mat", &_EXPs<2>::CalcD2Mat)
     .def("calc_vec",    &_EXPs<2>::CalcVecSTO)
-    .def("calc_vec",    &_EXPs<2>::CalcVecGTO);
-
-  /*
-  register_ptr_to_python<GTOs>();
-  def("_GTOs", &Create_GTOs);
-  class_<_GTOs>("_GTOs", init<>())
-    .def("size",      &_GTOs::size)
-    .def("basis",     &_GTOs::basis)
-    .def("only_prim", &_GTOs::OnlyPrim)
-    .def("add",       &_GTOs::AddPrim, return_self<>())
-    .def("add",       &_GTOs::AddPrims, return_self<>())
-    .def("add_lc",    &_GTOs::AddLC, return_self<>())
-    .def("setup",     &_GTOs::SetUp, return_self<>())
-    .def("str",  &_GTOs::str)
-    .def("at_r", &_GTOs::AtR)
-    .def("clone", &_GTOs::Clone)
-    .def("conj", &_GTOs::Conj)
-    .def("calc_rm_mat", &_GTOs::CalcRmMat)
-    .def("calc_d2_mat", &_GTOs::CalcD2Mat);
-  */
+    .def("calc_vec",    &_EXPs<2>::CalcVecGTO)
+    .def("__str__",     &_EXPs<2>::str);
 }
 
 BOOST_PYTHON_MODULE(r1basis_bind) {

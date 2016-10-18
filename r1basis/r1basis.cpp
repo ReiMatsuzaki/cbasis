@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <iostream>
 #include "../src_cpp/fact.hpp"
 #include "../src_cpp/macros.hpp"
 #include "r1basis.hpp"
@@ -211,7 +212,23 @@ namespace cbasis {
   }
   template<int m>
   string _EXPs<m>::str() const {
-    return "EXPs";
+    ostringstream oss; 
+    if(m == 1) {
+      oss << "==== STOs ====" << endl;
+      oss << "STO basis set" << endl;
+    } else if (m == 2) {
+      oss << "==== GTOs ====" << endl;
+      oss << "GTO basis set" << endl;
+    }
+
+    oss << "setupq_:" << (this->setupq_ ? "yes" : "no") << endl;
+    for(int i = 0; i < this->size(); i++) {
+      oss << i << " : " << this->basis(i)->str() << endl;
+    }
+    
+    oss << "==============" << endl;
+    
+    return oss.str();
   }
 
   template<int m>
