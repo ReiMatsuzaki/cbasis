@@ -9,7 +9,7 @@ int add(int a, int b) {
 
 BOOST_PYTHON_MODULE(basic) {
   using namespace boost::python;
-  Py_Initialize();
+  //  Py_Initialize();
   def("add", &add);
 }
 
