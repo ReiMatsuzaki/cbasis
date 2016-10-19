@@ -183,7 +183,7 @@ namespace cbasis {
 
     for(int i = 0; i < num; i++) {
       VectorXcd ys0 = this->basis(i)->AtR(rs);
-      ys += ys0;
+      ys += cs[i] * ys0;
     }
 
     return ys;

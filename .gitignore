@@ -8,3 +8,4 @@ bin/
 local.mk
 *.bin
 *.csv
+*.png

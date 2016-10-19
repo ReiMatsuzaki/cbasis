@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 sys.path.append("../../")
-from driv_grid import driv_grid
+from driv_grid import solve_driv
 
 ## system
 L = 1.0

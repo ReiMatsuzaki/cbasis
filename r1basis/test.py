@@ -10,7 +10,7 @@ class Test_first(unittest.TestCase):
         pass
 
     def test_add(self):
-        print add(1,2)
+        self.assertEqual(3, add(1,2))
 
 class Test_r1_linear_comb(unittest.TestCase):
     def setUp(self):
@@ -172,6 +172,27 @@ class _Test_gto(unittest.TestCase):
         d2 = gs.calc_d2_mat()
         dif= d2-d2.transpose()
         self.assertAlmostEqual(0.0, dif[0, 1])
+
+    def test_at_r(self):
+        n1 = 2; z1 = 1.0
+        n2 = 2; z2 = 1.5
+        
+        g = GTOs()
+        g.add(n1, z1)
+        g.add(n2, z2)
+        g.setup()
+        
+        c1 = g.basis(0).c(0)
+        c2 = g.basis(1).c(0)
+        
+        d1 = 1.1
+        d2 = 1.2
+        
+        r = 2.5
+
+        self.assertAlmostEqual(d1*c1*(r**n1)*np.exp(-z1*r*r)+
+                               d2*c2*(r**n2)*np.exp(-z2*r*r),
+                               g.at_r([r], [d1, d2])[0])
         
     def test_hydrogen_atom(self):
         g =  GTOs()
@@ -180,8 +201,18 @@ class _Test_gto(unittest.TestCase):
         s = g.calc_rm_mat(0)
         h = -0.5 * g.calc_d2_mat() - g.calc_rm_mat(-1)
         (val,vec) =  eig(h, s)
+        index = 5
+        ene = val[index]
+        c   = vec[:,index]
         self.assertAlmostEqual(-0.5, val[5], places=3)
-        print g
+
+        ## normalization
+        nterm = 1.0/np.sqrt(np.dot(c, np.dot(s, c)))
+        c1 = -nterm * c
+        r0 = 2.5
+        y_calc = g.at_r([r0], c1)[0]
+        y_ref  = 2.0 * r0 * np.exp(-r0)
+        self.assertAlmostEqual(y_ref, y_calc, places=4)
 
     def test_hydrogen_atom_p(self):
         g =  GTOs()
@@ -190,7 +221,6 @@ class _Test_gto(unittest.TestCase):
         s = g.calc_rm_mat(0)
         h = -0.5 * g.calc_d2_mat() + g.calc_rm_mat(-2) - g.calc_rm_mat(-1)
         (val,vec) =  eig(h, s)
-        print val
         self.assertAlmostEqual(-0.125, val[6], places=3)
 
 
@@ -228,7 +258,7 @@ class Test_sto(unittest.TestCase):
         h = -0.5 * s.calc_d2_mat() + s.calc_rm_mat(-2) - s.calc_rm_mat(-1)
         self.assertAlmostEqual(-0.125, h[0,0])
 
-class _Test_driv(unittest.TestCase):
+class Test_driv(unittest.TestCase):
 
     def setUp(self):
         pass
