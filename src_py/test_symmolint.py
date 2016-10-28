@@ -1,9 +1,11 @@
 import numpy as np
+from numpy import pi, exp, sqrt
 from symmolint import *
 
 import unittest
 import minieigen as me
 import scipy.linalg as la
+from part_wave import *
 
 class Test_JK(unittest.TestCase):
     def setUp(self):
@@ -31,8 +33,6 @@ class Test_JK(unittest.TestCase):
                 .atom(xatom, 2.0)
                 .setup())
 
-        print ""
-        print "Jk0"
         mat_set = calc_mat_complex(gtos, True)
         eri = calc_ERI_complex(gtos, ERI_method().use_symmetry(1))
 
@@ -161,8 +161,7 @@ class Test_ceig(unittest.TestCase):
                           [0.2,     0.4,     0.4+eps],
                           [0.2+eps, 0.4+eps, 0.4+eps]])
         (eigs, eigvec) = ceig_canonical(h3, s3, 2)
-        print ""
-        print "eigvec:", eigvec.col(0)
+
         for i in range(2):
             lexp = h3 * eigvec.col(i)
             rexp = s3 * eigvec.col(i)*eigs[i]
@@ -263,6 +262,32 @@ class Test_SymMolInt(unittest.TestCase):
         rs = [1.0, 2.0]
         ys = gtos.at_r_ylm(0, 0, Ap, cs, rs)
 
+    def test_at_r_center(self):
+        sym = Cs()
+        Ap = sym.get_irrep("A'")
+        z = 1.0
+        c = 1.0
+        r = 1.0
+
+        ## -- see support/normalized_gto.py --
+        expo=exp(-r*r*z)
+        y_ref = {}
+        y_ref[0]=c*2*2**(0.75)/(pi**(0.25)*sqrt(z**(-1.5)))*r*expo
+        y_ref[1]=c*4*2**(0.75)*sqrt(3)/(3*pi**(0.25)*sqrt(z**(-2.5)))*r**2*expo
+        y_ref[2]=c*8*sqrt(15.0)*2**(0.75)/(15*pi**(1/4)*sqrt(z**(-3.5)))*r**3*expo
+        y_ref[3]=c*16*sqrt(105.0)*2**(0.75)/(105*pi**(1/4)*sqrt(z**(-4.5)))*r**4*expo
+        
+        for L in [0,1,2,3]:
+            M = 0
+            gtos = (SymGTOs.create()
+                    .sym(sym)
+                    .sub(sub_solid_sh_M(L, M, [z], Ap))
+                    .atom((0,0,0), 1.0)
+                    .setup())
+            (y0, dy0) = gtos.at_r_ylm(L, M, Ap, [c], [r])
+            msg = "L={0}\ncalc={1}\nref={2}".format(L, y0[0], y_ref[L])
+            self.assertAlmostEqual(y_ref[L], y0[0], msg=msg)
+        
     def test_clone(self):
         sym = Cs()
         Ap = sym.get_irrep("A'")
@@ -343,7 +368,6 @@ class Test_H_atom(unittest.TestCase):
         for i in range(0, 4):
             n = i + 1
             ene = -0.5/(n*n);
-            print ene, self.eigs[i]
             self.assertTrue(abs(ene-self.eigs[i])   < 0.0001);
 
     def test_wavefunc(self):
@@ -366,7 +390,6 @@ class Test_H_atom(unittest.TestCase):
         self.assertTrue(abs(eigs[0]+0.125) < 0.000001)
 
         c = self.gtos.correct_sign(1, 0, App, eigenvecs.col(0))
-        print "c: ", c
         rs = [1.1]
         (ys_calc, ds_calc) = self.gtos.at_r_ylm(1, 0, App, c, rs)
 
@@ -594,8 +617,6 @@ class Test_He(unittest.TestCase):
                      .setup())
         
     def test_ERI(self):
-        print ""
-        print "test He"
         gtos = self.gtos
         sym = self.sym
         mat_set = calc_mat_complex(gtos, True)
@@ -610,7 +631,6 @@ class Test_He(unittest.TestCase):
 
         self.assertEqual([1, 0], mo.num_occ())
         self.assertAlmostEqual(-0.91795, mo.eigs[0][0], 4)
-        print mo.eigs[0]
 
         eri.write("eri.bin")
         eri2 = ERI_read("eri.bin")
@@ -621,17 +641,6 @@ class Test_He(unittest.TestCase):
         h1 = (mat_set.get_matrix("t", 1, 1) +
               mat_set.get_matrix("v", 1, 1) +
               jk[1, 1])
-        
-
-class Test_Angmoment(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def test_cg_coef(self):
-        print "cg coef:"
-        print cg_coef(1, 1, 0,
-                      0, 0, 0)
-
         
 if __name__ == '__main__':
     unittest.main()

@@ -50,16 +50,6 @@ for (name, zs) in [("3_9", [3,9]),
 
     solver = PhotoIonizationCoulombPlus(2.0, 1, ls0)
     solver.precalc_1ele(g_i, g_chi_L, g_psi1, g_psi0_L)
-    
-    ## calculate cross sections and beta
-    print "calc"
-    ws = [ene-ei for ene in enes]
-    cs_sigu = [solver.calc_one(w, True, "sigu")[0]   for w in ws]
-    cs_sigu_ima = [solver.calc_cs_imalpha(w, "sigu") for w in ws]
-    beta=     [solver.calc_one(w, True, "total")[1]  for w in ws]
-    df = pd.DataFrame([enes, ws, cs_sigu, beta, cs_sigu_ima]).T
-    df.columns = ["energy", "w", "cs_sigu", "beta", "cs_sigu_ima"]
-    df.to_csv(name + ".res.csv", index=False)
 
     ## calculate psi at E=1.0
     print "psi"

@@ -620,7 +620,7 @@ namespace cbasis {
       }
     } else {
       string msg; SUB_LOCATION(msg);
-      msg += "L>1 is not implemented";
+      msg += ": L>1 is not implemented";
       throw runtime_error(msg);
     }
     
@@ -648,7 +648,7 @@ namespace cbasis {
 
     if(abs(a) < 0.000001) {
       string msg; SUB_LOCATION(msg);
-      msg += "(x,y,z) is not centered on origin."; 
+      msg += ": (x,y,z) is centered on origin."; 
       throw runtime_error(msg);
     }
 

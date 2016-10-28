@@ -61,9 +61,9 @@ check_symmolint: ${BINDIR}/symmolint_bind.so
 	python -c 'import symmolint_bind as mol; print mol.cg_coef(0,0,0,0,0,0)'
 	rm -f symmolint_bind.so
 	ln -s ${BINDIR}/symmolint_bind.so .
-	python test_solve_pi.py
+#	python test_solve_pi.py
 	python test_symmolint.py
-	python test_part_wave.py
+#	python test_part_wave.py
 #	rm symmolint_bind.so
 install_symmolint: ${BINDIR}/symmolint_bind.so
 	cp $< ${PY_DIR}

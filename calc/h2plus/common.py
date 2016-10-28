@@ -3,10 +3,8 @@ import numpy as np
 import scipy.linalg as la
 import pandas as pd
 
-from symmolint import *
 import minieigen as me
-
-from solve_pi import *
+from local import *
 
 sym = D2h()
 R0 = 2.0

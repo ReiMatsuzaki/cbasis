@@ -339,8 +339,6 @@ class Test_pi_class(unittest.TestCase):
 
     def test_p_he(self):
         
-        print "He"
-        
         sym = D2h()
 
         zeta0 = [0.107951, 0.240920, 0.552610, 1.352436, 3.522261, 9.789053, 30.17990, 108.7723, 488.8941, 3293.694]

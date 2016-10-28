@@ -526,3 +526,7 @@ class PhotoIonizationCoulombPlus():
         k_mat = t2k(t_mat)
         
      
+    def calc_psi1(self, w, mpp):
+        L = self.S11[mpp] * (self.ei + w) - self.H11[mpp]
+        c1 = la.solve(L, self.mu_phi_1[mpp])
+        return c1
