@@ -11,7 +11,7 @@
 #include "b2eint.hpp"
 
 namespace cbasis {
-
+  
   // ==== ERI method ====
   class ERIMethod {
   public:
@@ -28,14 +28,19 @@ namespace cbasis {
   struct Reduction {
     Irrep irrep;
     Eigen::MatrixXcd coef_iat_ipn;
-
+    bool is_solid_sh; // true=> this Reduction represent solid spherical harmonics
+    int L;    
+    int M;
+    
     // ---- for calculation  ----
     Eigen::VectorXcd coef_iz;
     int offset;
 
-    // ReductionSets() {}
+    // ---- constructor ----
     Reduction(int _irrep, Eigen::MatrixXcd _coef):
-      irrep(_irrep), coef_iat_ipn(_coef), offset(0) {}
+      irrep(_irrep), coef_iat_ipn(_coef), is_solid_sh(false), L(-1), M(0),offset(0) {}
+
+    void SetLM(int _L, int _M) { L=_L; M=_M; is_solid_sh=true;}
     std::string str() const;
     void Display() const;
     
@@ -92,7 +97,9 @@ namespace cbasis {
     inline void SetSym(pSymmetryGroup _sym_group) {
       sym_group = _sym_group;
     }
+    void AddXyz(dcomplex x, dcomplex y, dcomplex z);
     void AddXyz(Eigen::Vector3cd xyz);
+    void AddNs(int nx, int ny, int nz);
     void AddNs(Eigen::Vector3i ns);
     void AddZeta(const Eigen::VectorXcd& zs);
     void AddRds(const Reduction& rds);   
@@ -125,6 +132,8 @@ namespace cbasis {
 			 Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
   SubSymGTOs Sub_mono(Irrep irrep,
 		      Eigen::Vector3cd xyz, Eigen::Vector3i ns, Eigen::VectorXcd zs);
+  SubSymGTOs Sub_SolidSH_M(int L, int M, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
+  SubSymGTOs Sub_SolidSH_Ms(pSymmetryGroup sym, int L, Eigen::VectorXi Ms, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
 
   // ==== SymGTOs ====
   class _SymGTOs;

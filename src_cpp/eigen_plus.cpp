@@ -13,6 +13,39 @@
 using namespace std;
 using namespace Eigen;
 
+MatrixXcd
+m13cd(dcomplex m00, dcomplex m01, dcomplex m02) {
+  MatrixXcd M(1, 3);
+  M << m00, m01, m02;
+  return M;
+}
+
+MatrixXcd
+m33cd(dcomplex m00, dcomplex m01, dcomplex m02,
+      dcomplex m10, dcomplex m11, dcomplex m12,
+      dcomplex m20, dcomplex m21, dcomplex m22) {
+  MatrixXcd M(3, 3);
+  M << m00, m01, m02, m10, m11, m12, m20, m21, m22;
+  return M;
+}
+
+VectorXi v1i(int i) {
+  VectorXi v(1); v << i;
+  return v;
+}
+VectorXi v3i(int i,int j,int k) {
+  VectorXi v(3); v<<i,j,k;
+  return v;
+}
+VectorXcd v1cd(dcomplex v) {
+  VectorXcd vec(1); vec << v;
+  return vec;
+}
+VectorXcd v3cd(dcomplex v0, dcomplex v1, dcomplex v2) {
+  VectorXcd vec(3); vec << v0, v1, v2;
+  return vec;
+}
+
 double TakeReal(dcomplex x) {
   return x.real();
 }

@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <numeric>
 #include "cfunc.hpp"
+#include "eigen_plus.hpp"
 #include "angmoment.hpp"
 #include "mol_func.hpp"
 #include "one_int.hpp"
@@ -83,8 +84,9 @@ namespace cbasis {
 	    << endl
 	    << "size_pn (Reduction, ns) = "
 	    << "(" << it->size_pn() << "," << this->size_pn() << ")"
-	    << endl;
-	throw runtime_error(oss.str());
+	    << endl << endl;
+	oss << "object:" << this->str() << endl;
+
       }
     }
 
@@ -126,19 +128,31 @@ namespace cbasis {
     // -- set flag --
     setupq = true;
   }
-  void SubSymGTOs::AddXyz(Vector3cd xyz) {
+  void SubSymGTOs::AddXyz(dcomplex x, dcomplex y, dcomplex z) {
 
     setupq = false;
-    this->x_iat.push_back(xyz[0]);
-    this->y_iat.push_back(xyz[1]);
-    this->z_iat.push_back(xyz[2]);
+    this->x_iat.push_back(x);
+    this->y_iat.push_back(y);
+    this->z_iat.push_back(z);
 
   }
-  void SubSymGTOs::AddNs(Vector3i ns) {
+  void SubSymGTOs::AddXyz(Vector3cd xyz) {
+
+    this->AddXyz(xyz[0], xyz[1], xyz[2]);
+
+  }
+  void SubSymGTOs::AddNs(int nx, int ny, int nz) {
+
     setupq = false;
-    this->nx_ipn.push_back(ns[0]);
-    this->ny_ipn.push_back(ns[1]);
-    this->nz_ipn.push_back(ns[2]);
+    this->nx_ipn.push_back(nx);
+    this->ny_ipn.push_back(ny);
+    this->nz_ipn.push_back(nz);
+    
+  }
+  void SubSymGTOs::AddNs(Vector3i ns) {
+    
+    this->AddNs(ns[0], ns[1], ns[2]);
+    
   }
   void SubSymGTOs::AddZeta(const VectorXcd& zs) {
     setupq = false;
@@ -250,7 +264,99 @@ namespace cbasis {
 
     return sub;
   }
-  
+  SubSymGTOs Sub_SolidSH_M(pSymmetryGroup sym, int L, int M, Vector3cd xyz, VectorXcd zs) {
+    
+    SubSymGTOs sub;
+    sub.AddXyz(xyz);
+    sub.AddZeta(zs);
+
+    VectorXi Ms(1); Ms << M;
+    return Sub_SolidSH_Ms(sym, L, Ms, xyz, zs);
+    
+  }
+  SubSymGTOs Sub_SolidSH_Ms(pSymmetryGroup sym, int L, VectorXi _Ms, Vector3cd xyz, VectorXcd zs) {
+    SubSymGTOs sub;
+    sub.AddXyz(xyz);
+    sub.AddZeta(zs);
+    
+    vector<int> Ms;
+    for(int i = 0; i < _Ms.size(); i++)
+      Ms.push_back(_Ms[i]);
+
+    if(L < 0 || L > 3) {
+      string msg; SUB_LOCATION(msg); msg += ": only L=0,1,2,3 is supported";
+      throw runtime_error(msg);
+    }
+
+    bool find_0 = find(Ms.begin(), Ms.end(),   0) != Ms.end();
+    bool find_p1 = find(Ms.begin(), Ms.end(), +1) != Ms.end();
+    bool find_m1 = find(Ms.begin(), Ms.end(), -1) != Ms.end();
+
+    if(L == 0) {
+      sub.AddNs(Vector3i::Zero());
+      if(find_0) {
+	Reduction rds(sym->irrep_s, MatrixXcd::Ones(1, 1));
+	rds.SetLM(L, 0); sub.AddRds(rds);
+      }
+    }
+    if(L == 1) {
+      sub.AddNs(1,0,0); sub.AddNs(0,1,0); sub.AddNs(0,0,1);
+      if(find_p1) {
+	Reduction rds(sym->irrep_x, m13cd(0,1,0));
+	rds.SetLM(L, 1); sub.AddRds(rds);
+      }      
+      if(find_0) {
+	Reduction rds(sym->irrep_z, m13cd(1,0,0));
+	rds.SetLM(L, 0); sub.AddRds(rds);
+      }
+      if(find_m1) {
+	Reduction rds(sym->irrep_y, m13cd(0,0,1));
+	rds.SetLM(L, -1); sub.AddRds(rds);
+      }
+    }
+    if(L == 2) {
+      sub.AddNs(2,0,0); sub.AddNs(0,2,0); sub.AddNs(0,0,2);
+      sub.AddNs(1,1,0); sub.AddNs(0,1,1); sub.AddNs(1,0,1);
+      if(find_p1) {
+	MatrixXcd m(1, 6); m << 0,0,0, 0,0,1;
+	Reduction rds(sym->irrep_x, m);
+	rds.SetLM(L, +1); sub.AddRds(rds);
+      }      
+      if(find_0) {
+	MatrixXcd m(1, 6); m << -1,-1,2, 0,0,0;
+	Reduction rds(sym->irrep_z, m);
+	rds.SetLM(L, 0); sub.AddRds(rds);
+      }
+      if(find_m1) {
+	MatrixXcd m(1, 6); m << 0,0,0, 0,1,0;
+	Reduction rds(sym->irrep_y, m);
+	rds.SetLM(L, -1); sub.AddRds(rds);
+      }
+    }
+    if(L == 3) {
+      sub.AddNs(1,0,2); sub.AddNs(3,0,0); sub.AddNs(1,2,0);
+      sub.AddNs(0,0,3); sub.AddNs(2,0,1); sub.AddNs(0,2,1);
+      sub.AddNs(0,1,2); sub.AddNs(2,1,0); sub.AddNs(0,3,0);
+      if(find_p1) {
+	MatrixXcd m(1,9); m << 4,-1,-1,  0,0,0,  0,0,0;
+	Reduction rds(sym->irrep_x, m);
+	rds.SetLM(L, +1); sub.AddRds(rds);
+      }
+      if(find_0) {
+	MatrixXcd m(1,9); m << 0,0,0,  2,-3,-3,  0,0,0;
+	Reduction rds(sym->irrep_z, m);
+	rds.SetLM(L, 0); sub.AddRds(rds);
+      }
+      if(find_m1) {
+	MatrixXcd m(1,9); m << 0,0,0,  0,0,0,  4,-1,-1;
+	Reduction rds(sym->irrep_y, m);
+	rds.SetLM(L, -1); sub.AddRds(rds);
+      }      
+    }
+
+    return sub;
+  }
+    
   // ==== SymGTOs ====
   // ---- Constructors ----
   _SymGTOs::_SymGTOs():

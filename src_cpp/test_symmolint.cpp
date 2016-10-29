@@ -263,6 +263,45 @@ TEST(SubSymGTOs, AddZeta) {
   EXPECT_C_EQ(2.2, sub.get_zeta_iz()(4));
 
 }
+TEST(SubSymGTOs, SolidSH) {
+
+  pSymmetryGroup sym = SymmetryGroup::C1();
+  Vector3cd xyz(0.1, 0.2, 0.3);
+  VectorXcd zs(1); zs << 1.1;
+
+  SymGTOs gtos = CreateSymGTOs();
+  gtos->SetSym(sym);
+  SubSymGTOs sub_s = Sub_SolidSH_Ms(sym, 0, v1i(0), xyz, zs);
+  gtos->AddSub(Sub_SolidSH_Ms(sym, 0, v1i(0), xyz, zs));
+  gtos->AddAtom(xyz, 1.0);
+  
+  for(int L = 1; L <= 3; L++) {
+    SubSymGTOs sub = Sub_SolidSH_Ms(sym, L, v3i(-1,0,+1), xyz, zs);
+    EXPECT_EQ(3, sub.rds.size());
+    for(int im = 0; im < 3; im++) {
+      EXPECT_EQ(L, sub.rds[im].L);
+      EXPECT_TRUE(sub.rds[im].is_solid_sh);
+      EXPECT_EQ(-(im-1), sub.rds[im].M);
+    }
+    gtos->AddSub(sub);
+  }
+  gtos->SetUp();
+  
+  BMatSet mat = CalcMat_Complex(gtos, false);
+  MatrixXcd s00 = mat->GetMatrix("s", sym->irrep_s, sym->irrep_s);
+  int n = gtos->size_basis();
+  EXPECT_MATXCD_EQ(MatrixXcd::Identity(n, n), s00);
+  
+  EXPECT_EQ(1, sub_s.rds.size());  
+  EXPECT_EQ(0, sub_s.rds[0].L);
+  EXPECT_EQ(0, sub_s.rds[0].M);
+  EXPECT_C_EQ(0.1, sub_s.x_iat[0]);
+  EXPECT_C_EQ(0.2, sub_s.y_iat[0]);
+  EXPECT_C_EQ(0.3, sub_s.z_iat[0]);
+  EXPECT_EQ(0, sub_s.nx_ipn[0]);
+  EXPECT_EQ(0, sub_s.ny_ipn[0]);
+  EXPECT_EQ(0, sub_s.nz_ipn[0]);
+}
 
 void test_SymGTOsOneInt(CartGTO a, Vector3cd at, CartGTO b) {
   

@@ -121,7 +121,7 @@ namespace cbasis {
     return true;
   }
   const MatrixXcd& _BMatSet::GetMatrix(string name, int i, int j) {
-#ifndef ARG_NO_CHECK
+
     if(mat_map_.find(name) == mat_map_.end()) {
       string msg; SUB_LOCATION(msg);
       stringstream ss;
@@ -141,7 +141,7 @@ namespace cbasis {
       msg += ss.str();
       throw runtime_error(msg);
     }
-#endif
+
     return mat_map_[name][make_pair(i, j)];
   }
   const BMat& _BMatSet::GetBlockMatrix(std::string name) {
