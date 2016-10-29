@@ -29,18 +29,20 @@ namespace cbasis {
     Irrep irrep;
     Eigen::MatrixXcd coef_iat_ipn;
     bool is_solid_sh; // true=> this Reduction represent solid spherical harmonics
+    dcomplex coef_sh; // coefficient for Solid Spherical Harmonics
     int L;    
     int M;
     
     // ---- for calculation  ----
-    Eigen::VectorXcd coef_iz;
+    Eigen::VectorXcd coef_iz; // normalization constant for each iz
     int offset;
 
     // ---- constructor ----
     Reduction(int _irrep, Eigen::MatrixXcd _coef):
-      irrep(_irrep), coef_iat_ipn(_coef), is_solid_sh(false), L(-1), M(0),offset(0) {}
+      irrep(_irrep), coef_iat_ipn(_coef), is_solid_sh(false),
+      coef_sh(0), L(-1), M(0),offset(0) {}
 
-    void SetLM(int _L, int _M) { L=_L; M=_M; is_solid_sh=true;}
+    void SetLM(int _L, int _M, dcomplex _coef_sh);
     std::string str() const;
     void Display() const;
     
@@ -132,7 +134,7 @@ namespace cbasis {
 			 Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
   SubSymGTOs Sub_mono(Irrep irrep,
 		      Eigen::Vector3cd xyz, Eigen::Vector3i ns, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_SolidSH_M(int L, int M, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
+  SubSymGTOs Sub_SolidSH_M(pSymmetryGroup sym, int L, int M, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
   SubSymGTOs Sub_SolidSH_Ms(pSymmetryGroup sym, int L, Eigen::VectorXi Ms, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
 
   // ==== SymGTOs ====
@@ -188,6 +190,9 @@ namespace cbasis {
 		 const Eigen::VectorXcd& rs,
 		 Eigen::VectorXcd* vs,
 		 Eigen::VectorXcd* dvs);
+    void AtR_YlmOne(int L, int M,  int irrep,
+		    const Eigen::VectorXcd& cs_ibasis,
+		    dcomplex r, dcomplex *v, dcomplex *dv);
     // -- Correction of wave function sign --
     void CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs);
   };

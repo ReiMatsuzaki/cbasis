@@ -5,7 +5,6 @@ from symmolint import *
 import unittest
 import minieigen as me
 import scipy.linalg as la
-from part_wave import *
 
 class Test_JK(unittest.TestCase):
     def setUp(self):
@@ -247,6 +246,7 @@ class Test_SymMolInt(unittest.TestCase):
         Ap = sym.get_irrep("A'")
         
         zs = [2.0**n-0.1j for n in range(-2, 2)]
+        """
         gtos = (SymGTOs.create()
                 .sym(sym)
                 .sub(SubSymGTOs()
@@ -256,7 +256,13 @@ class Test_SymMolInt(unittest.TestCase):
                      .zeta(zs))
                 .atom([0, 0, 0], 1.1)
                 .setup())
-        mat_set = calc_mat_complex(gtos, True)
+        """
+        xatom = (0,0,0)
+        gtos = (SymGTOs.create()
+                .sym(sym)
+                .sub(sub_solid_sh(sym, 0, 0, xatom, zs))
+                .setup())
+        #        mat_set = calc_mat_complex(gtos, True)
 
         cs = [1.0, 1.1, 1.2, 1.3]
         rs = [1.0, 2.0]
@@ -265,26 +271,27 @@ class Test_SymMolInt(unittest.TestCase):
     def test_at_r_center(self):
         sym = Cs()
         Ap = sym.get_irrep("A'")
-        z = 1.0
-        c = 1.0
-        r = 1.0
+        z = 1.3
+        c = 1.2
+        r = 2.5
 
         ## -- see support/normalized_gto.py --
         expo=exp(-r*r*z)
         y_ref = {}
         y_ref[0]=c*2*2**(0.75)/(pi**(0.25)*sqrt(z**(-1.5)))*r*expo
         y_ref[1]=c*4*2**(0.75)*sqrt(3)/(3*pi**(0.25)*sqrt(z**(-2.5)))*r**2*expo
-        y_ref[2]=c*8*sqrt(15.0)*2**(0.75)/(15*pi**(1/4)*sqrt(z**(-3.5)))*r**3*expo
-        y_ref[3]=c*16*sqrt(105.0)*2**(0.75)/(105*pi**(1/4)*sqrt(z**(-4.5)))*r**4*expo
+        y_ref[2]=c*8*sqrt(15.0)*2**(0.75)/(15*pi**(0.25)*sqrt(z**(-3.5)))*r**3*expo
+        y_ref[3]=c*16*sqrt(105.0)*2**(0.75)/(105*pi**(0.25)*sqrt(z**(-4.5)))*r**4*expo
         
         for L in [0,1,2,3]:
             M = 0
             gtos = (SymGTOs.create()
                     .sym(sym)
-                    .sub(sub_solid_sh_M(L, M, [z], Ap))
+                    .sub(sub_solid_sh(sym, L, M, (0,0,0), [z]))
                     .atom((0,0,0), 1.0)
                     .setup())
-            (y0, dy0) = gtos.at_r_ylm(L, M, Ap, [c], [r])
+            irrep = sym.irrep_s if L==0 else sym.irrep_z
+            (y0, dy0) = gtos.at_r_ylm(L, M, irrep, [c], [r])
             msg = "L={0}\ncalc={1}\nref={2}".format(L, y0[0], y_ref[L])
             self.assertAlmostEqual(y_ref[L], y0[0], msg=msg)
         
@@ -346,6 +353,7 @@ class Test_H_atom(unittest.TestCase):
         sym = Cs()
         Ap = sym.get_irrep("A'")
         App= sym.get_irrep("A''")
+        """
         self.gtos = (SymGTOs.create()
                      .sym(sym)
                      .sub(SubSymGTOs()
@@ -356,6 +364,13 @@ class Test_H_atom(unittest.TestCase):
                           .rds(Reduction(App, [[0, 1]]))
                           .zeta([2.0**n for n in range(-10, 10)]))
                      .atom(xatom, 1.0))
+        """
+        zeta = [2.0**n for n in range(-10, 10)]
+        self.gtos = (SymGTOs.create()
+                     .sym(sym)
+                     .sub(sub_solid_sh(sym, 0, 0, xatom, zeta))
+                     .sub(sub_solid_sh(sym, 1, 0, xatom, zeta))
+                     .atom(xatom, 1.0))
         mat = calc_mat_complex(self.gtos, True)
         
         s = mat.get_matrix("s", Ap, Ap)
@@ -365,6 +380,7 @@ class Test_H_atom(unittest.TestCase):
         (self.eigs, self.eigvecs) = ceig(h, s)
      
     def test_energy(self):
+        
         for i in range(0, 4):
             n = i + 1
             ene = -0.5/(n*n);
@@ -434,28 +450,21 @@ class Test_H2_plus(unittest.TestCase):
         self.assertAlmostEqual(-1.284146, eigs[0], places=4,
                                msg = "eigs[0] = {0}".format(eigs[0]))
 
-
 class Test_H_photoionization(unittest.TestCase):
-
+    def setUp(self):
+        self.calc_full()
+    
     def calc_full(self):
         xatom = (0, 0, 0)
         sym = Cs()
         Ap = sym.get_irrep("A'")
         App= sym.get_irrep("A''")
         zeta0 = [2.0**n for n in range(-10, 10)]
-        zeta1 = [2.0**n-0.02j for n in range(-15, 5)]
+        zeta1 = [2.0**n-0.025j for n in range(-15, 5)]
         self.gtos = (SymGTOs.create()
                      .sym(sym)
-                     .sub(SubSymGTOs()
-                          .xyz(xatom)
-                          .ns((0, 0, 0))
-                          .rds(Reduction(Ap,  [[1]]))
-                          .zeta(zeta0))
-                     .sub(SubSymGTOs()
-                          .xyz(xatom)
-                          .ns((0, 0, 1))
-                          .rds(Reduction(App, [[1]]))
-                          .zeta(zeta1))
+                     .sub(sub_solid_sh(sym, 0, 0, xatom, zeta0))
+                     .sub(sub_solid_sh(sym, 1, 0, xatom, zeta1))
                      .atom(xatom, 1.0))
         self.gtos.setup()
         mat = calc_mat_complex(self.gtos, True)
@@ -482,55 +491,6 @@ class Test_H_photoionization(unittest.TestCase):
         m1 = dz10 * c0
         c1 = la.solve(h1-(w+ene0)*s1, m1)
         self.alpha_full_v = (m1 * c1).sum()
-
-    def calc_velocity(self):
-        """
-        zeta1 = [1.0077661957-0.0607175960j,
-                 0.9981154775-0.3197694486j,
-                 0.8322149866-0.7139232919j,
-                 0.4725011517-1.0053572493j,
-                 0.1390344817-1.0655848809j]
-        """
-        zeta1 = [2.0**n-0.02j for n in range(-15, 5)]
-        xatom = (0, 0, 0)
-        sym = Cs()
-        Ap = sym.get_irrep("A'")
-        App= sym.get_irrep("A''")
-        zeta0 = [2.0**n for n in range(-10, 10)]
-        gtos = (SymGTOs.create()
-                .sym(sym)
-                .sub(SubSymGTOs()
-                     .xyz(xatom)
-                     .ns((0, 0, 0))
-                     .rds(Reduction(Ap,  [[1]]))
-                     .zeta(zeta0))
-                .sub(SubSymGTOs()
-                     .xyz(xatom)
-                     .ns((0, 0, 1))
-                     .rds(Reduction(App, [[1]]))
-                     .zeta(zeta1))
-                .atom(xatom, 1.0)
-                .setup())
-
-        mat = calc_mat_complex(gtos, True)
-        h0 = mat.get_matrix("t", Ap, Ap) + mat.get_matrix("v", Ap, Ap)
-        s0 = mat.get_matrix("s", Ap, Ap)
-        (eigs0, eigvecs0) = ceig(h0, s0)
-        ene0 = eigs0[0]
-        c0 = gtos.correct_sign(0, 0, Ap, eigvecs0.col(0))
-        self.assertAlmostEqual(ene0, -0.5, places=4)
-        
-        h1 = mat.get_matrix("t", App, App) + mat.get_matrix("v", App, App)
-        s1 = mat.get_matrix("s", App, App)
-        
-        ## velocity form
-        dz10 = mat.get_matrix("dz", App, Ap)
-        w = 1.0
-        m1 = dz10 * c0
-        c1 = la.solve(h1-(w+ene0)*s1, m1)
-        #print self.gtos
-
-        return (m1 * c1).sum()
 
     def calc_part(self):
         xatom = (0, 0, 0)
@@ -573,9 +533,6 @@ class Test_H_photoionization(unittest.TestCase):
         c1 = la.solve(h1 - (w+ene0)*s1, m1)
         self.alpha_part = (m1 * c1).sum()
         
-    def setUp(self):
-        self.calc_full()
-        #self.calc_part()
 
     def test_1skp(self):
         # see calc/stoh/1skp/l_5 in rcclsc
@@ -585,7 +542,7 @@ class Test_H_photoionization(unittest.TestCase):
         
         # see calc/stoh/1skp/l_5 in rcclsc (E=0.5)
         alpha_ref_v = 0.385628007210641-0.362705406667124j
-        self.assertAlmostEqual(self.calc_velocity(),
+        self.assertAlmostEqual(self.alpha_full_v,
                                -alpha_ref_v,
                                places=3)
 

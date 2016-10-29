@@ -282,8 +282,11 @@ void AddSymMolInt() {
 
   class_<SubSymGTOs>("SubSymGTOs", init<>())
     .def("sym", &SubSymGTOs::SetSym, return_self<>())
-    .def("xyz", &SubSymGTOs::AddXyz, return_self<>())
-    .def("ns",  &SubSymGTOs::AddNs,  return_self<>())
+    .def("xyz", (void(SubSymGTOs::*)(dcomplex, dcomplex, dcomplex))
+	 &SubSymGTOs::AddXyz, return_self<>())
+    .def("xyz", (void(SubSymGTOs::*)(Vector3cd))&SubSymGTOs::AddXyz, return_self<>())
+    .def("ns",  (void(SubSymGTOs::*)(Vector3i))
+	   &SubSymGTOs::AddNs,  return_self<>())
     .def("rds", &SubSymGTOs::AddRds,  return_self<>())
     .def("zeta",&SubSymGTOs::AddZeta, return_self<>())
     .def("get_zeta", &SubSymGTOs::zeta)
@@ -298,6 +301,9 @@ void AddSymMolInt() {
   def("sub_s", Sub_s);
   def("sub_pz", Sub_pz);
   def("sub_two_sgto", Sub_TwoSGTO);
+  def("sub_solid_sh", Sub_SolidSH_M);
+  def("sub_solid_sh", Sub_SolidSH_Ms);
+
 
   register_ptr_to_python<SymGTOs>();
   class_<_SymGTOs>("SymGTOs", init<>())
@@ -316,13 +322,12 @@ void AddSymMolInt() {
     //    .def("at_r_ylm", _SymGTOs_AtR_Ylm)    
     .def("__str__", &_SymGTOs::str)
     .def("__repr__", &_SymGTOs::str);
-
 }
 
 void AddOneTwoInt() {
 
   class_<ERIMethod>("ERI_method", init<>())
-    .def("use_symmetry",    &ERIMethod::set_symmetry,
+    .def("use_symmetry",&ERIMethod::set_symmetry,
 	 return_self<>())
     .def("coef_R_memo", &ERIMethod::set_coef_R_memo,
 	 return_self<>());

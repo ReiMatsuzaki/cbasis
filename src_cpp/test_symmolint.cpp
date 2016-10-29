@@ -535,7 +535,7 @@ TEST(SymGTOs, at_r_ylm_nd_s) {
   */
 
   VectorXcd zeta(2); zeta << 1.2, 1.4;
-  gtos->AddSub(Sub_s(0, Vector3cd(0.0, 0.0, 0.0), zeta));
+  gtos->AddSub(Sub_SolidSH_M(C1, 0, 0, Vector3cd(0,0,0), zeta));
   VectorXcd cs(2); cs << 0.2, 1.1;
 
   gtos->SetUp();
@@ -545,25 +545,16 @@ TEST(SymGTOs, at_r_ylm_nd_s) {
 TEST(SymGTOs, at_r_ylm_p) {
 
   VectorXcd zeta(2); zeta << 1.1, 1.2;
+  pSymmetryGroup sym = SymmetryGroup::C1();
 
   SymGTOs gtos_y = CreateSymGTOs();
-  gtos_y->SetSym(SymmetryGroup::C1());
-  SubSymGTOs sub_y;
-  sub_y.AddXyz(Vector3cd(0, 0, 0));
-  sub_y.AddNs( Vector3i( 0, 1, 0));
-  sub_y.AddRds(Reduction(0, MatrixXcd::Ones(1, 1)));
-  sub_y.AddZeta(zeta);
-  gtos_y->AddSub(sub_y);
+  gtos_y->SetSym(sym);
+  gtos_y->AddSub(Sub_SolidSH_M(sym, 1, -1, Vector3cd(0,0,0), zeta));
   gtos_y->SetUp();
 
   SymGTOs gtos_z = CreateSymGTOs();
-  gtos_z->SetSym(SymmetryGroup::C1());
-  SubSymGTOs sub_z;
-  sub_z.AddXyz(Vector3cd(0,0,0));
-  sub_z.AddNs( Vector3i( 0,0,1));
-  sub_z.AddRds(Reduction(0, MatrixXcd::Ones(1, 1)));
-  sub_z.AddZeta(zeta);
-  gtos_z->AddSub(sub_z);
+  gtos_z->SetSym(sym);
+  gtos_z->AddSub(Sub_SolidSH_M(sym, 1, 0, Vector3cd(0,0,0), zeta));
   gtos_z->SetUp();
 
   VectorXcd cs(2); cs << 0.2, 1.1;
@@ -575,21 +566,21 @@ TEST(SymGTOs, at_r_ylm_p) {
   gtos_y->AtR_Ylm(1,-1, irrep, cs, rs, &vs_y, &dvs_y);
   gtos_z->AtR_Ylm(1, 0, irrep, cs, rs, &vs_z, &dvs_z);
 
-  cout << vs_y << vs_z << endl;
-
+  EXPECT_C_EQ(vs_y[0],  vs_z[0]);
+  EXPECT_C_EQ(dvs_y[0], dvs_z[0]);
 }
 TEST(SymGTOs, at_r_ylm_nd) {
 
   pSymmetryGroup C1 = SymmetryGroup::C1();
   SymGTOs gtos = CreateSymGTOs();
   gtos->SetSym(C1);
-  // VectorXcd zeta(2); zeta << 1.2, 1.1;
-  // gtos.AddSub(Sub_s(0, Vector3cd(0.1, 0.2, 0.3), zeta));
-  // VectorXcd cs(2); cs << 0.2, 0.4;
+  VectorXcd zeta(2); zeta << 1.2, 1.1;
+  gtos->AddSub(Sub_SolidSH_M(C1, 0, 0, Vector3cd(0.1, 0.2, 0.3), zeta));
+  VectorXcd cs(2); cs << 0.2, 0.4;
 
-  VectorXcd zeta(1); zeta << 1.2;
-  gtos->AddSub(Sub_s(0, Vector3cd(0.0, 0.0, 2.1), zeta));
-  VectorXcd cs(1); cs << 1.0;
+  //  VectorXcd zeta(1); zeta << 1.2;
+  //  gtos->AddSub(Sub_s(0, Vector3cd(0.0, 0.0, 2.1), zeta));
+  //  VectorXcd cs(1); cs << 1.0;
 
   gtos->SetUp();
   test_SymGTOs_at_r_ylm_nd(gtos, 1.1, cs, "s-GTO on (0.1, 0.2, 0.3)");
@@ -747,7 +738,68 @@ TEST(SymGTOs, conjugate) {
 	      mat3->GetMatrix("t", 0, 0)(0, 1));
 
 }
+double h_rad(int L, double r) {
+  if(L == 0) 
+    return 2.0*r*exp(-r);
+  if(L == 1) 
+    return sqrt(1.0/(24.0))*r*r*exp(-0.5*r);
+  if(L == 2) 
+    return 4.0/(81.0*sqrt(30.0))*r*r*r*exp(-r/3.0);
+  if(L == 3) 
+    return 1.0/(768.0*sqrt(35.0))*r*r*r*r*exp(-r/4.0);
+  string msg; SUB_LOCATION(msg);
+  throw runtime_error(msg);
+}
+TEST(SymGTOs, hatom) {
 
+  pSymmetryGroup C1 = SymmetryGroup::C1();
+  int n0(7);
+  VectorXcd zeta(n0+n0);
+  for(int n = -n0; n < +n0; n++) {
+    zeta(n+n0) = pow(2.5, n);
+  }
+
+  for(int L = 0; L <= 3; L++) {
+    int M0 = L==0 ? 0 : 1;
+    for(int M = -M0; M <= M0; M++) {
+      SymGTOs gtos = CreateSymGTOs();
+      try {
+	gtos->SetSym(C1);
+	gtos->AddSub(Sub_SolidSH_M(C1, L, M, Vector3cd(0,0,0), zeta));
+	gtos->AddAtom(Vector3cd(0,0,0), 1.0);
+	gtos->SetUp();
+      } catch(exception& e) {
+	cout << e.what() << endl;
+	cout << "L,M = " << L << "," << M << endl;
+      }
+
+      BMatSet mat = CalcMat_Complex(gtos, true);  
+      MatrixXcd h = mat->GetMatrix("t", 0, 0) + mat->GetMatrix("v", 0, 0);
+      MatrixXcd s = mat->GetMatrix("s", 0, 0);
+
+      MatrixXcd C;
+      VectorXcd eig;
+      generalizedComplexEigenSolve(h, s, &C, &eig);
+      int n = L+1;
+      EXPECT_C_NEAR(eig[0], -1.0/(2.0*n*n), 0.001) <<
+	"L="<<L<<endl<<
+	"M="<<M<<endl;	
+
+      VectorXcd ci = C.col(0);
+      gtos->CorrectSign(L,M,0,ci);
+      double r = 1.0;
+      dcomplex vcalc, dv;
+      gtos->AtR_YlmOne(L, M, 0, ci, r, &vcalc, &dv);
+      dcomplex v_ref = h_rad(L, r);
+      EXPECT_C_NEAR(1.0, vcalc/v_ref, 0.001) <<
+	"v_ref="<<v_ref<<endl<<
+	"vcalc="<<vcalc<<endl<<
+	"L="<<L<<endl<<
+	"M="<<M<<endl;
+	
+    }
+  }
+}
 TEST(CompareCColumbus, small_h2) {
 
   double R0 = 1.4;

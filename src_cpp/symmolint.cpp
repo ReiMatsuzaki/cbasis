@@ -29,7 +29,13 @@ namespace cbasis {
   void ERIMethod::set_coef_R_memo(int s) {coef_R_memo = s; }
   void ERIMethod::set_perm(int s) {perm = s; }
 
-  // ==== Reduction Sets ====
+  // ==== Reduction ====
+  void Reduction::SetLM(int _L, int _M, dcomplex _coef_sh) {
+     L=_L;
+     M=_M;
+     is_solid_sh=true;
+     coef_sh = _coef_sh;     
+  }
   string Reduction::str() const {
     ostringstream oss;
     oss << "==== RedcutionSets ====" << endl;
@@ -275,13 +281,33 @@ namespace cbasis {
     
   }
   SubSymGTOs Sub_SolidSH_Ms(pSymmetryGroup sym, int L, VectorXi _Ms, Vector3cd xyz, VectorXcd zs) {
+
+    // -- memo --
+    // from wiki
+    // real form and complex form:
+    // Ylm = sqrt(2)(-)^m Im[Yl^|m|]   (m<0)
+    // Yl0 = Yl^0   (m=0)
+    // Ylm = sqrt(2)(-)^m Re[Yl^m]     (m>0)
+    // or do google "spherical harmonics table"
+    
+    // Us(r) = N exp[-ar^2] = N exp[-ar^2] Y00 sqrt(4pi)
+    // upz(r) = N z exp[-ar^2] = N exp[-ar^2] Y10 sqrt(4pi/3)
+    // ud_z2(r) = N (2z^2-x^2-y^2) exp[-ar^2] = ...sqrt(16pi/5)
+    // ud_zx(r) = N zx exp[-ar^2] = ...sqrt(4pi/15)
+    
     SubSymGTOs sub;
     sub.AddXyz(xyz);
     sub.AddZeta(zs);
     
     vector<int> Ms;
-    for(int i = 0; i < _Ms.size(); i++)
-      Ms.push_back(_Ms[i]);
+    for(int i = 0; i < _Ms.size(); i++) {
+      int m = _Ms[i];
+      if(abs(m) > 1) {
+	string msg; SUB_LOCATION(msg); msg += ": now |m| > 1 is not implemented";
+	throw runtime_error(msg);
+      }
+      Ms.push_back(m);
+    }
 
     if(L < 0 || L > 3) {
       string msg; SUB_LOCATION(msg); msg += ": only L=0,1,2,3 is supported";
@@ -296,22 +322,22 @@ namespace cbasis {
       sub.AddNs(Vector3i::Zero());
       if(find_0) {
 	Reduction rds(sym->irrep_s, MatrixXcd::Ones(1, 1));
-	rds.SetLM(L, 0); sub.AddRds(rds);
+	rds.SetLM(0, 0, sqrt(4.0*M_PI)); sub.AddRds(rds);
       }
     }
     if(L == 1) {
       sub.AddNs(1,0,0); sub.AddNs(0,1,0); sub.AddNs(0,0,1);
       if(find_p1) {
-	Reduction rds(sym->irrep_x, m13cd(0,1,0));
-	rds.SetLM(L, 1); sub.AddRds(rds);
+	Reduction rds(sym->irrep_x, m13cd(1,0,0));
+	rds.SetLM(1, 1, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
       }      
       if(find_0) {
-	Reduction rds(sym->irrep_z, m13cd(1,0,0));
-	rds.SetLM(L, 0); sub.AddRds(rds);
+	Reduction rds(sym->irrep_z, m13cd(0,0,1));
+	rds.SetLM(1, 0, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
       }
       if(find_m1) {
-	Reduction rds(sym->irrep_y, m13cd(0,0,1));
-	rds.SetLM(L, -1); sub.AddRds(rds);
+	Reduction rds(sym->irrep_y, m13cd(0,1,0));
+	rds.SetLM(1, -1, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
       }
     }
     if(L == 2) {
@@ -320,17 +346,17 @@ namespace cbasis {
       if(find_p1) {
 	MatrixXcd m(1, 6); m << 0,0,0, 0,0,1;
 	Reduction rds(sym->irrep_x, m);
-	rds.SetLM(L, +1); sub.AddRds(rds);
+	rds.SetLM(2, 1, sqrt(4.0*M_PI/15.0)); sub.AddRds(rds);
       }      
       if(find_0) {
 	MatrixXcd m(1, 6); m << -1,-1,2, 0,0,0;
 	Reduction rds(sym->irrep_z, m);
-	rds.SetLM(L, 0); sub.AddRds(rds);
+	rds.SetLM(2, 0, sqrt(16.0*M_PI/5.0)); sub.AddRds(rds);
       }
       if(find_m1) {
 	MatrixXcd m(1, 6); m << 0,0,0, 0,1,0;
 	Reduction rds(sym->irrep_y, m);
-	rds.SetLM(L, -1); sub.AddRds(rds);
+	rds.SetLM(2, -1, sqrt(4.0*M_PI/15.0)); sub.AddRds(rds);
       }
     }
     if(L == 3) {
@@ -340,18 +366,18 @@ namespace cbasis {
       if(find_p1) {
 	MatrixXcd m(1,9); m << 4,-1,-1,  0,0,0,  0,0,0;
 	Reduction rds(sym->irrep_x, m);
-	rds.SetLM(L, +1); sub.AddRds(rds);
+	rds.SetLM(3, +1, sqrt(32.0*M_PI/21.0)); sub.AddRds(rds);
       }
       if(find_0) {
 	MatrixXcd m(1,9); m << 0,0,0,  2,-3,-3,  0,0,0;
 	Reduction rds(sym->irrep_z, m);
-	rds.SetLM(L, 0); sub.AddRds(rds);
+	rds.SetLM(3, 0, sqrt(16.0*M_PI/7.0)); sub.AddRds(rds);
       }
       if(find_m1) {
 	MatrixXcd m(1,9); m << 0,0,0,  0,0,0,  4,-1,-1;
 	Reduction rds(sym->irrep_y, m);
-	rds.SetLM(L, -1); sub.AddRds(rds);
-      }      
+	rds.SetLM(3, -1, sqrt(32.0*M_PI/21.0)); sub.AddRds(rds);
+      }
     }
 
     return sub;
@@ -686,48 +712,39 @@ namespace cbasis {
   }
 
   // ---- AtR ----
-  bool IsCenter(SubIt isub, int iat, double eps) {
-    dcomplex x  = isub->x(iat);
-    dcomplex y  = isub->y(iat);
-    dcomplex z  = isub->z(iat);
+  bool IsCenter(SubIt isub, double eps) {
+
+    if(isub->size_at() != 1)
+      return false;
+    
+    dcomplex x  = isub->x(0);
+    dcomplex y  = isub->y(0);
+    dcomplex z  = isub->z(0);
     dcomplex a2 = x*x+y*y+z*z;
     dcomplex a = sqrt(a2);
     return (abs(a) < eps);
   }
-  void AtR_Ylm_cen(SubIt isub, int iz,
-		   int ipn, dcomplex r, int L, int M, dcomplex* v, dcomplex* dv) {
+  void AtR_Ylm_cen(RdsIt irds, dcomplex z,
+		   dcomplex r, int L, int M, dcomplex* v, dcomplex* dv) {
 
-    int nx = isub->nx(ipn);
-    int ny = isub->ny(ipn);
-    int nz = isub->nz(ipn);
-    int nn = nx + ny + nz;
-    dcomplex zeta = isub->zeta_iz(iz);
-    if(L == 0) {
-      // -- s-GTO --
-      if(nn == 0) {
-	dcomplex c(sqrt(4.0*M_PI));
-	*v = c*r*exp(-zeta*r*r);
-	*dv= c*(1.0 -2.0*zeta*r*r) * exp(-zeta*r*r);
-      } else {
-	*v = 0.0;
-	*dv= 0.0;
-      }
-    } else if(L == 1) {
-      // -- p-GTO --
-      if((nx == 0 && ny == 0 && nz == 1 && M == 0) ||
-	 (nx == 0 && ny == 1 && nz == 0 && M ==-1) ||
-	 (nx == 1 && ny == 0 && nz == 0 && M ==+1)) {
-	dcomplex c(sqrt(4.0*M_PI/3.0));
-	*v = c*r*r*exp(-zeta*r*r);
-	*dv= c*(2.0*r - 2.0*zeta*r*r*r )*exp(-zeta*r*r);
-      }	else {
-	*v = 0.0;
-	*dv= 0.0;
-      }
-    } else {
+    if(!irds->is_solid_sh) {
       string msg; SUB_LOCATION(msg);
-      msg += ": L>1 is not implemented";
+      msg += ": it is not Solid spherical harmonics";
       throw runtime_error(msg);
+    }
+
+    if(L > 3 || L < 0  || abs(M) > L) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": not supported (L,M)";
+      throw runtime_error(msg);
+    }
+    
+    if(irds->L == L && irds->M == M) {
+      *v = irds->coef_sh  * pow(r, L+1) * exp(-z*r*r);
+      *dv = irds->coef_sh * ((L+1.0)*pow(r, L) -2.0*z*pow(r,L+2)) * exp(-z*r*r);
+    } else {
+      *v = 0.0;
+      *dv=0.0;
     }
     
   }
@@ -827,22 +844,35 @@ namespace cbasis {
       for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 	if(irds->irrep != irrep) 
 	  continue;
-	
-	for(int iz = 0; iz < isub->size_zeta(); iz++) {
+	if(IsCenter(isub, eps) && irds->is_solid_sh) {
+	  if(irds->L == L && irds->M == M) {
+	    for(int ir = 0; ir < rs.size(); ir++) {
+	      for(int iz = 0; iz < isub->size_zeta(); iz++) {
+		int ibasis = irds->offset + iz;
+		dcomplex r = rs[ir];
+		dcomplex z = isub->zeta_iz(iz);
+		dcomplex expo=exp(-z*r*r);
+		dcomplex v, dv, c;
+		c = cs_ibasis(ibasis) * irds->coef_iz(iz) * irds->coef_sh;
+		vs[ir] += c * pow(r, L+1) * expo;
+		dvs[ir]+= c * ((L+1.0)*pow(r, L) -2.0*z*pow(r,L+2)) * expo;
+	      }
+	    }
+	  }
+	} else {
 	  for(int iat = 0; iat < isub->size_at(); iat++) {
 	    for(int ipn = 0; ipn < isub->size_pn(); ipn++) {
 	      for(int ir = 0; ir < rs.size(); ir++) {
-		int ibasis = irds->offset + iz;
-		dcomplex c = (cs_ibasis(ibasis) *
-			      irds->coef_iat_ipn(iat, ipn) *
-			      irds->coef_iz(iz));
-		dcomplex v, dv;
-		if(IsCenter(isub, iat, eps)) {
-		  AtR_Ylm_cen(isub, iz, ipn, rs[ir], L, M, &v, &dv);
-		} else {
+		for(int iz = 0; iz < isub->size_zeta(); iz++) {
+		  int ibasis = irds->offset + iz;
+		  dcomplex c = (cs_ibasis(ibasis) *
+				irds->coef_iat_ipn(iat, ipn) *
+				irds->coef_iz(iz));
+		  dcomplex v, dv;
 		  AtR_Ylm_noncen(isub, iz, iat, ipn, rs[ir], L, M, &v, &dv);
+		  vs[ir] += c * v;
+		  dvs[ir]+= c * dv;
 		}
-		vs[ir] += c * v; dvs[ir]+= c * dv;
 	      }
 	    }
 	  }
@@ -854,7 +884,15 @@ namespace cbasis {
     res_vs->swap(vs);
     res_dvs->swap(dvs);
   }
-
+  void _SymGTOs::AtR_YlmOne(int L, int M,  int irrep,
+			    const Eigen::VectorXcd& cs_ibasis,
+			    dcomplex r, dcomplex *v, dcomplex *dv) {
+    VectorXcd rs(1); rs << r;
+    VectorXcd vs, dvs;
+    this->AtR_Ylm(L, M, irrep, cs_ibasis, rs, &vs, &dvs);
+    *v = vs[0];
+    *dv = dvs[0];
+  }
   // ---- Correct Sign ----
   void _SymGTOs::CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs) {
 
@@ -884,11 +922,11 @@ namespace cbasis {
       throw runtime_error(msg);
     }
 
-    VectorXcd rs(1); rs << 0.0;
-    VectorXcd vs, ds;
-    this->AtR_Ylm(L, M, irrep, cs, rs, &vs, &ds);
+    double r = 0.3;
+    dcomplex v, dv;
+    this->AtR_YlmOne(L, M, irrep, cs, r, &v, &dv);
 
-    if(ds(0).real() < 0) {
+    if(v.real() < 0) {
       cs = -cs;
     }
   }

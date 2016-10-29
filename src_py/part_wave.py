@@ -123,7 +123,7 @@ def ss0_2_yy0_old(ss0, L, Lp):
 
 
 ## ==== partial wave (Solid Spherical Harmonics) ====
-def sub_solid_sh_Ms(L, Ms, zeta, sym):
+def sub_solid_sh_Ms_old(L, Ms, zeta, sym):
 
     for M in Ms:
         if abs(M) > 1:
@@ -210,7 +210,7 @@ def sub_solid_sh_Ms(L, Ms, zeta, sym):
         raise(Exception("not implemented yet"))
     return sub
     
-def sub_solid_sh_M(L, M, zeta, irrep):
+def sub_solid_sh_M_old(L, M, zeta, irrep):
 
     sub = SubSymGTOs().xyz((0,0,0)).zeta(zeta)
     
@@ -282,7 +282,7 @@ def sub_solid_sh_M(L, M, zeta, irrep):
 
     return sub
     
-def sub_solid_sh(L, M_or_Ms, zeta, irrep_or_sym):
+def sub_solid_sh_old(L, M_or_Ms, zeta, irrep_or_sym):
     """ gives solid spherical harmonics
     see http://www.f-denshi.com/000TokiwaJPN/14bibnh/436cub.html
     S_l0 = Y_l0
@@ -293,17 +293,23 @@ def sub_solid_sh(L, M_or_Ms, zeta, irrep_or_sym):
     if(type(M_or_Ms) == list):
         Ms = M_or_Ms
         sym = irrep_or_sym
-        return sub_solid_sh_Ms(L, Ms, zeta, sym)
+        return sub_solid_sh_Ms_old(L, Ms, zeta, sym)
     else:
         M = M_or_Ms
         irrep = irrep_or_sym
-        return sub_solid_sh_M(L, M, zeta, irrep)
+        return sub_solid_sh_M_old(L, M, zeta, irrep)
 
 def solid_part_waves(sym, L, Ms, zeta):
 
-    gtos = SymGTOs.create().sym(sym)    
-    gtos.sub(sub_solid_sh(L, Ms, zeta, sym))
+    gtos = SymGTOs.create().sym(sym)
+    gtos.sub(sub_solid_sh(sym, L, Ms, (0,0,0), zeta))
+    """
+    for M in Ms:
+        print "M:", M
+    gtos.sub(sub_solid_sh(sym, L, M, (0,0,0), zeta))
+    """
     gtos.setup()
+    
     return gtos
         
             

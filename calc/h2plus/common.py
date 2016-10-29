@@ -137,7 +137,7 @@ def get_gpsi1(ls, add_zs, add_sub_list=[], ene=0.5):
 
     for L in ls:
         zs = fitted_zeta(L, ene) + add_zs
-        g_psi1.sub(sub_solid_sh(L, [-1,0,1], zs, sym))
+        g_psi1.sub(sub_solid_sh(sym, L, [-1,0,1], (0,0,0), zs))
 
     for sub in add_sub_list:
         g_psi1.sub(sub)
@@ -164,12 +164,12 @@ def get_gpsi0_L(ls, add_zs, ene=0.5):
         zs = fitted_zeta(L, ene) + add_zs
         gpsi0_L[L] = SymGTOs.create().sym(sym)
         add_h2(gpsi0_L[L], R0)
-        gpsi0_L[L].sub(sub_solid_sh(L, [-1,0,1], zs, sym))
+        gpsi0_L[L].sub(sub_solid_sh_old(L, [-1,0,1], zs, sym))
         gpsi0_L[L].setup()
     
     return gpsi0_L
 
 
 def get_gchi_L(ls, zeta_chi):
-    return {L:solid_part_waves(sym, L, [-1,0,1], [zeta_chi]) for L in ls}
+    return {L:solid_part_waves(sym, L, (-1,0,1), [zeta_chi]) for L in ls}
 

@@ -58,13 +58,13 @@ SYMMOLINT_OBJS=mo.o symmolint.o one_int.o two_int.o fact.o cfunc.o mol_func.o bm
 ${BINDIR}/symmolint_bind.so: symmolint_bind.cpp $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS} ${LIBS} -lgsl -lgslcblas
 check_symmolint: ${BINDIR}/symmolint_bind.so
-	python -c 'import symmolint_bind as mol; print mol.cg_coef(0,0,0,0,0,0)'
 	rm -f symmolint_bind.so
 	ln -s ${BINDIR}/symmolint_bind.so .
 #	python test_solve_pi.py
 	python test_symmolint.py
 #	python test_part_wave.py
 #	rm symmolint_bind.so
+
 install_symmolint: ${BINDIR}/symmolint_bind.so
 	cp $< ${PY_DIR}
 	cp symmolint_plus.py ${PY_DIR}
