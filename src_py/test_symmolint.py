@@ -246,27 +246,19 @@ class Test_SymMolInt(unittest.TestCase):
         Ap = sym.get_irrep("A'")
         
         zs = [2.0**n-0.1j for n in range(-2, 2)]
-        """
-        gtos = (SymGTOs.create()
-                .sym(sym)
-                .sub(SubSymGTOs()
-                     .xyz((0, 0, 0))
-                     .ns( (0, 0, 0))
-                     .rds(Reduction(Ap, [[1]]))
-                     .zeta(zs))
-                .atom([0, 0, 0], 1.1)
-                .setup())
-        """
         xatom = (0,0,0)
         gtos = (SymGTOs.create()
                 .sym(sym)
                 .sub(sub_solid_sh(sym, 0, 0, xatom, zs))
                 .setup())
-        #        mat_set = calc_mat_complex(gtos, True)
-
         cs = [1.0, 1.1, 1.2, 1.3]
         rs = [1.0, 2.0]
         ys = gtos.at_r_ylm(0, 0, Ap, cs, rs)
+
+    def test_sub_ms(self):
+        sym = Cs()
+        for L in range(1,4):
+            sub = sub_solid_sh(sym, L, [-1,0,1], (0,0,0), [1.1-0.2j])
 
     def test_at_r_center(self):
         sym = Cs()
@@ -353,18 +345,6 @@ class Test_H_atom(unittest.TestCase):
         sym = Cs()
         Ap = sym.get_irrep("A'")
         App= sym.get_irrep("A''")
-        """
-        self.gtos = (SymGTOs.create()
-                     .sym(sym)
-                     .sub(SubSymGTOs()
-                          .xyz(xatom)
-                          .ns((0, 0, 0))
-                          .ns((0, 0, 1))
-                          .rds(Reduction(Ap,  [[1, 0]]))
-                          .rds(Reduction(App, [[0, 1]]))
-                          .zeta([2.0**n for n in range(-10, 10)]))
-                     .atom(xatom, 1.0))
-        """
         zeta = [2.0**n for n in range(-10, 10)]
         self.gtos = (SymGTOs.create()
                      .sym(sym)

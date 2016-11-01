@@ -36,7 +36,9 @@ boost::python::list PyListFromCppVector(vector<T>& cpp_vector) {
   }
   return py_list;
 }
-
+void printVectorXi(VectorXi& a) {
+  std::cout << a << std::endl;
+}
 
 MatrixXcd& BMat_get(BMat* bmat, tuple args) {
   int i = extract<int>(args[0]);
@@ -273,6 +275,8 @@ VectorXcd* SymGTOs_CorrectSign(SymGTOs gtos, int L, int M,  int irrep,
 }
 void AddSymMolInt() {
 
+  def("print_vec", printVectorXi);
+ 
   class_<Reduction>("Reduction", init<int, MatrixXcd>())
     .add_property("irrep",        &Reduction::irrep)
     .def("coef_iat_ipn", &Reduction::get_coef_iat_ipn,
@@ -282,11 +286,9 @@ void AddSymMolInt() {
 
   class_<SubSymGTOs>("SubSymGTOs", init<>())
     .def("sym", &SubSymGTOs::SetSym, return_self<>())
-    .def("xyz", (void(SubSymGTOs::*)(dcomplex, dcomplex, dcomplex))
-	 &SubSymGTOs::AddXyz, return_self<>())
+    .def("xyz", (void(SubSymGTOs::*)(dcomplex, dcomplex, dcomplex))&SubSymGTOs::AddXyz, return_self<>())
     .def("xyz", (void(SubSymGTOs::*)(Vector3cd))&SubSymGTOs::AddXyz, return_self<>())
-    .def("ns",  (void(SubSymGTOs::*)(Vector3i))
-	   &SubSymGTOs::AddNs,  return_self<>())
+    .def("ns",  (void(SubSymGTOs::*)(Vector3i))&SubSymGTOs::AddNs,  return_self<>())
     .def("rds", &SubSymGTOs::AddRds,  return_self<>())
     .def("zeta",&SubSymGTOs::AddZeta, return_self<>())
     .def("get_zeta", &SubSymGTOs::zeta)
