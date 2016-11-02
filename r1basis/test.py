@@ -1,10 +1,26 @@
 import numpy as np
 from r1basis import *
+from opt_driv import *
 from scipy.integrate import quad
 from scipy.linalg import eig, solve
 
+
 import unittest
 
+class Test_driv_basis(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_first(self):
+        stos = STOs()
+        stos.add(2, 1.3-0.2j)
+        stos.add(3, 1.4-0.4j)
+        stos.setup()
+        d_stos = one_deriv(stos)
+        print stos
+        print d_stos
+        
+        
 class Test_first(unittest.TestCase):
     def setUp(self):
         pass
@@ -75,7 +91,7 @@ class Test_r1_linear_comb(unittest.TestCase):
             cy= c_fs.at_r([r])[0]
             self.assertAlmostEqual(y.conjugate(), cy)
 
-class _Test_gto(unittest.TestCase):
+class Test_gto(unittest.TestCase):
 
     def setUp(self):
         gtos = GTOs()
@@ -269,10 +285,10 @@ class Test_driv(unittest.TestCase):
         ss = STOs()
 
         ss.add(2, 0.9965751177-0.0013743026j)
-        ss.add(2, 1.0030366528  -0.2836728004j)
-        ss.add(2, 0.8462928140  -0.6952686244j)
-        ss.add(2, 0.4818046345  -1.0023929406j)
-        ss.add(2, 0.1412093744  -1.0662761427j)
+        ss.add(2, 1.0030366528-0.2836728004j)
+        ss.add(2, 0.8462928140-0.6952686244j)
+        ss.add(2, 0.4818046345-1.0023929406j)
+        ss.add(2, 0.1412093744-1.0662761427j)
         ss.setup()
 
         driv = LC_STOs()
@@ -284,8 +300,6 @@ class Test_driv(unittest.TestCase):
         d2= ss.calc_d2_mat()
         r2= ss.calc_rm_mat(-2)
         r1= ss.calc_rm_mat(-1)
-        #print "s:",  s
-        #print "d2:", d2
         lmat = (  s * ene
                 + d2* 0.5
                 + r2* (-1.0)
@@ -298,6 +312,13 @@ class Test_driv(unittest.TestCase):
         w = ene + 0.5
         ref = 1.88562800720386-0.362705406693342j
         self.assertAlmostEqual(3.0*ref, alpha)
+
+class Test_opt_driv(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_opt(self):
+        print 2
         
 """
 class Test_r1gtos(unittest.TestCase):

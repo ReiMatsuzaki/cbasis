@@ -8,10 +8,15 @@
 #include "../src_cpp/typedef.hpp"
 #include "r1_lc.hpp"
 
-// TODO
-// CalcVecの引数をR1GTOsから、std::vector<R1GTO>に変更。
-// それぞれのメッソドをAccessor等に分けて書く。
+#define COEF_NO 0	   // coefficient is nothing
+#define COEF_NOT_NORMAL 1 // not normalized
+#define COEF_NORMAL 2     // normalized
 
+
+//
+// represent set of linear combination of STO/GTO
+// you can use normalized basis set or not normalized basis set
+//
 
 namespace cbasis {
   
@@ -25,6 +30,7 @@ namespace cbasis {
   private:
     // ---- Member field ----
     std::vector<LC_EXPs> basis_;
+    std::vector<int>     coef_type_;
     bool setupq_;
     
   public:
@@ -35,6 +41,9 @@ namespace cbasis {
     int size()  const { return basis_.size(); }
     LC_EXPs basis(int i) const { return basis_[i]; }
     bool OnlyPrim() const;
+    bool IsNormal() const;
+    bool HasCoef() const;
+    int exp_power() const { return m; }
     Eigen::VectorXcd AtR(const Eigen::VectorXcd&, 
 			 const Eigen::VectorXcd&) const;
     Eigen::VectorXcd DAtR(const Eigen::VectorXcd&,
@@ -45,6 +54,8 @@ namespace cbasis {
     _EXPs<m>* AddPrim(int n, dcomplex z);
     _EXPs<m>* AddPrims(int n, Eigen::VectorXcd zs);
     _EXPs<m>* AddLC(LC_EXPs lc);
+    _EXPs<m>* AddNotNormalPrim(dcomplex c, int n, dcomplex z);    
+    _EXPs<m>* AddNotNormalLC(LC_EXPs lc);
     _EXPs<m>* SetUp();
     
     // ---- Create ----

@@ -230,28 +230,75 @@ namespace cbasis {
     
     return oss.str();
   }
+  template<int m>
+  bool _EXPs<m>::IsNormal() const {
+    bool acc = true;
+    typedef vector<int>::const_iterator It;
+    for(It it = coef_type_.begin(); it != coef_type_.end(); ++it) {
+      acc = acc && (*it == COEF_NORMAL);
+    }
+    return acc;
+  }
+  template<int m> 
+  bool _EXPs<m>::HasCoef() const {
+    bool acc = true;
+    typedef vector<int>::const_iterator It;
+    for(It it = coef_type_.begin(); it != coef_type_.end(); ++it) {
+      acc = acc && (*it == COEF_NORMAL || *it == COEF_NOT_NORMAL);
+    }
+    return acc;
+  }
 
   template<int m>
   _EXPs<m>* _EXPs<m>::AddPrim(int n, dcomplex z) {
-    this->setupq_ = false;
+
+    this->setupq_ =false;
     LC_EXPs g = Create_LC_EXPs<m>();
     g->Add(1.0, n, z);
     this->basis_.push_back(g);
+    this->coef_type_.push_back(COEF_NO);
     return this;
+    
   }
   template<int m>
   _EXPs<m>* _EXPs<m>::AddPrims(int n, Eigen::VectorXcd zs) {
-    this->setupq_ = false;
-    for(int i = 0; i < zs.size(); i++)
-      this->AddPrim(n, zs[i]);
+
+    this->setupq_ =false;
+    for(int i = 0; i < zs.size(); i++) 
+      this->AddPrim(n, zs[i]);    
     return this;
+    
   }
   template<int m>
   _EXPs<m>* _EXPs<m>::AddLC(LC_EXPs lc) {
-    this->setupq_ =false;
+    
+    this->setupq_ = false;
     this->basis_.push_back(lc);
+    this->coef_type_.push_back(COEF_NO);
     return this;
+    
   }
+  template<int m>
+  _EXPs<m>* _EXPs<m>::AddNotNormalPrim(dcomplex c, int n, dcomplex z) {
+
+    this->setupq_ = false;
+    LC_EXPs g = Create_LC_EXPs<m>();
+    g->Add(c, n, z);
+    this->basis_.push_back(g);
+    this->coef_type_.push_back(COEF_NOT_NORMAL);
+    return this;
+    
+  }
+  template<int m>
+  _EXPs<m>* _EXPs<m>::AddNotNormalLC(LC_EXPs lc) {
+
+    this->setupq_ = false;
+    this->basis_.push_back(lc);
+    this->coef_type_.push_back(COEF_NOT_NORMAL);
+    return this;
+    
+  }    
+
   template<int m>
   _EXPs<m>* _EXPs<m>::SetUp() {
 
@@ -262,62 +309,63 @@ namespace cbasis {
     
     for(int i = 0; i < num; i++) {
 
-      LC_EXPs bi = this->basis(i);
-      /*
-
-      dcomplex acc(0);
-      for(int ii = 0; ii < bi->size(); ii++) {
-	for(int jj = 0; jj < bi->size(); jj++) {
-	  dcomplex c(bi->c(ii) * bi->c(jj));
-	  int      n(bi->n(ii) + bi->n(jj));
-	  dcomplex z(bi->z(ii) + bi->z(jj));
-	  acc +=  c * EXPInt(n, z);
+      if(this->coef_type_[i] == COEF_NO) {
+	LC_EXPs bi = this->basis(i);
+	dcomplex nterm(1.0/sqrt(EXPIntLC(bi, 0, bi)));
+	for(int ii = 0; ii < bi->size(); ii++) {
+	  bi->c(ii) *= nterm;
 	}
+	this->coef_type_[i] = COEF_NORMAL;
       }
-      
-      dcomplex nterm(1.0/sqrt(acc));
-      */
-      dcomplex nterm(1.0/sqrt(EXPIntLC(bi, 0, bi)));
-      for(int ii = 0; ii < bi->size(); ii++) {
-	bi->c(ii) *= nterm;
-      }
-      
     }
 
     this->setupq_ = true;
     return this;
+    
   }
 
   template<int m>
   typename _EXPs<m>::EXPs _EXPs<m>::Clone() const {
+    
+    if(!this->setupq_) {
+      string msg;
+      SUB_LOCATION(msg);
+      msg += " : not set up.";
+      throw runtime_error(msg);
+    }
 
     EXPs ptr = Create_EXPs<m>();
-    typedef typename vector<LC_EXPs>::const_iterator It;
-    //typedef vector<_EXPs<m>::LC_EXPs>::const_iterator It;
-    for(It it = this->basis_.begin();
-	it != this->basis_.end();
-	++it) {
-      LC_EXPs lc = (*it)->Clone();
-      ptr->AddLC(*it);
+
+    int num(this->size());
+    for(int i = 0; i < num; i++) {
+      LC_EXPs lc = this->basis_[i]->Clone();
+      ptr->basis_.push_back(lc);
+      ptr->coef_type_.push_back(this->coef_type_[i]);
     }
     ptr->SetUp();
     return ptr;
-
   }
   template<int m>
   typename _EXPs<m>::EXPs _EXPs<m>::Conj() const {
 
+    if(!this->setupq_) {
+      string msg;
+      SUB_LOCATION(msg);
+      msg += " : not set up.";
+      throw runtime_error(msg);
+    }    
+
     EXPs ptr = Create_EXPs<m>();
-    typedef typename vector<LC_EXPs>::const_iterator It;
-    for(It it = this->basis_.begin();
-	it != this->basis_.end();
-	++it) {
-      LC_EXPs lc = (*it)->Conj();
-      ptr->AddLC(lc);
+
+    int num(this->size());
+    for(int i = 0; i < num; i++) {
+      LC_EXPs lc = this->basis_[i]->Conj();
+      ptr->basis_.push_back(lc);
+      ptr->coef_type_.push_back(this->coef_type_[i]);
     }
     ptr->SetUp();
     return ptr;
-
+    
   }
 
   template<int m>
@@ -455,5 +503,6 @@ namespace cbasis {
   // ==== realize ====
   template class _EXPs<1>;
   template class _EXPs<2>;
+
 
 }

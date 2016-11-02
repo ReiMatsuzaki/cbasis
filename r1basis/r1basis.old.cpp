@@ -678,7 +678,7 @@ namespace cbasis {
 	    -gs[ni+nj-1]
 	    -energy * gs[ni+nj]);
   }
-  /*
+
   void R1GTOs::CalcDerivMat(double energy) {
 
     for(ItCont it = conts_.begin(), end = conts_.end(); it != end; ++it) {
@@ -746,8 +746,7 @@ namespace cbasis {
 			 +HmES(ni+2, nj+2, zj, L_, energy, gs) * ci  * cj);
       }
   }
-*/
-  /*
+
   void R1GTOs::CalcVec(const R1GTOs& o, string label) {
     string msg; SUB_LOCATION(msg);
     msg += ": Not implemented yet.";
@@ -764,8 +763,7 @@ namespace cbasis {
       throw runtime_error(msg);
     }      
   }
-*/
-/*
+
   void R1GTOs::CalcVec(const R1STOs& o, string label) {
 
     static MultArray<dcomplex, 1> m_prim_(20);
@@ -808,8 +806,7 @@ namespace cbasis {
       }
     }
   }
-*/
-  /*
+
   void R1GTOs::CalcDerivVec(const R1STOs& o) { 
     
     
@@ -872,7 +869,7 @@ namespace cbasis {
     }
     
   }
-  */
+
   void R1GTOs::SetUp() {
 
     int cumsum(0);
