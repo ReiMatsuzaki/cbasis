@@ -1,9 +1,13 @@
+import sys
 import numpy as np
-from r1basis import *
-from opt_driv import *
 from scipy.integrate import quad
 from scipy.linalg import eig, solve
+from sympy import Symbol, oo, diff, integrate, exp, sqrt
 
+from r1basis import *
+from opt_driv import *
+sys.path.append("../src_py/nnewton")
+from nnewton import *
 
 import unittest
 
@@ -11,16 +15,33 @@ class Test_driv_basis(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_first(self):
-        stos = STOs()
-        stos.add(2, 1.3-0.2j)
-        stos.add(3, 1.4-0.4j)
-        stos.setup()
-        d_stos = one_deriv(stos)
-        print stos
-        print d_stos
-        
-        
+    def test_deriv(self):
+
+        for (name, create) in [("STO", STOs), ("GTO", GTOs)]:
+            n0 = 3
+            c0 = [1.1]
+            r0 = [2.5]
+            z0 = [1.1]
+            
+            calc = lambda zs: create().add(3, zs[0]).setup().at_r(r0, c0)[0]
+
+            stos = create()
+            stos.add(n0, z0)
+            stos.setup()
+            
+            dstos = one_deriv(stos)
+            calc_dy = dstos.at_r(r0, c0)[0]
+            ref_dy  = num_pd_c1(calc, z0, 0.0001, 0)        
+            self.assertAlmostEqual(ref_dy, calc_dy)
+            
+            ddstos = two_deriv(stos)
+            calc_ddy = ddstos.at_r(r0, c0)[0]
+            ref_ddy  = num_pd2(calc, z0, 0.0001, 0, 0, method="c1")
+            msg = "Basis={0}, second derivative\nref = {1}\ncalc= {2}\n".format(name, ref_ddy, calc_ddy)
+            
+            self.assertAlmostEqual(ref_ddy, calc_ddy, msg=msg)
+
+            
 class Test_first(unittest.TestCase):
     def setUp(self):
         pass
@@ -102,11 +123,28 @@ class Test_gto(unittest.TestCase):
         g1 = LC_GTOs()
         g1.add(1.1, 5, 1.3)
         g1.add(0.1, 6, 1.4)
-        gtos.add_lc(g1)
+        gtos.add(g1)
 
         gtos.setup()
-        
         self.gtos = gtos
+
+        r = Symbol('r')
+        self.r = r
+        fs = [r**1*exp(-1.1*r**2),
+              r**2*exp(-1.4*r**2),
+              r**3*exp(-1.2*r**2),
+              r**3*exp(-(1.3-0.1j)*r**2),
+              1.1*r**5*exp(-1.3*r**2)+0.1*r**6*exp(-1.4*r**2)]
+        self.fs = fs
+        """
+        fs = [lambda r: r     * np.exp(-1.1*r*r),
+              lambda r: r*r   * np.exp(-1.4*r*r),
+              lambda r: r*r*r * np.exp(-1.2*r*r),
+              lambda r: r*r*r * np.exp(-(1.3-0.1j)*r*r),
+              lambda r: 1.1*r**5*np.exp(-1.3*r*r) + 
+              0.1*r**6*np.exp(-1.4*r*r)]
+        self.fs = fs
+        """
     
     def test_size(self):
 
@@ -161,33 +199,28 @@ class Test_gto(unittest.TestCase):
         ref,err  = quad(lambda r: (a.at_r([r])[0]*r*r*b.at_r([r])[0]).real, 0, 4.0)
         self.assertAlmostEqual(ref, calc)
         
-    def test_rm_matrix(self):
+    def test_rm_mat(self):
 
         gs = self.gtos
-        s  = gs.calc_rm_mat(0)
-        r2 = gs.calc_rm_mat(2)
+        s  = calc_rm_mat(gs, 0, gs)
+        r2 = calc_rm_mat(gs, 2, gs)
+        d2 = calc_d2_mat(gs, gs)
         self.assertAlmostEqual(1.0, s[0, 0])
 
-        fs = [lambda r: r     * np.exp(-1.1*r*r),
-              lambda r: r*r   * np.exp(-1.4*r*r),
-              lambda r: r*r*r * np.exp(-1.2*r*r),
-              lambda r: r*r*r * np.exp(-(1.3-0.1j)*r*r),
-              lambda r: 1.1*r**5*np.exp(-1.3*r*r) + 
-              0.1*r**6*np.exp(-1.4*r*r)]
-        
-        s00, err = quad(lambda r: fs[0](r)*fs[0](r), 0, 10.0)
-        s11, err = quad(lambda r: fs[1](r)*fs[1](r), 0, 10.0)
-        s44, err = quad(lambda r: fs[4](r)*fs[4](r), 0, 10.0)
-        r2_01, err = quad(lambda r: fs[0](r)*fs[1](r)*r*r, 0, 10.0)
-        r2_14, err = quad(lambda r: fs[1](r)*fs[4](r)*r*r, 0, 10.0)
-        self.assertAlmostEqual(r2[0, 1], r2_01/np.sqrt(s00*s11))
-        self.assertAlmostEqual(r2[1, 4], r2_14/np.sqrt(s11*s44))
+        fs = self.fs
+        r = self.r
+        rm = lambda f1,m,f2: integrate(f1*f2*r**m, (r,0,oo))
+        s00   = rm(fs[0], 0, fs[0])
+        s11   = rm(fs[1], 0, fs[1])
+        s44   = rm(fs[4], 0, fs[4])
+        r2_01 = rm(fs[0], 2, fs[1])
+        r2_14 = rm(fs[1], 2, fs[4])
 
-    def test_d2_mat(self):
-        gs = self.gtos
-        d2 = gs.calc_d2_mat()
-        dif= d2-d2.transpose()
-        self.assertAlmostEqual(0.0, dif[0, 1])
+        d2_14 = integrate(fs[1]*diff(fs[4], r, 2), (r,0,oo))
+
+        self.assertAlmostEqual(r2[0, 1], r2_01/sqrt(s00*s11))
+        self.assertAlmostEqual(r2[1, 4], r2_14/sqrt(s11*s44))
+        self.assertAlmostEqual(d2[1, 4], d2_14/sqrt(s11*s44))
 
     def test_at_r(self):
         n1 = 2; z1 = 1.0

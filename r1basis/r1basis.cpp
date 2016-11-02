@@ -90,10 +90,10 @@ namespace cbasis {
 
   }
 
-  template<int m>
+  template<int m1, int m2>
   dcomplex EXPIntD2(int na, dcomplex a, int nb, dcomplex b);
   template<>
-  dcomplex EXPIntD2<1>(int ni, dcomplex zi, int nj, dcomplex zj) {
+  dcomplex EXPIntD2<1, 1>(int ni, dcomplex zi, int nj, dcomplex zj) {
 
     //
     // dr2 r^n exp(-zr) = { zz -2nzr^{-1} + (nn-n)r^{-2}} r^n exp[-zr]
@@ -109,7 +109,38 @@ namespace cbasis {
 
   }
   template<>
-  dcomplex EXPIntD2<2>(int ni, dcomplex zi, int nj, dcomplex zj) {
+  dcomplex EXPIntD2<2, 1>(int ni, dcomplex zi, int nj, dcomplex zj) {
+
+    //
+    // dr2 r^n exp(-zr) = { zz -2nzr^{-1} + (nn-n)r^{-2}} r^n exp[-zr]
+    //
+
+    dcomplex acc(0);
+    acc += zj*zj      * EXPInt<2,1>(ni+nj,   zi, zj);
+    acc += -2.0*nj*zj * EXPInt<2,1>(ni+nj-1, zi, zj);
+    if(nj > 1)
+      acc += dcomplex(nj*nj-nj) * EXPInt<2,1>(ni+nj-2, zi, zj);
+
+    return acc;
+
+  }  
+  template<>
+  dcomplex EXPIntD2<1, 2>(int ni, dcomplex zi, int nj, dcomplex zj) {
+    
+    //
+    // dr2 r^n exp(-zr^2) = { 4zz r^{2} -2z(2n+1) + (nn-n)r^{-2}} r^n exp[-zr^2]
+    //
+    
+    dcomplex acc(0);
+    acc += ( +4.0*zj*zj * EXPInt<1,2>(ni+nj+2, zi, zj)
+	     -2.0*(2*nj+1)*zj* EXPInt<1,2>(ni+nj, zi, zj));
+    if(nj > 1)
+      acc += dcomplex(nj*nj-nj) * EXPInt<1,2>(ni+nj-2, zi, zj);
+    return acc;
+    
+  }  
+  template<>
+  dcomplex EXPIntD2<2, 2>(int ni, dcomplex zi, int nj, dcomplex zj) {
     
     //
     // dr2 r^n exp(-zr^2) = { 4zz r^{2} -2z(2n+1) + (nn-n)r^{-2}} r^n exp[-zr^2]
@@ -147,6 +178,117 @@ namespace cbasis {
     return acc;    
   }
 
+  // ==== matrix ====
+  template<int m1, int m2>
+  MatrixXcd CalcRmMat(_EXPs<m1>& a, int M, _EXPs<m2>& b) {
+    
+    if(!a.HasCoef() || !b.HasCoef()) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + "EXP does not have coef. Call SetUp or use no_normal method only";
+      throw runtime_error(msg);
+    }
+    
+    int numa(a.size());
+    int numb(b.size());
+    MatrixXcd mat(numa, numb);
+    
+    for(int i = 0; i < numa; i++)
+      for(int j = 0; j < numb; j++) {
+
+	typename _EXPs<m1>::LC_EXPs bi = a.basis(i);
+	typename _EXPs<m2>::LC_EXPs bj = b.basis(j);
+
+	dcomplex acc(0);
+	for(int ii = 0; ii < bi->size(); ii++) {
+	  for(int jj = 0; jj < bj->size(); jj++) {
+	    dcomplex c(bi->c(ii) * bj->c(jj));
+	    int      n(bi->n(ii) + bj->n(jj));
+	    dcomplex zi(bi->z(ii));
+	    dcomplex zj(bj->z(jj));
+	    acc +=  c * EXPInt<m1, m2>(n+M, zi, zj);
+	  }
+	}
+	mat(i, j) = acc;
+	//mat(i, j) = EXPIntLC<m>(bi, M, bj);
+      }
+
+    return mat;
+  }
+  template MatrixXcd CalcRmMat<1,1>(_EXPs<1>& a, int M, _EXPs<1>& b);
+  template MatrixXcd CalcRmMat<1,2>(_EXPs<1>& a, int M, _EXPs<2>& b);
+  template MatrixXcd CalcRmMat<2,1>(_EXPs<2>& a, int M, _EXPs<1>& b);
+  template MatrixXcd CalcRmMat<2,2>(_EXPs<2>& a, int M, _EXPs<2>& b);
+  
+  template<int m1, int m2>
+  Eigen::MatrixXcd CalcD2Mat(_EXPs<m1>& a, _EXPs<m2>& b) {
+
+    if(!a.HasCoef() || !b.HasCoef()) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + "No coefficient.";
+      throw runtime_error(msg);
+    }
+
+    int numa(a.size());
+    int numb(b.size());
+    MatrixXcd mat(numa, numb);
+    
+    for(int i = 0; i < numa; i++) {
+      for(int j = 0; j < numb; j++) {
+	
+	typename _EXPs<m1>::LC_EXPs bi = a.basis(i);
+	typename _EXPs<m2>::LC_EXPs bj = b.basis(j);
+	
+	dcomplex acc(0);
+	for(int ii = 0; ii < bi->size(); ii++)
+	  for(int jj = 0; jj < bj->size(); jj++) {
+	    dcomplex c(bi->c(ii) * bj->c(jj));
+	    int      ni(bi->n(ii));
+	    int      nj(bj->n(jj));
+	    dcomplex zi(bi->z(ii));
+	    dcomplex zj(bj->z(jj));
+	    acc += c * EXPIntD2<m1, m2>(ni, zi, nj, zj);
+	  }
+	mat(i, j) = acc;
+      }
+    }
+    
+    return mat;    
+
+  }
+  template MatrixXcd CalcD2Mat<1,1>(_EXPs<1>& a, _EXPs<1>& b);
+  template MatrixXcd CalcD2Mat<1,2>(_EXPs<1>& a, _EXPs<2>& b);
+  template MatrixXcd CalcD2Mat<2,1>(_EXPs<2>& a, _EXPs<1>& b);
+  template MatrixXcd CalcD2Mat<2,2>(_EXPs<2>& a, _EXPs<2>& b);
+				  
+  /*
+  template<int m1, int m2>
+  MatrixXcd CalcRMMat(shared_ptr<_EXPs<m1> > a, int M,
+		      shared_ptr<_EXPs<m2> >b) {
+    return MatrixXcd::Zero(2, 2);
+  }
+  template<int m1, int m2>
+  MatrixXcd CalcD2Mat(boost::shared_ptr<_EXPs<m1> > a,
+		      boost::shared_ptr<_EXPs<m2> > b) {
+    return MatrixXcd::Zero(2, 2);
+  }
+  template MatrixXcd CalcD2Mat<1,1>(boost::shared_ptr<_EXPs<1> > a,
+				    boost::shared_ptr<_EXPs<1> > b);
+  */
+  /*
+  MatrixXcd CalcRMMatSG(STOs a, int M, GTO b) {return }
+  MatrixXcd CalcRMMatGS(GTOs a, int M, STO b);
+  MatrixXcd CalcRMMatGG(GTOs a, int M, GTO b);
+
+  MatrixXcd CalcD2MatSS(STOs a, STO b);
+  MatrixXcd CalcD2MatSG(STOs a, GTO b);
+  MatrixXcd CalcD2MatGS(GTOs a, STO b);
+  MatrixXcd CalcD2MatGG(GTOs a, GTO b);
+
+  VectorXcd CalcVecSS(STOs a, LC_STOs b);
+  VectorXcd CalcVecSG(STOs a, LC_GTOs b);
+  VectorXcd CalcVecGS(GTOs a, LC_STOs b);
+  VectorXcd CalcVecGG(GTOs a, LC_GTOs b);    
+  */
 
   // ==== member field ====
   template<int m>
@@ -428,7 +570,7 @@ namespace cbasis {
 	    int      nj(bj->n(jj));
 	    dcomplex zi(bi->z(ii));
 	    dcomplex zj(bj->z(jj));
-	    acc += c * EXPIntD2<m>(ni, zi, nj, zj);
+	    acc += c * EXPIntD2<m,m>(ni, zi, nj, zj);
 	  }
 	mat(i, j) = acc;
       }

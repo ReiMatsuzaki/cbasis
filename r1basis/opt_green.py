@@ -48,9 +48,9 @@ def one_deriv(us):
             dui.add(dci, ni,   zi)
             dui.add(-ci, ni+2, zi)
 
-            dui.add_not_normal(dui)
+            dus.add_not_normal(dui)
 
-        dui.setup()
+        dus.setup()
         return dus
 
 def two_deriv(us):
@@ -83,7 +83,7 @@ def two_deriv(us):
             dci = ci * (-2.0) * (ni+0.5)/zi
             dui.add(dci, ni+1, zi)
             ddci= ci * (ni*ni - 1.0/4.0) / (zi * zi)
-            dui.add_(ddci, ni, zi)
+            dui.add(ddci, ni, zi)
 
             dus.add_not_normal(dui)
 
@@ -98,14 +98,35 @@ def two_deriv(us):
             ni = ui.n(0)
             zi = ui.z(0)
 
-            dui = LC_STOs()
-            dui.add(ci, ni+2,  zi)
+            dui = LC_GTOs()
+            dui.add(ci, ni+4,  zi)
             dci = ci * (-2) * (2*ni+1)/(4*zi)
-            dui.add(dci, ni+1, zi)
+            dui.add(dci, ni+2, zi)
             ddci= ci * (4*ni*ni - 4*ni -3) / (16 * zi * zi)
             dui.add(ddci, ni, zi)
             
             dus.add_not_normal(dui)
 
         dus.setup()
-        return dus    
+        return dus
+def vgh_green(us, R, S):
+    """ Returns value, gradient and Hessian for discretized matrix element of 
+    Green's function. 
+    .       <R|G|S>
+
+    Inputs
+    ------
+    us : STOs or GTOs
+    R  : LC_STO or LC_GTO
+    S  : LC_STO or LC_GTO
+
+    Returns
+    -------
+    val   : scalar
+    grad  : VectorXc
+    hess  : MatrixXc
+    """
+
+    
+    
+    

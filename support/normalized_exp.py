@@ -18,11 +18,12 @@ print ""
 print "==== GTO ===="
 
 nfunc = N * (r**n) * exp(-z*r*r)
-print "nfunc'/nfunc : ", simplify(diff(nfunc, z)/nfunc)
+print "GTO'/GTO : ", simplify(diff(nfunc, z)/nfunc)
+print "GTO''/GTO : ", simplify(diff(nfunc, z, 2)/nfunc)
 
 func = (r**n)*exp(-z*r*r)
 nterm = 1/sqrt(integrate(func*func, (r,0,oo), conds='none'))
-print n, "GTO:", nterm, func
+#print n, "GTO:", nterm, func
 print "N'/N = ", simplify(diff(nterm, z)/nterm)
 print "N''/N = ", simplify(diff(nterm, z, 2)/nterm)
 
@@ -41,8 +42,8 @@ N''/N =  (n**2 - 1/4)/z**2
 =============
 
 ==== GTO ====
-nfunc'/nfunc :  -r**2 + Derivative(N(z), z)/N(z)
-n GTO: 2/sqrt((2*z)**(-n + 1/2)*gamma(n + 1/2)/z) r**n*exp(-r**2*z)
+GTO'/GTO :  -r**2 + Derivative(N(z), z)/N(z)
+GTO''/GTO :  (r**4*N(z) - 2*r**2*Derivative(N(z), z) + Derivative(N(z), z, z))/N(z)
 N'/N =  (2*n + 1)/(4*z)
 N''/N =  (4*n**2 - 4*n - 3)/(16*z**2)
 1 GTO: 2*2**(3/4)/(pi**(1/4)*sqrt(z**(-3/2))) r*exp(-r**2*z)

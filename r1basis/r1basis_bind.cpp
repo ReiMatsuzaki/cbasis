@@ -57,6 +57,16 @@ void BindR1Basis() {
   def("int_lc", (dcomplex (*)(LC_STOs, int, LC_STOs))EXPIntLC);
   def("int_lc", (dcomplex (*)(LC_GTOs, int, LC_GTOs))EXPIntLC);
 
+  def("calc_rm_mat", &CalcRmMat<1,1>);
+  def("calc_rm_mat", &CalcRmMat<1,2>);
+  def("calc_rm_mat", &CalcRmMat<2,1>);
+  def("calc_rm_mat", &CalcRmMat<2,2>);
+  
+  def("calc_d2_mat", &CalcD2Mat<1,1>);
+  def("calc_d2_mat", &CalcD2Mat<1,2>);
+  def("calc_d2_mat", &CalcD2Mat<2,1>);
+  def("calc_d2_mat", &CalcD2Mat<2,2>);
+
   typedef _EXPs<1> _STOs;
   typedef _EXPs<2> _GTOs;
 
@@ -69,16 +79,16 @@ void BindR1Basis() {
     .def("is_normal", &_EXPs<1>::IsNormal)
     .def("has_coef",  &_EXPs<1>::HasCoef)
     .def("exp_power", &_EXPs<1>::exp_power)
-    .def("add", &_EXPs<1>::AddPrim, return_self<>())
-    .def("add", &_EXPs<1>::AddPrims, return_self<>())
-    .def("add", &_EXPs<1>::AddLC, return_self<>())
+    .def("add",       &_EXPs<1>::AddPrim, return_self<>())
+    .def("add",       &_EXPs<1>::AddPrims, return_self<>())
+    .def("add",       &_EXPs<1>::AddLC, return_self<>())
     .def("add_not_normal", &_EXPs<1>::AddNotNormalPrim, return_self<>())
     .def("add_not_normal", &_EXPs<1>::AddNotNormalLC, return_self<>())    
-    .def("setup",     &_EXPs<1>::SetUp, return_self<>())
-    .def("str",   &_EXPs<1>::str)
-    .def("at_r",  &_EXPs<1>::AtR)
-    .def("clone", &_EXPs<1>::Clone)
-    .def("conj",  &_EXPs<1>::Conj)
+    .def("setup",       &_EXPs<1>::SetUp, return_self<>())
+    .def("str",         &_EXPs<1>::str)
+    .def("at_r",        &_EXPs<1>::AtR)
+    .def("clone",       &_EXPs<1>::Clone)
+    .def("conj",        &_EXPs<1>::Conj)
     .def("calc_rm_mat", &_EXPs<1>::CalcRmMat)
     .def("calc_d2_mat", &_EXPs<1>::CalcD2Mat)
     .def("calc_vec",    &_EXPs<1>::CalcVecSTO)
@@ -87,7 +97,7 @@ void BindR1Basis() {
 
   register_ptr_to_python<GTOs>();
   def("GTOs", &Create_GTOs);
-  class_<_GTOs>("_STOs", init<>())
+  class_<_GTOs>("_GTOs", init<>())
     .def("size",      &_EXPs<2>::size)
     .def("basis",     &_EXPs<2>::basis)
     .def("only_prim", &_EXPs<2>::OnlyPrim)
@@ -96,7 +106,9 @@ void BindR1Basis() {
     .def("exp_power", &_EXPs<2>::exp_power)
     .def("add",       &_EXPs<2>::AddPrim, return_self<>())
     .def("add",       &_EXPs<2>::AddPrims, return_self<>())
-    .def("add_lc",    &_EXPs<2>::AddLC, return_self<>())
+    .def("add",       &_EXPs<2>::AddLC, return_self<>())
+    .def("add_not_normal", &_EXPs<2>::AddNotNormalPrim, return_self<>())
+    .def("add_not_normal", &_EXPs<2>::AddNotNormalLC, return_self<>())        
     .def("setup",     &_EXPs<2>::SetUp, return_self<>())
     .def("str",   &_EXPs<2>::str)
     .def("at_r",  &_EXPs<2>::AtR)
