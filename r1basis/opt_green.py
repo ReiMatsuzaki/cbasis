@@ -152,6 +152,25 @@ class H_Photoionization():
                 raise(Exception("not implemented yet"))
         return calc_vec(a, driv)
 
+
+def get_opt_index(opt_list):
+    """
+    [False, False]       -> []
+    [True, True]         -> [0, 1]
+    [True, False, True]  -> [0, 2]
+    [False, False, True] -> [2]
+    """
+    
+    num = len(opt_list)
+    num_d = len([1 for opt_q in opt_list if opt_q])
+    opt_index = range(num_d)
+    i_d = 0
+    for i in range(num):
+        if opt_list[i]:
+            opt_index[i_d] = i
+            i_d = i_d + 1
+    return opt_index
+
 def vgh_green(h_pi, w, us, opt_list):
     """ Returns value, gradient and Hessian for discretized matrix element of 
     Green's function. 
@@ -172,16 +191,12 @@ def vgh_green(h_pi, w, us, opt_list):
     """
     if(us.size() != len(opt_list)):
         raise(Exception("size mismatch"))
-    
+
     num   = us.size()
-    num_d = len([1 for opt_q in opt_list if opt_q])
-    opt_index = range(num_d)
-    i_d = 0
-    for i in range(num):
-        if opt_list[i]:
-            opt_index[i_d] = i
-            ++i_d
-            
+    num_d = len([1 for opt_q in opt_list if opt_q])    
+    
+    opt_index = get_opt_index(opt_list)
+
     dus = one_deriv(us)
     ddus= two_deriv(us)
     L00 = h_pi.l_mat(us,  us, w)
@@ -206,11 +221,10 @@ def vgh_green(h_pi, w, us, opt_list):
         Ri = VectorXc.Zero(num); Ri[i] = R1[i_d]
         Li = MatrixXc.Zero(num,num);
         for ii in range(num):
-            Li[i,ii] = L10[i_d, ii]
-            Li[ii,i] = L10[i_d, ii]
-        Li[i, i] = L10[i_d, i] * 2.0
+            Li[i,ii] += L10[i_d, ii]
+            Li[ii,i] += L10[i_d, ii]
         g_i = tdot(Si, G*R0) + tdot(S0, G*Ri) - tdot(S0, G*Li*G*R0)
-        grad[i] = g_i
+        grad[i_d] = g_i
             
         for j_d in range(num_d):
             j = opt_index[j_d]
@@ -218,9 +232,8 @@ def vgh_green(h_pi, w, us, opt_list):
             Rj = VectorXc.Zero(num); Rj[j] = R1[j_d]
             Lj = MatrixXc.Zero(num, num);
             for jj in range(num):
-                Lj[j,jj] = L10[j_d, jj]
-                Lj[jj,j] = L10[j_d, jj]
-            Lj[j, j] = L10[j_d, j] * 2.0
+                Lj[j,jj] += L10[j_d, jj]
+                Lj[jj,j] += L10[j_d, jj]
             Lij= MatrixXc.Zero(num, num)
             if i==j:
                 for jj in range(num):
