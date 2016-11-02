@@ -5,7 +5,7 @@ from scipy.linalg import eig, solve
 from sympy import Symbol, oo, diff, integrate, exp, sqrt
 
 from r1basis import *
-from opt_driv import *
+from opt_green import *
 sys.path.append("../src_py/nnewton")
 from nnewton import *
 
@@ -40,14 +40,6 @@ class Test_driv_basis(unittest.TestCase):
             msg = "Basis={0}, second derivative\nref = {1}\ncalc= {2}\n".format(name, ref_ddy, calc_ddy)
             
             self.assertAlmostEqual(ref_ddy, calc_ddy, msg=msg)
-
-            
-class Test_first(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def test_add(self):
-        self.assertEqual(3, add(1,2))
 
 class Test_r1_linear_comb(unittest.TestCase):
     def setUp(self):
@@ -278,11 +270,18 @@ class Test_matele(unittest.TestCase):
     def setUp(self):
         pass
 
+    def test_sto_gto(self):
+        for n in [0,1,2,3,4,5]:
+            s = STOs().add_not_normal(2.0, n, 1.2).setup()
+            g = GTOs().add_not_normal(1.1, 0, 1.1).setup()
+            ele = calc_rm_mat(s, 0, g)[0, 0]
+            sg = lambda x: x**n*2.0*1.1*np.exp(-1.2*x-1.1*x*x)
+            (ref, err) = quad(sg, 0, 10.0)
+            self.assertAlmostEqual(ref, ele)
+    
     def test_mat(self):
         s = STOs().add_not_normal(2.0, 3, 1.2-0.3j).setup()
         g = GTOs().add_not_normal(1.3, 2, 1.1-0.1j).setup()
-
-        
 
         r2_s_lc = LC_STOs().add(2.0, 5, 1.2-0.3j)
         r2_g_lc = LC_GTOs().add(1.3, 4, 1.1-0.1j)
@@ -309,6 +308,32 @@ class Test_matele(unittest.TestCase):
         self.assertAlmostEqual(g2g_ref, g2g2)
         self.assertAlmostEqual(s2s_ref, s2s2)
 
+    def test_mat2(self):
+        s = STOs().add_not_normal(2.2, 3, 1.1).setup()
+        g = GTOs().add_not_normal(1.3, 2, 1.2).setup()
+        
+        s2s_calc = calc_rm_mat(s, 2, s)[0, 0]
+        g2g_calc = calc_rm_mat(g, 2, g)[0, 0]
+        s2g_calc = calc_rm_mat(s, 2, g)[0, 0]
+        sDs_calc = calc_d2_mat(s, s)[0, 0]
+        gDg_calc = calc_d2_mat(g, g)[0, 0]
+        sDg_calc = calc_d2_mat(s, g)[0, 0]
+
+        ## see support/int_exp.py
+        s2s_ref= 161.644807242673
+        g2g_ref= 0.131127436620057
+        s2g_ref= 0.663645309086432
+        sDs_ref= -3.38091660405710
+        gDg_ref= -0.352470549634713
+        sDg_ref= 0.208872645967760
+
+        self.assertAlmostEqual(s2s_ref, s2s_calc)
+        self.assertAlmostEqual(g2g_ref, g2g_calc)
+        self.assertAlmostEqual(s2g_ref, s2g_calc)
+        self.assertAlmostEqual(sDs_ref, sDs_calc)
+        self.assertAlmostEqual(gDg_ref, gDg_calc)
+        self.assertAlmostEqual(sDg_ref, sDg_calc)
+        
 class Test_driv(unittest.TestCase):
 
     def setUp(self):
@@ -346,6 +371,20 @@ class Test_driv(unittest.TestCase):
         ref = 1.88562800720386-0.362705406693342j
         self.assertAlmostEqual(3.0*ref, alpha)
 
+    def test_grad_one(self):
+
+        z0 = [1.3-0.2j]
+        h_pi = H_Photoionization(1, 0, 1, "length")
+        get_basis  = lambda z: STOs().add(2, z).setup()
+        calc_green = lambda z: vgh_green(h_pi, 1.0, get_basis(z), [True])[0]
+        
+        (val, calc_grad, calc_hess) = vgh_green(h_pi, 1.0, get_basis(z0), [True])
+        ref_grad = num_pd(calc_green, z0, 0.0001, 0, method='c1')
+        ref_hess = num_pd2(calc_green, z0, 0.0001, 0, 0, method='c1')
+        print val
+        print calc_grad, ref_grad
+        print calc_hess, ref_hess
+        print calc_green(z0)
         
 """
 class Test_r1gtos(unittest.TestCase):

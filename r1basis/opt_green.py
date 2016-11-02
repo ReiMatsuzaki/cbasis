@@ -109,13 +109,57 @@ def two_deriv(us):
 
         dus.setup()
         return dus
-def vgh_green(us, R, S):
+
+class H_Photoionization():
+    def __init__(self, n0, L0, L1, dipole):
+        self.n0 = n0
+        self.L0 = L0
+        self.L1 = L1
+        self.dipole = dipole
+        self.E0 = -1.0 / (2.0 * n0 * n0)
+        
+        if(abs(L0-L1) != 1):
+            raise(Exception("invalid channel"))
+
+        if(dipole != "length" and dipole != "velocity"):
+            raise(Exception("dipole <- {length, velocity}"))
+
+    def h_mat(self, a, b):
+        d2 = calc_d2_mat(a, b)
+        h = -0.5 * d2
+        if(self.L1 != 0):
+            lam = self.L1 * (self.L1 + 1)
+            r2 = calc_rm_mat(a, -2, b)
+            h += 0.5 * lam * r2
+            
+        r1 = calc_rm_mat(a, -1, b)
+        h += -r1
+        return h
+
+    def l_mat(self, a, b, w):
+        return calc_rm_mat(a, 0, b) * (w + self.E0) - self.h_mat(a, b)
+
+    def dip_vec(self, a):
+        if(self.dipole == "length"):
+            if(self.n0 == 1 and self.L0 == 0):
+                driv = LC_STOs().add(2.0, 2, 1.0)
+            else:
+                raise(Exception("not implemented yet"))
+        else:
+            if(self.n0 == 1 and self.L0 == 0):
+                driv = LC_STOs(2.0, 1, 1.0)
+            else:
+                raise(Exception("not implemented yet"))
+        return calc_vec(a, driv)
+
+def vgh_green(h_pi, w, us, opt_list):
     """ Returns value, gradient and Hessian for discretized matrix element of 
     Green's function. 
     .       <R|G|S>
 
     Inputs
     ------
+    h_pi: H_Photoionization
     us : STOs or GTOs
     R  : LC_STO or LC_GTO
     S  : LC_STO or LC_GTO
@@ -126,7 +170,74 @@ def vgh_green(us, R, S):
     grad  : VectorXc
     hess  : MatrixXc
     """
-
+    if(us.size() != len(opt_list)):
+        raise(Exception("size mismatch"))
     
+    num   = us.size()
+    num_d = len([1 for opt_q in opt_list if opt_q])
+    opt_index = range(num_d)
+    i_d = 0
+    for i in range(num):
+        if opt_list[i]:
+            opt_index[i_d] = i
+            ++i_d
+            
+    dus = one_deriv(us)
+    ddus= two_deriv(us)
+    L00 = h_pi.l_mat(us,  us, w)
+    L10 = h_pi.l_mat(dus, us, w)
+    L11 = h_pi.l_mat(dus, dus,w)
+    L20 = h_pi.l_mat(ddus,us, w)
+    R0  = h_pi.dip_vec(us)
+    R1  = h_pi.dip_vec(dus)
+    R2  = h_pi.dip_vec(ddus)
+    S0  = h_pi.dip_vec(us)
+    S1  = h_pi.dip_vec(dus)
+    S2  = h_pi.dip_vec(ddus)
+
+    G = L00.inverse()
+
+    val = tdot(S0, G*R0)
+    grad = VectorXc.Zero(num_d)
+    hess = MatrixXc.Zero(num_d, num_d)
+    for i_d in range(num_d):
+        i = opt_index[i_d]
+        Si = VectorXc.Zero(num); Si[i] = S1[i_d]
+        Ri = VectorXc.Zero(num); Ri[i] = R1[i_d]
+        Li = MatrixXc.Zero(num,num);
+        for ii in range(num):
+            Li[i,ii] = L10[i_d, ii]
+            Li[ii,i] = L10[i_d, ii]
+        Li[i, i] = L10[i_d, i] * 2.0
+        g_i = tdot(Si, G*R0) + tdot(S0, G*Ri) - tdot(S0, G*Li*G*R0)
+        grad[i] = g_i
+            
+        for j_d in range(num_d):
+            j = opt_index[j_d]
+            Sj = VectorXc.Zero(num); Sj[j] = S1[j_d]
+            Rj = VectorXc.Zero(num); Rj[j] = R1[j_d]
+            Lj = MatrixXc.Zero(num, num);
+            for jj in range(num):
+                Lj[j,jj] = L10[j_d, jj]
+                Lj[jj,j] = L10[j_d, jj]
+            Lj[j, j] = L10[j_d, j] * 2.0
+            Lij= MatrixXc.Zero(num, num)
+            if i==j:
+                for jj in range(num):
+                    Lij[jj,j] += L20[j_d, jj]
+                    Lij[j,jj] += L20[j_d, jj]
+            Lij[i,j] += L11[i_d, j_d]
+            Lij[i,j] += L11[j_d, i_d]
+            h_ij = (tdot(Sj, G*Ri) - tdot(Sj, G*Li*G*R0) + tdot(Si,G*Rj)
+                    -tdot(S0, G*Lj*G*Ri) + tdot(S0, G*Lj*G*Li*G*R0)
+                    -tdot(Si, G*Lj*G*R0)  - tdot(S0, G*Lij*G*R0)
+                    +tdot(S0, G*Li*G*Lj*G*R0) - tdot(S0, G*Li*G*Rj))
+            if i==j:
+                Sij = VectorXc.Zero(num); Sij[i]=S2[i_d]
+                Rij = VectorXc.Zero(num); Rij[i]=R2[i_d]
+                h_ij += tdot(Sij, G*R0) + tdot(S0, G*Rij)
+            hess[i,j] = h_ij
+            
+    return (val, grad, hess)
     
     

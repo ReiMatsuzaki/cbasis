@@ -80,8 +80,9 @@ namespace cbasis {
     if(n == 1) {
       return (-sqrt(M_PI)*a*erfcx(a/(2.0*sqrt(b)))
 	      +2.0*sqrt(b)) / (4.0*pow(b,1.5));
-    } 
-    throw runtime_error("not implemented yet");
+    }
+
+    return (n-1.0)/(2.0*b) * STO_GTOInt(n-2,a,b) - a/(2.0*b) * STO_GTOInt(n-1,a,b);
   }
   template<int m1, int m2>
   dcomplex EXPInt(int n, dcomplex a, dcomplex b);
@@ -95,19 +96,11 @@ namespace cbasis {
   }
   template<>
   dcomplex EXPInt<1,2>(int n, dcomplex a, dcomplex b) {
-
-    string msg; SUB_LOCATION(msg);
-    throw runtime_error(msg);
-    return 1.0;
-
+    return STO_GTOInt(n, a, b);
   }
   template<>
   dcomplex EXPInt<2,1>(int n, dcomplex a, dcomplex b) {
-
-    string msg; SUB_LOCATION(msg);
-    throw runtime_error(msg);
-    return 1.0;
-
+    return STO_GTOInt(n, b, a);
   }
 
   template<int m1, int m2>
