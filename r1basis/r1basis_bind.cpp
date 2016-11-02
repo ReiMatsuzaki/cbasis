@@ -57,6 +57,9 @@ void BindR1Basis() {
   def("int_lc", (dcomplex (*)(LC_STOs, int, LC_STOs))EXPIntLC);
   def("int_lc", (dcomplex (*)(LC_GTOs, int, LC_GTOs))EXPIntLC);
 
+  def("calc_vec", &CalcVec<1,1>);
+  def("calc_vec", &CalcVec<2,2>);
+  
   def("calc_rm_mat", &CalcRmMat<1,1>);
   def("calc_rm_mat", &CalcRmMat<1,2>);
   def("calc_rm_mat", &CalcRmMat<2,1>);

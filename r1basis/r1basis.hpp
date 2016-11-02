@@ -31,7 +31,6 @@ namespace cbasis {
     // ---- Member field ----
     std::vector<LC_EXPs> basis_;
     std::vector<int>     coef_type_;
-    bool setupq_;
     
   public:
     // ---- Constructors ----
@@ -83,9 +82,11 @@ namespace cbasis {
   dcomplex EXPIntLC(LC_GTOs a, int m, LC_GTOs b);
 
   template<int m1, int m2>
-  Eigen::MatrixXcd CalcRmMat(_EXPs<m1>& a,
-			     int M,
-			     _EXPs<m2>& b);
+  Eigen::VectorXcd CalcVec(_EXPs<m1>& a, _LC_EXPs<m2>& b);
+  
+  template<int m1, int m2>
+  Eigen::MatrixXcd CalcRmMat(_EXPs<m1>& a, int M, _EXPs<m2>& b);
+			     
   template<int m1, int m2>
   Eigen::MatrixXcd CalcD2Mat(_EXPs<m1>& a,
 			     _EXPs<m2>& b);  

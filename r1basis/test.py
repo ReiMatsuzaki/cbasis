@@ -177,17 +177,10 @@ class Test_gto(unittest.TestCase):
         cg = self.gtos.conj()
         self.assertAlmostEqual(1.3+0.1j, cg.basis(3).z(0))
         
-    def test_raise(self):
+    def _test_raise(self):
         g = GTOs()
         g.add(2, 1.1)
-        self.assertRaises(RuntimeError, g.calc_rm_mat, 0)
-
-    def test_int_gto(self):
-        n = 2
-        z = 2.3
-        f = lambda r: r**n*np.exp(-z*r*r)
-        nume, err = quad(f, 0, 4.0)
-        self.assertAlmostEqual(nume, gto_int(n, z))
+        self.assertRaises(RuntimeError, calc_rm_mat(g, 0, g))
 
     def test_int_gto_lc(self):
         a = LC_GTOs()
@@ -198,29 +191,6 @@ class Test_gto(unittest.TestCase):
         calc = int_lc(a, 2, b)
         ref,err  = quad(lambda r: (a.at_r([r])[0]*r*r*b.at_r([r])[0]).real, 0, 4.0)
         self.assertAlmostEqual(ref, calc)
-        
-    def test_rm_mat(self):
-
-        gs = self.gtos
-        s  = calc_rm_mat(gs, 0, gs)
-        r2 = calc_rm_mat(gs, 2, gs)
-        d2 = calc_d2_mat(gs, gs)
-        self.assertAlmostEqual(1.0, s[0, 0])
-
-        fs = self.fs
-        r = self.r
-        rm = lambda f1,m,f2: integrate(f1*f2*r**m, (r,0,oo))
-        s00   = rm(fs[0], 0, fs[0])
-        s11   = rm(fs[1], 0, fs[1])
-        s44   = rm(fs[4], 0, fs[4])
-        r2_01 = rm(fs[0], 2, fs[1])
-        r2_14 = rm(fs[1], 2, fs[4])
-
-        d2_14 = integrate(fs[1]*diff(fs[4], r, 2), (r,0,oo))
-
-        self.assertAlmostEqual(r2[0, 1], r2_01/sqrt(s00*s11))
-        self.assertAlmostEqual(r2[1, 4], r2_14/sqrt(s11*s44))
-        self.assertAlmostEqual(d2[1, 4], d2_14/sqrt(s11*s44))
 
     def test_at_r(self):
         n1 = 2; z1 = 1.0
@@ -306,6 +276,39 @@ class Test_sto(unittest.TestCase):
         
         h = -0.5 * s.calc_d2_mat() + s.calc_rm_mat(-2) - s.calc_rm_mat(-1)
         self.assertAlmostEqual(-0.125, h[0,0])
+
+class Test_matele(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_mat(self):
+        s = STOs().add_not_normal(2.0, 3, 1.2-0.3j).setup()
+        g = GTOs().add_not_normal(1.3, 2, 1.1-0.1j).setup()
+
+        r2_s_lc = LC_STOs().add(2.0, 5, 1.2-0.3j)
+        r2_g_lc = LC_GTOs().add(1.3, 4, 1.1-0.1j)
+        
+        s2s_calc = calc_rm_mat(s, 2, s)[0, 0]
+        g2g_calc = calc_rm_mat(g, 2, g)[0, 0]
+        sDs_calc = calc_d2_mat(s, s)[0, 0]
+        gDg_calc = calc_d2_mat(g, g)[0, 0]
+
+        s2s2 = calc_vec(s, r2_s_lc)[0]
+        g2g2 = calc_vec(g, r2_g_lc)[0]
+
+        ## see support/int_exp.py
+        s2s_ref = -27.5296456055511 + 37.4411871137165j
+        g2g_ref = 0.16651663387627 + 0.0546850960763247j
+        sDs_ref = -0.526917955926652 - 1.46206690245985j
+        gDg_ref = -0.395454606004856 - 0.0541117842324456j
+
+        self.assertAlmostEqual(s2s_ref, s2s_calc)
+        self.assertAlmostEqual(g2g_ref, g2g_calc)
+        self.assertAlmostEqual(sDs_ref, sDs_calc)
+        self.assertAlmostEqual(gDg_ref, gDg_calc)
+
+        self.assertAlmostEqual(g2g_ref, g2g2)
+        self.assertAlmostEqual(s2s_ref, s2s2)
 
 class Test_driv(unittest.TestCase):
 

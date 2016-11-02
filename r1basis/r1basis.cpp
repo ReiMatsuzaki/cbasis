@@ -178,6 +178,39 @@ namespace cbasis {
     return acc;    
   }
 
+  // ==== vector ====
+  template<int m1, int m2>
+  VectorXcd CalcVec(_EXPs<m1>& a, _LC_EXPs<m2>& b) {
+    
+    if(!a.HasCoef()) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + "EXP does not have coef. Call SetUp or use no_normal method only";
+      throw runtime_error(msg);
+    }
+    
+    int numa(a.size());
+    VectorXcd vec(numa);
+    
+    for(int i = 0; i < numa; i++) {
+      
+	typename _EXPs<m1>::LC_EXPs bi = a.basis(i);
+	dcomplex acc(0);
+	for(int jj = 0; jj < b.size(); jj++) {
+	  dcomplex c(bi->c(i) * b.c(jj));
+	  int      n(bi->n(i) + b.n(jj));
+	  dcomplex zi(bi->z(i));
+	  dcomplex zj(b.z(jj));
+	  acc +=  c * EXPInt<m1, m2>(n, zi, zj);
+	}
+	vec(i) = acc;
+    }
+    return vec;
+  }
+  template VectorXcd CalcVec<1,1>(_EXPs<1>& a, _LC_EXPs<1>& b);
+  template VectorXcd CalcVec<1,2>(_EXPs<1>& a, _LC_EXPs<2>& b);
+  template VectorXcd CalcVec<2,1>(_EXPs<2>& a, _LC_EXPs<1>& b);
+  template VectorXcd CalcVec<2,2>(_EXPs<2>& a, _LC_EXPs<2>& b);
+  
   // ==== matrix ====
   template<int m1, int m2>
   MatrixXcd CalcRmMat(_EXPs<m1>& a, int M, _EXPs<m2>& b) {
@@ -209,7 +242,6 @@ namespace cbasis {
 	  }
 	}
 	mat(i, j) = acc;
-	//mat(i, j) = EXPIntLC<m>(bi, M, bj);
       }
 
     return mat;
@@ -293,7 +325,6 @@ namespace cbasis {
   // ==== member field ====
   template<int m>
   _EXPs<m>::_EXPs() {
-    this->setupq_ =false;
   }
   template<int m>
   bool _EXPs<m>::OnlyPrim() const {
@@ -363,7 +394,6 @@ namespace cbasis {
       oss << "GTO basis set" << endl;
     }
 
-    oss << "setupq_:" << (this->setupq_ ? "yes" : "no") << endl;
     for(int i = 0; i < this->size(); i++) {
       oss << i << " : " << this->basis(i)->str() << endl;
     }
@@ -394,7 +424,6 @@ namespace cbasis {
   template<int m>
   _EXPs<m>* _EXPs<m>::AddPrim(int n, dcomplex z) {
 
-    this->setupq_ =false;
     LC_EXPs g = Create_LC_EXPs<m>();
     g->Add(1.0, n, z);
     this->basis_.push_back(g);
@@ -405,7 +434,6 @@ namespace cbasis {
   template<int m>
   _EXPs<m>* _EXPs<m>::AddPrims(int n, Eigen::VectorXcd zs) {
 
-    this->setupq_ =false;
     for(int i = 0; i < zs.size(); i++) 
       this->AddPrim(n, zs[i]);    
     return this;
@@ -414,7 +442,6 @@ namespace cbasis {
   template<int m>
   _EXPs<m>* _EXPs<m>::AddLC(LC_EXPs lc) {
     
-    this->setupq_ = false;
     this->basis_.push_back(lc);
     this->coef_type_.push_back(COEF_NO);
     return this;
@@ -423,7 +450,6 @@ namespace cbasis {
   template<int m>
   _EXPs<m>* _EXPs<m>::AddNotNormalPrim(dcomplex c, int n, dcomplex z) {
 
-    this->setupq_ = false;
     LC_EXPs g = Create_LC_EXPs<m>();
     g->Add(c, n, z);
     this->basis_.push_back(g);
@@ -434,7 +460,6 @@ namespace cbasis {
   template<int m>
   _EXPs<m>* _EXPs<m>::AddNotNormalLC(LC_EXPs lc) {
 
-    this->setupq_ = false;
     this->basis_.push_back(lc);
     this->coef_type_.push_back(COEF_NOT_NORMAL);
     return this;
@@ -444,7 +469,7 @@ namespace cbasis {
   template<int m>
   _EXPs<m>* _EXPs<m>::SetUp() {
 
-    if(this->setupq_)
+    if(this->HasCoef())
       return this;
 
     int num(this->size());
@@ -461,7 +486,6 @@ namespace cbasis {
       }
     }
 
-    this->setupq_ = true;
     return this;
     
   }
@@ -469,13 +493,6 @@ namespace cbasis {
   template<int m>
   typename _EXPs<m>::EXPs _EXPs<m>::Clone() const {
     
-    if(!this->setupq_) {
-      string msg;
-      SUB_LOCATION(msg);
-      msg += " : not set up.";
-      throw runtime_error(msg);
-    }
-
     EXPs ptr = Create_EXPs<m>();
 
     int num(this->size());
@@ -489,13 +506,6 @@ namespace cbasis {
   }
   template<int m>
   typename _EXPs<m>::EXPs _EXPs<m>::Conj() const {
-
-    if(!this->setupq_) {
-      string msg;
-      SUB_LOCATION(msg);
-      msg += " : not set up.";
-      throw runtime_error(msg);
-    }    
 
     EXPs ptr = Create_EXPs<m>();
 
@@ -512,12 +522,6 @@ namespace cbasis {
 
   template<int m>
   MatrixXcd _EXPs<m>::CalcRmMat(int M) const {
-    
-    if(!this->setupq_) {
-      string msg; SUB_LOCATION(msg);
-      msg = "\n" + msg + "EXP is not setup.";
-      throw runtime_error(msg);
-    }
     
     int num(this->size());
     MatrixXcd mat(num, num);
@@ -548,12 +552,6 @@ namespace cbasis {
   template<int m>
   MatrixXcd _EXPs<m>::CalcD2Mat() const {
 
-    if(!this->setupq_) {
-      string msg; SUB_LOCATION(msg);
-      msg = "\n" + msg + "EXP is not setup.";
-      throw runtime_error(msg);
-    }
-
     int num(this->size());
     MatrixXcd mat(num, num);
     
@@ -579,12 +577,6 @@ namespace cbasis {
   }
   template<int m>
   VectorXcd _EXPs<m>::CalcVecSTO(LC_STOs o) const {
-
-    if(!this->setupq_) {
-      string msg; SUB_LOCATION(msg);
-      msg += " : basis is not setup.";
-      throw runtime_error(msg);
-    }
     
     int num(this->size());
     int numo(o->size());
@@ -612,11 +604,6 @@ namespace cbasis {
   template<int m>
   VectorXcd _EXPs<m>::CalcVecGTO(LC_GTOs gtos) const {
 
-    if(!this->setupq_) {
-      string msg; SUB_LOCATION(msg);
-      msg += " : GTO is not setup.";
-      throw runtime_error(msg);
-    }
     
     int num(this->size());
     int numo(gtos->size());
