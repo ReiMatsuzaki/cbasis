@@ -217,8 +217,8 @@ class Test_gto(unittest.TestCase):
         g =  GTOs()
         g.add(1, [2.5**n for n in range(-5,5)])
         g.setup()
-        s = g.calc_rm_mat(0)
-        h = -0.5 * g.calc_d2_mat() - g.calc_rm_mat(-1)
+        s = calc_rm_mat(g,0,g)
+        h = -0.5 * calc_d2_mat(g, g) - calc_rm_mat(g, -1, g)
         (val,vec) =  eig(h, s)
         index = 5
         ene = val[index]
@@ -237,12 +237,10 @@ class Test_gto(unittest.TestCase):
         g =  GTOs()
         g.add(2, [2.5**n for n in range(-5,5)])
         g.setup()
-        s = g.calc_rm_mat(0)
-        h = -0.5 * g.calc_d2_mat() + g.calc_rm_mat(-2) - g.calc_rm_mat(-1)
+        s = calc_rm_mat(g, 0, g)
+        h = -0.5 * calc_d2_mat(g,g) + calc_rm_mat(g,-2,g) - calc_rm_mat(g,-1,g)
         (val,vec) =  eig(h, s)
         self.assertAlmostEqual(-0.125, val[6], places=3)
-
-
 
 class Test_sto(unittest.TestCase):
     def setUp(self):
@@ -265,16 +263,15 @@ class Test_sto(unittest.TestCase):
         sto1 = LC_STOs()
         sto1.add(2.0, 2, 1.0)
         
-        vec = stos.calc_vec(sto1)
+        vec = calc_vec(stos, sto1)
         self.assertEqual(2, len(vec))
-        
 
     def test_hydrogen(self):
         s = STOs()
         s.add(2, 0.5)
         s.setup()
         
-        h = -0.5 * s.calc_d2_mat() + s.calc_rm_mat(-2) - s.calc_rm_mat(-1)
+        h = -0.5 * calc_d2_mat(s,s) + calc_rm_mat(s,-2,s) - calc_rm_mat(s,-1,s)
         self.assertAlmostEqual(-0.125, h[0,0])
 
 class Test_matele(unittest.TestCase):
@@ -284,6 +281,8 @@ class Test_matele(unittest.TestCase):
     def test_mat(self):
         s = STOs().add_not_normal(2.0, 3, 1.2-0.3j).setup()
         g = GTOs().add_not_normal(1.3, 2, 1.1-0.1j).setup()
+
+        
 
         r2_s_lc = LC_STOs().add(2.0, 5, 1.2-0.3j)
         r2_g_lc = LC_GTOs().add(1.3, 4, 1.1-0.1j)
@@ -329,32 +328,24 @@ class Test_driv(unittest.TestCase):
 
         driv = LC_STOs()
         driv.add(2.0, 2, 1.0)
-
+        
         ene = 0.5
 
-        s = ss.calc_rm_mat(0)
-        d2= ss.calc_d2_mat()
-        r2= ss.calc_rm_mat(-2)
-        r1= ss.calc_rm_mat(-1)
+        s = calc_rm_mat(ss, 0,  ss)
+        d2= calc_d2_mat(ss,     ss)
+        r2= calc_rm_mat(ss, -2, ss)
+        r1= calc_rm_mat(ss, -1, ss)
         lmat = (  s * ene
                 + d2* 0.5
                 + r2* (-1.0)
                 + r1)
-        #print "lmat:", lmat
-        mvec = ss.calc_vec(driv)
-        #print "mvec", mvec
+        mvec = calc_vec(ss, driv)
         cs = solve(lmat, mvec)
         alpha = np.dot(cs, mvec)
         w = ene + 0.5
         ref = 1.88562800720386-0.362705406693342j
         self.assertAlmostEqual(3.0*ref, alpha)
 
-class Test_opt_driv(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def test_opt(self):
-        print 2
         
 """
 class Test_r1gtos(unittest.TestCase):

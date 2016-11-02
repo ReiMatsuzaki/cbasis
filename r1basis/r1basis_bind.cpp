@@ -4,18 +4,20 @@
 #include <boost/python/suite/indexing/map_indexing_suite.hpp>
 #include <Eigen/Core>
 
+#include "erfc.hpp"
 #include "r1_lc.hpp"
 #include "r1basis.hpp"
 
 using namespace Eigen;
 using namespace std;
 using namespace cbasis;
+using namespace erfc_mori;
 using namespace boost::python;
 
-int add(int a, int b) {
-  return a+b;
+void BindMath() {
+  def("erfc", &erfc<dcomplex>);
+  def("erfcx", &erfcx<dcomplex>);
 }
- 
 void BindR1LC() {
   
   typedef _LC_EXPs<1> _LC_STOs;
@@ -69,7 +71,7 @@ void BindR1Basis() {
   def("calc_d2_mat", &CalcD2Mat<1,2>);
   def("calc_d2_mat", &CalcD2Mat<2,1>);
   def("calc_d2_mat", &CalcD2Mat<2,2>);
-
+  
   typedef _EXPs<1> _STOs;
   typedef _EXPs<2> _GTOs;
 
@@ -127,8 +129,8 @@ void BindR1Basis() {
 BOOST_PYTHON_MODULE(r1basis_bind) {
 
   Py_Initialize();
+  BindMath();
   BindR1LC();
   BindR1Basis();
-  def("add", &add);
   
 }

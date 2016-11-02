@@ -1,4 +1,4 @@
-#include "typedef.hpp"
+#include "../src_cpp/typedef.hpp"
 #include "erfc.hpp"
 
 namespace erfc_mori {
@@ -152,6 +152,19 @@ namespace erfc_mori {
       return (1);    
 
   }
+  template<class F> F erfc(F x) {
+    F y;
+    ErfcCalcData data;
+    Erfc<F>(x, y, data);
+    return y;
+  }
+  template<class F> F erfcx(F x) {
+    F y;
+    ErfcCalcData data;
+    Exp2Erfc(x, y, data);
+    return y;
+  }    
+  
   
   // explicit instance
   typedef std::complex<double> dcomplex;
@@ -170,5 +183,8 @@ namespace erfc_mori {
   template int Exp2Erfc<double>(double x, double& y,
 				ErfcCalcData& data);
   template int Exp2Erfc<dcomplex>(dcomplex x, dcomplex& y, ErfcCalcData& data);  
-			    
+
+  template dcomplex erfc(dcomplex x);
+  template dcomplex erfcx(dcomplex x);
+  
 }

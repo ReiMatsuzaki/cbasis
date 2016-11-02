@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <iostream>
+#include "erfc.hpp"
 #include "../src_cpp/fact.hpp"
 #include "../src_cpp/macros.hpp"
 #include "r1basis.hpp"
@@ -7,13 +8,14 @@
 
 using namespace std;
 using namespace Eigen;
+using namespace erfc_mori;
 
 namespace cbasis {
 
   // ==== create =====
   template<int m>
   boost::shared_ptr<_EXPs<m> > Create_EXPs() {
-
+    
     typedef typename _EXPs<m>::EXPs EXPs;
     EXPs ptr(new _EXPs<m>);
     return ptr;
@@ -62,6 +64,24 @@ namespace cbasis {
 
     return dcomplex(n-1)/(2.0*a) * GTOInt(n-2, a);
 
+  }
+  dcomplex STO_GTOInt(int n, dcomplex a, dcomplex b) {
+
+    if(n < 0) {
+      std::string msg; SUB_LOCATION(msg);
+      msg += "\nn must be bigger than 0";
+      throw std::runtime_error(msg);
+    }
+
+    if(n == 0) {
+      //return sqrt(M_PI)*Erfc(a/(2*sqrt(b)))*exp(a*a/(4.0*b))/(2.0*sqrt(b))
+      return sqrt(M_PI) * erfcx(a/(2.0*sqrt(b))) /(2.0*sqrt(b));
+    }
+    if(n == 1) {
+      return (-sqrt(M_PI)*a*erfcx(a/(2.0*sqrt(b)))
+	      +2.0*sqrt(b)) / (4.0*pow(b,1.5));
+    } 
+    throw runtime_error("not implemented yet");
   }
   template<int m1, int m2>
   dcomplex EXPInt(int n, dcomplex a, dcomplex b);
@@ -180,56 +200,51 @@ namespace cbasis {
 
   // ==== vector ====
   template<int m1, int m2>
-  VectorXcd CalcVec(_EXPs<m1>& a, _LC_EXPs<m2>& b) {
+  VectorXcd CalcVec(typename _EXPs<m1>::EXPs a,
+		    typename _EXPs<m2>::LC_EXPs b) {
     
-    if(!a.HasCoef()) {
+    if(!a->HasCoef()) {
       string msg; SUB_LOCATION(msg);
       msg = "\n" + msg + "EXP does not have coef. Call SetUp or use no_normal method only";
       throw runtime_error(msg);
     }
     
-    int numa(a.size());
+    int numa(a->size());
     VectorXcd vec(numa);
     
     for(int i = 0; i < numa; i++) {
       
-	typename _EXPs<m1>::LC_EXPs bi = a.basis(i);
-	dcomplex acc(0);
-	for(int jj = 0; jj < b.size(); jj++) {
-	  dcomplex c(bi->c(i) * b.c(jj));
-	  int      n(bi->n(i) + b.n(jj));
-	  dcomplex zi(bi->z(i));
-	  dcomplex zj(b.z(jj));
-	  acc +=  c * EXPInt<m1, m2>(n, zi, zj);
-	}
-	vec(i) = acc;
+      typename _EXPs<m1>::LC_EXPs bi = a->basis(i);
+      vec(i) = EXPIntLC(bi, 0, b);
     }
     return vec;
   }
-  template VectorXcd CalcVec<1,1>(_EXPs<1>& a, _LC_EXPs<1>& b);
-  template VectorXcd CalcVec<1,2>(_EXPs<1>& a, _LC_EXPs<2>& b);
-  template VectorXcd CalcVec<2,1>(_EXPs<2>& a, _LC_EXPs<1>& b);
-  template VectorXcd CalcVec<2,2>(_EXPs<2>& a, _LC_EXPs<2>& b);
-  
+  template VectorXcd CalcVec<1,1>(_EXPs<1>::EXPs a, _EXPs<1>::LC_EXPs b);
+  //  template VectorXcd CalcVec<1,2>(_EXPs<1>::EXPs a, _EXPs<2>::LC_EXPs b);
+  //  template VectorXcd CalcVec<2,1>(_EXPs<2>::EXPs a, _EXPs<1>::LC_EXPs b);
+  template VectorXcd CalcVec<2,2>(_EXPs<2>::EXPs a, _EXPs<2>::LC_EXPs b);
+
   // ==== matrix ====
   template<int m1, int m2>
-  MatrixXcd CalcRmMat(_EXPs<m1>& a, int M, _EXPs<m2>& b) {
+  MatrixXcd CalcRmMat(typename _EXPs<m1>::EXPs a,
+		      int M,
+		      typename _EXPs<m2>::EXPs b) {
     
-    if(!a.HasCoef() || !b.HasCoef()) {
+    if(!a->HasCoef() || !b->HasCoef()) {
       string msg; SUB_LOCATION(msg);
       msg = "\n" + msg + "EXP does not have coef. Call SetUp or use no_normal method only";
       throw runtime_error(msg);
     }
     
-    int numa(a.size());
-    int numb(b.size());
+    int numa(a->size());
+    int numb(b->size());
     MatrixXcd mat(numa, numb);
     
     for(int i = 0; i < numa; i++)
       for(int j = 0; j < numb; j++) {
 
-	typename _EXPs<m1>::LC_EXPs bi = a.basis(i);
-	typename _EXPs<m2>::LC_EXPs bj = b.basis(j);
+	typename _EXPs<m1>::LC_EXPs bi = a->basis(i);
+	typename _EXPs<m2>::LC_EXPs bj = b->basis(j);
 
 	dcomplex acc(0);
 	for(int ii = 0; ii < bi->size(); ii++) {
@@ -246,29 +261,30 @@ namespace cbasis {
 
     return mat;
   }
-  template MatrixXcd CalcRmMat<1,1>(_EXPs<1>& a, int M, _EXPs<1>& b);
-  template MatrixXcd CalcRmMat<1,2>(_EXPs<1>& a, int M, _EXPs<2>& b);
-  template MatrixXcd CalcRmMat<2,1>(_EXPs<2>& a, int M, _EXPs<1>& b);
-  template MatrixXcd CalcRmMat<2,2>(_EXPs<2>& a, int M, _EXPs<2>& b);
+  template MatrixXcd CalcRmMat<1,1>(_EXPs<1>::EXPs a, int M, _EXPs<1>::EXPs b);
+  template MatrixXcd CalcRmMat<1,2>(_EXPs<1>::EXPs a, int M, _EXPs<2>::EXPs b);
+  template MatrixXcd CalcRmMat<2,1>(_EXPs<2>::EXPs a, int M, _EXPs<1>::EXPs b);
+  template MatrixXcd CalcRmMat<2,2>(_EXPs<2>::EXPs a, int M, _EXPs<2>::EXPs b);
   
   template<int m1, int m2>
-  Eigen::MatrixXcd CalcD2Mat(_EXPs<m1>& a, _EXPs<m2>& b) {
+  Eigen::MatrixXcd CalcD2Mat(typename _EXPs<m1>::EXPs a,
+			     typename _EXPs<m2>::EXPs b) {
 
-    if(!a.HasCoef() || !b.HasCoef()) {
+    if(!a->HasCoef() || !b->HasCoef()) {
       string msg; SUB_LOCATION(msg);
       msg = "\n" + msg + "No coefficient.";
       throw runtime_error(msg);
     }
 
-    int numa(a.size());
-    int numb(b.size());
+    int numa(a->size());
+    int numb(b->size());
     MatrixXcd mat(numa, numb);
     
     for(int i = 0; i < numa; i++) {
       for(int j = 0; j < numb; j++) {
 	
-	typename _EXPs<m1>::LC_EXPs bi = a.basis(i);
-	typename _EXPs<m2>::LC_EXPs bj = b.basis(j);
+	typename _EXPs<m1>::LC_EXPs bi = a->basis(i);
+	typename _EXPs<m2>::LC_EXPs bj = b->basis(j);
 	
 	dcomplex acc(0);
 	for(int ii = 0; ii < bi->size(); ii++)
@@ -287,40 +303,10 @@ namespace cbasis {
     return mat;    
 
   }
-  template MatrixXcd CalcD2Mat<1,1>(_EXPs<1>& a, _EXPs<1>& b);
-  template MatrixXcd CalcD2Mat<1,2>(_EXPs<1>& a, _EXPs<2>& b);
-  template MatrixXcd CalcD2Mat<2,1>(_EXPs<2>& a, _EXPs<1>& b);
-  template MatrixXcd CalcD2Mat<2,2>(_EXPs<2>& a, _EXPs<2>& b);
-				  
-  /*
-  template<int m1, int m2>
-  MatrixXcd CalcRMMat(shared_ptr<_EXPs<m1> > a, int M,
-		      shared_ptr<_EXPs<m2> >b) {
-    return MatrixXcd::Zero(2, 2);
-  }
-  template<int m1, int m2>
-  MatrixXcd CalcD2Mat(boost::shared_ptr<_EXPs<m1> > a,
-		      boost::shared_ptr<_EXPs<m2> > b) {
-    return MatrixXcd::Zero(2, 2);
-  }
-  template MatrixXcd CalcD2Mat<1,1>(boost::shared_ptr<_EXPs<1> > a,
-				    boost::shared_ptr<_EXPs<1> > b);
-  */
-  /*
-  MatrixXcd CalcRMMatSG(STOs a, int M, GTO b) {return }
-  MatrixXcd CalcRMMatGS(GTOs a, int M, STO b);
-  MatrixXcd CalcRMMatGG(GTOs a, int M, GTO b);
-
-  MatrixXcd CalcD2MatSS(STOs a, STO b);
-  MatrixXcd CalcD2MatSG(STOs a, GTO b);
-  MatrixXcd CalcD2MatGS(GTOs a, STO b);
-  MatrixXcd CalcD2MatGG(GTOs a, GTO b);
-
-  VectorXcd CalcVecSS(STOs a, LC_STOs b);
-  VectorXcd CalcVecSG(STOs a, LC_GTOs b);
-  VectorXcd CalcVecGS(GTOs a, LC_STOs b);
-  VectorXcd CalcVecGG(GTOs a, LC_GTOs b);    
-  */
+  template MatrixXcd CalcD2Mat<1,1>(_EXPs<1>::EXPs a, _EXPs<1>::EXPs b); 
+  template MatrixXcd CalcD2Mat<1,2>(_EXPs<1>::EXPs a, _EXPs<2>::EXPs b); 
+  template MatrixXcd CalcD2Mat<2,1>(_EXPs<2>::EXPs a, _EXPs<1>::EXPs b); 
+  template MatrixXcd CalcD2Mat<2,2>(_EXPs<2>::EXPs a, _EXPs<2>::EXPs b); 
 
   // ==== member field ====
   template<int m>
@@ -522,111 +508,19 @@ namespace cbasis {
 
   template<int m>
   MatrixXcd _EXPs<m>::CalcRmMat(int M) const {
-    
-    int num(this->size());
-    MatrixXcd mat(num, num);
-    
-    for(int i = 0; i < num; i++)
-      for(int j = 0; j < num; j++) {
-
-	LC_EXPs bi = this->basis(i);
-	LC_EXPs bj = this->basis(j);
-
-	dcomplex acc(0);
-	for(int ii = 0; ii < bi->size(); ii++) {
-	  for(int jj = 0; jj < bj->size(); jj++) {
-	    dcomplex c(bi->c(ii) * bj->c(jj));
-	    int      n(bi->n(ii) + bj->n(jj));
-	    dcomplex zi(bi->z(ii));
-	    dcomplex zj(bj->z(jj));
-	    acc +=  c * EXPInt<m,m>(n+M, zi, zj);
-	  }
-	}
-	mat(i, j) = acc;
-	//mat(i, j) = EXPIntLC<m>(bi, M, bj);
-      }
-
-    return mat;
-
+    throw runtime_error("do not use");
   }
   template<int m>
   MatrixXcd _EXPs<m>::CalcD2Mat() const {
-
-    int num(this->size());
-    MatrixXcd mat(num, num);
-    
-    for(int i = 0; i < num; i++)
-      for(int j = 0; j < num; j++) {
-
-	LC_EXPs bi = this->basis(i);
-	LC_EXPs bj = this->basis(j);
-	dcomplex acc(0);
-	for(int ii = 0; ii < bi->size(); ii++)
-	  for(int jj = 0; jj < bj->size(); jj++) {
-	    dcomplex c(bi->c(ii) * bj->c(jj));
-	    int      ni(bi->n(ii));
-	    int      nj(bj->n(jj));
-	    dcomplex zi(bi->z(ii));
-	    dcomplex zj(bj->z(jj));
-	    acc += c * EXPIntD2<m,m>(ni, zi, nj, zj);
-	  }
-	mat(i, j) = acc;
-      }
-
-    return mat;
+    throw runtime_error("do not use");
   }
   template<int m>
   VectorXcd _EXPs<m>::CalcVecSTO(LC_STOs o) const {
-    
-    int num(this->size());
-    int numo(o->size());
-
-    VectorXcd vec(num);
-        
-    for(int i = 0; i < num; i++) {
-      _EXPs<m>::LC_EXPs bi = this->basis(i);
-      dcomplex acc;
-      for(int oo = 0; oo < numo; oo++) {
-	for(int ii = 0; ii < bi->size(); ii++) {
-	  dcomplex c(bi->c(ii) * o->c(oo));
-	  int      n(bi->n(ii) + o->n(oo));
-	  acc += c * EXPInt<m, 1>(n, bi->z(ii), o->z(oo));
-	}
-      }
-      
-      vec(i) = acc;
-      
-    }
-    
-    return vec;
-
+    throw runtime_error("do not use");
   }
   template<int m>
   VectorXcd _EXPs<m>::CalcVecGTO(LC_GTOs gtos) const {
-
-    
-    int num(this->size());
-    int numo(gtos->size());
-
-    VectorXcd vec(num);
-        
-    for(int i = 0; i < num; i++) {
-      _EXPs<m>::LC_EXPs bi = this->basis(i);
-      dcomplex acc;
-      for(int oo = 0; oo < numo; oo++) {
-	for(int ii = 0; ii < bi->size(); ii++) {
-	  dcomplex c(bi->c(ii) * gtos->c(oo));
-	  int      n(bi->n(ii) + gtos->n(oo));
-	  acc += c * EXPInt<m, 2>(n, bi->z(ii), gtos->z(oo));
-	}
-      }
-      
-      vec(i) = acc;
-      
-    }
-    
-    return vec;
-
+    throw runtime_error("do not use");
   }
 
   // ==== realize ====

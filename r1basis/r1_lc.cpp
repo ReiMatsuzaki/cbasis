@@ -8,7 +8,7 @@ using namespace Eigen;
 using namespace boost;
 
 namespace cbasis {
-
+  
   // ==== Create ====
   template<int M>
   boost::shared_ptr<_LC_EXPs<M> > Create_LC_EXPs() {

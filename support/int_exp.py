@@ -8,9 +8,22 @@ print "g2g_ref=", integrate(g*r*r*g, (r,0,oo)).evalf()
 print "sDs_ref=", integrate(s*diff(s,r,2), (r,0,oo)).evalf()
 print "gDg_ref=", integrate(g*diff(g,r,2), (r,0,oo)).evalf()
 
+a = Symbol('a')
+b = Symbol('b')
+prod = lambda f: simplify(integrate(f, (r,0,oo), conds='none'))
+print 0, prod(exp(-a*r-b*r*r))
+print 1, prod(r*exp(-a*r-b*r*r))
+print 2, prod(r**2*exp(-a*r-b*r*r))
+print 3, prod(r**3*exp(-a*r-b*r*r))
+
 """ output
-s2s_ref = -27.5296456055511 + 37.4411871137165*I
-g2g_ref = 0.16651663387627 + 0.0546850960763247*I
-sDs_ref = -0.526917955926652 - 1.46206690245985*I
-gDg_ref = -0.395454606004856 - 0.0541117842324456*I
+s2s_ref= -27.5296456055511 + 37.4411871137165*I
+g2g_ref= 0.16651663387627 + 0.0546850960763247*I
+sDs_ref= -0.526917955926652 - 1.46206690245985*I
+gDg_ref= -0.395454606004856 - 0.0541117842324456*I
+
+0 sqrt(pi)*(-erf(a/(2*sqrt(b))) + 1)*exp(a**2/(4*b))/(2*sqrt(b))
+1 (pi*a*exp(a**2/(4*b))*erf(a/(2*sqrt(b))) - pi*a*exp(a**2/(4*b)) + 2*sqrt(pi)*sqrt(b))/(4*sqrt(pi)*b**(3/2))
+2 (pi*(a**2 + 2*b)*exp(a**2/(4*b)) - sqrt(pi)*(2*a*sqrt(b) + sqrt(pi)*(a**2 + 2*b)*exp(a**2/(4*b))*erf(a/(2*sqrt(b)))))/(8*sqrt(pi)*b**(5/2))
+3 (-pi*a*(a**2 + 6*b)*exp(a**2/(4*b)) + sqrt(pi)*(-4*b**(3/2) + (a**2 + 6*b)*(sqrt(pi)*a*exp(a**2/(4*b))*erf(a/(2*sqrt(b))) + 2*sqrt(b))))/(16*sqrt(pi)*b**(7/2))
 """

@@ -37,7 +37,7 @@ ${BINDIR}/%.o: %.cpp
 	${CXX} -c -o $@ -MMD ${CPPFLAGS} ${CXXFLAGS} $<
 
 ## ==== Main build ====
-R1BASIS_OBJS=r1_lc.o r1basis.o
+R1BASIS_OBJS=r1_lc.o r1basis.o erfc.o
 OBJS=$(foreach o, ${R1BASIS_OBJS}, ${BINDIR}/$o)
 ${BINDIR}/r1basis_bind.so: r1basis_bind.cpp ${OBJS}
 	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS}
@@ -47,6 +47,9 @@ ${BINDIR}/r1basis_test: ${BINDIR}/test.o ${OBJS} ${BINDIR}/gtest.a
 	${CXX} -o $@ $^ ${CPPFLAGS} ${CXXFLAGS} ${GTESTFLAGS}
 
 ## ==== launch unit test ====
+check_erfc: ${BINDIR}/r1basis_bind.so
+	python test_erfc.py
+
 check_cpp: ${BINDIR}/r1basis_test
 	./$^
 

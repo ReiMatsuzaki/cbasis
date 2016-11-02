@@ -36,14 +36,18 @@ namespace erfc_mori {
   template<class F>
   int Erfc(F x, F & y, ErfcCalcData& data);
 
+  template<class F>
+  F erfc(F x);
+
   // Exp(z^2) Erfc(z)  with n term
   template<class F>
   int Exp2ErfcAtN(F x, unsigned int n, F& y, F& yn);
 
-  // Exp(z^2) Erfc(z)
+  // Exp(z^2) Erfc(z) or erfcx (scaling complement error function)
   template<class F>
   int Exp2Erfc(F x, F& y, ErfcCalcData& data);
 
-
+  template<class F>
+  F erfcx(F x);
 }  
 #endif

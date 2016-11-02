@@ -82,39 +82,17 @@ namespace cbasis {
   dcomplex EXPIntLC(LC_GTOs a, int m, LC_GTOs b);
 
   template<int m1, int m2>
-  Eigen::VectorXcd CalcVec(_EXPs<m1>& a, _LC_EXPs<m2>& b);
+  Eigen::VectorXcd CalcVec(typename _EXPs<m1>::EXPs a,
+			   typename _EXPs<m2>::LC_EXPs b);
   
   template<int m1, int m2>
-  Eigen::MatrixXcd CalcRmMat(_EXPs<m1>& a, int M, _EXPs<m2>& b);
+  Eigen::MatrixXcd CalcRmMat(typename _EXPs<m1>::EXPs a,
+			     int M,
+			     typename _EXPs<m2>::EXPs b);
 			     
   template<int m1, int m2>
-  Eigen::MatrixXcd CalcD2Mat(_EXPs<m1>& a,
-			     _EXPs<m2>& b);  
-  /*
-  template<int m1, int m2>
-  Eigen::MatrixXcd CalcRMMat(boost::shared_ptr<_EXPs<m1> > a,
-			     int M,
-			     boost::shared_ptr<_EXPs<m2> >b);
-  template<int m1, int m2>
-  Eigen::MatrixXcd CalcD2Mat(boost::shared_ptr<_EXPs<m1> > a,
-			     boost::shared_ptr<_EXPs<m2> >b);
-  */
-  /*    
-  Eigen::MatrixXcd CalcRMMatSS(STOs a, int M, STO b);
-  Eigen::MatrixXcd CalcRMMatSG(STOs a, int M, GTO b);
-  Eigen::MatrixXcd CalcRMMatGS(GTOs a, int M, STO b);
-  Eigen::MatrixXcd CalcRMMatGG(GTOs a, int M, GTO b);
-
-  Eigen::MatrixXcd CalcD2MatSS(STOs a, STO b);
-  Eigen::MatrixXcd CalcD2MatSG(STOs a, GTO b);
-  Eigen::MatrixXcd CalcD2MatGS(GTOs a, STO b);
-  Eigen::MatrixXcd CalcD2MatGG(GTOs a, GTO b);
-
-  Eigen::VectorXcd CalcVecSS(STOs a, LC_STOs b);
-  Eigen::VectorXcd CalcVecSG(STOs a, LC_GTOs b);
-  Eigen::VectorXcd CalcVecGS(GTOs a, LC_STOs b);
-  Eigen::VectorXcd CalcVecGG(GTOs a, LC_GTOs b);  
-  */
+  Eigen::MatrixXcd CalcD2Mat(typename _EXPs<m1>::EXPs a,
+			     typename _EXPs<m2>::EXPs b);
  
 }
 
