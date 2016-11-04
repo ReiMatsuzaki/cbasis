@@ -32,6 +32,9 @@ void BindR1LC() {
     .def("c", (dcomplex(_LC_EXPs<1>::*)(int)const)&_LC_EXPs<1>::c)
     .def("n", (int(_LC_EXPs<1>::*)(int)const)&_LC_EXPs<1>::n)
     .def("z", (dcomplex(_LC_EXPs<1>::*)(int)const)&_LC_EXPs<1>::z)
+    .def("set_c", &_LC_EXPs<1>::set_c)
+    .def("set_n", &_LC_EXPs<1>::set_n)
+    .def("set_z", &_LC_EXPs<1>::set_z)        
     .def("add",  &_LC_EXPs<1>::Add, return_self<>())
     .def("str",  &_LC_EXPs<1>::str)
     .def("at_r", &_LC_EXPs<1>::AtR)
@@ -48,6 +51,9 @@ void BindR1LC() {
     .def("c", (dcomplex(_LC_EXPs<2>::*)(int)const)&_LC_EXPs<2>::c)
     .def("n", (int(_LC_EXPs<2>::*)(int)const)&_LC_EXPs<2>::n)
     .def("z", (dcomplex(_LC_EXPs<2>::*)(int)const)&_LC_EXPs<2>::z)
+    .def("set_c", &_LC_EXPs<2>::set_c)
+    .def("set_n", &_LC_EXPs<2>::set_n)
+    .def("set_z", &_LC_EXPs<2>::set_z)            
     .def("add",  &_LC_EXPs<2>::Add, return_self<>())
     .def("str",  &_LC_EXPs<2>::str)
     .def("at_r", &_LC_EXPs<2>::AtR)
@@ -61,15 +67,6 @@ void BindR1Basis() {
   def("sto_int", &STOInt);
   def("gto_int", &GTOInt);
   def("sto_gto_int", &STO_GTOInt);
-
-  /*
-  def("int_lc", &EXPIntLC<1,1>);
-  def("int_lc", &EXPIntLC<1,2>);
-  def("int_lc", &EXPIntLC<2,1>);
-  def("int_lc", &EXPIntLC<2,2>);
-  */
-  //  def("int_lc", (dcomplex (*)(LC_STOs, int, LC_STOs))EXPIntLC);
-  //  def("int_lc", (dcomplex (*)(LC_GTOs, int, LC_GTOs))EXPIntLC);
 
   def("calc_vec", &CalcVec<1,1>);
   def("calc_vec", &CalcVec<1,2>);
@@ -92,8 +89,8 @@ void BindR1Basis() {
   register_ptr_to_python<STOs>();
   def("STOs", &Create_STOs);
   class_<_STOs>("_STOs", init<>())
-    .def("size",      &_EXPs<1>::size)
-    .def("basis",     &_EXPs<1>::basis)
+    .def("size",  &_EXPs<1>::size)
+    .def("basis", &_EXPs<1>::basis)
     .def("is_prim",       &_EXPs<1>::IsPrim)
     .def("is_prim_all",   &_EXPs<1>::IsPrimAll)
     .def("is_normal",     &_EXPs<1>::IsNormal)
@@ -105,7 +102,8 @@ void BindR1Basis() {
     .def("add",       &_EXPs<1>::AddPrims, return_self<>())
     .def("add",       &_EXPs<1>::AddLC, return_self<>())
     .def("add_not_normal", &_EXPs<1>::AddNotNormalPrim, return_self<>())
-    .def("add_not_normal", &_EXPs<1>::AddNotNormalLC, return_self<>())    
+    .def("add_not_normal", &_EXPs<1>::AddNotNormalLC, return_self<>())
+    .def("replace", &_EXPs<1>::ReplaceLC, return_self<>())
     .def("setup",       &_EXPs<1>::SetUp, return_self<>())
     .def("str",         &_EXPs<1>::str)
     .def("at_r",        &_EXPs<1>::AtR)
@@ -122,7 +120,7 @@ void BindR1Basis() {
   def("GTOs", &Create_GTOs);
   class_<_GTOs>("_GTOs", init<>())
     .def("size",      &_EXPs<2>::size)
-    .def("basis",     &_EXPs<2>::basis)
+    .def("basis",         &_EXPs<2>::basis)
     .def("is_prim",       &_EXPs<2>::IsPrim)
     .def("is_prim_all",   &_EXPs<2>::IsPrimAll)
     .def("is_normal",     &_EXPs<2>::IsNormal)
@@ -134,7 +132,8 @@ void BindR1Basis() {
     .def("add",       &_EXPs<2>::AddPrims, return_self<>())
     .def("add",       &_EXPs<2>::AddLC, return_self<>())
     .def("add_not_normal", &_EXPs<2>::AddNotNormalPrim, return_self<>())
-    .def("add_not_normal", &_EXPs<2>::AddNotNormalLC, return_self<>())        
+    .def("add_not_normal", &_EXPs<2>::AddNotNormalLC, return_self<>())
+    .def("replace", &_EXPs<2>::ReplaceLC, return_self<>())
     .def("setup",     &_EXPs<2>::SetUp, return_self<>())
     .def("str",   &_EXPs<2>::str)
     .def("at_r",  &_EXPs<2>::AtR)

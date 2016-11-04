@@ -59,6 +59,8 @@ namespace cbasis {
     _EXPs<m>* AddNotNormalPrim(dcomplex c, int n, dcomplex z);    
     _EXPs<m>* AddNotNormalLC(LC_EXPs lc);
     _EXPs<m>* SetUp();
+
+    _EXPs<m>* ReplaceLC(int i, LC_EXPs lc);
     
     // ---- Create ----
     EXPs Conj() const;

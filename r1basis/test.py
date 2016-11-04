@@ -130,7 +130,11 @@ class Test_gto(unittest.TestCase):
         gtos = self.gtos
         self.assertEqual(2, gtos.basis(1).n(0))
         self.assertEqual(6, gtos.basis(4).n(1))
-
+        basis_i = gtos.basis(0).clone()
+        basis_i.set_z(0, 1.3)
+        gtos.replace(0, basis_i)
+        self.assertAlmostEqual(1.3, gtos.basis(0).z(0))
+        
     def test_clone(self):
         g = self.gtos.clone()
         self.gtos.add(2, 3.0)
@@ -396,12 +400,12 @@ class Test_green(unittest.TestCase):
     def test_grad_one(self):
 
         z0 = [1.3-0.2j]
-        h_pi = H_Photoionization(1, 0, 1, "length")
-        get_basis  = lambda z: STOs().add(2, z).setup()
-        calc_green = lambda z: vgh_green(h_pi, 1.0, get_basis(z), [True])[0]
+        h_pi = H_Photoionization(1.0, 1, 0, 1, "length")
+        basis  = STOs().add(2, z0).setup()
+        calc_green = lambda z: vgh_green(h_pi, basis, [True])(z)[0]
         
-        (val, calc_grad, calc_hess) = vgh_green(h_pi, 1.0, get_basis(z0), [True])
-        ref_grad = num_pd(calc_green,  z0, 0.0001, 0, method='c1')
+        (val, calc_grad, calc_hess) = vgh_green(h_pi, basis, [True])(z0)
+        ref_grad = num_pd(calc_green,  z0, 0.0001, 0,    method='c1')
         ref_hess = num_pd2(calc_green, z0, 0.0001, 0, 0, method='c1')
         self.assertAlmostEqual(calc_grad[0],   ref_grad)
         self.assertAlmostEqual(calc_hess[0,0], ref_hess, places=6)
@@ -416,11 +420,11 @@ class Test_green(unittest.TestCase):
 
         z0 = [1.3-0.2j, 0.5-0.9j]
         opt = [True, True]
-        h_pi = H_Photoionization(1, 0, 1, "length")
-        get_basis  = lambda z: STOs().add(2, z).setup()
-        calc_green = lambda z: vgh_green(h_pi, 1.0, get_basis(z), opt)[0]
+        h_pi = H_Photoionization(1.0, 1, 0, 1, "length")
+        basis  = STOs().add(2, z0).setup()
+        calc_green = lambda z: vgh_green(h_pi, basis, opt)(z)[0]
         
-        (val, calc_grad, calc_hess) = vgh_green(h_pi, 1.0, get_basis(z0), opt)
+        (val, calc_grad, calc_hess) = vgh_green(h_pi, basis, opt)(z0)
         ref_grad = ngrad(calc_green, z0, 0.0001, method='c1')
         ref_hess = nhess(calc_green, z0, 0.0001, method='c1')
         for i in range(2):
@@ -430,16 +434,16 @@ class Test_green(unittest.TestCase):
                                        calc_hess[i,j], places=6)
 
     def test_gh_two_of_three_easy(self):
-        opt_zs0 = [1.3-0.1j, 2.3-0.5j]
+        zs0 = [1.3-0.1j, 2.3-0.5j]
         z2 = 0.4-0.4j
         opt = [True, True, False]
-        h_pi = H_Photoionization(1, 0, 1, "velocity")
-        get_basis =  lambda z: STOs().add(2, z[0]).add(2,z[1]).add(2, z2).setup()
-        calc_green = lambda z: vgh_green(h_pi, 1.0, get_basis(z), opt)[0]
+        h_pi = H_Photoionization(0.9, 1, 0, 1, "velocity")
+        basis = STOs().add(2, 1.0).add(2,1.0).add(2,z2).setup()
+        calc_green = lambda z: vgh_green(h_pi, basis, opt)(z)[0]
 
-        (v, calc_g, calc_h) = vgh_green(h_pi, 1.0, get_basis(opt_zs0), opt)
-        ref_g = ngrad(calc_green, opt_zs0, 0.0001, method='c1')
-        ref_h = nhess(calc_green, opt_zs0, 0.0001, method='c1')
+        (v, calc_g, calc_h) = vgh_green(h_pi, basis, opt)(zs0)
+        ref_g = ngrad(calc_green, zs0, 0.0001, method='c1')
+        ref_h = nhess(calc_green, zs0, 0.0001, method='c1')
         for i in range(2):
             self.assertAlmostEqual(ref_g[i], calc_g[i], places=5)
             for j in range(2):
@@ -448,11 +452,11 @@ class Test_green(unittest.TestCase):
 
     def test_gh_one_of_two(self):
         zs = [1.3-0.1j, 2.3-0.5j]
-        h_pi = H_Photoionization(1, 0, 1, "velocity")
+        h_pi = H_Photoionization(1.0, 1, 0, 1, "velocity")
         basis = STOs().add(2, zs).setup()
 
-        (v, calc_g, calc_h) = vgh_green(h_pi, 1.0, basis, [False, True])
-        (v, full_g, full_h) = vgh_green(h_pi, 1.0, basis, [True,  True])
+        (v, calc_g, calc_h) = vgh_green(h_pi, basis, [False, True])([zs[1]])
+        (v, full_g, full_h) = vgh_green(h_pi, basis, [True,  True])(zs)
 
         self.assertAlmostEqual(full_g[1], calc_g[0], places=5)
         self.assertAlmostEqual(full_h[1,1], calc_h[0,0], places=5)
@@ -460,14 +464,14 @@ class Test_green(unittest.TestCase):
     def test_grad_two_of_three(self):
         opt_zs0 = [1.3-0.1j, 2.3-0.5j]
         z1 = 0.4-0.4j
-        #        zs0 = [opt_zs[0], z1,     opt_zs[1]]
+        zs_all = [opt_zs0[0], z1, opt_zs0[1]]
         opt = [True,      False,  True]
-        h_pi = H_Photoionization(1, 0, 1, "velocity")
-        get_basis =  lambda z: STOs().add(2, z[0]).add(2,z1).add(2, z[1]).setup()
-        calc_green = lambda z: vgh_green(h_pi, 1.0, get_basis(z), opt)[0]
+        h_pi = H_Photoionization(0.9, 1, 0, 1, "velocity")
+        basis =  STOs().add(2, 1.0).add(2,z1).add(2, 1.0).setup()
+        calc_green = lambda z: vgh_green(h_pi, basis, opt)(z)[0]
 
-        (v, calc_g, calc_h) = vgh_green(h_pi, 1.0, get_basis(opt_zs0), opt)
-        (v, full_g, full_h) = vgh_green(h_pi, 1.0, get_basis(opt_zs0), [True,True,True])
+        (v, calc_g, calc_h) = vgh_green(h_pi, basis, opt)(opt_zs0)
+        (v, full_g, full_h) = vgh_green(h_pi, basis, [True,True,True])(zs_all)
         ref_g = ngrad(calc_green, opt_zs0, 0.0001, method='c1')
         ref_h = nhess(calc_green, opt_zs0, 0.0001, method='c1')
 
@@ -484,7 +488,7 @@ class Test_green(unittest.TestCase):
 
         
     def test_opt_one(self):
-        h_pi = H_Photoionization(1, 0, 1, "velocity")
+        h_pi = H_Photoionization(1.1, 1, 0, 1, "velocity")
         basis = STOs().add(2, 1.0-0.3j).setup()
 
         

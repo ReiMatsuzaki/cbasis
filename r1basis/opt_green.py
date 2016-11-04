@@ -158,7 +158,8 @@ def two_deriv(us, opt_list):
     """
 
 class H_Photoionization():
-    def __init__(self, n0, L0, L1, dipole):
+    def __init__(self, w, n0, L0, L1, dipole):
+        self.w = w
         self.n0 = n0
         self.L0 = L0
         self.L1 = L1
@@ -183,8 +184,9 @@ class H_Photoionization():
         h += -r1
         return h
 
-    def l_mat(self, a, b, w):
-        return calc_rm_mat(a, 0, b) * (w + self.E0) - self.h_mat(a, b)
+    def l_mat(self, a, b):
+        ene = self.w + self.E0
+        return calc_rm_mat(a, 0, b) * ene - self.h_mat(a, b)
 
     def dip_vec(self, a):
         if(self.dipole == "length"):
@@ -218,7 +220,7 @@ def get_opt_index(opt_list):
             i_d = i_d + 1
     return opt_index
 
-def vgh_green(h_pi, w, us, opt_list):
+def vgh_green(h_pi, base_us, opt_list):
     """ Returns value, gradient and Hessian for discretized matrix element of 
     Green's function. 
     .       <R|G|S>
@@ -226,7 +228,7 @@ def vgh_green(h_pi, w, us, opt_list):
     Inputs
     ------
     h_pi: H_Photoionization
-    us : STOs or GTOs
+    base_us : STOs or GTOs
     R  : LC_STO or LC_GTO
     S  : LC_STO or LC_GTO
 
@@ -236,69 +238,80 @@ def vgh_green(h_pi, w, us, opt_list):
     grad  : VectorXc
     hess  : MatrixXc
     """
-    if(us.size() != len(opt_list)):
+    if(base_us.size() != len(opt_list)):
         raise(Exception("size mismatch"))
 
-    num   = us.size()
+    num   = base_us.size()
     num_d = len([1 for opt_q in opt_list if opt_q])    
     opt_index = get_opt_index(opt_list)
 
-    dus = one_deriv(us, opt_list)
-    ddus= two_deriv(us, opt_list)
-    L00 = h_pi.l_mat(us,  us, w)
-    L10 = h_pi.l_mat(dus, us, w)
-    L11 = h_pi.l_mat(dus, dus,w)
-    L20 = h_pi.l_mat(ddus,us, w)
-    R0  = h_pi.dip_vec(us)
-    R1  = h_pi.dip_vec(dus)
-    R2  = h_pi.dip_vec(ddus)
-    S0  = h_pi.dip_vec(us)
-    S1  = h_pi.dip_vec(dus)
-    S2  = h_pi.dip_vec(ddus)
+    def __func__(zs):
+        if(len(zs) != num_d):
+            raise(Exception("size mismatch"))
+        us = base_us.clone()
+        for i_d in range(num_d):
+            i = opt_index[i_d]
+            bi = us.basis(i)
+            bi.set_z(0, zs[i_d])
+            us.replace(i, bi)
+            us.setup()
 
-    G = L00.inverse()
+        dus = one_deriv(us, opt_list)
+        ddus= two_deriv(us, opt_list)
+        L00 = h_pi.l_mat(us,  us)
+        L10 = h_pi.l_mat(dus, us)
+        L11 = h_pi.l_mat(dus, dus)
+        L20 = h_pi.l_mat(ddus,us)
+        R0  = h_pi.dip_vec(us)
+        R1  = h_pi.dip_vec(dus)
+        R2  = h_pi.dip_vec(ddus)
+        S0  = h_pi.dip_vec(us)
+        S1  = h_pi.dip_vec(dus)
+        S2  = h_pi.dip_vec(ddus)
+        
+        G = L00.inverse()
 
-    val = tdot(S0, G*R0)
-    grad = VectorXc.Zero(num_d)
-    hess = MatrixXc.Zero(num_d, num_d)
-    for i_d in range(num_d):
-        i = opt_index[i_d]
-        Si = VectorXc.Zero(num); Si[i] = S1[i_d]
-        Ri = VectorXc.Zero(num); Ri[i] = R1[i_d]
-        Li = MatrixXc.Zero(num,num);
-        for ii in range(num):
-            Li[i,ii] += L10[i_d, ii]
-            Li[ii,i] += L10[i_d, ii]
-        g_i = tdot(Si, G*R0) + tdot(S0, G*Ri) - tdot(S0, G*Li*G*R0)
-        grad[i_d] = g_i
+        val = tdot(S0, G*R0)
+        grad = VectorXc.Zero(num_d)
+        hess = MatrixXc.Zero(num_d, num_d)
+        for i_d in range(num_d):
+            i = opt_index[i_d]
+            Si = VectorXc.Zero(num); Si[i] = S1[i_d]
+            Ri = VectorXc.Zero(num); Ri[i] = R1[i_d]
+            Li = MatrixXc.Zero(num,num);
+            for ii in range(num):
+                Li[i,ii] += L10[i_d, ii]
+                Li[ii,i] += L10[i_d, ii]
+            g_i = tdot(Si, G*R0) + tdot(S0, G*Ri) - tdot(S0, G*Li*G*R0)
+            grad[i_d] = g_i
             
-        for j_d in range(num_d):
-            j = opt_index[j_d]
-            Sj = VectorXc.Zero(num); Sj[j] = S1[j_d]
-            Rj = VectorXc.Zero(num); Rj[j] = R1[j_d]
-            Lj = MatrixXc.Zero(num, num);
-            for jj in range(num):
-                Lj[j,jj] += L10[j_d, jj]
-                Lj[jj,j] += L10[j_d, jj]
-            Lij= MatrixXc.Zero(num, num)
-            if i==j:
+            for j_d in range(num_d):
+                j = opt_index[j_d]
+                Sj = VectorXc.Zero(num); Sj[j] = S1[j_d]
+                Rj = VectorXc.Zero(num); Rj[j] = R1[j_d]
+                Lj = MatrixXc.Zero(num, num);
                 for jj in range(num):
-                    Lij[jj,j] += L20[j_d, jj]
-                    Lij[j,jj] += L20[j_d, jj]
-            Lij[i,j] += L11[i_d, j_d]
-            Lij[i,j] += L11[j_d, i_d]
-            h_ij = (tdot(Sj, G*Ri) - tdot(Sj, G*Li*G*R0) + tdot(Si,G*Rj)
-                    -tdot(S0, G*Lj*G*Ri) + tdot(S0, G*Lj*G*Li*G*R0)
-                    -tdot(Si, G*Lj*G*R0) - tdot(S0, G*Lij*G*R0)
-                    +tdot(S0, G*Li*G*Lj*G*R0) - tdot(S0, G*Li*G*Rj))
-            if i==j:
-                Sij = VectorXc.Zero(num); Sij[i]=S2[i_d]
-                Rij = VectorXc.Zero(num); Rij[i]=R2[i_d]
-                h_ij += tdot(Sij, G*R0) + tdot(S0, G*Rij)
-            hess[i_d,j_d] = h_ij
+                    Lj[j,jj] += L10[j_d, jj]
+                    Lj[jj,j] += L10[j_d, jj]
+                Lij= MatrixXc.Zero(num, num)
+                if i==j:
+                    for jj in range(num):
+                        Lij[jj,j] += L20[j_d, jj]
+                        Lij[j,jj] += L20[j_d, jj]
+                Lij[i,j] += L11[i_d, j_d]
+                Lij[i,j] += L11[j_d, i_d]
+                h_ij = (tdot(Sj, G*Ri) - tdot(Sj, G*Li*G*R0) + tdot(Si,G*Rj)
+                        -tdot(S0, G*Lj*G*Ri) + tdot(S0, G*Lj*G*Li*G*R0)
+                        -tdot(Si, G*Lj*G*R0) - tdot(S0, G*Lij*G*R0)
+                        +tdot(S0, G*Li*G*Lj*G*R0) - tdot(S0, G*Li*G*Rj))
+                if i==j:
+                    Sij = VectorXc.Zero(num); Sij[i]=S2[i_d]
+                    Rij = VectorXc.Zero(num); Rij[i]=R2[i_d]
+                    h_ij += tdot(Sij, G*R0) + tdot(S0, G*Rij)
+                hess[i_d,j_d] = h_ij
             
-    return (val, grad, hess)
-    
+        return (val, grad, hess)
+    return __func__
     
 class OptRes:
     def __init__(self):

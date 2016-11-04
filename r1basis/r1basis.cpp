@@ -483,6 +483,21 @@ namespace cbasis {
   }    
 
   template<int m>
+  _EXPs<m>* _EXPs<m>::ReplaceLC(int i, LC_EXPs lc) {
+
+    if(i < 0 || i >= this->size()) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + " : index out of range";
+      throw runtime_error(msg);
+    }
+
+    this->basis_[i] = lc->Clone();
+    this->coef_type_[i] = COEF_NO;
+    return this;
+    
+  }
+  
+  template<int m>
   _EXPs<m>* _EXPs<m>::SetUp() {
 
     if(this->HasCoefAll())
