@@ -168,35 +168,31 @@ namespace cbasis {
     
   }
 
-  dcomplex EXPIntLC(LC_STOs a, int m, LC_STOs b) {
+  // ==== calculation for LC ====
+  template<int m1, int m2>
+  dcomplex EXPIntLC(typename _EXPs<m1>::LC_EXPs a,
+		    int m,
+		    typename _EXPs<m2>::LC_EXPs b) {
     dcomplex acc(0);
     for(int i = 0; i < a->size(); i++)
       for(int j = 0; j < b->size(); j++) {
 	dcomplex c(a->c(i) * b->c(j));
 	int      n(a->n(i) + b->n(j));
-	dcomplex z(a->z(i) + b->z(j));
-	acc +=  c * STOInt(n+m, z);
+	acc +=  c * EXPInt<m1, m2>(n+m, a->z(i), b->z(j));
       }
     return acc;    
   }
-  dcomplex EXPIntLC(LC_GTOs a, int m, LC_GTOs b) {
-    dcomplex acc(0);
-    for(int i = 0; i < a->size(); i++)
-      for(int j = 0; j < b->size(); j++) {
-	dcomplex c(a->c(i) * b->c(j));
-	int      n(a->n(i) + b->n(j));
-	dcomplex z(a->z(i) + b->z(j));
-	acc +=  c * GTOInt(n+m, z);
-      }
-    return acc;    
-  }
-
+  template dcomplex EXPIntLC<1,1>(_EXPs<1>::LC_EXPs a, int m, _EXPs<1>::LC_EXPs b);
+  template dcomplex EXPIntLC<1,2>(_EXPs<1>::LC_EXPs a, int m, _EXPs<2>::LC_EXPs b);
+  template dcomplex EXPIntLC<2,1>(_EXPs<2>::LC_EXPs a, int m, _EXPs<1>::LC_EXPs b);
+  template dcomplex EXPIntLC<2,2>(_EXPs<2>::LC_EXPs a, int m, _EXPs<2>::LC_EXPs b);
+  
   // ==== vector ====
   template<int m1, int m2>
   VectorXcd CalcVec(typename _EXPs<m1>::EXPs a,
 		    typename _EXPs<m2>::LC_EXPs b) {
     
-    if(!a->HasCoef()) {
+    if(!a->HasCoefAll()) {
       string msg; SUB_LOCATION(msg);
       msg = "\n" + msg + "EXP does not have coef. Call SetUp or use no_normal method only";
       throw runtime_error(msg);
@@ -206,15 +202,14 @@ namespace cbasis {
     VectorXcd vec(numa);
     
     for(int i = 0; i < numa; i++) {
-      
       typename _EXPs<m1>::LC_EXPs bi = a->basis(i);
-      vec(i) = EXPIntLC(bi, 0, b);
+      vec(i) = EXPIntLC<m1, m2>(bi, 0, b);
     }
     return vec;
   }
   template VectorXcd CalcVec<1,1>(_EXPs<1>::EXPs a, _EXPs<1>::LC_EXPs b);
-  //  template VectorXcd CalcVec<1,2>(_EXPs<1>::EXPs a, _EXPs<2>::LC_EXPs b);
-  //  template VectorXcd CalcVec<2,1>(_EXPs<2>::EXPs a, _EXPs<1>::LC_EXPs b);
+  template VectorXcd CalcVec<1,2>(_EXPs<1>::EXPs a, _EXPs<2>::LC_EXPs b);
+  template VectorXcd CalcVec<2,1>(_EXPs<2>::EXPs a, _EXPs<1>::LC_EXPs b);
   template VectorXcd CalcVec<2,2>(_EXPs<2>::EXPs a, _EXPs<2>::LC_EXPs b);
 
   // ==== matrix ====
@@ -223,7 +218,7 @@ namespace cbasis {
 		      int M,
 		      typename _EXPs<m2>::EXPs b) {
     
-    if(!a->HasCoef() || !b->HasCoef()) {
+    if(!a->HasCoefAll() || !b->HasCoefAll()) {
       string msg; SUB_LOCATION(msg);
       msg = "\n" + msg + "EXP does not have coef. Call SetUp or use no_normal method only";
       throw runtime_error(msg);
@@ -263,7 +258,7 @@ namespace cbasis {
   Eigen::MatrixXcd CalcD2Mat(typename _EXPs<m1>::EXPs a,
 			     typename _EXPs<m2>::EXPs b) {
 
-    if(!a->HasCoef() || !b->HasCoef()) {
+    if(!a->HasCoefAll() || !b->HasCoefAll()) {
       string msg; SUB_LOCATION(msg);
       msg = "\n" + msg + "No coefficient.";
       throw runtime_error(msg);
@@ -306,21 +301,6 @@ namespace cbasis {
   _EXPs<m>::_EXPs() {
   }
   template<int m>
-  bool _EXPs<m>::OnlyPrim() const {
-
-    bool acc(true);
-
-    typedef typename vector<LC_EXPs>::const_iterator It;
-    for(It it = this->basis_.begin();
-	it != this->basis_.end();
-	++it) {
-      acc &= (*it)->size() == 1;
-    }
-
-    return acc;
-    
-  }
-  template<int m>
   VectorXcd _EXPs<m>::AtR(const VectorXcd& rs, const VectorXcd& cs) const {
 
     if(cs.size() != this->size()) {
@@ -328,6 +308,12 @@ namespace cbasis {
       SUB_LOCATION(msg);
       msg += " : size mismatch.";
       throw runtime_error(msg);
+    }
+
+    if(!this->HasCoefAll()) {
+      string msg;
+      SUB_LOCATION(msg);
+      msg = "\n" + msg + " : coef is not set";
     }
 
     int num(this->size());
@@ -351,6 +337,12 @@ namespace cbasis {
       throw runtime_error(msg);
     }
 
+    if(!this->HasCoefAll()) {
+      string msg;
+      SUB_LOCATION(msg);
+      msg = "\n" + msg + " : coef is not set";
+    }    
+
     int num(this->size());
     VectorXcd ys = VectorXcd::Zero(rs.size());
 
@@ -360,6 +352,14 @@ namespace cbasis {
     }
 
     return ys;
+
+  }
+  template<int m>
+  dcomplex _EXPs<m>::AtR_One(dcomplex r, const VectorXcd& cs) const {
+
+    VectorXcd rs(1);
+    rs[0] = r;
+    return this->AtR(rs, cs)[0];
 
   }
   template<int m>
@@ -382,20 +382,57 @@ namespace cbasis {
     return oss.str();
   }
   template<int m>
-  bool _EXPs<m>::IsNormal() const {
+  bool _EXPs<m>::IsPrim(int i) const {
+    if(i < 0 || this->size() <= i ) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + " : index out of range";
+      throw runtime_error(msg);
+    }
+    return (this->basis(i)->size() == 1);
+  }
+  template<int m>
+  bool _EXPs<m>::IsPrimAll() const {
     bool acc = true;
     typedef vector<int>::const_iterator It;
-    for(It it = coef_type_.begin(); it != coef_type_.end(); ++it) {
-      acc = acc && (*it == COEF_NORMAL);
+    for(int i = 0; i < this->size(); i++) {
+      acc = acc && (this->IsPrim(i));
     }
     return acc;
   }
-  template<int m> 
-  bool _EXPs<m>::HasCoef() const {
+  template<int m>
+  bool _EXPs<m>::IsNormal(int i) const {
+    if(i < 0 || this->size() <= i ) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + " : index out of range";
+      throw runtime_error(msg);
+    }
+    return (coef_type_[i] == COEF_NORMAL);
+  }
+  template<int m>
+  bool _EXPs<m>::IsNormalAll() const {
     bool acc = true;
     typedef vector<int>::const_iterator It;
-    for(It it = coef_type_.begin(); it != coef_type_.end(); ++it) {
-      acc = acc && (*it == COEF_NORMAL || *it == COEF_NOT_NORMAL);
+    for(int i = 0; i < this->size(); i++) {
+      acc = acc && (this->IsNormal(i));
+    }
+    return acc;
+  }
+  template<int m>
+  bool _EXPs<m>::HasCoef(int i) const {
+    if(i < 0 || this->size() <= i ) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + " : index out of range";
+      throw runtime_error(msg);
+    }
+    return (coef_type_[i] == COEF_NORMAL ||
+	    coef_type_[i] == COEF_NOT_NORMAL);
+  }  
+  template<int m> 
+  bool _EXPs<m>::HasCoefAll() const {
+    bool acc = true;
+    typedef vector<int>::const_iterator It;
+    for(int i = 0; i < this->size(); i++) {
+      acc = acc && (this->HasCoef(i));
     }
     return acc;
   }
@@ -448,7 +485,7 @@ namespace cbasis {
   template<int m>
   _EXPs<m>* _EXPs<m>::SetUp() {
 
-    if(this->HasCoef())
+    if(this->HasCoefAll())
       return this;
 
     int num(this->size());
@@ -457,7 +494,7 @@ namespace cbasis {
 
       if(this->coef_type_[i] == COEF_NO) {
 	LC_EXPs bi = this->basis(i);
-	dcomplex nterm(1.0/sqrt(EXPIntLC(bi, 0, bi)));
+	dcomplex nterm(1.0/sqrt(EXPIntLC<m, m>(bi, 0, bi)));
 	for(int ii = 0; ii < bi->size(); ii++) {
 	  bi->c(ii) *= nterm;
 	}

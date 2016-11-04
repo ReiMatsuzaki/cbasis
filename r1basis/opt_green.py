@@ -1,22 +1,43 @@
 from r1basis import *
 
-def one_deriv(us):
+def one_deriv(us, opt_list):
     """ compute derivative basis for orbital exponent.
     see support/normalized_exp.py
 
     us : STOs or GTOs
     .         input basis set
     """
-
-    if(not us.is_normal()):
-        raise Exception("us must be normalized.")
-
-    if(not us.only_prim()):
-        raise Exception("only support non contracted basis.")
+    if(not us.has_coef_all()):
+        raise Exception("coef is not set")
+    
+    if(us.size() != len(opt_list)):
+        raise Exception("opt_list : invalid size")
 
     if(us.exp_power() != 1 and us.exp_power() != 2):
         raise Exception("invalid input. Input type = {0}".format(type(us)))
 
+    dus = STOs() if us.exp_power() == 1 else GTOs()
+    
+    for i in range(us.size()):
+        if(us.is_prim(i) and us.is_normal(i) and opt_list[i]):
+            ui = us.basis(i)
+            ci = ui.c(0)
+            ni = ui.n(0)
+            zi = ui.z(0)
+            if(us.exp_power() == 1):
+                dui = LC_STOs()
+                dui.add(-ci,           ni+1,   zi)
+                dui.add(ci * (ni+0.5)/zi, ni, zi)
+            else:
+                dui = LC_GTOs()
+                dui.add(-ci, ni+2, zi)
+                dui.add(ci * (2*ni+1)/(4.0*zi), ni,   zi)
+            dus.add_not_normal(dui)            
+
+    dus.setup()
+    return dus
+
+    """
     if(us.exp_power() == 1):
         dus = STOs()
         for i in range(us.size()):
@@ -52,23 +73,25 @@ def one_deriv(us):
 
         dus.setup()
         return dus
+"""
 
-def two_deriv(us):
+def two_deriv(us, opt_list):
     """ compute second derivative basis for orbital exponent.
     see support/normalized_exp.py
 
     us : STOs or GTOs
     .         input basis set
     """
-
-    if(not us.is_normal()):
-        raise Exception("us must be normalized.")
-
-    if(not us.only_prim()):
-        raise Exception("only support non contracted basis.")
+    if(not us.has_coef_all()):
+        raise Exception("coef is not set")
+    
+    if(us.size() != len(opt_list)):
+        raise Exception("opt_list : invalid size")
 
     if(us.exp_power() != 1 and us.exp_power() != 2):
         raise Exception("invalid input. Input type = {0}".format(type(us)))
+
+    dus = STOs() if us.exp_power() == 1 else GTOs()
 
     if(us.exp_power() == 1):
         dus = STOs()
@@ -147,7 +170,7 @@ class H_Photoionization():
                 raise(Exception("not implemented yet"))
         else:
             if(self.n0 == 1 and self.L0 == 0):
-                driv = LC_STOs(2.0, 1, 1.0)
+                driv = LC_STOs().add(2.0, 1, 1.0)
             else:
                 raise(Exception("not implemented yet"))
         return calc_vec(a, driv)
@@ -194,11 +217,10 @@ def vgh_green(h_pi, w, us, opt_list):
 
     num   = us.size()
     num_d = len([1 for opt_q in opt_list if opt_q])    
-    
     opt_index = get_opt_index(opt_list)
 
-    dus = one_deriv(us)
-    ddus= two_deriv(us)
+    dus = one_deriv(us, opt_list)
+    ddus= two_deriv(us, opt_list)
     L00 = h_pi.l_mat(us,  us, w)
     L10 = h_pi.l_mat(dus, us, w)
     L11 = h_pi.l_mat(dus, dus,w)
@@ -249,7 +271,7 @@ def vgh_green(h_pi, w, us, opt_list):
                 Sij = VectorXc.Zero(num); Sij[i]=S2[i_d]
                 Rij = VectorXc.Zero(num); Rij[i]=R2[i_d]
                 h_ij += tdot(Sij, G*R0) + tdot(S0, G*Rij)
-            hess[i,j] = h_ij
+            hess[i_d,j_d] = h_ij
             
     return (val, grad, hess)
     

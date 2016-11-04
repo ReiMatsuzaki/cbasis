@@ -14,7 +14,11 @@ using namespace cbasis;
 using namespace erfc_mori;
 using namespace boost::python;
 
+dcomplex TDot(const VectorXcd& a, const VectorXcd& b) {
+  return (a.array() * b.array()).sum();
+}
 void BindMath() {
+  def("tdot", &TDot);
   def("erfc", &erfc<dcomplex>);
   def("erfcx", &erfcx<dcomplex>);
 }
@@ -56,10 +60,20 @@ void BindR1Basis() {
 
   def("sto_int", &STOInt);
   def("gto_int", &GTOInt);
-  def("int_lc", (dcomplex (*)(LC_STOs, int, LC_STOs))EXPIntLC);
-  def("int_lc", (dcomplex (*)(LC_GTOs, int, LC_GTOs))EXPIntLC);
+  def("sto_gto_int", &STO_GTOInt);
+
+  /*
+  def("int_lc", &EXPIntLC<1,1>);
+  def("int_lc", &EXPIntLC<1,2>);
+  def("int_lc", &EXPIntLC<2,1>);
+  def("int_lc", &EXPIntLC<2,2>);
+  */
+  //  def("int_lc", (dcomplex (*)(LC_STOs, int, LC_STOs))EXPIntLC);
+  //  def("int_lc", (dcomplex (*)(LC_GTOs, int, LC_GTOs))EXPIntLC);
 
   def("calc_vec", &CalcVec<1,1>);
+  def("calc_vec", &CalcVec<1,2>);
+  def("calc_vec", &CalcVec<2,1>);
   def("calc_vec", &CalcVec<2,2>);
   
   def("calc_rm_mat", &CalcRmMat<1,1>);
@@ -80,9 +94,12 @@ void BindR1Basis() {
   class_<_STOs>("_STOs", init<>())
     .def("size",      &_EXPs<1>::size)
     .def("basis",     &_EXPs<1>::basis)
-    .def("only_prim", &_EXPs<1>::OnlyPrim)
-    .def("is_normal", &_EXPs<1>::IsNormal)
-    .def("has_coef",  &_EXPs<1>::HasCoef)
+    .def("is_prim",       &_EXPs<1>::IsPrim)
+    .def("is_prim_all",   &_EXPs<1>::IsPrimAll)
+    .def("is_normal",     &_EXPs<1>::IsNormal)
+    .def("is_normal_all", &_EXPs<1>::IsNormalAll)
+    .def("has_coef",      &_EXPs<1>::HasCoef)
+    .def("has_coef_all",  &_EXPs<1>::HasCoefAll)
     .def("exp_power", &_EXPs<1>::exp_power)
     .def("add",       &_EXPs<1>::AddPrim, return_self<>())
     .def("add",       &_EXPs<1>::AddPrims, return_self<>())
@@ -92,6 +109,7 @@ void BindR1Basis() {
     .def("setup",       &_EXPs<1>::SetUp, return_self<>())
     .def("str",         &_EXPs<1>::str)
     .def("at_r",        &_EXPs<1>::AtR)
+    .def("at_r",        &_EXPs<1>::AtR_One)
     .def("clone",       &_EXPs<1>::Clone)
     .def("conj",        &_EXPs<1>::Conj)
     .def("calc_rm_mat", &_EXPs<1>::CalcRmMat)
@@ -105,9 +123,12 @@ void BindR1Basis() {
   class_<_GTOs>("_GTOs", init<>())
     .def("size",      &_EXPs<2>::size)
     .def("basis",     &_EXPs<2>::basis)
-    .def("only_prim", &_EXPs<2>::OnlyPrim)
-    .def("is_normal", &_EXPs<2>::IsNormal)
-    .def("has_coef",  &_EXPs<2>::HasCoef)
+    .def("is_prim",       &_EXPs<2>::IsPrim)
+    .def("is_prim_all",   &_EXPs<2>::IsPrimAll)
+    .def("is_normal",     &_EXPs<2>::IsNormal)
+    .def("is_normal_all", &_EXPs<2>::IsNormalAll)
+    .def("has_coef",      &_EXPs<2>::HasCoef)
+    .def("has_coef_all",  &_EXPs<2>::HasCoefAll)    
     .def("exp_power", &_EXPs<2>::exp_power)
     .def("add",       &_EXPs<2>::AddPrim, return_self<>())
     .def("add",       &_EXPs<2>::AddPrims, return_self<>())
@@ -117,6 +138,7 @@ void BindR1Basis() {
     .def("setup",     &_EXPs<2>::SetUp, return_self<>())
     .def("str",   &_EXPs<2>::str)
     .def("at_r",  &_EXPs<2>::AtR)
+    .def("at_r",  &_EXPs<2>::AtR_One)
     .def("clone", &_EXPs<2>::Clone)
     .def("conj",  &_EXPs<2>::Conj)
     .def("calc_rm_mat", &_EXPs<2>::CalcRmMat)

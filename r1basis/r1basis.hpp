@@ -12,8 +12,6 @@
 #define COEF_NOT_NORMAL 1 // not normalized
 #define COEF_NORMAL 2     // normalized
 
-
-//
 // represent set of linear combination of STO/GTO
 // you can use normalized basis set or not normalized basis set
 //
@@ -31,22 +29,27 @@ namespace cbasis {
     // ---- Member field ----
     std::vector<LC_EXPs> basis_;
     std::vector<int>     coef_type_;
-    
+  
   public:
     // ---- Constructors ----
     _EXPs();
-    
+  
     // ---- Getter ----
     int size()  const { return basis_.size(); }
     LC_EXPs basis(int i) const { return basis_[i]; }
-    bool OnlyPrim() const;
-    bool IsNormal() const;
-    bool HasCoef() const;
+    bool IsPrim(int i) const;
+    bool IsPrimAll() const;
+    bool IsNormal(int i) const;
+    bool IsNormalAll() const;
+    bool HasCoef(int i) const;
+    bool HasCoefAll() const;
     int exp_power() const { return m; }
-    Eigen::VectorXcd AtR(const Eigen::VectorXcd&, 
-			 const Eigen::VectorXcd&) const;
-    Eigen::VectorXcd DAtR(const Eigen::VectorXcd&,
-			  const Eigen::VectorXcd&) const;
+    Eigen::VectorXcd AtR(const Eigen::VectorXcd& rs, 
+			 const Eigen::VectorXcd& cs) const;
+    Eigen::VectorXcd DAtR(const Eigen::VectorXcd& rs,
+			  const Eigen::VectorXcd& cs) const;
+    dcomplex AtR_One(dcomplex r, const Eigen::VectorXcd& cs) const;
+    
     std::string str() const;
     
     // ---- Setter ----
@@ -60,15 +63,14 @@ namespace cbasis {
     // ---- Create ----
     EXPs Conj() const;
     EXPs Clone() const;
-    
+  
     // ---- Calculate ----
     Eigen::MatrixXcd CalcRmMat(int M) const;
     Eigen::MatrixXcd CalcD2Mat()      const;
     Eigen::VectorXcd CalcVecSTO(LC_STOs stos) const;
     Eigen::VectorXcd CalcVecGTO(LC_GTOs gtos) const;
-
-  };
   
+  };
 
   typedef boost::shared_ptr<_EXPs<1> > STOs;
   typedef boost::shared_ptr<_EXPs<2> > GTOs;
@@ -78,8 +80,7 @@ namespace cbasis {
   GTOs Create_GTOs();
   dcomplex STOInt(int n, dcomplex a);
   dcomplex GTOInt(int n, dcomplex a);
-  dcomplex EXPIntLC(LC_STOs a, int m, LC_STOs b);
-  dcomplex EXPIntLC(LC_GTOs a, int m, LC_GTOs b);
+  dcomplex STO_GTOInt(int n, dcomplex a, dcomplex b);
 
   template<int m1, int m2>
   Eigen::VectorXcd CalcVec(typename _EXPs<m1>::EXPs a,

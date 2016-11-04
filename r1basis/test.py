@@ -73,7 +73,7 @@ class Test_r1_linear_comb(unittest.TestCase):
             y = fs.at_r([r])[0]
             cy= c_fs.at_r([r])[0]
             self.assertAlmostEqual(y.conjugate(), cy)
-
+            
 class Test_gto(unittest.TestCase):
 
     def setUp(self):
@@ -112,7 +112,7 @@ class Test_gto(unittest.TestCase):
 
         gtos = self.gtos
         self.assertEqual(5, gtos.size())
-        self.assertFalse(gtos.only_prim())
+        self.assertFalse(gtos.is_prim_all())
 
         gtos = GTOs()
         gtos.add(2, 1.1)
@@ -120,7 +120,7 @@ class Test_gto(unittest.TestCase):
         gtos.add(3, [1.2, 1.3-0.1j])
         gtos.setup()
         self.assertEqual(4, gtos.size())
-        self.assertTrue(gtos.only_prim())
+        self.assertTrue(gtos.is_prim_all())
 
     def test_accessor(self):
 
@@ -143,16 +143,6 @@ class Test_gto(unittest.TestCase):
         g = GTOs()
         g.add(2, 1.1)
         self.assertRaises(RuntimeError, calc_rm_mat(g, 0, g))
-
-    def test_int_gto_lc(self):
-        a = LC_GTOs()
-        a.add(1.1, 2, 1.2)
-        b = LC_GTOs()
-        b.add(1.2, 3, 1.4)
-        
-        calc = int_lc(a, 2, b)
-        ref,err  = quad(lambda r: (a.at_r([r])[0]*r*r*b.at_r([r])[0]).real, 0, 4.0)
-        self.assertAlmostEqual(ref, calc)
 
     def test_at_r(self):
         n1 = 2; z1 = 1.0
@@ -207,7 +197,25 @@ class Test_gto(unittest.TestCase):
 class Test_sto(unittest.TestCase):
     def setUp(self):
         pass
-    
+
+    def test_accessor(self):
+        s2 = LC_STOs().add(1.2, 2, 1.1).add(1.1, 3, 1.4)
+        fs = STOs().add(1, 2.0).add_not_normal(1.1, 2, 3.0).add(s2).setup()
+        self.assertTrue(fs.is_prim(0))
+        self.assertTrue(fs.is_prim(1))
+        self.assertFalse(fs.is_prim(2))
+        
+        self.assertTrue(fs.has_coef(0))
+        self.assertTrue(fs.has_coef(1))
+        self.assertTrue(fs.has_coef(2))
+
+        self.assertTrue(fs.is_normal(0))
+        self.assertFalse(fs.is_normal(1))
+        self.assertTrue(fs.is_normal(2))        
+
+        fs = STOs().add(2, 1.1)
+        self.assertFalse(fs.has_coef(0))
+        
     def test_int_sto(self):
         z = 2.3
         for n in [0, 1, 3]:
@@ -304,7 +312,7 @@ class Test_matele(unittest.TestCase):
         self.assertAlmostEqual(gDg_ref, gDg_calc)
         self.assertAlmostEqual(sDg_ref, sDg_calc)
         
-class Test_driv(unittest.TestCase):
+class Test_green(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -341,7 +349,7 @@ class Test_driv(unittest.TestCase):
         ref = 1.88562800720386-0.362705406693342j
         self.assertAlmostEqual(3.0*ref, alpha)
 
-    def test_deriv(self):
+    def test_deriv_one(self):
 
         for (name, create) in [("STO", STOs), ("GTO", GTOs)]:
             n0 = 3
@@ -355,18 +363,33 @@ class Test_driv(unittest.TestCase):
             stos.add(n0, z0)
             stos.setup()
             
-            dstos = one_deriv(stos)
+            dstos = one_deriv(stos, [True])
             calc_dy = dstos.at_r(r0, c0)[0]
             ref_dy  = num_pd_c1(calc, z0, 0.0001, 0)        
             self.assertAlmostEqual(ref_dy, calc_dy)
-            
-            ddstos = two_deriv(stos)
+
+            ddstos = two_deriv(stos, [True])
             calc_ddy = ddstos.at_r(r0, c0)[0]
             ref_ddy  = num_pd2(calc, z0, 0.0001, 0, 0, method="c1")
             msg = "Basis={0}, second derivative\nref = {1}\ncalc= {2}\n".format(name, ref_ddy, calc_ddy)
             
             self.assertAlmostEqual(ref_ddy, calc_ddy, msg=msg)
-            
+
+    def test_deriv_three(self):
+        z0 = 0.52
+        r0 = 2.6
+        c0 = 1.2
+        #basis= lambda z: GTOs().add(3, [1.1, z, 3.3]).setup()
+        basis= lambda z: GTOs().add(3, 1.1).add(3, z).add(4, 3.3).setup()
+
+        ds = one_deriv(basis(z0), [False, True, False])
+        self.assertEqual(1, ds.size())
+
+        calc = lambda z: basis(z).at_r(r0, [0,c0,0])
+        ref_dy  = num_pd(calc, [z0], 0.0001, 0, method='c1')
+        calc_dy = ds.at_r(r0, [c0])
+        self.assertAlmostEqual(ref_dy, calc_dy)
+        
     def test_grad_one(self):
 
         z0 = [1.3-0.2j]
@@ -400,8 +423,42 @@ class Test_driv(unittest.TestCase):
             self.assertAlmostEqual(ref_grad[i], calc_grad[i])
             for j in range(2):
                 self.assertAlmostEqual(ref_hess[i,j],
-                                       calc_hess[i,j], places=6)        
-        
+                                       calc_hess[i,j], places=6)
+
+    def test_grad_two_of_three_easy(self):
+        opt_zs0 = [1.3-0.1j, 2.3-0.5j]
+        z2 = 0.4-0.4j
+        opt = [True, True, False]
+        h_pi = H_Photoionization(1, 0, 1, "velocity")
+        get_basis =  lambda z: STOs().add(2, z[0]).add(2,z[1]).add(2, z2).setup()
+        calc_green = lambda z: vgh_green(h_pi, 1.0, get_basis(z), opt)[0]
+
+        (v, calc_g, calc_h) = vgh_green(h_pi, 1.0, get_basis(opt_zs0), opt)
+        ref_g = ngrad(calc_green, opt_zs0, 0.0001, method='c1')
+        ref_h = nhess(calc_green, opt_zs0, 0.0001, method='c1')
+        for i in range(2):
+            self.assertAlmostEqual(ref_g[i], calc_g[i], places=5)
+            for j in range(2):
+                msg = "ref= {0}\ncalc={1}\n(i,j)=({2},{3})".format(ref_h[i,j],calc_h[i,j],i,j)
+                self.assertAlmostEqual(ref_h[i,j], calc_h[i,j], places=5, msg=msg)
+                                       
+    def test_grad_two_of_three(self):
+        opt_zs0 = [1.3-0.1j, 2.3-0.5j]
+        z1 = 0.4-0.4j
+        #        zs0 = [opt_zs[0], z1,     opt_zs[1]]
+        opt = [True,      False,  True]
+        h_pi = H_Photoionization(1, 0, 1, "velocity")
+        get_basis =  lambda z: STOs().add(2, z[0]).add(2,z1).add(2, z[1]).setup()
+        calc_green = lambda z: vgh_green(h_pi, 1.0, get_basis(z), opt)[0]
+
+        (v, calc_g, calc_h) = vgh_green(h_pi, 1.0, get_basis(opt_zs0), opt)
+        ref_g = ngrad(calc_green, opt_zs0, 0.0001, method='c1')
+        ref_h = nhess(calc_green, opt_zs0, 0.0001, method='c1')
+        for i in range(2):
+            self.assertAlmostEqual(ref_g[i], calc_g[i], places=5)
+            for j in range(2):
+                msg = "ref= {0}\ncalc={1}\n(i,j)=({2},{3})".format(ref_h[i,j],calc_h[i,j],i,j)
+                self.assertAlmostEqual(ref_h[i,j], calc_h[i,j], places=5, msg=msg)
         
 """
 class Test_r1gtos(unittest.TestCase):
