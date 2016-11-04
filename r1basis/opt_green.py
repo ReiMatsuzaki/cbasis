@@ -93,8 +93,31 @@ def two_deriv(us, opt_list):
 
     dus = STOs() if us.exp_power() == 1 else GTOs()
 
+    for i in range(us.size()):
+        if(us.is_prim(i) and us.is_normal(i) and opt_list[i]):
+            ui = us.basis(i)
+            ci = ui.c(0)
+            ni = ui.n(0)
+            zi = ui.z(0)
+            if(us.exp_power() == 1):
+                dui = LC_STOs()
+                dui.add(ci,                         ni+2, zi)                
+                dui.add(ci*(-2.0)*(ni+0.5)/zi,      ni+1, zi)
+                dui.add(ci*(ni*ni-1.0/4.0)/(zi*zi), ni,   zi)
+            else:
+                dui = LC_GTOs()
+                dui.add(ci,                             ni+4, zi)
+                dui.add(ci*(-2)*(2*ni+1)/(4*zi),        ni+2, zi)
+                dui.add(ci*(4*ni*ni-4*ni-3)/(16*zi*zi), ni,   zi)
+            dus.add_not_normal(dui)            
+
+    dus.setup()
+    return dus            
+    
+
+    """    
     if(us.exp_power() == 1):
-        dus = STOs()
+        ddus = STOs()
         for i in range(us.size()):
             ui = us.basis(i)
             ci = ui.c(0)
@@ -132,6 +155,7 @@ def two_deriv(us, opt_list):
 
         dus.setup()
         return dus
+    """
 
 class H_Photoionization():
     def __init__(self, n0, L0, L1, dipole):
@@ -265,7 +289,7 @@ def vgh_green(h_pi, w, us, opt_list):
             Lij[i,j] += L11[j_d, i_d]
             h_ij = (tdot(Sj, G*Ri) - tdot(Sj, G*Li*G*R0) + tdot(Si,G*Rj)
                     -tdot(S0, G*Lj*G*Ri) + tdot(S0, G*Lj*G*Li*G*R0)
-                    -tdot(Si, G*Lj*G*R0)  - tdot(S0, G*Lij*G*R0)
+                    -tdot(Si, G*Lj*G*R0) - tdot(S0, G*Lij*G*R0)
                     +tdot(S0, G*Li*G*Lj*G*R0) - tdot(S0, G*Li*G*Rj))
             if i==j:
                 Sij = VectorXc.Zero(num); Sij[i]=S2[i_d]
@@ -276,3 +300,30 @@ def vgh_green(h_pi, w, us, opt_list):
     return (val, grad, hess)
     
     
+class OptRes:
+    def __init__(self):
+        self.x = []          # solution array
+        self.success = False # optimization successed or not
+        self.message = ""    # calculation message
+        self.val     = 0.0   # function values
+        self.grad    = []    # function gradient
+        self.hess    = [[]]  # its Hessian
+        self.nit     = 0     # number of iterations      
+        
+def newton(vgh, z0, tol, maxiter=100):
+    """
+    Compute stationary point by Newton method.
+    
+    Inputs
+    ------
+    vgh : [scalar] -> (scalar, [scalar], [[scalar]])
+    .     lambda for calculating function values, gradient and hessians
+    z0  : [scalar]
+    .     initial guess
+    tol : real
+    .     tolerrance for termination.    
+    maxit : int
+    .     maximum number of iterations
+    """
+
+    print vgh(z0)

@@ -10,7 +10,10 @@ sys.path.append("../src_py/nnewton")
 from nnewton import *
 
 import unittest
-
+class Test_tmp(unittest.TestCase):
+    def setUp(self):
+        pass
+    
 class Test_r1_linear_comb(unittest.TestCase):
     def setUp(self):
         pass
@@ -404,11 +407,12 @@ class Test_green(unittest.TestCase):
         self.assertAlmostEqual(calc_hess[0,0], ref_hess, places=6)
 
     def test_opt_index(self):
-        self.assertEqual([],  get_opt_index([False, False]))
-        self.assertEqual([0, 1],  get_opt_index([True, True]))
-        self.assertEqual([1, 3],  get_opt_index([False, True, False, True]))
+        self.assertEqual([],     get_opt_index([False, False]))
+        self.assertEqual([0, 1], get_opt_index([True, True]))
+        self.assertEqual([1, 3], get_opt_index([False, True, False, True]))
+        self.assertEqual([0, 2], get_opt_index([True, False, True]))
         
-    def test_grad_two(self):
+    def test_gh_two(self):
 
         z0 = [1.3-0.2j, 0.5-0.9j]
         opt = [True, True]
@@ -425,7 +429,7 @@ class Test_green(unittest.TestCase):
                 self.assertAlmostEqual(ref_hess[i,j],
                                        calc_hess[i,j], places=6)
 
-    def test_grad_two_of_three_easy(self):
+    def test_gh_two_of_three_easy(self):
         opt_zs0 = [1.3-0.1j, 2.3-0.5j]
         z2 = 0.4-0.4j
         opt = [True, True, False]
@@ -441,7 +445,18 @@ class Test_green(unittest.TestCase):
             for j in range(2):
                 msg = "ref= {0}\ncalc={1}\n(i,j)=({2},{3})".format(ref_h[i,j],calc_h[i,j],i,j)
                 self.assertAlmostEqual(ref_h[i,j], calc_h[i,j], places=5, msg=msg)
-                                       
+
+    def test_gh_one_of_two(self):
+        zs = [1.3-0.1j, 2.3-0.5j]
+        h_pi = H_Photoionization(1, 0, 1, "velocity")
+        basis = STOs().add(2, zs).setup()
+
+        (v, calc_g, calc_h) = vgh_green(h_pi, 1.0, basis, [False, True])
+        (v, full_g, full_h) = vgh_green(h_pi, 1.0, basis, [True,  True])
+
+        self.assertAlmostEqual(full_g[1], calc_g[0], places=5)
+        self.assertAlmostEqual(full_h[1,1], calc_h[0,0], places=5)
+                
     def test_grad_two_of_three(self):
         opt_zs0 = [1.3-0.1j, 2.3-0.5j]
         z1 = 0.4-0.4j
@@ -452,15 +467,29 @@ class Test_green(unittest.TestCase):
         calc_green = lambda z: vgh_green(h_pi, 1.0, get_basis(z), opt)[0]
 
         (v, calc_g, calc_h) = vgh_green(h_pi, 1.0, get_basis(opt_zs0), opt)
+        (v, full_g, full_h) = vgh_green(h_pi, 1.0, get_basis(opt_zs0), [True,True,True])
         ref_g = ngrad(calc_green, opt_zs0, 0.0001, method='c1')
         ref_h = nhess(calc_green, opt_zs0, 0.0001, method='c1')
+
+        self.assertAlmostEqual(full_h[0,0], calc_h[0,0], places=5)
+        self.assertAlmostEqual(full_h[0,2], calc_h[0,1], places=5)
+        self.assertAlmostEqual(full_h[2,0], calc_h[1,0], places=5)
+        self.assertAlmostEqual(full_h[2,2], calc_h[1,1], places=5)
+        
         for i in range(2):
-            self.assertAlmostEqual(ref_g[i], calc_g[i], places=5)
+            self.assertAlmostEqual(ref_g[i], calc_g[i], places=5)            
             for j in range(2):
                 msg = "ref= {0}\ncalc={1}\n(i,j)=({2},{3})".format(ref_h[i,j],calc_h[i,j],i,j)
                 self.assertAlmostEqual(ref_h[i,j], calc_h[i,j], places=5, msg=msg)
+
+        
+    def test_opt_one(self):
+        h_pi = H_Photoionization(1, 0, 1, "velocity")
+        basis = STOs().add(2, 1.0-0.3j).setup()
+
         
 """
+
 class Test_r1gtos(unittest.TestCase):
     def setUp(self):
         self.gtos = GTOs()
