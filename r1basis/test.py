@@ -398,12 +398,10 @@ class Test_green(unittest.TestCase):
         self.assertAlmostEqual(ref_dy, calc_dy)
         
     def test_grad_one(self):
-
         z0 = [1.3-0.2j]
         h_pi = H_Photoionization(1.0, 1, 0, 1, "length")
         basis  = STOs().add(2, z0).setup()
         calc_green = lambda z: vgh_green(h_pi, basis, [True])(z)[0]
-        
         (val, calc_grad, calc_hess) = vgh_green(h_pi, basis, [True])(z0)
         ref_grad = num_pd(calc_green,  z0, 0.0001, 0,    method='c1')
         ref_hess = num_pd2(calc_green, z0, 0.0001, 0, 0, method='c1')
@@ -488,10 +486,33 @@ class Test_green(unittest.TestCase):
 
         
     def test_opt_one(self):
-        h_pi = H_Photoionization(1.1, 1, 0, 1, "velocity")
-        basis = STOs().add(2, 1.0-0.3j).setup()
+        h_pi = H_Photoionization(1.0, 1, 0, 1, "velocity")
+        z0s = [0.6-0.6j]
+        opt = [True for z in z0s]
+        basis = STOs().add(2, z0s).setup()
+        res = newton(vgh_green(h_pi, basis, opt), z0s)
 
-        
+        ## see calc/stoh/v_1/res.d
+        self.assertTrue(res.success)
+        self.assertAlmostEqual(1.0255886472-0.6955918398j, res.x[0])
+        self.assertAlmostEqual((0.361600808054165-0.371221793708147j)*3, res.val)
+
+    def test_opt_three(self):
+        h_pi = H_Photoionization(0.9, 1, 0, 1, "length")
+        zs_opt = [0.9797019427  -0.0125136315j,
+                  0.8771210224  -0.6400667900j,
+                  0.3008012645  -1.0095895471j]
+        z0s = [z0 + 0.01 for z0 in zs_opt]
+        opt = [True for z in z0s]
+        basis = STOs().add(2, z0s).setup()
+        res = newton(vgh_green(h_pi, basis, opt), z0s, tol=pow(10.0, -10))
+
+        ## see calc/stoh/l_3/res.d
+        self.assertTrue(res.success)
+        self.assertAlmostEqual(zs_opt[0], res.x[0])
+        self.assertAlmostEqual(zs_opt[1], res.x[1])
+        self.assertAlmostEqual(zs_opt[2], res.x[2])
+        self.assertAlmostEqual((2.23413256581075-0.543249555891283j)*3, res.val)
 """
 
 class Test_r1gtos(unittest.TestCase):

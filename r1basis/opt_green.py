@@ -1,5 +1,6 @@
 from r1basis import *
 
+## ==== derivative basis ====
 def one_deriv(us, opt_list):
     """ compute derivative basis for orbital exponent.
     see support/normalized_exp.py
@@ -157,6 +158,8 @@ def two_deriv(us, opt_list):
         return dus
     """
 
+
+## ==== hydrogen atom photoionization ====
 class H_Photoionization():
     def __init__(self, w, n0, L0, L1, dipole):
         self.w = w
@@ -202,6 +205,8 @@ class H_Photoionization():
         return calc_vec(a, driv)
 
 
+
+## ==== optimization utility ====
 def get_opt_index(opt_list):
     """
     [False, False]       -> []
@@ -220,6 +225,30 @@ def get_opt_index(opt_list):
             i_d = i_d + 1
     return opt_index
 
+def update_basis(base_us, opt_index, zs):
+
+    """
+    Inputs
+    -------
+    base_us : STOs or GTOs
+    opt_index : [int]
+    .        obtained by get_opt_index
+    zs      : current value of orbital exponents for optimizing basis
+    """
+
+    num   = base_us.size()
+    num_d = len(zs)
+
+    us = base_us.clone()
+    for i_d in range(num_d):
+        i = opt_index[i_d]
+        bi = base_us.basis(i)
+        bi.set_z(0, zs[i_d])
+        us.replace(i, bi)
+        us.setup()
+
+    return us
+    
 def vgh_green(h_pi, base_us, opt_list):
     """ Returns value, gradient and Hessian for discretized matrix element of 
     Green's function. 
@@ -242,20 +271,11 @@ def vgh_green(h_pi, base_us, opt_list):
         raise(Exception("size mismatch"))
 
     num   = base_us.size()
-    num_d = len([1 for opt_q in opt_list if opt_q])    
+    num_d = len([1 for opt_q in opt_list if opt_q])
     opt_index = get_opt_index(opt_list)
 
     def __func__(zs):
-        if(len(zs) != num_d):
-            raise(Exception("size mismatch"))
-        us = base_us.clone()
-        for i_d in range(num_d):
-            i = opt_index[i_d]
-            bi = us.basis(i)
-            bi.set_z(0, zs[i_d])
-            us.replace(i, bi)
-            us.setup()
-
+        us = update_basis(base_us, opt_index, zs)
         dus = one_deriv(us, opt_list)
         ddus= two_deriv(us, opt_list)
         L00 = h_pi.l_mat(us,  us)
@@ -313,6 +333,8 @@ def vgh_green(h_pi, base_us, opt_list):
         return (val, grad, hess)
     return __func__
     
+
+## ==== optimization results ====
 class OptRes:
     def __init__(self):
         self.x = []          # solution array
@@ -321,9 +343,23 @@ class OptRes:
         self.val     = 0.0   # function values
         self.grad    = []    # function gradient
         self.hess    = [[]]  # its Hessian
-        self.nit     = 0     # number of iterations      
+        self.nit     = 0     # number of iterations
+
+    def __str__(self):
+        a = """
+x = {0}
+success = {1}
+message = {2}
+val     = {3}
+grad    = {4}
+hess    = {5}
+nit     = {6}
+""".format(self.x, self.success, self.message, self.val, self.grad, self.hess, self.nit)
+        return a
         
-def newton(vgh, z0, tol, maxiter=100):
+
+## ==== optimization routine ====
+def newton(vgh, x0, tol=0.00001, maxiter=100):
     """
     Compute stationary point by Newton method.
     
@@ -331,12 +367,30 @@ def newton(vgh, z0, tol, maxiter=100):
     ------
     vgh : [scalar] -> (scalar, [scalar], [[scalar]])
     .     lambda for calculating function values, gradient and hessians
-    z0  : [scalar]
+    x0  : [scalar]
     .     initial guess
     tol : real
     .     tolerrance for termination.    
     maxit : int
     .     maximum number of iterations
+
+    Returns
+    -------
+    res : OptRes
     """
 
-    print vgh(z0)
+    res = OptRes()
+    
+    res.x = VectorXc(x0)
+    for res.nit in range(maxiter):
+        (res.val, res.grad, res.hess) = vgh(res.x)
+        ave_g = sum([abs(g0) for g0 in res.grad])/len(res.grad)
+        if(ave_g < tol):
+            res.success = True
+            break
+        dx =  -res.hess.inverse() * res.grad
+        res.x = res.x + dx
+        
+    return res
+
+
