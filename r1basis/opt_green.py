@@ -1,5 +1,14 @@
 from r1basis import *
 
+## ==== Utils ====
+def switch(k0, dic, use_exception=True, default=None):
+    for (key, val) in dic.items():
+        if(k0 == key):
+            return val
+    if(use_exception):
+        raise(Exception("key not found"))
+    return default
+
 ## ==== derivative basis ====
 def one_deriv(us, opt_list):
     """ compute derivative basis for orbital exponent.
@@ -161,19 +170,27 @@ def two_deriv(us, opt_list):
 
 ## ==== hydrogen atom photoionization ====
 class H_Photoionization():
-    def __init__(self, w, n0, L0, L1, dipole):
-        self.w = w
-        self.n0 = n0
-        self.L0 = L0
-        self.L1 = L1
-        self.dipole = dipole
-        self.E0 = -1.0 / (2.0 * n0 * n0)
-        
-        if(abs(L0-L1) != 1):
-            raise(Exception("invalid channel"))
+    def __init__(self, channel, dipole):
 
-        if(dipole != "length" and dipole != "velocity"):
-            raise(Exception("dipole <- {length, velocity}"))
+        (n0, l0, l1) = switch(channel,
+                              {"1s->kp": (1, 0, 1),
+                               "2p->ks": (2, 1, 0),
+                               "2p->kd": (2, 1, 2),
+                               "3d->kp": (3, 2, 1),
+                               "3d->kf": (3, 2, 3)})
+        
+        self.E0 = -1.0 / (2.0 * n0 * n0)
+        self.L1 = l1
+
+        if(dipole == "length"):
+            self.driv = switch(channel,
+                               {"1s->kp": LC_STOs().add(2.0, 2, 1.0)})
+        elif(dipole == "velocity"):
+            self.driv = switch(channel,
+                               {"1s->kp": LC_STOs().add(2.0, 1, 1.0)})
+        else:
+            raise(Exception("invalid dipole"))
+
 
     def h_mat(self, a, b):
         d2 = calc_d2_mat(a, b)
@@ -187,25 +204,16 @@ class H_Photoionization():
         h += -r1
         return h
 
-    def l_mat(self, a, b):
-        ene = self.w + self.E0
+    def l_mat(self, w, a, b):
+        ene = w + self.E0
         return calc_rm_mat(a, 0, b) * ene - self.h_mat(a, b)
 
+    def s_mat(self, a, b):
+        return calc_rm_mat(a, 0, b)
+    
     def dip_vec(self, a):
-        if(self.dipole == "length"):
-            if(self.n0 == 1 and self.L0 == 0):
-                driv = LC_STOs().add(2.0, 2, 1.0)
-            else:
-                raise(Exception("not implemented yet"))
-        else:
-            if(self.n0 == 1 and self.L0 == 0):
-                driv = LC_STOs().add(2.0, 1, 1.0)
-            else:
-                raise(Exception("not implemented yet"))
-        return calc_vec(a, driv)
-
-
-
+        return calc_vec(a, self.driv)
+    
 ## ==== optimization utility ====
 def get_opt_index(opt_list):
     """
@@ -249,7 +257,64 @@ def update_basis(base_us, opt_index, zs):
 
     return us
     
-def vgh_green(h_pi, base_us, opt_list):
+def vgh_green(us, dus, ddus, opt_index, ene, hmat, smat, svec, rvec):
+    num   = us.size()
+    num_d = dus.size()
+
+    L00 = smat(us,  us) * ene - hmat(us, us)
+    L10 = smat(dus,  us) * ene - hmat(dus, us)
+    L11 = smat(dus,  dus) * ene - hmat(dus, dus)
+    L20 = smat(ddus,  us) * ene - hmat(ddus, us)
+    S0  = svec(us)
+    S1  = svec(dus)
+    S2  = svec(ddus)    
+    R0  = rvec(us)
+    R1  = rvec(dus)
+    R2  = rvec(ddus)
+            
+    G = L00.inverse()
+
+    val = tdot(S0, G*R0)
+    grad = VectorXc.Zero(num_d)
+    hess = MatrixXc.Zero(num_d, num_d)
+    for i_d in range(num_d):
+        i = opt_index[i_d]
+        Si = VectorXc.Zero(num); Si[i] = S1[i_d]
+        Ri = VectorXc.Zero(num); Ri[i] = R1[i_d]
+        Li = MatrixXc.Zero(num,num);
+        for ii in range(num):
+            Li[i,ii] += L10[i_d, ii]
+            Li[ii,i] += L10[i_d, ii]
+        g_i = tdot(Si, G*R0) + tdot(S0, G*Ri) - tdot(S0, G*Li*G*R0)
+        grad[i_d] = g_i
+            
+        for j_d in range(num_d):
+            j = opt_index[j_d]
+            Sj = VectorXc.Zero(num); Sj[j] = S1[j_d]
+            Rj = VectorXc.Zero(num); Rj[j] = R1[j_d]
+            Lj = MatrixXc.Zero(num, num);
+            for jj in range(num):
+                Lj[j,jj] += L10[j_d, jj]
+                Lj[jj,j] += L10[j_d, jj]
+            Lij= MatrixXc.Zero(num, num)
+            if i==j:
+                for jj in range(num):
+                    Lij[jj,j] += L20[j_d, jj]
+                    Lij[j,jj] += L20[j_d, jj]
+            Lij[i,j] += L11[i_d, j_d]
+            Lij[i,j] += L11[j_d, i_d]
+            h_ij = (tdot(Sj, G*Ri) - tdot(Sj, G*Li*G*R0) + tdot(Si,G*Rj)
+                    -tdot(S0, G*Lj*G*Ri) + tdot(S0, G*Lj*G*Li*G*R0)
+                    -tdot(Si, G*Lj*G*R0) - tdot(S0, G*Lij*G*R0)
+                    +tdot(S0, G*Li*G*Lj*G*R0) - tdot(S0, G*Li*G*Rj))
+            if i==j:
+                Sij = VectorXc.Zero(num); Sij[i]=S2[i_d]
+                Rij = VectorXc.Zero(num); Rij[i]=R2[i_d]
+                h_ij += tdot(Sij, G*R0) + tdot(S0, G*Rij)
+            hess[i_d,j_d] = h_ij
+    return (val, grad, hess)    
+    
+def vgh_green_h_pi(h_pi, base_us, opt_list):
     """ Returns value, gradient and Hessian for discretized matrix element of 
     Green's function. 
     .       <R|G|S>
@@ -273,66 +338,17 @@ def vgh_green(h_pi, base_us, opt_list):
     num   = base_us.size()
     num_d = len([1 for opt_q in opt_list if opt_q])
     opt_index = get_opt_index(opt_list)
-
-    def __func__(zs):
-        us = update_basis(base_us, opt_index, zs)
-        dus = one_deriv(us, opt_list)
-        ddus= two_deriv(us, opt_list)
-        L00 = h_pi.l_mat(us,  us)
-        L10 = h_pi.l_mat(dus, us)
-        L11 = h_pi.l_mat(dus, dus)
-        L20 = h_pi.l_mat(ddus,us)
-        R0  = h_pi.dip_vec(us)
-        R1  = h_pi.dip_vec(dus)
-        R2  = h_pi.dip_vec(ddus)
-        S0  = h_pi.dip_vec(us)
-        S1  = h_pi.dip_vec(dus)
-        S2  = h_pi.dip_vec(ddus)
-        
-        G = L00.inverse()
-
-        val = tdot(S0, G*R0)
-        grad = VectorXc.Zero(num_d)
-        hess = MatrixXc.Zero(num_d, num_d)
-        for i_d in range(num_d):
-            i = opt_index[i_d]
-            Si = VectorXc.Zero(num); Si[i] = S1[i_d]
-            Ri = VectorXc.Zero(num); Ri[i] = R1[i_d]
-            Li = MatrixXc.Zero(num,num);
-            for ii in range(num):
-                Li[i,ii] += L10[i_d, ii]
-                Li[ii,i] += L10[i_d, ii]
-            g_i = tdot(Si, G*R0) + tdot(S0, G*Ri) - tdot(S0, G*Li*G*R0)
-            grad[i_d] = g_i
-            
-            for j_d in range(num_d):
-                j = opt_index[j_d]
-                Sj = VectorXc.Zero(num); Sj[j] = S1[j_d]
-                Rj = VectorXc.Zero(num); Rj[j] = R1[j_d]
-                Lj = MatrixXc.Zero(num, num);
-                for jj in range(num):
-                    Lj[j,jj] += L10[j_d, jj]
-                    Lj[jj,j] += L10[j_d, jj]
-                Lij= MatrixXc.Zero(num, num)
-                if i==j:
-                    for jj in range(num):
-                        Lij[jj,j] += L20[j_d, jj]
-                        Lij[j,jj] += L20[j_d, jj]
-                Lij[i,j] += L11[i_d, j_d]
-                Lij[i,j] += L11[j_d, i_d]
-                h_ij = (tdot(Sj, G*Ri) - tdot(Sj, G*Li*G*R0) + tdot(Si,G*Rj)
-                        -tdot(S0, G*Lj*G*Ri) + tdot(S0, G*Lj*G*Li*G*R0)
-                        -tdot(Si, G*Lj*G*R0) - tdot(S0, G*Lij*G*R0)
-                        +tdot(S0, G*Li*G*Lj*G*R0) - tdot(S0, G*Li*G*Rj))
-                if i==j:
-                    Sij = VectorXc.Zero(num); Sij[i]=S2[i_d]
-                    Rij = VectorXc.Zero(num); Rij[i]=R2[i_d]
-                    h_ij += tdot(Sij, G*R0) + tdot(S0, G*Rij)
-                hess[i_d,j_d] = h_ij
-            
-        return (val, grad, hess)
-    return __func__
     
+    def __func_of_w__(w):
+        def __func_of_zs__(zs):
+            us = update_basis(base_us, opt_index, zs)
+            dus = one_deriv(us, opt_list)
+            ddus= two_deriv(us, opt_list)
+#            print 'energy=', h_pi.E0, w, h_pi.E0+w
+            return vgh_green(us, dus, ddus, opt_index, h_pi.E0+w,
+                             h_pi.h_mat, h_pi.s_mat, h_pi.dip_vec, h_pi.dip_vec)
+        return __func_of_zs__
+    return __func_of_w__
 
 ## ==== optimization results ====
 class OptRes:
