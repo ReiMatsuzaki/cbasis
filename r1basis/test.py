@@ -531,7 +531,8 @@ class Test_green(unittest.TestCase):
                  tol = pow(10.0, -5.0),
                  target = 'h_pi',
                  channel= '1s->kp',
-                 dipole = 'length')
+                 dipole = 'length',
+                 print_level = 1)
                  
                  
                  

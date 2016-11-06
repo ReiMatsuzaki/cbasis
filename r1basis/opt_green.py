@@ -1,7 +1,12 @@
 import sys
 from r1basis import *
+import datetime
 
 ## ==== Utils ====
+def print_timestamp(label):
+    t = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+    print "[" + label.rjust(10, ' ') + "] " + t
+    
 def switch(k0, dic, use_exception=True, default=None):
     for (key, val) in dic.items():
         if(k0 == key):
@@ -124,7 +129,6 @@ def two_deriv(us, opt_list):
 
     dus.setup()
     return dus            
-    
 
     """    
     if(us.exp_power() == 1):
@@ -168,9 +172,7 @@ def two_deriv(us, opt_list):
         return dus
     """
 
-
 ## ==== hydrogen atom photoionization ====
-
 ## ==== H photoionization ====
 class H_Photoionization():
     def __init__(self, channel, dipole):
@@ -412,26 +414,46 @@ def newton(vgh, x0, tol=0.00001, maxiter=100):
         
     return res
 
-
-
-
 ## ==== Interface ====
 def opt_main_init(args):
     
     args['basis_type']; args['basis_info']
-    args['w0']; args['ws']; args['tol']; args['target']
+    args['w0']; args['tol']; args['target']
+    
     if('out' in args):
         out = args['out']
     else:
         args['out'] = None
+        
+    if('ws' not in args):
+        args['ws'] = [args['w0']]
+
+    if('print_level' not in args):
+        args['print_level'] = 0
 
     if(args['out']):
         sys.stdout = args["out"]
-        
+
+    print ""
+    print ">>>>opt_green>>>>>"
+    print "optimize the orbital expoent for matrix element of Greens's operator: "
+    print "       alpha(w) = <S, (E0+w-H)R> = SL^{-1}R "
+    print_timestamp('Init')
+    print "basis_type: ", args['basis_type']
+    print "basis_info:"
+    for basis in args['basis_info']:
+        print basis
+    print "w0: ", args['w0']
+    print "ws: ", args['ws']
+    print "tol: ", args['tol']
+    print "target:", args['target']    
+    
 def opt_main_h_pi(args):
 
     ## ---- Check ----
-    args['channel']; args['dipole']
+    print_timestamp('H_PI')
+    print "channel: ", args['channel']
+    print "dipole: ", args['dipole']
     
     h_pi = H_Photoionization(args['channel'], args['dipole'])
     opt_list = []
@@ -449,6 +471,7 @@ def opt_main_h_pi(args):
 
 def opt_main_calc(args):
 
+    print_timestamp('Calc')
     vgh_w_zs = args['vgh_w_zs'] 
     z0s  = args['z0s']
     
@@ -469,17 +492,29 @@ def opt_main_calc(args):
         res = newton(vgh_w_zs(w), zs)
         w_res_list.append((w, res))
         zs = res.x
+        if(args['print_level'] > 0):
+            print "opt for ", w
+            print "x: ", zs
+        if(args['print_level'] > 1):
+            print "grad: ", res.grad
 
     zs = w_res_list[0][1].x
     for w in ws_plus:
         res = newton(vgh_w_zs(w), zs)
         w_res_list.append((w, res))
         zs = res.x
+        if(args['print_level'] > 0):
+            print "opt for ", w
+            print "x: ", zs
+        if(args['print_level'] > 1):
+            print "grad: ", res.grad            
 
     w_res_list.sort(key = lambda wr: wr[0])
     args["w_res_list"] = w_res_list
 
 def opt_main_print(args):
+    
+    print_timestamp('Result')
     for (w, res) in args['w_res_list']:
         print 
         print "w = ", w
