@@ -1,3 +1,4 @@
+import sys
 from r1basis import *
 
 ## ==== Utils ====
@@ -169,6 +170,8 @@ def two_deriv(us, opt_list):
 
 
 ## ==== hydrogen atom photoionization ====
+
+## ==== H photoionization ====
 class H_Photoionization():
     def __init__(self, channel, dipole):
 
@@ -257,14 +260,14 @@ def update_basis(base_us, opt_index, zs):
 
     return us
     
-def vgh_green(us, dus, ddus, opt_index, ene, hmat, smat, svec, rvec):
+def vgh_green(us, dus, ddus, opt_index, lmat, svec, rvec):
     num   = us.size()
     num_d = dus.size()
 
-    L00 = smat(us,  us) * ene - hmat(us, us)
-    L10 = smat(dus,  us) * ene - hmat(dus, us)
-    L11 = smat(dus,  dus) * ene - hmat(dus, dus)
-    L20 = smat(ddus,  us) * ene - hmat(ddus, us)
+    L00 = lmat(us,  us) 
+    L10 = lmat(dus,  us) 
+    L11 = lmat(dus,  dus) 
+    L20 = lmat(ddus,  us) 
     S0  = svec(us)
     S1  = svec(dus)
     S2  = svec(ddus)    
@@ -344,13 +347,13 @@ def vgh_green_h_pi(h_pi, base_us, opt_list):
             us = update_basis(base_us, opt_index, zs)
             dus = one_deriv(us, opt_list)
             ddus= two_deriv(us, opt_list)
-#            print 'energy=', h_pi.E0, w, h_pi.E0+w
-            return vgh_green(us, dus, ddus, opt_index, h_pi.E0+w,
-                             h_pi.h_mat, h_pi.s_mat, h_pi.dip_vec, h_pi.dip_vec)
+            l_mat = lambda a,b: h_pi.l_mat(w, a, b)
+            return vgh_green(us, dus, ddus, opt_index, 
+                             l_mat, h_pi.dip_vec, h_pi.dip_vec)
         return __func_of_zs__
     return __func_of_w__
 
-## ==== optimization results ====
+## ==== optimization ====
 class OptRes:
     def __init__(self):
         self.x = []          # solution array
@@ -410,3 +413,105 @@ def newton(vgh, x0, tol=0.00001, maxiter=100):
     return res
 
 
+
+
+## ==== Interface ====
+def opt_main_init(args):
+    
+    args['basis_type']; args['basis_info']
+    args['w0']; args['ws']; args['tol']; args['target']
+    if('out' in args):
+        out = args['out']
+    else:
+        args['out'] = None
+
+    if(args['out']):
+        sys.stdout = args["out"]
+        
+def opt_main_h_pi(args):
+
+    ## ---- Check ----
+    args['channel']; args['dipole']
+    
+    h_pi = H_Photoionization(args['channel'], args['dipole'])
+    opt_list = []
+    base_us = switch(args["basis_type"], {'STO': STOs(), 'GTO': GTOs()})
+    for (pn, zeta, cmd) in args["basis_info"]:
+        opt_list.append(switch(cmd, {'o': True, 'f': False}))
+        base_us.add(pn, zeta)
+    base_us.setup()
+    vgh_w_zs = vgh_green_h_pi(h_pi, base_us, opt_list)
+    z0s = [base_us.basis(i).z(0)
+           for (opt, i)
+           in zip(opt_list, range(base_us.size())) if opt]
+    args['vgh_w_zs'] = vgh_w_zs
+    args['z0s'] = z0s    
+
+def opt_main_calc(args):
+
+    vgh_w_zs = args['vgh_w_zs'] 
+    z0s  = args['z0s']
+    
+    ## ---- w range ----
+    eps_w = pow(10.0, -5)
+    w0 = args['w0']
+    ws = args['ws']
+    ws_without_w0 = [w for w in ws if abs(w-w0) > eps_w]
+    ws_minus = [w0] + sorted([w for w in ws_without_w0 if w < w0],
+                             key=lambda x:-x)
+    ws_plus = sorted([w for w in ws_without_w0 if w > w0],
+                     key=lambda x:+x)
+
+    ## ---- calculation ----
+    w_res_list = []
+    zs = z0s
+    for w in ws_minus:
+        res = newton(vgh_w_zs(w), zs)
+        w_res_list.append((w, res))
+        zs = res.x
+
+    zs = w_res_list[0][1].x
+    for w in ws_plus:
+        res = newton(vgh_w_zs(w), zs)
+        w_res_list.append((w, res))
+        zs = res.x
+
+    w_res_list.sort(key = lambda wr: wr[0])
+    args["w_res_list"] = w_res_list
+
+def opt_main_print(args):
+    for (w, res) in args['w_res_list']:
+        print 
+        print "w = ", w
+        print "convergenec = ", ("Yes" if res.success else "No")
+        for i in range(len(res.x)):
+            print "zeta{0} = {1}".format(i, res.x[i])
+        print "alpha = ", res.val
+
+def opt_main(**args):
+    """ optimize 
+    basis_type : str : STOs or GTOs
+    basis_info : [(pn :int, zeta :complex, opt_cmd :str|other)]
+    .             represent basis functions and its optimization command
+    .   opt_cmd can be choosen as follow:
+    .      'o'  :  optimize its orbital exponent
+    .      'f'  :  fix its orbital exponent
+    w0 : energy at start of optimization
+    ws : list of w for optimization
+    tol : tollerance in Newton method.
+    target : str : calculation target. ex: "h_pi"
+    out : file or None : str => output file. None => standard output
+
+    -- only if target = h_pi --
+    channel : str : "1s->kp" or "2p->ks" etc
+    dipole  : str : "length" or "velocity" etc
+    """
+
+    opt_main_init(args)
+    if(args['target'] == "h_pi"):
+        opt_main_h_pi(args)
+    else:
+        raise(Exception("only target='h_pi' is supported"))        
+    opt_main_calc(args)
+    opt_main_print(args)
+    sys.stdout = sys.__stdout__

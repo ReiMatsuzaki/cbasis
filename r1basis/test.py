@@ -498,7 +498,6 @@ class Test_green(unittest.TestCase):
         basis = STOs().add(2, z0s).setup()
         w = 1.0
         
-        print "i am one"
         res = newton(vgh_green_h_pi(h_pi, basis, opt)(w), z0s)
 
         ## see calc/stoh/v_1/res.d
@@ -506,7 +505,7 @@ class Test_green(unittest.TestCase):
         self.assertAlmostEqual(1.0255886472-0.6955918398j, res.x[0])
         self.assertAlmostEqual((0.361600808054165-0.371221793708147j)*3, res.val)
 
-    def _test_opt_three(self):
+    def test_opt_three(self):
         h_pi = H_Photoionization('1s->kp', "length")
         zs_opt = [0.9797019427  -0.0125136315j,
                   0.8771210224  -0.6400667900j,
@@ -515,7 +514,6 @@ class Test_green(unittest.TestCase):
         opt = [True for z in z0s]
         basis = STOs().add(2, z0s).setup()
         w = 0.9
-        print "i am three"
         res = newton(vgh_green_h_pi(h_pi, basis, opt)(w), z0s, tol=pow(10.0, -10))
 
         ## see calc/stoh/l_3/res.d
@@ -524,6 +522,19 @@ class Test_green(unittest.TestCase):
         self.assertAlmostEqual(zs_opt[1], res.x[1])
         self.assertAlmostEqual(zs_opt[2], res.x[2])
         self.assertAlmostEqual((2.23413256581075-0.543249555891283j)*3, res.val)
+
+    def test_opt_interface(self):
+        opt_main(basis_type = 'STO',
+                 basis_info = [(2, 0.6-0.4j, 'o')],
+                 w0 = 1.0,
+                 ws = np.linspace(0.5, 1.5, 11),
+                 tol = pow(10.0, -5.0),
+                 target = 'h_pi',
+                 channel= '1s->kp',
+                 dipole = 'length')
+                 
+                 
+                 
 """
 
 class Test_r1gtos(unittest.TestCase):
