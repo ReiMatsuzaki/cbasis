@@ -1,11 +1,12 @@
 import sys
 from r1basis import *
 import datetime
+import pandas as pd
 
 ## ==== Utils ====
-def print_timestamp(label):
+def print_timestamp(label, out):
     t = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-    print "[" + label.rjust(10, ' ') + "] " + t
+    out.write("[{0}] {1}\n".format(label.rjust(10, ' '), t))
     
 def switch(k0, dic, use_exception=True, default=None):
     for (key, val) in dic.items():
@@ -16,6 +17,10 @@ def switch(k0, dic, use_exception=True, default=None):
     return default
 
 ## ==== derivative basis ====
+def dict_set_default(dic, key, val):
+    if(key not in dic):
+        dic[key] = val
+    
 def one_deriv(us, opt_list):
     """ compute derivative basis for orbital exponent.
     see support/normalized_exp.py
@@ -356,6 +361,7 @@ def vgh_green_h_pi(h_pi, base_us, opt_list):
     return __func_of_w__
 
 ## ==== optimization ====
+            
 class OptRes:
     def __init__(self):
         self.x = []          # solution array
@@ -380,7 +386,7 @@ nit     = {6}
         
 
 ## ==== optimization routine ====
-def newton(vgh, x0, tol=0.00001, maxiter=100):
+def newton(vgh, x0, tol=0.00001, maxit=100):
     """
     Compute stationary point by Newton method.
     
@@ -403,7 +409,7 @@ def newton(vgh, x0, tol=0.00001, maxiter=100):
     res = OptRes()
     
     res.x = VectorXc(x0)
-    for res.nit in range(maxiter):
+    for res.nit in range(maxit):
         (res.val, res.grad, res.hess) = vgh(res.x)
         ave_g = sum([abs(g0) for g0 in res.grad])/len(res.grad)
         if(ave_g < tol):
@@ -416,44 +422,50 @@ def newton(vgh, x0, tol=0.00001, maxiter=100):
 
 ## ==== Interface ====
 def opt_main_init(args):
-    
+
+    ## ---- set default -----
     args['basis_type']; args['basis_info']
-    args['w0']; args['tol']; args['target']
-    
-    if('out' in args):
-        out = args['out']
-    else:
-        args['out'] = None
-        
-    if('ws' not in args):
-        args['ws'] = [args['w0']]
+    args['w0'];  args['target']
+    dict_set_default(args, 'tol',   pow(10.0, -5))
+    dict_set_default(args, 'maxit', 10)
+    dict_set_default(args, 'outfile', None)
+    dict_set_default(args, 'wf_outfile', None)
+    dict_set_default(args, 'ws', [args['w0']])
+    dict_set_default(args, 'print_level', 0)
 
-    if('print_level' not in args):
-        args['print_level'] = 0
+    ## ---- check input ----
+    if('ws_outfile' in args):
+        if('ws_rs' in args):
+            raise(Exception("ws_rs is necessary when ws_outfile is set"))
 
-    if(args['out']):
-        sys.stdout = args["out"]
-
-    print ""
-    print ">>>>opt_green>>>>>"
-    print "optimize the orbital expoent for matrix element of Greens's operator: "
-    print "       alpha(w) = <S, (E0+w-H)R> = SL^{-1}R "
-    print_timestamp('Init')
-    print "basis_type: ", args['basis_type']
-    print "basis_info:"
+    ## ---- print input ----
+    args['out'] = open(args['outfile'], 'w') if args['outfile'] else sys.stdout
+    out = args['out']
+    out.write('\n')
+    out.write(">>>>opt_green>>>>>\n")
+    out.write("optimize the orbital expoent for matrix element of Greens's operator: \n")
+    out.write("       alpha(w) = <S, (E0+w-H)R> = SL^{-1}R\n")
+    print_timestamp('Init', out)
+    out.write("basis_type: {0}\n".format(args['basis_type']))
+    out.write("basis_info:\n")
     for basis in args['basis_info']:
-        print basis
-    print "w0: ", args['w0']
-    print "ws: ", args['ws']
-    print "tol: ", args['tol']
-    print "target:", args['target']    
+        out.write("{0}\n".format(basis))
+    out.write("w0: {0}\n".format(args['w0']))
+    out.write("ws: {0}\n".format(args['ws']))
+    out.write("tol: {0}\n".format(args['tol']))
+    out.write("target: {0}\n".format(args['target']))
+    print >> out, "out = {0}".format("stdout" if args['outfile']
+                                     else args['outfile'])
+    print >> out, "wf_outfile = {0}".format(args['wf_outfile'] if args['wf_outfile']
+                                            else "No")    
     
 def opt_main_h_pi(args):
 
     ## ---- Check ----
-    print_timestamp('H_PI')
-    print "channel: ", args['channel']
-    print "dipole: ", args['dipole']
+    out = args["out"]
+    print_timestamp('H_PI', out)
+    out.write("channel: {0}\n".format(args['channel']))
+    out.write("dipole:  {0}\n".format(args['dipole']))
     
     h_pi = H_Photoionization(args['channel'], args['dipole'])
     opt_list = []
@@ -466,14 +478,22 @@ def opt_main_h_pi(args):
     z0s = [base_us.basis(i).z(0)
            for (opt, i)
            in zip(opt_list, range(base_us.size())) if opt]
+
+    opt_index = get_opt_index(opt_list)
+    args['h_pi'] = h_pi
+    args['opt_index'] = opt_index
+    args['base_us'] = base_us
     args['vgh_w_zs'] = vgh_w_zs
-    args['z0s'] = z0s    
+    args['z0s'] = z0s
 
 def opt_main_calc(args):
 
-    print_timestamp('Calc')
+    out = args['out']
+    print_timestamp('Calc', out)
     vgh_w_zs = args['vgh_w_zs'] 
     z0s  = args['z0s']
+    tol = args['tol']
+    maxit = args['maxit']
     
     ## ---- w range ----
     eps_w = pow(10.0, -5)
@@ -489,40 +509,76 @@ def opt_main_calc(args):
     w_res_list = []
     zs = z0s
     for w in ws_minus:
-        res = newton(vgh_w_zs(w), zs)
+        res = newton(vgh_w_zs(w), zs, tol=tol, maxit=maxit)
         w_res_list.append((w, res))
         zs = res.x
         if(args['print_level'] > 0):
-            print "opt for ", w
-            print "x: ", zs
+            out.write("w: {0}\n".format(w))
+            for (i, z) in zip(range(len(zs)), zs):
+                out.write("x{0}: {1}\n".format(i, z))
         if(args['print_level'] > 1):
-            print "grad: ", res.grad
+            for (i, g) in zip(range(len(res.grad)), res.grad):
+                out.write("grad{0}: {1}\n".format(i, g))
 
     zs = w_res_list[0][1].x
     for w in ws_plus:
-        res = newton(vgh_w_zs(w), zs)
+        res = newton(vgh_w_zs(w), zs, tol=tol, maxit=maxit)
         w_res_list.append((w, res))
         zs = res.x
         if(args['print_level'] > 0):
-            print "opt for ", w
-            print "x: ", zs
+            out.write("opt for {0}\n".format(w))
+            out.write("x: {0}\n".format(zs))            
         if(args['print_level'] > 1):
-            print "grad: ", res.grad            
+            out.write("grad: {0}\n".format(res.grad))
 
     w_res_list.sort(key = lambda wr: wr[0])
     args["w_res_list"] = w_res_list
 
-def opt_main_print(args):
-    
-    print_timestamp('Result')
-    for (w, res) in args['w_res_list']:
-        print 
-        print "w = ", w
-        print "convergenec = ", ("Yes" if res.success else "No")
-        for i in range(len(res.x)):
-            print "zeta{0} = {1}".format(i, res.x[i])
-        print "alpha = ", res.val
+def opt_main_wf_h_pi(args):
 
+    out = args['out']
+    print_timestamp("wf_h_pi", out)
+    
+    h_pi = args["h_pi"]
+    base_us = args['base_us']
+    w0 = args["w0"]
+    (w0, res0) = [(w, res) for (w, res) in args["w_res_list"]
+                  if abs(w-w0) < 0.00001][0]
+
+    print >> out, "write wave function at w = {0}".format(w0)
+
+    us = update_basis(base_us, args["opt_index"], res0.x)
+    L00 = h_pi.l_mat(w0, us, us)
+    R0  = h_pi.dip_vec(us)
+    G = L00.inverse()
+    cs = G * R0
+
+    rs = args['wf_rs']
+    ys = np.array(us.at_r(rs, cs))
+    
+    df = pd.DataFrame([rs, ys.real, ys.imag]).T
+    df.columns = ["r", "re_y", "im_y"]
+    df.to_csv(args['wf_outfile'], index=False)
+    
+def opt_main_print(args):
+    out = args['out']
+    
+    print_timestamp('Result', out)
+    for (w, res) in args['w_res_list']:
+        out.write('\n')
+        out.write("w = {0}\n".format(w))
+        out.write("convergenec = {0}\n".format("Yes" if res.success else "No"))
+        for i in range(len(res.x)):
+            out.write("zeta{0} = {1}\n".format(i, res.x[i]))
+        out.write("alpha = {0}\n".format(res.val))
+        
+def opt_main_finalize(args):
+
+    print_timestamp('Finalize', args["out"])
+    
+    if(args["out"] != sys.stdout):
+        args["out"].close()
+        
 def opt_main(**args):
     """ optimize 
     basis_type : str : STOs or GTOs
@@ -536,6 +592,7 @@ def opt_main(**args):
     tol : tollerance in Newton method.
     target : str : calculation target. ex: "h_pi"
     out : file or None : str => output file. None => standard output
+    wf_out : file or None : wave function output
 
     -- only if target = h_pi --
     channel : str : "1s->kp" or "2p->ks" etc
@@ -549,4 +606,7 @@ def opt_main(**args):
         raise(Exception("only target='h_pi' is supported"))        
     opt_main_calc(args)
     opt_main_print(args)
-    sys.stdout = sys.__stdout__
+    if(args['wf_outfile']):
+        if(args['target'] == "h_pi"):
+            opt_main_wf_h_pi(args)
+    opt_main_finalize(args)
