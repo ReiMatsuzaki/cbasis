@@ -319,6 +319,172 @@ class Test_matele(unittest.TestCase):
         self.assertAlmostEqual(gDg_ref, gDg_calc)
         self.assertAlmostEqual(sDg_ref, sDg_calc)
         
+class Test_VarTrans(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_var_trans_1(self):
+        ## f(x) = sin(2x)
+        var = VarTransLog()
+
+        f  = lambda x: np.sin(2*x)
+        df = lambda x: 2*np.cos(2*x)
+        ddf= lambda x:-4*np.sin(2*x)
+        f_y= lambda ys: f(var.x(ys[0]))
+
+        x0 = 1.1
+        y0s = [var.y(x0)]
+        self.assertAlmostEqual(np.log(x0), y0s[0])
+        self.assertAlmostEqual(var.dF_dy(df(x0), x0),
+                               ngrad(f_y, y0s, 0.0001, method='c1')[0])
+        self.assertAlmostEqual(var.d2F_dy2(df(x0), ddf(x0), x0),
+                               nhess(f_y, y0s, 0.0001, method='c1')[0, 0])
+
+    def test_var_trans_2(self):
+
+        y0s = [0.1]
+        a0s = [0.3, 1.2, 0.1]
+        var = VarTransShift([0.2, 0.3, 0.1])
+        x0s = var.xis(y0s)
+        y0s_2 = var.yks(x0s)
+        for i in range(var.Ny):
+            self.assertAlmostEqual(y0s_2[i], y0s[i],
+                                   msg="{0},{1},{2}".format(i,y0s_2[i], y0s[i]))        
+        
+        f_xs  = lambda xs: np.sin(xs[0]*xs[1]) + np.exp(xs[1]+xs[2])
+        df_xs = lambda xs: ngrad(f_xs, xs, 0.0001, method='c1')
+        ddf_xs= lambda xs: nhess(f_xs, xs, 0.0001, method='c1')
+
+        f_ys  = lambda ys: f_xs(var.xis(ys))
+        self.assertAlmostEqual(f_xs(x0s), f_ys(y0s))
+        
+        df_ys = lambda ys: ngrad(f_ys, ys, 0.0001, method='c1')
+        ddf_ys= lambda ys: nhess(f_ys, ys, 0.0001, method='c1')
+        
+        y0s = var.yks(x0s)
+        ref  = df_ys(y0s)
+        calc = var.dF_dyk(df_xs(x0s), x0s)
+        for i in range(var.Ny):
+            self.assertAlmostEqual(ref[i], calc[i])
+
+        ref  = ddf_ys(y0s)
+        calc = var.d2F_dykdyl(df_xs(x0s), ddf_xs(x0s), x0s)
+        for i in range(var.Ny):
+            for j in range(var.Ny):
+                self.assertAlmostEqual(ref[i,j], calc[i,j])
+
+    def test_var_trans_comb(self):
+        var = VarTransComb([[0], [1]],
+                           [VarTransLog(), VarTransLog()])
+        y0s = [0.2, 0.1]
+        x0s = var.xis(y0s)
+        y0s_2 = var.yks(x0s)
+        for i in range(var.Ny):
+            self.assertAlmostEqual(y0s_2[i], y0s[i],
+                                   msg="{0},{1},{2}".format(i,y0s_2[i], y0s[i]))
+        
+        f_xs  = lambda xs: np.sin(xs[0])*np.cos(xs[1])
+        df_x0s = ngrad(f_xs, x0s, 0.0001, method='c1')
+        ddf_x0s= nhess(f_xs, x0s, 0.0001, method='c1')
+
+        f_ys  = lambda ys: f_xs(var.xis(ys))        
+        df_y0s = ngrad(f_ys, y0s, 0.0001, method='c1')
+        ddf_y0s= nhess(f_ys, y0s, 0.0001, method='c1')
+
+        ref  = df_y0s
+        calc = var.dF_dyk(df_x0s, x0s)
+        for i in range(var.Ny):
+            msg = "i = {0}\nref  = {1}\ncalc = {2}\n".format(i, ref[i], calc[i])
+            self.assertAlmostEqual(ref[i], calc[i], msg=msg)
+
+        ref  = ddf_y0s
+        calc = var.d2F_dykdyl(df_x0s, ddf_x0s, x0s)
+
+        for i in range(var.Ny):
+            for j in range(var.Ny):
+                msg = "(i,j) = ({0},{1})\nref  = {2}\ncalc = {3}\n".format(i, j, ref[i,j], calc[i,j])
+                self.assertAlmostEqual(ref[i,j], calc[i,j], msg=msg)        
+
+    def test_var_trans_3(self):
+
+        a0s = [0.2,0.3]
+        v1 = VarTransShift(a0s)
+        v2 = VarTransLog()
+        vs = [v1, v2]
+        var = VarTransComb([[0,1], [2]], vs)
+        
+        self.assertEqual([[0, 1], [2]], var.xidx_list)
+        self.assertEqual([[0],    [1]], var.yidx_list)
+        
+        y0s = [1.1, -0.1]
+        x0s = var.xis(y0s)
+        self.assertAlmostEqual(a0s[0]+y0s[0], x0s[0])
+        self.assertAlmostEqual(a0s[1]+y0s[0], x0s[1])
+        self.assertAlmostEqual(np.exp(y0s[1]), x0s[2])
+        y0s_2 = var.yks(x0s)
+        for i in range(var.Ny):
+            self.assertAlmostEqual(y0s_2[i], y0s[i],
+                                   msg="{0},{1},{2}".format(i,y0s_2[i], y0s[i]))
+        
+        f_xs  = lambda xs: np.sin(xs[0]*xs[1]) + np.exp(xs[1]+xs[2])
+        df_x0s = ngrad(f_xs, x0s, 0.0001, method='c1')
+        ddf_x0s= nhess(f_xs, x0s, 0.0001, method='c1')
+
+        f_ys  = lambda ys: f_xs(var.xis(ys))        
+        df_y0s = ngrad(f_ys, y0s, 0.0001, method='c1')
+        ddf_y0s= nhess(f_ys, y0s, 0.0001, method='c1')
+
+        ref  = df_y0s
+        calc = var.dF_dyk(df_x0s, x0s)
+        for i in range(var.Ny):
+            msg = "i = {0}\nref  = {1}\ncalc = {2}\n".format(i, ref[i], calc[i])
+            self.assertAlmostEqual(ref[i], calc[i], msg=msg)
+
+        ref  = ddf_y0s
+        calc = var.d2F_dykdyl(df_x0s, ddf_x0s, x0s)
+        for i in range(var.Ny):
+            for j in range(var.Ny):
+                msg = "(i,j) = ({0},{1})\nref  = {2}\ncalc = {3}\n".format(i, j, ref[i,j], calc[i,j])
+                self.assertAlmostEqual(ref[i,j], calc[i,j], msg=msg)
+            
+
+    def test_var_trans_4(self):
+        a0s = [0.2,0.3]
+        v1 = VarTransShift(a0s)
+        v2 = VarTransLog()
+        vs = [v1, v2]
+        var = VarTransComb([[0,1], [2]], vs)
+        f_xs  = lambda xs: np.sin(xs[0]*xs[1]) + np.exp(xs[1]+xs[2])
+        y0s = [1.1, 0.1]
+        
+        x0s = var.xis(y0s)
+        
+        ## check identity relation
+        y0s_2 = var.yks(x0s)
+        for i in range(var.Ny):
+            self.assertAlmostEqual(y0s_2[i], y0s[i],
+                                   msg="{0},{1},{2}".format(i,y0s_2[i], y0s[i]))
+
+        ## gradient/Hessian
+        df_x0s = ngrad(f_xs, x0s, 0.0001, method='c1')
+        ddf_x0s= nhess(f_xs, x0s, 0.0001, method='c1')
+
+        f_ys  = lambda ys: f_xs(var.xis(ys))        
+        df_y0s = ngrad(f_ys, y0s, 0.0001, method='c1')
+        ddf_y0s= nhess(f_ys, y0s, 0.0001, method='c1')
+
+        ref  = df_y0s
+        calc = var.dF_dyk(df_x0s, x0s)
+        for i in range(var.Ny):
+            msg = "i = {0}\nref  = {1}\ncalc = {2}\n".format(i, ref[i], calc[i])
+            self.assertAlmostEqual(ref[i], calc[i], msg=msg)
+
+        #ref  = ddf_y0s
+        #calc = var.dF_dyk(df_x0s, x0s)
+        #for i in range(var.Ny):
+        #    msg = "i = {0}\nref  = {1}\ncalc = {2}\n".format(i, ref[i], calc[i])
+        #    self.assertAlmostEqual(ref[i], calc[i], msg=msg)        
+            
 class Test_green(unittest.TestCase):
 
     def setUp(self):
@@ -346,9 +512,9 @@ class Test_green(unittest.TestCase):
         r2= calc_rm_mat(ss, -2, ss)
         r1= calc_rm_mat(ss, -1, ss)
         lmat = (  s * ene
-                + d2* 0.5
-                + r2* (-1.0)
-                + r1)
+                  + d2* 0.5
+                  + r2* (-1.0)
+                  + r1)
         mvec = calc_vec(ss, driv)
         cs = solve(lmat, mvec)
         alpha = np.dot(cs, mvec)
@@ -414,7 +580,7 @@ class Test_green(unittest.TestCase):
         self.assertEqual([0, 1], get_opt_index([True, True]))
         self.assertEqual([1, 3], get_opt_index([False, True, False, True]))
         self.assertEqual([0, 2], get_opt_index([True, False, True]))
-        
+
     def test_gh_two(self):
 
         z0 = [1.3-0.2j, 0.5-0.9j]
@@ -490,6 +656,26 @@ class Test_green(unittest.TestCase):
                 msg = "ref= {0}\ncalc={1}\n(i,j)=({2},{3})".format(ref_h[i,j],calc_h[i,j],i,j)
                 self.assertAlmostEqual(ref_h[i,j], calc_h[i,j], places=5, msg=msg)
 
+    def test_vgh_log(self):
+        opt_log_zs0 = [-2.0-0.3j, -1.0-0.1j]
+        opt = [True, True]
+        h_pi = H_Photoionization('1s->kp', "velocity")
+        basis =  GTOs().add(2, 1.0).add(2, 1.0).setup()
+        w = 1.0
+
+        vgh = vgh_log(vgh_green_h_pi(h_pi, basis, opt))(w)
+        calc_green = lambda log_zs: vgh(log_zs)[0]
+
+        (v, calc_g, calc_h) = vgh(opt_log_zs0)
+        ref_g = ngrad(calc_green, opt_log_zs0, 0.0001, method='c1')
+        ref_h = nhess(calc_green, opt_log_zs0, 0.0001, method='c1')
+
+        self.assertAlmostEqual(ref_g[0],   calc_g[0],   places=5)
+        self.assertAlmostEqual(ref_g[1],   calc_g[1],   places=5)
+        self.assertAlmostEqual(ref_h[0,0], calc_h[0,0], places=5)
+        self.assertAlmostEqual(ref_h[0,1], calc_h[0,1], places=5)        
+        self.assertAlmostEqual(ref_h[1,0], calc_h[1,0], places=5)
+        self.assertAlmostEqual(ref_h[1,1], calc_h[1,1], places=5)
         
     def test_opt_one(self):
         h_pi = H_Photoionization('1s->kp', "velocity")
@@ -522,7 +708,7 @@ class Test_green(unittest.TestCase):
         self.assertAlmostEqual(zs_opt[1], res.x[1])
         self.assertAlmostEqual(zs_opt[2], res.x[2])
         self.assertAlmostEqual((2.23413256581075-0.543249555891283j)*3, res.val)
-
+        
     def test_opt_interface(self):
         opt_main(basis_type = 'STO',
                  basis_info = [(2, 0.6-0.4j, 'o')],
@@ -532,7 +718,8 @@ class Test_green(unittest.TestCase):
                  target = 'h_pi',
                  channel= '1s->kp',
                  dipole = 'length',
-                 print_level = 1)
+                 print_level = 1,
+                 outfile = "tmp.out")
                  
                  
                  

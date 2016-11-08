@@ -266,7 +266,244 @@ def update_basis(base_us, opt_index, zs):
         us.setup()
 
     return us
+
+## ==== Variables transform ====
+class VarTrans():
+    """
+    Given the relation the sequence 
+    .       {x_i | i = 1,...,Nx}, 
+    and functions 
+    .       {y_k(x) | k = 1,...,Ny}
+    compute gradient/Hessian etc.
+
+    dF/dyk = sum_i dxi/dyk dF/dxi
+    d2F/(dyk,dyl) = sum_i d2xi /(dyk,dyl) dF/dxi + sum_ij dxi/dyk dxj/dyl H_ij
+
+    """
     
+    def __init__(self, Nx, Ny):
+        self.Nx = Nx
+        self.Ny = Ny
+
+    def yks(self, xis):
+        pass
+
+    def xis(self, yks):
+        pass
+        
+    def dF_dyk(self, dF_dyk, xis):
+        return self.xis_yks(xis).transpose() * gis
+
+    def d2F_dykdyl(self, dF_dxi, d2F_dxidxj, xis):
+        raise(Exception("not implemented"))
+
+    def dxi_dyk(self, xis):
+        raise(Exception("not implemented"))
+        
+class VarTransComb(VarTrans):
+    def __init__(self, xidx_list, var_list):
+        self.xidx_list = xidx_list
+        self.var_list  = var_list
+        self.Nx = sum([var.Nx for var in var_list])
+        
+        self.yidx_list = []
+        self.Ny = 0
+        n = 0
+        for var in var_list:
+            self.yidx_list.append(range(n, n+var.Ny))
+            n = n + var.Ny
+            self.Ny = self.Ny + var.Ny
+
+    def xis(self, yks):
+        xis_res = VectorXc.Zero(self.Nx)
+        for (xidx, yidx, var) in zip(self.xidx_list,
+                                     self.yidx_list,
+                                     self.var_list):
+            yks_local = VectorXc([yks[i] for i in yidx])
+            xis_local = var.xis(yks_local)
+            for (i, x) in zip(xidx, xis_local):
+                xis_res[i] = x
+        return xis_res
+    def yks(self, xis):
+        yks_res = VectorXc.Zero(self.Ny)
+        for (xidx, yidx, var) in zip(self.xidx_list,
+                                     self.yidx_list,
+                                     self.var_list):
+            _xis = VectorXc([xis[i] for i in xidx])
+            _yks = var.yks(_xis)
+            for (i, y) in zip(yidx, _yks):
+                yks_res[i] = y
+        return yks_res
+        
+    def dF_dyk(self, dF_xi, xis):
+        res = VectorXc.Zero(self.Ny)
+        for (xidx, yidx, var) in zip(self.xidx_list,
+                                     self.yidx_list,
+                                     self.var_list):
+            dF_xi_local = [dF_xi[i] for i in xidx]
+            xis_local = [xis[i] for i in xidx]
+            dF_dyk_local = var.dF_dyk(dF_xi_local, xis_local)
+            for (i, dF) in zip(yidx, dF_dyk_local):
+                res[i] = dF
+        return res
+
+    def d2F_dykdyl(self, dF_dxi, dF2_dxidxj, xis):
+        res = MatrixXc.Zero(self.Ny, self.Ny)
+        xyidx_var = zip(self.xidx_list, self.yidx_list, self.var_list)
+        """
+        for (xidx, yidx, var) in xyidx_var:
+            _dF_dxi     = [dF_dxi[i] for i in xidx]
+            _d2F_dxidxj = np.array([[dF2_dxidxj[i,j] for i in xidx] for j in xidx])
+            _xis      = [xis[i]   for i in xidx]
+            _dF_dyk= var.dF_dyk(_dF_dxi, _xis)
+            _d2F_dykdyl= var.d2F_dykdyl(_dF_dxi, _d2F_dxidxj, _xis)
+        for (k, _k)  in zip(yidx, range(var.Ny)):
+                for (l, _l)  in zip(yidx, range(var.Ny)):
+                    res[k, l] = _d2F_dykdyl[_k, _l]
+        """
+        num = len(xyidx_var)
+        for ii in range(num):
+            (xidx, yidx, vari) = xyidx_var[ii]
+            _dF_dxi     = [dF_dxi[i] for i in xidx]
+            _d2F_dxidxj = np.array([[dF2_dxidxj[i,j] for i in xidx]
+                                    for j in xidx])
+            _xis      = [xis[i]   for i in xidx]
+            _dF_dyk= vari.dF_dyk(_dF_dxi, _xis)
+            _d2F_dykdyl= vari.d2F_dykdyl(_dF_dxi, _d2F_dxidxj, _xis)
+            for (k, _k)  in zip(yidx, range(vari.Ny)):
+                for (l, _l)  in zip(yidx, range(vari.Ny)):
+                    res[k, l] = _d2F_dykdyl[_k, _l]
+            
+            for jj in range(num):
+                if ii!=jj:
+                    (xjdx, yjdx, varj) = xyidx_var[jj]
+                    _xjs = [xis[j] for j in xjdx]
+                    _dxi_dyk = vari.dxi_dyk(_xis)
+                    _dxj_dyl = varj.dxi_dyk(_xjs)
+                    _d2F_dxidxj = np.array([[dF2_dxidxj[i,j] for j in xjdx]
+                                            for i in xidx])
+                    _d2F_dykdyl = _dxi_dyk.transpose() * _d2F_dxidxj * _dxj_dyl
+                    """
+                    print ii, jj
+                    print "xidx,xjdx", xidx, xjdx
+                    print "xis,xjs",   _xis, _xjs
+                    print "dxi/dyk: ", np.array(_dxi_dyk)
+                    print "dxj/dyl: ", np.array(_dxj_dyl)
+                    print "dF2/ij : ", np.array(_d2F_dxidxj)
+                    """
+                    for (k, _k)  in zip(yidx, range(vari.Ny)):
+                        for (l, _l)  in zip(yjdx, range(varj.Ny)):
+                            res[k, l] = _d2F_dykdyl[_k, _l]            
+                
+        return res
+
+class VarTransShift(VarTrans):
+    """
+    xi = a0k + yk[0]
+    dF/dy0 = sum_i dxi/dy0 dF/dxi = sum_i dF/dxi
+    dF/(dy0,dy0) =  sum_ij H_ij
+    """
+    def __init__(self, a0s):
+        self.a0s = a0s
+        self.Nx = len(a0s)
+        self.Ny = 1
+
+    def xis(self, yks):
+        return VectorXc([a0+yks[0] for a0 in self.a0s])
+
+    def yks(self, xis):
+        return VectorXc([-self.a0s[0]+xis[0]])
+    def xis(self, yks):
+        return VectorXc([a0 + yks[0] for a0 in self.a0s])
+    def dF_dyk(self, dF_dxi, xis):
+        return VectorXc([sum(dF_dxi)])
+
+    def d2F_dykdyl(self, dF_dxi, dF2_dxidxj, xis):
+        ele = sum(sum(dF2_dxidxj))
+        return MatrixXc([[ele]])
+
+    def dxi_dyk(self, xis):
+        res = MatrixXc.Zero(self.Nx, self.Ny)
+        for i in range(self.Nx):
+            res[i, 0] = 1.0
+        return res
+    
+class VarTransMono(VarTrans):
+    """
+    yi(x) = f(xi)
+    dF/dy = dxi/dyi dF/dxi
+    dF2/dy2 = d2x/dy2 dF/dxi + (dxi/dyi)(dxi/dyi) dF2/dxi2
+    """
+    def __init__(self):
+        self.Nx = 1
+        self.Nx = 1
+
+    def yks(self, xis):
+        return VectorXc([self.y(xis[0])])
+
+    def xis(self, yks):
+        return VectorXc([self.x(yks[0])])    
+        
+    def dF_dyk(self, dF_dxi, xis):
+        return VectorXc([self.dF_dy(dF_dxi[0], xis[0])])
+    
+    def dF_dy(self, dF_dx, x):
+        return self.dx_dy(x) * dF_dx    
+
+    def d2F_dykdyl(self, dF_dxi, d2F_dxidxj, xis):
+        return MatrixXc([[self.d2F_dy2(dF_dxi[0], d2F_dxidxj[0,0], xis[0])]])
+        
+    def d2F_dy2(self, dF_dx, dF2_dx2, x):
+        return self.dx2_dy2(x) * dF_dx + self.dx_dy(x)**2 * dF2_dx2
+    
+    def y(self, x):
+        pass
+
+    def x(self, y):
+        pass
+
+    def dx_dy(self, x):
+        pass
+
+    def dx2_dy2(self, x):
+        pass
+
+
+    def dxi_dyk(self, xis):
+        return MatrixXc([[self.dx_dy(xis[0])]])
+    
+class VarTransId(VarTransMono):
+    def y(self, x):
+        return x
+
+    def x(self, y):
+        return y
+
+    def dx_dy(self):
+        return 1.0
+    
+class VarTransLog(VarTransMono):
+    """
+    yk = log(xi); xi = exp(yk)
+    dxi/dyk = exp(yk)
+    """
+    def __init__(self):
+        self.Nx = 1
+        self.Ny = 1
+    
+    def y(self, x):
+        return np.log(x)
+
+    def x(self, y):
+        return np.exp(y)
+        
+    def dx_dy(self, x):
+        return x
+
+    def dx2_dy2(self, x):
+        return x
+
+## ==== (Value,Grad,Hess) ====
 def vgh_green(us, dus, ddus, opt_index, lmat, svec, rvec):
     num   = us.size()
     num_d = dus.size()
@@ -361,6 +598,31 @@ def vgh_green_h_pi(h_pi, base_us, opt_list):
     return __func_of_w__
 
 ## ==== optimization ====
+
+def vgh_log(vgh_w_zs):
+    """
+    y_i = log(z_i)  =>  z_i = exp(yi)
+    df/dyi        = dzi/dyi gi = exp(yi) g_i
+    d2f/(dyi dyj) = d/dyj exp(yi) g_i = exp(yi)exp(yj) g_ij
+    d2f/dyi2 = d/dyi exp(yi) g_i = exp(yi) g_i + exp(2yi) g_ii
+    """
+    
+    def __func_of_w__(w):
+        def __func_of_ys__(ys):
+            zs = [np.exp(y) for y in ys]
+            (val, grad, hess) = vgh_w_zs(w)(zs)
+            n = len(ys)
+            gnew = VectorXc.Zero(n)
+            hnew = MatrixXc.Zero(n, n)
+            for i in range(n):
+                gnew[i]   = zs[i] * grad[i]
+                hnew[i,i] = zs[i] * grad[i] + zs[i]*zs[i]*hess[i,i]
+                for j in range(n):
+                    if i!=j:
+                        hnew[i,j] = zs[i]*zs[j]*hess[i,j]
+            return (val, gnew, hnew)
+        return __func_of_ys__
+    return __func_of_w__
             
 class OptRes:
     def __init__(self):
@@ -428,10 +690,11 @@ def opt_main_init(args):
     args['w0'];  args['target']
     dict_set_default(args, 'tol',   pow(10.0, -5))
     dict_set_default(args, 'maxit', 10)
-    dict_set_default(args, 'outfile', None)
+    dict_set_default(args, 'outfile', 'stdout')
     dict_set_default(args, 'wf_outfile', None)
     dict_set_default(args, 'ws', [args['w0']])
     dict_set_default(args, 'print_level', 0)
+    dict_set_default(args, 'use_log', False)
 
     ## ---- check input ----
     if('ws_outfile' in args):
@@ -439,7 +702,10 @@ def opt_main_init(args):
             raise(Exception("ws_rs is necessary when ws_outfile is set"))
 
     ## ---- print input ----
-    args['out'] = open(args['outfile'], 'w') if args['outfile'] else sys.stdout
+    if(args['outfile'] == 'stdout'):
+        args['out'] = sys.stdout
+    else:
+        args['out'] = open(args['outfile'], 'w')
     out = args['out']
     out.write('\n')
     out.write(">>>>opt_green>>>>>\n")
@@ -490,10 +756,18 @@ def opt_main_calc(args):
 
     out = args['out']
     print_timestamp('Calc', out)
-    vgh_w_zs = args['vgh_w_zs'] 
-    z0s  = args['z0s']
     tol = args['tol']
-    maxit = args['maxit']
+    maxit = args['maxit']    
+    if(args['use_log']):
+        vgh_w_zs = vgh_log(args['vgh_w_zs'])
+        zs = args['z0s']
+        n = zs.size()
+        z0s  = VectorXc.Zero(n)
+        for i in range(n):
+            z0s[i] = np.log(zs[i])
+    else:
+        vgh_w_zs = args['vgh_w_zs'] 
+        z0s  = args['z0s']
     
     ## ---- w range ----
     eps_w = pow(10.0, -5)
@@ -511,7 +785,11 @@ def opt_main_calc(args):
     for w in ws_minus:
         res = newton(vgh_w_zs(w), zs, tol=tol, maxit=maxit)
         w_res_list.append((w, res))
-        zs = res.x
+        if(args['use_log']):
+            zs = [np.exp(x) for x in res.x]
+        else:
+            zs = res.x
+            
         if(args['print_level'] > 0):
             out.write("w: {0}\n".format(w))
             for (i, z) in zip(range(len(zs)), zs):
@@ -524,7 +802,11 @@ def opt_main_calc(args):
     for w in ws_plus:
         res = newton(vgh_w_zs(w), zs, tol=tol, maxit=maxit)
         w_res_list.append((w, res))
-        zs = res.x
+        if(args['use_log']):
+            zs = [np.exp(x) for x in res.x]
+        else:
+            zs = res.x
+
         if(args['print_level'] > 0):
             out.write("opt for {0}\n".format(w))
             out.write("x: {0}\n".format(zs))            
