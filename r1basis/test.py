@@ -318,172 +318,143 @@ class Test_matele(unittest.TestCase):
         self.assertAlmostEqual(sDs_ref, sDs_calc)
         self.assertAlmostEqual(gDg_ref, gDg_calc)
         self.assertAlmostEqual(sDg_ref, sDg_calc)
+
+def test_vartrans(utest, f_xs, var, y0s, label):
+
+    ## -- basic test --
+    utest.assertEqual(var.Ny, len(y0s))
+
+    ## -- identity test --
+    x0s = var.xis(y0s)
+    y0s_2 = var.yks(x0s)
+    for i in range(var.Ny):
+        msg = "{0},{1},{2},{3}".format(label,i,y0s_2[i], y0s[i])
+        utest.assertAlmostEqual(y0s_2[i], y0s[i], msg=msg)
         
+
+    df_x0s = ngrad(f_xs, x0s, 0.0001, method='c1')
+    ddf_x0s= nhess(f_xs, x0s, 0.0001, method='c1')
+
+    f_ys  = lambda ys: f_xs(var.xis(ys))        
+    df_y0s = ngrad(f_ys, y0s, 0.0001, method='c1')
+    ddf_y0s= nhess(f_ys, y0s, 0.0001, method='c1')
+
+    ## -- gradient --
+    ref  = df_y0s
+    calc = var.dF_dyk(df_x0s, x0s)
+    for i in range(var.Ny):
+        msg = "i = {0}\nref  = {1}\ncalc = {2}\n".format(i, ref[i], calc[i])
+        utest.assertAlmostEqual(ref[i], calc[i], msg=msg)
+
+    ## -- hessian --
+    ref  = ddf_y0s
+    calc = var.d2F_dykdyl(df_x0s, ddf_x0s, x0s)
+    for i in range(var.Ny):
+        for j in range(var.Ny):
+            msg = "Hessian transpose test\n"
+            msg +="label = {0}\n".format(label)
+            msg +="(i,j) = ({0},{1})\n".format(i, j)
+            msg +="H(i,j) = {0}\n".format(calc[j,i])
+            msg +="H(j,i) = {0}\n".format(calc[i,j])            
+            utest.assertAlmostEqual(calc[j,i], calc[i,j], msg=msg)
+            
+            msg = "error on Hessian test\n"
+            msg +="label = {0}\n".format(label)
+            msg +="(i,j) = ({0},{1})\n".format(i, j)
+            msg +="ref  = {0}\n".format(ref[i, j])
+            msg +="calc = {0}\n".format(calc[i,j])
+            utest.assertAlmostEqual(ref[i,j], calc[i,j], msg=msg)
+
+    
 class Test_VarTrans(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_var_trans_1(self):
-        ## f(x) = sin(2x)
+
+
+    def test_log(self):
+        y0s = [-1.1]
         var = VarTransLog()
+        f  = lambda xs: np.sin(2*xs[0])        
+        test_vartrans(self, f, var, y0s, "log")
 
-        f  = lambda x: np.sin(2*x)
-        df = lambda x: 2*np.cos(2*x)
-        ddf= lambda x:-4*np.sin(2*x)
-        f_y= lambda ys: f(var.x(ys[0]))
+    def test_id(self):
+        y0s = [0.2]
+        var = VarTransId()
+        f  = lambda xs: np.sin(2*xs[0])
+        test_vartrans(self, f, var, y0s, "id")
 
-        x0 = 1.1
-        y0s = [var.y(x0)]
-        self.assertAlmostEqual(np.log(x0), y0s[0])
-        self.assertAlmostEqual(var.dF_dy(df(x0), x0),
-                               ngrad(f_y, y0s, 0.0001, method='c1')[0])
-        self.assertAlmostEqual(var.d2F_dy2(df(x0), ddf(x0), x0),
-                               nhess(f_y, y0s, 0.0001, method='c1')[0, 0])
-
-    def test_var_trans_2(self):
+    def test_shift(self):
 
         y0s = [0.1]
         a0s = [0.3, 1.2, 0.1]
         var = VarTransShift([0.2, 0.3, 0.1])
-        x0s = var.xis(y0s)
-        y0s_2 = var.yks(x0s)
-        for i in range(var.Ny):
-            self.assertAlmostEqual(y0s_2[i], y0s[i],
-                                   msg="{0},{1},{2}".format(i,y0s_2[i], y0s[i]))        
-        
         f_xs  = lambda xs: np.sin(xs[0]*xs[1]) + np.exp(xs[1]+xs[2])
-        df_xs = lambda xs: ngrad(f_xs, xs, 0.0001, method='c1')
-        ddf_xs= lambda xs: nhess(f_xs, xs, 0.0001, method='c1')
+        test_vartrans(self, f_xs, var, y0s, "shift")
 
-        f_ys  = lambda ys: f_xs(var.xis(ys))
-        self.assertAlmostEqual(f_xs(x0s), f_ys(y0s))
+    def test_geometric(self):
         
-        df_ys = lambda ys: ngrad(f_ys, ys, 0.0001, method='c1')
-        ddf_ys= lambda ys: nhess(f_ys, ys, 0.0001, method='c1')
-        
-        y0s = var.yks(x0s)
-        ref  = df_ys(y0s)
-        calc = var.dF_dyk(df_xs(x0s), x0s)
-        for i in range(var.Ny):
-            self.assertAlmostEqual(ref[i], calc[i])
+        var = VarTransGeometric(4)
+        f_xs = lambda x: np.sin(x[0]+x[1]) * np.cos(x[2] * x[3])
+        y0s = [0.3, 1.4]
+        test_vartrans(self, f_xs, var, y0s, "geometric")
 
-        ref  = ddf_ys(y0s)
-        calc = var.d2F_dykdyl(df_xs(x0s), ddf_xs(x0s), x0s)
-        for i in range(var.Ny):
-            for j in range(var.Ny):
-                self.assertAlmostEqual(ref[i,j], calc[i,j])
-
-    def test_var_trans_comb(self):
-        var = VarTransComb([[0], [1]],
-                           [VarTransLog(), VarTransLog()])
-        y0s = [0.2, 0.1]
-        x0s = var.xis(y0s)
-        y0s_2 = var.yks(x0s)
-        for i in range(var.Ny):
-            self.assertAlmostEqual(y0s_2[i], y0s[i],
-                                   msg="{0},{1},{2}".format(i,y0s_2[i], y0s[i]))
-        
-        f_xs  = lambda xs: np.sin(xs[0])*np.cos(xs[1])
-        df_x0s = ngrad(f_xs, x0s, 0.0001, method='c1')
-        ddf_x0s= nhess(f_xs, x0s, 0.0001, method='c1')
-
-        f_ys  = lambda ys: f_xs(var.xis(ys))        
-        df_y0s = ngrad(f_ys, y0s, 0.0001, method='c1')
-        ddf_y0s= nhess(f_ys, y0s, 0.0001, method='c1')
-
-        ref  = df_y0s
-        calc = var.dF_dyk(df_x0s, x0s)
-        for i in range(var.Ny):
-            msg = "i = {0}\nref  = {1}\ncalc = {2}\n".format(i, ref[i], calc[i])
-            self.assertAlmostEqual(ref[i], calc[i], msg=msg)
-
-        ref  = ddf_y0s
-        calc = var.d2F_dykdyl(df_x0s, ddf_x0s, x0s)
-
-        for i in range(var.Ny):
-            for j in range(var.Ny):
-                msg = "(i,j) = ({0},{1})\nref  = {2}\ncalc = {3}\n".format(i, j, ref[i,j], calc[i,j])
-                self.assertAlmostEqual(ref[i,j], calc[i,j], msg=msg)        
-
-    def test_var_trans_3(self):
+    def test_comb(self):
 
         a0s = [0.2,0.3]
-        v1 = VarTransShift(a0s)
-        v2 = VarTransLog()
-        vs = [v1, v2]
-        var = VarTransComb([[0,1], [2]], vs)
-        
-        self.assertEqual([[0, 1], [2]], var.xidx_list)
-        self.assertEqual([[0],    [1]], var.yidx_list)
-        
         y0s = [1.1, -0.1]
-        x0s = var.xis(y0s)
-        self.assertAlmostEqual(a0s[0]+y0s[0], x0s[0])
-        self.assertAlmostEqual(a0s[1]+y0s[0], x0s[1])
-        self.assertAlmostEqual(np.exp(y0s[1]), x0s[2])
-        y0s_2 = var.yks(x0s)
-        for i in range(var.Ny):
-            self.assertAlmostEqual(y0s_2[i], y0s[i],
-                                   msg="{0},{1},{2}".format(i,y0s_2[i], y0s[i]))
+        var = VarTransComb([([0,1], VarTransShift(a0s)),
+                            ([2],   VarTransLog())])
+        f_xs  = lambda xs: np.sin(xs[0]*xs[1]+xs[2]) * np.exp(xs[1]+xs[2])
+        test_vartrans(self, f_xs, var, y0s, "comb1")
+
+        y0s = [-0.1, 1.1]
+        var = VarTransComb([([2],   VarTransLog()),
+                            ([0,1], VarTransShift(a0s))])
+        test_vartrans(self, f_xs, var, y0s, "comb2")
+
+    def test_comb_mid(self):
+        y0s = [-0.2, 1.5, 0.1]
+        var = VarTransComb([( [0],     VarTransLog()),
+                            ( [1,2,3], VarTransGeometric(3))])
+        f_xs  = lambda xs: np.sin(xs[0]*xs[1]+xs[2]) * np.exp(xs[1]+xs[2]+xs[3])
+        test_vartrans(self, f_xs, var, y0s, "comb_mid_2")
         
-        f_xs  = lambda xs: np.sin(xs[0]*xs[1]) + np.exp(xs[1]+xs[2])
-        df_x0s = ngrad(f_xs, x0s, 0.0001, method='c1')
-        ddf_x0s= nhess(f_xs, x0s, 0.0001, method='c1')
+        y0s = [-0.2, 1.5, 0.1]
+        var = VarTransComb([([0,1,2], VarTransGeometric(3)),
+                            ([3],     VarTransLog())])
+        f_xs  = lambda xs: np.sin(xs[0]*xs[1]+xs[2]*xs[3]) * np.exp(xs[1]+xs[2]+xs[3])
+        test_vartrans(self, f_xs, var, y0s, "comb_mid_1")
+        
+        y0s = [-0.2, 1.5, 0.1]
+        var = VarTransComb([([1,2,3], VarTransGeometric(3)),
+                            ([0],     VarTransLog())])
+        f_xs  = lambda xs: np.sin(xs[0]*xs[1]+xs[2]) * np.exp(xs[1]+xs[2]+xs[3])
+        test_vartrans(self, f_xs, var, y0s, "comb_mid_2")
 
-        f_ys  = lambda ys: f_xs(var.xis(ys))        
-        df_y0s = ngrad(f_ys, y0s, 0.0001, method='c1')
-        ddf_y0s= nhess(f_ys, y0s, 0.0001, method='c1')
 
-        ref  = df_y0s
-        calc = var.dF_dyk(df_x0s, x0s)
-        for i in range(var.Ny):
-            msg = "i = {0}\nref  = {1}\ncalc = {2}\n".format(i, ref[i], calc[i])
-            self.assertAlmostEqual(ref[i], calc[i], msg=msg)
+    def test_comb_big(self):
 
-        ref  = ddf_y0s
-        calc = var.d2F_dykdyl(df_x0s, ddf_x0s, x0s)
-        for i in range(var.Ny):
-            for j in range(var.Ny):
-                msg = "(i,j) = ({0},{1})\nref  = {2}\ncalc = {3}\n".format(i, j, ref[i,j], calc[i,j])
-                self.assertAlmostEqual(ref[i,j], calc[i,j], msg=msg)
-            
+        var = VarTransComb([
+            ([0,1,2],   VarTransShift([0.2, 0.3, 0.4])),
+            ([3],       VarTransLog()),
+            ([4],       VarTransId() ),
+            ([5,6,7,8], VarTransGeometric(4))])
+        y0s = [0.01, -0.1, 0.4, 1.1, 1.5]
 
-    def test_var_trans_4(self):
+        f_xs  = lambda xs: (np.sin(sum(xs))
+                            +np.exp(xs[1]+xs[2]*xs[3])
+                            +np.cos(xs[4]+xs[5]*xs[6])
+                            +np.log(xs[7]+xs[8]*xs[0]))
+        test_vartrans(self, f_xs, var, y0s, "comb_big")
+
+    def test_comb_raise(self):
         a0s = [0.2,0.3]
-        v1 = VarTransShift(a0s)
-        v2 = VarTransLog()
-        vs = [v1, v2]
-        var = VarTransComb([[0,1], [2]], vs)
-        f_xs  = lambda xs: np.sin(xs[0]*xs[1]) + np.exp(xs[1]+xs[2])
-        y0s = [1.1, 0.1]
-        
-        x0s = var.xis(y0s)
-        
-        ## check identity relation
-        y0s_2 = var.yks(x0s)
-        for i in range(var.Ny):
-            self.assertAlmostEqual(y0s_2[i], y0s[i],
-                                   msg="{0},{1},{2}".format(i,y0s_2[i], y0s[i]))
-
-        ## gradient/Hessian
-        df_x0s = ngrad(f_xs, x0s, 0.0001, method='c1')
-        ddf_x0s= nhess(f_xs, x0s, 0.0001, method='c1')
-
-        f_ys  = lambda ys: f_xs(var.xis(ys))        
-        df_y0s = ngrad(f_ys, y0s, 0.0001, method='c1')
-        ddf_y0s= nhess(f_ys, y0s, 0.0001, method='c1')
-
-        ref  = df_y0s
-        calc = var.dF_dyk(df_x0s, x0s)
-        for i in range(var.Ny):
-            msg = "i = {0}\nref  = {1}\ncalc = {2}\n".format(i, ref[i], calc[i])
-            self.assertAlmostEqual(ref[i], calc[i], msg=msg)
-
-        #ref  = ddf_y0s
-        #calc = var.dF_dyk(df_x0s, x0s)
-        #for i in range(var.Ny):
-        #    msg = "i = {0}\nref  = {1}\ncalc = {2}\n".format(i, ref[i], calc[i])
-        #    self.assertAlmostEqual(ref[i], calc[i], msg=msg)        
+        y0s = [1.1, -0.1]
+        self.assertRaises(lambda : VarTransComb([[0,3], [2]],
+                           [VarTransShift(a0s), VarTransLog()]))
+        self.assertRaises(lambda : VarTransComb([[0], [2]],
+                           [VarTransShift(a0s), VarTransLog()]))        
             
 class Test_green(unittest.TestCase):
 

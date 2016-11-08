@@ -301,18 +301,36 @@ class VarTrans():
         raise(Exception("not implemented"))
         
 class VarTransComb(VarTrans):
-    def __init__(self, xidx_list, var_list):
-        self.xidx_list = xidx_list
-        self.var_list  = var_list
-        self.Nx = sum([var.Nx for var in var_list])
+    def __init__(self, xidx_var_list):
+
+        ## -- check --
+        for (xidx, var) in xidx_var_list:
+            if(len(xidx) != var.Nx):
+                raise(Exception("invalid xidx_list"))
+                     
+        self.xidx_list = []
+        self.var_list  = []
+        for (xidx, var) in xidx_var_list:
+            self.xidx_list.append(xidx)
+            self.var_list.append(var)
+                                 
+        self.Nx = sum([var.Nx for var in self.var_list])
         
         self.yidx_list = []
         self.Ny = 0
         n = 0
-        for var in var_list:
+        for var in self.var_list:
             self.yidx_list.append(range(n, n+var.Ny))
             n = n + var.Ny
             self.Ny = self.Ny + var.Ny
+
+        ## -- check  --
+        flattened = []
+        for (xidx, var) in zip(self.xidx_list, self.var_list):
+            flattened.extend(xidx)            
+        flattened.sort()
+        if flattened != range(self.Nx):
+            raise(Exception("invalid xidx_list"))
 
     def xis(self, yks):
         xis_res = VectorXc.Zero(self.Nx)
@@ -350,17 +368,7 @@ class VarTransComb(VarTrans):
     def d2F_dykdyl(self, dF_dxi, dF2_dxidxj, xis):
         res = MatrixXc.Zero(self.Ny, self.Ny)
         xyidx_var = zip(self.xidx_list, self.yidx_list, self.var_list)
-        """
-        for (xidx, yidx, var) in xyidx_var:
-            _dF_dxi     = [dF_dxi[i] for i in xidx]
-            _d2F_dxidxj = np.array([[dF2_dxidxj[i,j] for i in xidx] for j in xidx])
-            _xis      = [xis[i]   for i in xidx]
-            _dF_dyk= var.dF_dyk(_dF_dxi, _xis)
-            _d2F_dykdyl= var.d2F_dykdyl(_dF_dxi, _d2F_dxidxj, _xis)
-        for (k, _k)  in zip(yidx, range(var.Ny)):
-                for (l, _l)  in zip(yidx, range(var.Ny)):
-                    res[k, l] = _d2F_dykdyl[_k, _l]
-        """
+
         num = len(xyidx_var)
         for ii in range(num):
             (xidx, yidx, vari) = xyidx_var[ii]
@@ -413,8 +421,7 @@ class VarTransShift(VarTrans):
 
     def yks(self, xis):
         return VectorXc([-self.a0s[0]+xis[0]])
-    def xis(self, yks):
-        return VectorXc([a0 + yks[0] for a0 in self.a0s])
+
     def dF_dyk(self, dF_dxi, xis):
         return VectorXc([sum(dF_dxi)])
 
@@ -426,6 +433,73 @@ class VarTransShift(VarTrans):
         res = MatrixXc.Zero(self.Nx, self.Ny)
         for i in range(self.Nx):
             res[i, 0] = 1.0
+        return res
+
+class VarTransGeometric(VarTrans):
+    """
+    xi = a * r**i
+    dF/da = sum_i dxi/da dF/dxi = sum_i r**i dF/dxi
+    dF/dr = sum_i dxi/dr dF/dxi = sum_i (a*i*r**(i-1)) dF/dxi
+    d2F/(da,da) = sum_ij r**(i+j) dF/dxidxj
+    d2F/(da,dr) = sum_i i*r**(i-1) dF/dxi + sum_ij (a*i*r**(i-1+j)) dF/dxidxj
+    d2F/(dr,dr) = sum_i a*i*(i-1)*r**(i-2) dF/dxi + sum_ij aaij*r**(i-2+j) dF/dxidxj
+    """
+    def __init__(self, num):
+        if(num < 3):
+            raise(Exception("num must be bigger than 2"))
+        self.num = num
+        self.Nx = num
+        self.Ny = 2
+
+    def xis(self, yls):
+        a = yls[0]
+        r = yls[1]
+        return VectorXc([a*r**n for n in range(self.num)])
+
+    def yks(self, xis):
+        return VectorXc([xis[0], xis[1]/xis[0]])
+
+    def dF_dyk(self, dF_xi, xis):
+        dF_da = 0.0
+        dF_dr = 0.0
+        a = xis[0]
+        r = xis[1]/a
+        for i in range(self.Nx):
+            dF_da = dF_da + r**i * dF_xi[i]
+            dF_dr = dF_dr + a*i*r**(i-1) * dF_xi[i]
+        return VectorXc([dF_da, dF_dr])
+    
+    def d2F_dykdyl(self, dF_dxi, _d2F_dxidxj, xis):
+        dF_dada = 0.0
+        dF_dadr = 0.0
+        dF_drdr = 0.0
+        a = xis[0]
+        r = xis[1]/a
+        d2F_dxidxj = MatrixXc(_d2F_dxidxj)
+        
+        for i in range(self.Nx):
+            dF_dadr += i*r**(i-1)*dF_dxi[i]
+            dF_drdr += a*i*(i-1)*r**(i-2)*dF_dxi[i]
+
+        dxi_dyk = self.dxi_dyk(xis)
+        dxi_da = dxi_dyk.transpose()[0]
+        dxi_dr = dxi_dyk.transpose()[1]
+        if(len(dxi_da) != self.Nx):
+            raise(Exception("dxi_da invalid size"))
+        
+        dF_dada = tdot(dxi_da, d2F_dxidxj * dxi_da)
+        dF_dadr+= tdot(dxi_dr, d2F_dxidxj * dxi_da)
+        dF_drdr+= tdot(dxi_dr, d2F_dxidxj * dxi_dr)
+        return MatrixXc([[dF_dada, dF_dadr],
+                         [dF_dadr, dF_drdr]])
+    
+    def dxi_dyk(self, xis):
+        a = xis[0]
+        r = xis[1]/a
+        res = MatrixXc.Zero(self.Nx, self.Ny)
+        for i in range(self.Nx):
+            res[i, 0] = r**i
+            res[i, 1] = a*i*r**(i-1)
         return res
     
 class VarTransMono(VarTrans):
@@ -445,7 +519,9 @@ class VarTransMono(VarTrans):
         return VectorXc([self.x(yks[0])])    
         
     def dF_dyk(self, dF_dxi, xis):
-        return VectorXc([self.dF_dy(dF_dxi[0], xis[0])])
+        res = VectorXc.Zero(1)
+        res[0] = self.dF_dy(dF_dxi[0], xis[0])
+        return res
     
     def dF_dy(self, dF_dx, x):
         return self.dx_dy(x) * dF_dx    
@@ -457,30 +533,35 @@ class VarTransMono(VarTrans):
         return self.dx2_dy2(x) * dF_dx + self.dx_dy(x)**2 * dF2_dx2
     
     def y(self, x):
-        pass
+        raise(Exception("not implemented"))
 
     def x(self, y):
-        pass
+        raise(Exception("not implemented"))
 
     def dx_dy(self, x):
-        pass
-
+        raise(Exception("not implemented"))
+    
     def dx2_dy2(self, x):
-        pass
-
+        raise(Exception("not implemented"))
 
     def dxi_dyk(self, xis):
         return MatrixXc([[self.dx_dy(xis[0])]])
     
 class VarTransId(VarTransMono):
+    def __init__(self):
+        self.Nx = 1; self.Ny = 1
+        
     def y(self, x):
         return x
 
     def x(self, y):
         return y
 
-    def dx_dy(self):
+    def dx_dy(self, x):
         return 1.0
+
+    def dx2_dy2(self, x):
+        return 0.0
     
 class VarTransLog(VarTransMono):
     """
