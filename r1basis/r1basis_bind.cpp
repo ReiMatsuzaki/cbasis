@@ -68,20 +68,20 @@ void BindR1Basis() {
   def("gto_int", &GTOInt);
   def("sto_gto_int", &STO_GTOInt);
 
-  def("calc_vec", &CalcVec<1,1>);
-  def("calc_vec", &CalcVec<1,2>);
-  def("calc_vec", &CalcVec<2,1>);
-  def("calc_vec", &CalcVec<2,2>);
+  def("calc_vec", (VectorXcd(*)(STOs, LC_STOs))&CalcVec<1,1>);
+  def("calc_vec", (VectorXcd(*)(STOs, LC_GTOs))&CalcVec<1,2>);
+  def("calc_vec", (VectorXcd(*)(GTOs, LC_STOs))&CalcVec<2,1>);
+  def("calc_vec", (VectorXcd(*)(GTOs, LC_GTOs))&CalcVec<2,2>);
   
-  def("calc_rm_mat", &CalcRmMat<1,1>);
-  def("calc_rm_mat", &CalcRmMat<1,2>);
-  def("calc_rm_mat", &CalcRmMat<2,1>);
-  def("calc_rm_mat", &CalcRmMat<2,2>);
+  def("calc_rm_mat", (MatrixXcd(*)(STOs, int, STOs))&CalcRmMat<1,1>);
+  def("calc_rm_mat", (MatrixXcd(*)(STOs, int, GTOs))&CalcRmMat<1,2>);
+  def("calc_rm_mat", (MatrixXcd(*)(GTOs, int, STOs))&CalcRmMat<2,1>);
+  def("calc_rm_mat", (MatrixXcd(*)(GTOs, int, GTOs))&CalcRmMat<2,2>);
   
-  def("calc_d2_mat", &CalcD2Mat<1,1>);
-  def("calc_d2_mat", &CalcD2Mat<1,2>);
-  def("calc_d2_mat", &CalcD2Mat<2,1>);
-  def("calc_d2_mat", &CalcD2Mat<2,2>);
+  def("calc_d2_mat", (MatrixXcd(*)(STOs, STOs))&CalcD2Mat<1,1>);
+  def("calc_d2_mat", (MatrixXcd(*)(STOs, GTOs))&CalcD2Mat<1,2>);
+  def("calc_d2_mat", (MatrixXcd(*)(GTOs, STOs))&CalcD2Mat<2,1>);
+  def("calc_d2_mat", (MatrixXcd(*)(GTOs, GTOs))&CalcD2Mat<2,2>);
   
   typedef _EXPs<1> _STOs;
   typedef _EXPs<2> _GTOs;
@@ -110,10 +110,10 @@ void BindR1Basis() {
     .def("at_r",        &_EXPs<1>::AtR_One)
     .def("clone",       &_EXPs<1>::Clone)
     .def("conj",        &_EXPs<1>::Conj)
-    .def("calc_rm_mat", &_EXPs<1>::CalcRmMat)
-    .def("calc_d2_mat", &_EXPs<1>::CalcD2Mat)
-    .def("calc_vec",    &_EXPs<1>::CalcVecSTO)
-    .def("calc_vec",    &_EXPs<1>::CalcVecGTO)
+    .def("calc_rm_mat", (MatrixXcd(_EXPs<1>::*)(int)const)&_EXPs<1>::CalcRmMat)
+    .def("calc_d2_mat", (MatrixXcd(_EXPs<1>::*)()const)&_EXPs<1>::CalcD2Mat)
+    .def("calc_vec",    (VectorXcd(_EXPs<1>::*)(LC_STOs)const)&_EXPs<1>::CalcVecSTO)
+    .def("calc_vec",    (VectorXcd(_EXPs<1>::*)(LC_GTOs)const)&_EXPs<1>::CalcVecGTO)    
     .def("__str__",     &_EXPs<1>::str);
 
   register_ptr_to_python<GTOs>();
@@ -140,10 +140,10 @@ void BindR1Basis() {
     .def("at_r",  &_EXPs<2>::AtR_One)
     .def("clone", &_EXPs<2>::Clone)
     .def("conj",  &_EXPs<2>::Conj)
-    .def("calc_rm_mat", &_EXPs<2>::CalcRmMat)
-    .def("calc_d2_mat", &_EXPs<2>::CalcD2Mat)
-    .def("calc_vec",    &_EXPs<2>::CalcVecSTO)
-    .def("calc_vec",    &_EXPs<2>::CalcVecGTO)
+    .def("calc_rm_mat", (MatrixXcd(_EXPs<2>::*)(int)const)&_EXPs<2>::CalcRmMat)
+    .def("calc_d2_mat", (MatrixXcd(_EXPs<2>::*)()const)&_EXPs<2>::CalcD2Mat)
+    .def("calc_vec",    (MatrixXcd(_EXPs<2>::*)(LC_STOs)const)&_EXPs<2>::CalcVecSTO)
+    .def("calc_vec",    (MatrixXcd(_EXPs<2>::*)(LC_GTOs)const)&_EXPs<2>::CalcVecGTO)
     .def("__str__",     &_EXPs<2>::str);
 }
 

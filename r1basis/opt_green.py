@@ -1,4 +1,5 @@
 import sys
+sys.path.append('../src_py/nnewton')
 from r1basis import *
 import datetime
 import pandas as pd
