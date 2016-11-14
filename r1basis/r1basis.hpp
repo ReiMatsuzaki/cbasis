@@ -4,6 +4,8 @@
 #include <vector>
 #include <map>
 #include <Eigen/Core>
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "../src_cpp/typedef.hpp"
 #include "r1_lc.hpp"
@@ -19,7 +21,7 @@
 namespace cbasis {
   
   template<int m>
-  class _EXPs {
+  class _EXPs : public boost::enable_shared_from_this<_EXPs<m> > {
   public:
     // ---- typedef ----
     typedef typename _LC_EXPs<m>::LC_EXPs LC_EXPs;
@@ -49,8 +51,8 @@ namespace cbasis {
     Eigen::VectorXcd DAtR(const Eigen::VectorXcd& rs,
 			  const Eigen::VectorXcd& cs) const;
     dcomplex AtR_One(dcomplex r, const Eigen::VectorXcd& cs) const;
-    
     std::string str() const;
+    EXPs self();
     
     // ---- Setter ----
     _EXPs<m>* AddPrim(int n, dcomplex z);
@@ -71,7 +73,14 @@ namespace cbasis {
     Eigen::MatrixXcd CalcD2Mat()      const;
     Eigen::VectorXcd CalcVecSTO(LC_STOs stos) const;
     Eigen::VectorXcd CalcVecGTO(LC_GTOs gtos) const;
-  
+
+    void InitVec(Eigen::VectorXcd&);
+    void InitMat(Eigen::MatrixXcd&);
+    void CalcVec(LC_STOs stos, Eigen::VectorXcd&);
+    void CalcVec(LC_GTOs gtos, Eigen::VectorXcd&);    
+    void CalcRmMat(int M        , Eigen::MatrixXcd&);
+    void CalcD2Mat(               Eigen::MatrixXcd&);
+    
   };
 
   typedef boost::shared_ptr<_EXPs<1> > STOs;
@@ -83,11 +92,11 @@ namespace cbasis {
   dcomplex STOInt(int n, dcomplex a);
   dcomplex GTOInt(int n, dcomplex a);
   dcomplex STO_GTOInt(int n, dcomplex a, dcomplex b);
-
+  
   template<int m1, int m2>
   Eigen::VectorXcd CalcVec(typename _EXPs<m1>::EXPs a,
 			   typename _EXPs<m2>::LC_EXPs b);
-  
+
   template<int m1, int m2>
   Eigen::MatrixXcd CalcRmMat(typename _EXPs<m1>::EXPs a,
 			     int M,
@@ -96,7 +105,28 @@ namespace cbasis {
   template<int m1, int m2>
   Eigen::MatrixXcd CalcD2Mat(typename _EXPs<m1>::EXPs a,
 			     typename _EXPs<m2>::EXPs b);
- 
+
+  // ==== Calculation of matrix/vector (speed) ====
+  template<int m1>
+  void InitVec(typename _EXPs<m1>::EXPs a, Eigen::VectorXcd& m);
+  template<int m1, int m2>
+  void CalcVec(typename _EXPs<m1>::EXPs a,
+	       typename _EXPs<m2>::LC_EXPs b,
+	       Eigen::VectorXcd& vec);
+
+  template<int m1, int m2>
+  void initMat(typename _EXPs<m1>::EXPs a,
+	       typename _EXPs<m2>::EXPs b, Eigen::MatrixXcd& mat);
+  template<int m1, int m2>
+  void calcRmMat(typename _EXPs<m1>::EXPs a,
+		 int M,
+		 typename _EXPs<m2>::EXPs b,
+		 Eigen::MatrixXcd& mat);
+			     
+  template<int m1, int m2>
+  void calcD2Mat(typename _EXPs<m1>::EXPs a,
+		 typename _EXPs<m2>::EXPs b,
+		 Eigen::MatrixXcd& mat);
 }
 
 #endif

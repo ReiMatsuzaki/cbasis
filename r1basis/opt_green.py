@@ -2,6 +2,7 @@ import sys
 from r1basis import *
 import datetime
 import pandas as pd
+from nnewton import ngrad, nhess
 
 ## ==== Utils ====
 def print_timestamp(label, out):
@@ -181,14 +182,15 @@ def two_deriv(us, opt_list):
 ## ==== H photoionization ====
 class H_Photoionization():
     def __init__(self, channel, dipole):
-
+        self.channel = channel
+        self.dipole = dipole
         (n0, l0, l1) = switch(channel,
                               {"1s->kp": (1, 0, 1),
                                "2p->ks": (2, 1, 0),
                                "2p->kd": (2, 1, 2),
                                "3d->kp": (3, 2, 1),
                                "3d->kf": (3, 2, 3)})
-        
+
         self.E0 = -1.0 / (2.0 * n0 * n0)
         self.L1 = l1
 
@@ -223,7 +225,19 @@ class H_Photoionization():
     
     def dip_vec(self, a):
         return calc_vec(a, self.driv)
-    
+    def __str__(self):
+        res = """
+==== H_PI ====
+channel : {0}
+dipole  : {1}
+L1      : {2}
+E0      : {3}
+driv    : {4}
+==============
+        """.format(self.channel, self.dipole, self.L1, self.E0, self.driv)
+        return res
+                   
+        
 ## ==== optimization utility ====
 def get_opt_index(opt_list):
     """
@@ -299,6 +313,9 @@ class VarTrans():
 
     def dxi_dyk(self, xis):
         raise(Exception("not implemented"))
+
+    def __str__(self):
+        raise(Exception("not implemented"))
         
 class VarTransComb(VarTrans):
     def __init__(self, xidx_var_list):
@@ -306,7 +323,12 @@ class VarTransComb(VarTrans):
         ## -- check --
         for (xidx, var) in xidx_var_list:
             if(len(xidx) != var.Nx):
-                raise(Exception("invalid xidx_list"))
+                msg = """
+                invalid argument:
+                xidx = {0}
+                var = {1}
+                """.format(xidx, var)
+                raise(Exception(msg))
                      
         self.xidx_list = []
         self.var_list  = []
@@ -330,7 +352,12 @@ class VarTransComb(VarTrans):
             flattened.extend(xidx)            
         flattened.sort()
         if flattened != range(self.Nx):
-            raise(Exception("invalid xidx_list"))
+            msg = """
+            invalid xidx_list:
+            flattened_xidx = {0}
+            var.Nx = {1}
+            """.format(flattened, self.Nx)
+            raise(Exception(msg))
 
     def xis(self, yks):
         xis_res = VectorXc.Zero(self.Nx)
@@ -405,6 +432,15 @@ class VarTransComb(VarTrans):
                 
         return res
 
+    def __str__(self):
+        xyvar = zip(self.xidx_list, self.yidx_list, self.var_list)
+        res = "VarTransComb(Nx={0}, Ny={1}):\n".format(self.Nx, self.Ny)
+        i = 0
+        for (xidx, yidx, var) in xyvar:
+            res = res + "{0}: {1}, {2}: {3}\n".format(i, xidx, yidx, var)
+            i = i + 1
+        return res
+
 class VarTransShift(VarTrans):
     """
     xi = a0k + yk[0]
@@ -412,6 +448,8 @@ class VarTransShift(VarTrans):
     dF/(dy0,dy0) =  sum_ij H_ij
     """
     def __init__(self, a0s):
+        if not hasattr(a0s, '__len__'):
+            raise(Exception("a0s must be list.\na0s: {0}".format(a0s)))
         self.a0s = a0s
         self.Nx = len(a0s)
         self.Ny = 1
@@ -433,6 +471,10 @@ class VarTransShift(VarTrans):
         res = MatrixXc.Zero(self.Nx, self.Ny)
         for i in range(self.Nx):
             res[i, 0] = 1.0
+        return res
+
+    def __str__(self):
+        res = "VarTransShift({0})".format(self.a0s)
         return res
 
 class VarTransGeometric(VarTrans):
@@ -501,7 +543,11 @@ class VarTransGeometric(VarTrans):
             res[i, 0] = r**i
             res[i, 1] = a*i*r**(i-1)
         return res
-    
+
+    def __str__(self):
+        res = "VarTransGeometric({0})".format(self.Nx)
+        return res
+
 class VarTransMono(VarTrans):
     """
     yi(x) = f(xi)
@@ -562,7 +608,9 @@ class VarTransId(VarTransMono):
 
     def dx2_dy2(self, x):
         return 0.0
-    
+
+    def __str__(self):
+        return "VarTransId"
 class VarTransLog(VarTransMono):
     """
     yk = log(xi); xi = exp(yk)
@@ -584,6 +632,9 @@ class VarTransLog(VarTransMono):
     def dx2_dy2(self, x):
         return x
 
+    def __str__(self):
+        return "VarTransLog"
+    
 ## ==== (Value,Grad,Hess) ====
 def vgh_green(us, dus, ddus, opt_index, lmat, svec, rvec):
     num   = us.size()
@@ -678,6 +729,26 @@ def vgh_green_h_pi(h_pi, base_us, opt_list):
         return __func_of_zs__
     return __func_of_w__
 
+
+def v_green_h_pi(h_pi, base_us, opt_list, var):
+
+    if(base_us.size() != len(opt_list)):
+        raise(Exception("size mismatch"))
+
+    num   = base_us.size()
+    num_d = len([1 for opt_q in opt_list if opt_q])
+    opt_index = get_opt_index(opt_list)
+    
+    def __func_of_w__(w):
+        def __func_of_ys__(ys):
+            xs = var.xis(ys)
+            us = update_basis(base_us, opt_index, xs)
+            lmat = h_pi.l_mat(w, us, us)
+            svec = h_pi.dip_vec(us)
+            return tdot(svec, lmat.inverse() * svec)
+        return __func_of_ys__
+    return __func_of_w__
+            
 ## ==== optimization ====
 
 def vgh_log(vgh_w_zs):
@@ -704,7 +775,18 @@ def vgh_log(vgh_w_zs):
             return (val, gnew, hnew)
         return __func_of_ys__
     return __func_of_w__
-            
+
+def vgh_var(vgh_w_xs, var):
+    def __func_of_w__(w):
+        def __func_of_ys__(ys):
+            xs = var.xis(ys)
+            (val, g_xs, h_xs) = vgh_w_xs(w)(xs)
+            g_ys = var.dF_dyk(g_xs, xs)
+            h_ys = var.d2F_dykdyl(g_xs, h_xs, xs)
+            return (val, g_ys, h_ys)
+        return __func_of_ys__
+    return __func_of_w__
+    
 class OptRes:
     def __init__(self):
         self.x = []          # solution array
@@ -729,13 +811,16 @@ nit     = {6}
         
 
 ## ==== optimization routine ====
-def newton(vgh, x0, tol=0.00001, maxit=100):
+def newton(vgh, x0, tol=0.00001, maxit=100, grad=True, hess=True, fdif=None,
+           conv="grad", out=None, print_level=0):
     """
     Compute stationary point by Newton method.
     
     Inputs
     ------
     vgh : [scalar] -> (scalar, [scalar], [[scalar]])
+    .     [scalar] -> (scalar, [scalar])
+    .     [scalar] -> scalar
     .     lambda for calculating function values, gradient and hessians
     x0  : [scalar]
     .     initial guess
@@ -743,27 +828,119 @@ def newton(vgh, x0, tol=0.00001, maxit=100):
     .     tolerrance for termination.    
     maxit : int
     .     maximum number of iterations
+    grad : bool
+    .     If True, return of vgh contain gradient
+    hess : bool
+    .     If True, return of vgh contain hessian
+    fdif : real>0
+    .     finite difference used in numerical grad and Hessian
+    conv : str
+    .     test convergence command (grad or dx)
+    out   : None or stdout or file handler
 
     Returns
     -------
     res : OptRes
     """
 
+    if(out):
+        print >>out, "==== Newton ===="
+    
     res = OptRes()
+
+    if(conv == "grad"):
+        dist = lambda dxs,gs: max(map(abs, gs))
+    elif(conv == "dx"):
+        dist = lambda dxs,gs: max(map(abs, dxs))
+    else:
+        raise(Exception('conv must be'))
     
     res.x = VectorXc(x0)
     for res.nit in range(maxit):
-        (res.val, res.grad, res.hess) = vgh(res.x)
-        ave_g = sum([abs(g0) for g0 in res.grad])/len(res.grad)
-        if(ave_g < tol):
+        if(grad and hess):
+            (res.val, res.grad, res.hess) = vgh(res.x)
+        elif(grad and not hess):
+            (res.val, res.grad) = vgh(res.x)
+            res.hess = nhess(lambda x: vgh(x)[0], res.x, fdif, method='c1')
+        elif(not grad and not hess):
+            res.val = vgh(res.x)
+            res.grad = ngrad(vgh,                 res.x, fdif, method='c1')
+            res.hess = nhess(lambda x: vgh(x)[0], res.x, fdif, method='c1')
+        else:
+            raise(Exception('grad=False and hess=True is not supported'))
+        dx =  -res.hess.inverse() * res.grad
+        if(dist(dx, res.grad) < tol):
             res.success = True
             break
-        dx =  -res.hess.inverse() * res.grad
+                                      
+        if(out):
+            print >>out, "iter: ", res.nit
+            print >>out, "x:",     res.x
+            if(print_level > 0):
+                print >>out, "dx  :",  dx
+                print >>out, "grad:",  res.grad
+            if(print_level > 1):
+                print >>out, "hess:",  res.hess
+                
         res.x = res.x + dx
-        
+
+    if(out):
+        print >>out, "================"            
     return res
 
 ## ==== Interface ====
+def h_pi_read_info(basis_type, basis_info):
+
+    base_us = switch(basis_type, {'STO': STOs(), 'GTO': GTOs()})    
+    opt_list = []
+    xidx_var_list = []
+    y0s = []
+    
+    idx = 0
+    for line in basis_info:
+        if(len(line) < 3):
+            raise(Exception("invalid line"))
+        cmd = line[0]
+        opt = line[1]
+        if(cmd == "id"):
+            pn = line[2]
+            ys= [line[3]]
+            var = VarTransId()
+        elif(cmd == "log"):
+            pn = line[2]
+            ys  = [line[3]]
+            var = VarTransLog()
+        elif(cmd == "geo"):
+            pn = line[2]
+            num= line[3]
+            ys = [line[4], line[5]]
+            var = VarTransGeometric(num)
+        elif(cmd == "shift"):
+            if(len(line) != 5):
+                raise(Exception("shift command must be five element tuple"))
+            pn = line[2]
+            a0s= line[3]
+            ys= [line[4]]
+            var = VarTransShift(a0s)
+        else:
+            raise(Exception("not implemented"))
+        
+        opt_list.extend([opt for i in range(var.Nx)])
+        zetas = var.xis(ys)
+        for zeta in zetas:
+            base_us.add(pn, zeta)
+        if(opt):
+            xidx = range(idx, idx+var.Nx)
+            xidx_var_list.append((xidx, var))
+            idx += var.Nx
+            y0s.extend(ys)
+            
+            
+    base_us.setup()
+
+    var = VarTransComb(xidx_var_list)
+    return (base_us, opt_list, var, y0s)
+    
 def opt_main_init(args):
 
     ## ---- set default -----
@@ -775,7 +952,6 @@ def opt_main_init(args):
     dict_set_default(args, 'wf_outfile', None)
     dict_set_default(args, 'ws', [args['w0']])
     dict_set_default(args, 'print_level', 0)
-    dict_set_default(args, 'use_log', False)
 
     ## ---- check input ----
     if('ws_outfile' in args):
@@ -808,47 +984,42 @@ def opt_main_init(args):
     
 def opt_main_h_pi(args):
 
-    ## ---- Check ----
     out = args["out"]
     print_timestamp('H_PI', out)
     out.write("channel: {0}\n".format(args['channel']))
     out.write("dipole:  {0}\n".format(args['dipole']))
     
     h_pi = H_Photoionization(args['channel'], args['dipole'])
-    opt_list = []
-    base_us = switch(args["basis_type"], {'STO': STOs(), 'GTO': GTOs()})
-    for (pn, zeta, cmd) in args["basis_info"]:
-        opt_list.append(switch(cmd, {'o': True, 'f': False}))
-        base_us.add(pn, zeta)
-    base_us.setup()
-    vgh_w_zs = vgh_green_h_pi(h_pi, base_us, opt_list)
-    z0s = [base_us.basis(i).z(0)
-           for (opt, i)
-           in zip(opt_list, range(base_us.size())) if opt]
+
+    basis_type = args["basis_type"]
+    basis_info = args["basis_info"]
+    (base_us, opt_list, var, y0s) = h_pi_read_info(basis_type, basis_info)
+    
+    vgh_w_xs = vgh_green_h_pi(h_pi, base_us, opt_list)
+    vgh_w_ys = vgh_var(vgh_w_xs, var)
 
     opt_index = get_opt_index(opt_list)
     args['h_pi'] = h_pi
     args['opt_index'] = opt_index
     args['base_us'] = base_us
-    args['vgh_w_zs'] = vgh_w_zs
-    args['z0s'] = z0s
+    #    args['vgh_w_xs'] = vgh_w_xs
+    args['vgh_w_ys'] = vgh_w_ys
+    args['var'] = var
+    args['y0s'] = y0s
+
+    print >>out, "h_pi: ", h_pi
+    print >>out, "var : ", var
+    print >>out, "y0s : ", y0s
+    print >>out, "opt_list: ", opt_list
+    print >>out, "base_us: \n", base_us
 
 def opt_main_calc(args):
 
     out = args['out']
     print_timestamp('Calc', out)
     tol = args['tol']
-    maxit = args['maxit']    
-    if(args['use_log']):
-        vgh_w_zs = vgh_log(args['vgh_w_zs'])
-        zs = args['z0s']
-        n = zs.size()
-        z0s  = VectorXc.Zero(n)
-        for i in range(n):
-            z0s[i] = np.log(zs[i])
-    else:
-        vgh_w_zs = args['vgh_w_zs'] 
-        z0s  = args['z0s']
+    maxit = args['maxit']
+    out_newton = None if args["print_level"]<3 else out
     
     ## ---- w range ----
     eps_w = pow(10.0, -5)
@@ -859,40 +1030,43 @@ def opt_main_calc(args):
                              key=lambda x:-x)
     ws_plus = sorted([w for w in ws_without_w0 if w > w0],
                      key=lambda x:+x)
+    vgh_w_ys = args["vgh_w_ys"]
 
     ## ---- calculation ----
     w_res_list = []
-    zs = z0s
+    ys = args['y0s']
     for w in ws_minus:
-        res = newton(vgh_w_zs(w), zs, tol=tol, maxit=maxit)
+        res = newton(vgh_w_ys(w), ys, tol=tol, maxit=maxit,
+                     out = out_newton, conv = args['conv'],
+                     print_level = args['print_level'])
         w_res_list.append((w, res))
-        if(args['use_log']):
-            zs = [np.exp(x) for x in res.x]
-        else:
-            zs = res.x
+        ys = res.x
             
         if(args['print_level'] > 0):
             out.write("w: {0}\n".format(w))
-            for (i, z) in zip(range(len(zs)), zs):
-                out.write("x{0}: {1}\n".format(i, z))
+            print >>out, "convergenec = {0}\n".format("Yes" if res.success else "No")
+            for (i, y) in zip(range(len(ys)), ys):
+                out.write("y{0}: {1}\n".format(i, y))
         if(args['print_level'] > 1):
-            for (i, g) in zip(range(len(res.grad)), res.grad):
+            for (i, g) in zip(range(len(ys)), res.grad):
                 out.write("grad{0}: {1}\n".format(i, g))
 
-    zs = w_res_list[0][1].x
+    ys = w_res_list[0][1].x
     for w in ws_plus:
-        res = newton(vgh_w_zs(w), zs, tol=tol, maxit=maxit)
+        res = newton(vgh_w_ys(w), ys, tol=tol, maxit=maxit,
+                     out = out_newton, conv = args['conv'],
+                     print_level = args['print_level'])
         w_res_list.append((w, res))
-        if(args['use_log']):
-            zs = [np.exp(x) for x in res.x]
-        else:
-            zs = res.x
-
+        ys = res.x
+            
         if(args['print_level'] > 0):
-            out.write("opt for {0}\n".format(w))
-            out.write("x: {0}\n".format(zs))            
+            print >>out, "w: {0}".format(w)
+            print >>out, "convergenec = "+ ("Yes" if res.success else "No")
+            for (i, y) in zip(range(len(ys)), ys):
+                out.write("y{0}: {1}\n".format(i, y))
         if(args['print_level'] > 1):
-            out.write("grad: {0}\n".format(res.grad))
+            for (i, g) in zip(range(len(ys)), res.grad):
+                out.write("grad{0}: {1}\n".format(i, g))        
 
     w_res_list.sort(key = lambda wr: wr[0])
     args["w_res_list"] = w_res_list
@@ -910,7 +1084,9 @@ def opt_main_wf_h_pi(args):
 
     print >> out, "write wave function at w = {0}".format(w0)
 
-    us = update_basis(base_us, args["opt_index"], res0.x)
+    ys = res0.x         ## optimization variable
+    xs = args['var'].xis(ys)    ## orbital exponent without fixed
+    us = update_basis(base_us, args["opt_index"], xs)
     L00 = h_pi.l_mat(w0, us, us)
     R0  = h_pi.dip_vec(us)
     G = L00.inverse()
@@ -923,6 +1099,33 @@ def opt_main_wf_h_pi(args):
     df.columns = ["r", "re_y", "im_y"]
     df.to_csv(args['wf_outfile'], index=False)
     
+def opt_main_print_final_h_pi(args):
+    out = args['out']
+    print_timestamp('Res(h_pi)', out)
+    opt_index = args['opt_index']
+    base_us = args["base_us"]
+    var = args['var']
+
+    cs = []
+    for (w, res) in args['w_res_list']:
+        print >>out, "w = {0}".format(w)
+        print >>out, "convergenec = {0}".format("Yes" if res.success else "No")
+        print >>out, "alpha = {0}".format(res.val)
+        ys = res.x           ## optimization variable
+        xs = var.xis(ys)     ## orbital exponent without fixed
+        us = update_basis(base_us, opt_index, xs)
+        print >>out, us
+        h_pi = args['h_pi']
+        l_mat = h_pi.l_mat(w, us, us)
+        s_vec = h_pi.dip_vec(us)
+        g_mat = l_mat.inverse()
+        c_vec = g_mat * s_vec
+        cs.append(c_vec)
+        for i in range(len(c_vec)):
+            print >>out, "c{0} : {1}".format(i, c_vec[i])
+    args['cs'] = cs
+
+    
 def opt_main_print(args):
     out = args['out']
     
@@ -932,13 +1135,13 @@ def opt_main_print(args):
         out.write("w = {0}\n".format(w))
         out.write("convergenec = {0}\n".format("Yes" if res.success else "No"))
         for i in range(len(res.x)):
-            out.write("zeta{0} = {1}\n".format(i, res.x[i]))
+            out.write("y{0} = {1}\n".format(i, res.x[i]))
         out.write("alpha = {0}\n".format(res.val))
         
 def opt_main_finalize(args):
 
     print_timestamp('Finalize', args["out"])
-    
+    print >>args["out"], "<<<<opt_green<<<<"
     if(args["out"] != sys.stdout):
         args["out"].close()
         
@@ -955,7 +1158,8 @@ def opt_main(**args):
     tol : tollerance in Newton method.
     target : str : calculation target. ex: "h_pi"
     out : file or None : str => output file. None => standard output
-    wf_out : file or None : wave function output
+    wf_outfile : file or None : wave function output
+    conv : str : conv option used in 'newton' function
 
     -- only if target = h_pi --
     channel : str : "1s->kp" or "2p->ks" etc
@@ -966,10 +1170,110 @@ def opt_main(**args):
     if(args['target'] == "h_pi"):
         opt_main_h_pi(args)
     else:
-        raise(Exception("only target='h_pi' is supported"))        
+        raise(Exception("only target='h_pi' is supported"))
+
     opt_main_calc(args)
-    opt_main_print(args)
+
+    if(args['target'] == "h_pi"):
+        opt_main_print_final_h_pi(args)
+        
     if(args['wf_outfile']):
         if(args['target'] == "h_pi"):
             opt_main_wf_h_pi(args)
+            
     opt_main_finalize(args)
+    return args
+
+def cbf_main_init(args):
+
+    ## ---- set default -----
+    args['basis_type']; args['basis_info']
+    args['w0'];  args['target']
+    dict_set_default(args, 'outfile', 'stdout')
+    dict_set_default(args, 'wf_outfile', None)
+    dict_set_default(args, 'ws', [args['w0']])
+    dict_set_default(args, 'print_level', 0)
+
+    ## ---- check input ----
+    if('ws_outfile' in args):
+        if('ws_rs' in args):
+            raise(Exception("ws_rs is necessary when ws_outfile is set"))
+
+    ## ---- print input ----
+    if(args['outfile'] == 'stdout'):
+        args['out'] = sys.stdout
+    else:
+        args['out'] = open(args['outfile'], 'w')
+    out = args['out']
+    out.write('\n')
+    out.write(">>>>cbf_main>>>>>\n")
+    out.write("optimize the orbital expoent for matrix element of Greens's operator: \n")
+    out.write("       alpha(w) = <S, (E0+w-H)R> = SL^{-1}R\n")
+    print_timestamp('Init', out)
+    out.write("basis_type: {0}\n".format(args['basis_type']))
+    out.write("basis_info:\n")
+    for basis in args['basis_info']:
+        out.write("{0}\n".format(basis))
+    out.write("ws: {0}\n".format(args['ws']))
+    out.write("target: {0}\n".format(args['target']))
+    print >> out, "out = {0}".format("stdout" if args['outfile']
+                                     else args['outfile'])
+    print >> out, "wf_outfile = {0}".format(args['wf_outfile'] if args['wf_outfile']
+                                            else "No")    
+
+def cbf_main_h_pi(args):
+    
+    out = args["out"]
+    print_timestamp('H_PI', out)
+    out.write("channel: {0}\n".format(args['channel']))
+    out.write("dipole:  {0}\n".format(args['dipole']))
+    
+    h_pi = H_Photoionization(args['channel'], args['dipole'])
+
+    basis_type = args["basis_type"]
+    basis_info = args["basis_info"]
+    (us, dum0, dum1, dum2) = h_pi_read_info(basis_type, basis_info)
+    
+    args['h_pi'] = h_pi
+    args['us'] = us
+
+    print >>out, "h_pi: ", h_pi
+    print >>out, "us: \n", us
+    
+    out = args['out']
+    print_timestamp('Calc', out)
+    
+    ## ---- w range ----
+    ws = args['ws']
+
+    ## ---- calculation ----
+    cs = []
+    for w in ws:
+        print >>out, "w = {0}".format(w)
+        h_pi = args['h_pi']
+        l_mat = h_pi.l_mat(w, us, us)
+        s_vec = h_pi.dip_vec(us)
+        g_mat = l_mat.inverse()
+        c_vec = g_mat * s_vec
+        alpha = tdot(c_vec, s_vec)
+        cs.append(c_vec)
+        print >>out, "alpha = {0}".format(alpha)
+        for i in range(len(c_vec)):
+            print >>out, "c{0} : {1}".format(i, c_vec[i])
+
+        if(args['wf_outfile']):
+            rs = args['wf_rs']
+            ys = np.array(us.at_r(rs, c_vec))
+            df = pd.DataFrame([rs, ys.real, ys.imag]).T
+            df.columns = ["r", "re_y", "im_y"]
+            df.to_csv(args['wf_outfile'], index=False)
+    
+def cbf_main(**args):
+    
+    cbf_main_init(args)
+    if(args['target'] == "h_pi"):
+        cbf_main_h_pi(args)
+    else:
+        raise(Exception("only target='h_pi' is supported"))
+
+    return args    

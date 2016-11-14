@@ -2,6 +2,7 @@
 #define EIGNN_PLUS_H
 
 #include <Eigen/Core>
+#include <Eigen/Eigenvalues>
 #include "typedef.hpp"
 
 template<class F>
@@ -62,15 +63,25 @@ void CEigenSolveCanonicalNum(const CM& F, const CM& S, int num0,
 
 class SymGenComplexEigenSolver {
 private:
+  // -- solution of calculation --
   CM eigenvectors_;
   CV eigenvalues_;
+
+  // -- intermediate --
+  Eigen::ComplexEigenSolver<CM> es_;
+  CM s2inv_;
+  CM fp_;
+  CM c_;
+  CV v_;
+  CM lambda_mat_;
   
 public:
   SymGenComplexEigenSolver();
-  SymGenComplexEigenSolver(const CM& _A, const CM& _B);
-  void compute(const CM& _A, const CM& B);
-  CV eigenvalues() const;
-  CM eigenvectors() const;
+  SymGenComplexEigenSolver(const CM& f, const CM& s);
+  void compute(const CM& f, const CM& s);
+  void compute_inv_sqrt(const CM& s);
+  const CV& eigenvalues() const;
+  const CM& eigenvectors() const;
 };
 
 

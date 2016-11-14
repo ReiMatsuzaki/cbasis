@@ -388,8 +388,8 @@ class Test_VarTrans(unittest.TestCase):
 
         y0s = [0.1]
         a0s = [0.3, 1.2, 0.1]
-        var = VarTransShift([0.2, 0.3, 0.1])
-        f_xs  = lambda xs: np.sin(xs[0]*xs[1]) + np.exp(xs[1]+xs[2])
+        var = VarTransShift(a0s)
+        f_xs  = lambda xs: np.sin(xs[0]*xs[1]) + np.exp(xs[1]+xs[2]*xs[0])
         test_vartrans(self, f_xs, var, y0s, "shift")
 
     def test_geometric(self):
@@ -432,7 +432,6 @@ class Test_VarTrans(unittest.TestCase):
         f_xs  = lambda xs: np.sin(xs[0]*xs[1]+xs[2]) * np.exp(xs[1]+xs[2]+xs[3])
         test_vartrans(self, f_xs, var, y0s, "comb_mid_2")
 
-
     def test_comb_big(self):
 
         var = VarTransComb([
@@ -448,6 +447,8 @@ class Test_VarTrans(unittest.TestCase):
                             +np.log(xs[7]+xs[8]*xs[0]))
         test_vartrans(self, f_xs, var, y0s, "comb_big")
 
+        #print var
+
     def test_comb_raise(self):
         a0s = [0.2,0.3]
         y0s = [1.1, -0.1]
@@ -461,6 +462,25 @@ class Test_green(unittest.TestCase):
     def setUp(self):
         pass
 
+    def assertVecAlmostEqual(self, a, b, places=5):
+        self.assertEqual(len(a), len(b))
+        for i in range(len(a)):
+            self.assertAlmostEqual(a[i], b[i], places=places)
+
+    def assertVarEqual(self, a, b):
+        self.assertAlmostEqual(a.Nx, b.Nx)
+        self.assertAlmostEqual(a.Ny, b.Ny)
+        yks = [0.1*(i+1)*(i+1) for i in range(a.Ny)]
+        xa = a.xis(yks)
+        xb = b.xis(yks)
+        for i in range(a.Ny):
+            msg = """
+            Error on {0}
+            a = {1}
+            b = {2}
+            """.format(i, a, b)
+            self.assertAlmostEqual(xa[i], xb[i], msg = msg)
+        
     def test_alpha(self):
 
         ## from calc/stoh/l_5/res.d
@@ -569,7 +589,7 @@ class Test_green(unittest.TestCase):
             for j in range(2):
                 self.assertAlmostEqual(ref_hess[i,j],
                                        calc_hess[i,j], places=6)
-
+                
     def test_gh_two_of_three_easy(self):
         zs0 = [1.3-0.1j, 2.3-0.5j]
         z2 = 0.4-0.4j
@@ -662,6 +682,27 @@ class Test_green(unittest.TestCase):
         self.assertAlmostEqual(1.0255886472-0.6955918398j, res.x[0])
         self.assertAlmostEqual((0.361600808054165-0.371221793708147j)*3, res.val)
 
+    def test_opt_one_log(self):
+        
+        h_pi = H_Photoionization('1s->kp', "velocity")
+        var = VarTransComb([([0], VarTransLog())])
+        y0s = [np.log(0.6-0.6j)]
+        x0s = var.xis(y0s)
+        opt = [True for z in y0s]
+        
+        w = 1.0
+        
+        basis = STOs().add(2, x0s[0]).setup()
+        vgh_w_x = vgh_green_h_pi(h_pi, basis, opt)
+        vgh_y = vgh_var(vgh_w_x, var)
+        
+        res = newton(vgh_y(w), y0s)
+
+        ## see calc/stoh/v_1/res.d
+        self.assertTrue(res.success)
+        self.assertAlmostEqual(1.0255886472-0.6955918398j, var.xis(res.x)[0])
+        self.assertAlmostEqual((0.361600808054165-0.371221793708147j)*3, res.val)
+    
     def test_opt_three(self):
         h_pi = H_Photoionization('1s->kp', "length")
         zs_opt = [0.9797019427  -0.0125136315j,
@@ -671,7 +712,13 @@ class Test_green(unittest.TestCase):
         opt = [True for z in z0s]
         basis = STOs().add(2, z0s).setup()
         w = 0.9
-        res = newton(vgh_green_h_pi(h_pi, basis, opt)(w), z0s, tol=pow(10.0, -10))
+        res = newton(vgh_green_h_pi(h_pi, basis, opt)(w),
+                     z0s,
+                     tol=pow(10.0, -10),
+#                     out = sys.stdout,
+#                     print_level = 1,
+                     conv = "dx"
+                     )
 
         ## see calc/stoh/l_3/res.d
         self.assertTrue(res.success)
@@ -680,19 +727,85 @@ class Test_green(unittest.TestCase):
         self.assertAlmostEqual(zs_opt[2], res.x[2])
         self.assertAlmostEqual((2.23413256581075-0.543249555891283j)*3, res.val)
         
-    def test_opt_interface(self):
-        opt_main(basis_type = 'STO',
-                 basis_info = [(2, 0.6-0.4j, 'o')],
-                 w0 = 1.0,
-                 ws = np.linspace(0.5, 1.5, 11),
-                 tol = pow(10.0, -5.0),
-                 target = 'h_pi',
-                 channel= '1s->kp',
-                 dipole = 'length',
-                 print_level = 1,
-                 outfile = "tmp.out")
-                 
-                 
+    def test_h_pi_read_info(self):
+        basis_info = [("id",   True,  2, 0.6-0.4j),
+                      ("id",   True,  2, 0.2-0.7j),
+                      ("log",  True,  2, np.log(1.1)),
+                      ("log",  False, 2, np.log(2.3)),
+                      ("geo",  True,  2, 3, 0.1, 2.5),
+                      ("shift",True,  2, [0.15, 0.25], 0.1)]
+
+        ref_us = (STOs()
+                  .add(2, 0.6-0.4j)
+                  .add(2, 0.2-0.7j)
+                  .add(2, 1.1)
+                  .add(2, 2.3)
+                  .add(2, 0.1)
+                  .add(2, 0.1*2.5)
+                  .add(2, 0.1*2.5*2.5)
+                  .add(2, 0.15+0.1)
+                  .add(2, 0.25+0.1)
+                  .setup())
+
+        ref_var = VarTransComb([ ([0], VarTransId()),
+                                 ([1], VarTransId()),
+                                 ([2], VarTransLog()),
+                                 ([3,4,5], VarTransGeometric(3)),
+                                 ([6,7], VarTransShift([0.15, 2.5]))])
+
+        ref_opt_list = [True, True, True, False,
+                        True, True, True,
+                        True, True]
+
+        ref_y0s = [0.6-0.4j, 0.2-0.7j, np.log(1.1), 0.1, 2.5, 0.1]
+
+        (base_us, opt_list, var, y0s) = h_pi_read_info("STO", basis_info)
+        c0 = [0.1 * (i+1) for i in range(ref_us.size())]
+        r0 = [1.1]
+        self.assertAlmostEqual(ref_us.at_r(r0, c0)[0], base_us.at_r(r0, c0)[0])
+        self.assertEqual(ref_opt_list, opt_list)
+        self.assertVecAlmostEqual(ref_y0s, y0s)
+        self.assertVarEqual(ref_var, var)
+        
+    def _test_opt_interface(self):
+
+        opt_main(
+            basis_type = 'STO',
+            basis_info = [("id",   True,  2, 0.6-0.4j)],
+            w0 = 1.0,
+#            ws = np.linspace(0.5, 1.5, 11),
+            tol = pow(10.0, -5.0),
+            target = 'h_pi',
+            channel= '1s->kp',
+            dipole = 'velocity',
+            outfile = "tmp.out",
+            print_level = 0)
+
+        opt_main(
+            basis_type = 'STO',
+            basis_info = [("log",   True, 2, np.log(0.6-0.6j))],
+            w0 = 1.0,
+            tol = pow(10.0, -5.0),
+            target = 'h_pi',
+            channel= '1s->kp',
+            dipole = 'velocity',
+            maxit = 100,
+            outfile = "tmp.out",
+            print_level = 0)
+
+        opt_main(
+            basis_type = 'GTO',
+            basis_info = [
+                ("geo", False,  2, 15, 0.01, 1.771600539669121),
+                ("log",  True,   2, np.log(0.004-0.02j))],
+            w0 = 1.0,
+#            ws = np.linspace(0.5, 1.5, 11),
+            tol = pow(10.0, -8.0),
+            target = 'h_pi',
+            channel= '1s->kp',
+            dipole = 'velocity',
+#            outfile = "tmp.out",
+            print_level = 0)
                  
 """
 

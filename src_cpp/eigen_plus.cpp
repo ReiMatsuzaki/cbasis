@@ -2,9 +2,6 @@
 #include <stdexcept>
 #include <iostream>
 
-#include <Eigen/Eigenvalues>
-#include <Eigen/Core>
-
 #include "typedef.hpp"
 #include "macros.hpp"
 
@@ -249,19 +246,74 @@ void CEigenSolveCanonicalNum(const CM& F, const CM& S, int num0,
 }
 
 SymGenComplexEigenSolver::SymGenComplexEigenSolver() {}
-SymGenComplexEigenSolver::SymGenComplexEigenSolver(const CM& A, const CM& B) {
+SymGenComplexEigenSolver::SymGenComplexEigenSolver(const CM& f, const CM& s) {
 
-  this->compute(A, B);
-
-}
-void SymGenComplexEigenSolver::compute(const CM& A, const CM& B) {
-
-  generalizedComplexEigenSolve(A, B, &this->eigenvectors_, &this->eigenvalues_);
+  this->compute(f, s);
 
 }
-CV SymGenComplexEigenSolver::eigenvalues() const {
+void SymGenComplexEigenSolver::compute(const CM& f, const CM& s) {
+
+  if(f.rows() != s.rows() || f.rows() != f.cols() || f.rows() == 0) {
+    string msg; SUB_LOCATION(msg);
+    stringstream oss;
+    oss << msg << ": invalid matrix size for f and s." << endl
+	<< "s = " << s.rows() << s.cols() << endl
+	<< "f = " << f.rows() << f.cols() << endl;
+    throw runtime_error(oss.str());
+  }
+
+  int n(f.rows());
+  if(s2inv_.rows() != n) {
+    s2inv_ = MatrixXcd::Zero(n, n);
+  }
+  if(fp_.rows() != n) {
+    fp_ = MatrixXcd::Zero(n, n);
+  }
+
+  // s2inv means S^(-1/2)
+  compute_inv_sqrt(s);
+  
+  // fp means F' = S^(-1/2)FS^(-1/2)
+  fp_ = s2inv_ * f * s2inv_;
+
+  // solve F'C' = C diag{e_i}
+  es_.compute(fp_, true);
+  eigenvectors_ = s2inv_ *  es_.eigenvectors();
+  eigenvalues_ = es_.eigenvalues();
+
+  SortEigs(eigenvalues_, eigenvectors_, TakeReal);  
+  
+  //  generalizedComplexEigenSolve(A, B, &this->eigenvectors_, &this->eigenvalues_);
+
+}
+void SymGenComplexEigenSolver::compute_inv_sqrt(const CM& s) {
+
+  int n(s.rows());
+  if(v_.size() != s.rows())
+    v_ = VectorXcd::Zero(s.rows());
+  if(c_.rows() != n || c_.cols() != n)
+    c_ = MatrixXcd::Zero(s.rows(), s.cols());
+  if(lambda_mat_.rows() != n || lambda_mat_.cols() != n)
+    lambda_mat_ = MatrixXcd::Zero(n, n);
+  
+  // -- compute eigen value problem of S. --
+  // -- S D = D V --
+  es_.compute(s, true);
+  c_ = es_.eigenvectors();
+
+  // -- ensure ||c_i|| = 1 --
+  col_cnormalize(c_);
+
+  // -- lambda_ij = delta_ij / sqrt(v_i) --
+  lambda_mat_ = es_.eigenvalues().array().inverse().sqrt().matrix().asDiagonal();
+
+  // S^(-1/2) = D diag{1/sqrt(v_i)} D^T
+
+  s2inv_ = c_ * lambda_mat_ * c_.transpose();
+}
+const CV& SymGenComplexEigenSolver::eigenvalues() const {
   return eigenvalues_;
 }
-CM SymGenComplexEigenSolver::eigenvectors() const {
+const CM& SymGenComplexEigenSolver::eigenvectors() const {
   return eigenvectors_;
 }

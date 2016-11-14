@@ -51,7 +51,7 @@ ${BINDIR}/%.o: %.cpp
 
 # -- test math --
 MATH_OBJS = \
-	test_math.o cfunc.o fact.o erfc.o lgamma.o mol_func.o \
+	test_math.o cfunc.o lgamma.o fact.o mol_func.o \
 	angmoment.o eigen_plus.o bmatset.o gtest.a
 ${BINDIR}/test_math: $(foreach o, ${MATH_OBJS}, ${BINDIR}/$o) 
 	${CXX} -o $@ $^  ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas

@@ -212,7 +212,41 @@ namespace cbasis {
   template VectorXcd CalcVec<2,1>(_EXPs<2>::EXPs a, _EXPs<1>::LC_EXPs b);
   template VectorXcd CalcVec<2,2>(_EXPs<2>::EXPs a, _EXPs<2>::LC_EXPs b);
 
-  // ==== matrix ====
+  template<int m1>
+  void InitVec(typename _EXPs<m1>::EXPs a, VectorXcd& m) {
+    int n(a->size());
+    m = VectorXcd::Zero(n);
+  }
+  template<int m1, int m2>
+  void CalcVec(typename _EXPs<m1>::EXPs a, typename _EXPs<m2>::LC_EXPs b,
+	       VectorXcd& vec) {
+    if(vec.size() != a->size()) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + " : size mismatch";
+      throw runtime_error(msg);
+    }
+
+    if(!a->HasCoefAll()) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + "EXP does not have coef. Call SetUp or use no_normal method only";
+      throw runtime_error(msg);
+    }
+
+    int n = vec.size();
+    for(int i = 0; i < n; i++) {
+      typename _EXPs<m1>::LC_EXPs bi = a->basis(i);
+      dcomplex ele = EXPIntLC<m1, m2>(bi, 0, b);      
+      vec.coeffRef(i) = ele;
+    }
+  }
+  template void InitVec<1>(_EXPs<1>::EXPs a, VectorXcd& m);
+  template void InitVec<2>(_EXPs<2>::EXPs a, VectorXcd& m);
+  template void CalcVec<1,1>(_EXPs<1>::EXPs a, _EXPs<1>::LC_EXPs b, VectorXcd& m);
+  template void CalcVec<1,2>(_EXPs<1>::EXPs a, _EXPs<2>::LC_EXPs b, VectorXcd& m);
+  template void CalcVec<2,1>(_EXPs<2>::EXPs a, _EXPs<1>::LC_EXPs b, VectorXcd& m);
+  template void CalcVec<2,2>(_EXPs<2>::EXPs a, _EXPs<2>::LC_EXPs b, VectorXcd& m);
+  
+  // ==== Matrix ====
   template<int m1, int m2>
   MatrixXcd CalcRmMat(typename _EXPs<m1>::EXPs a,
 		      int M,
@@ -294,8 +328,84 @@ namespace cbasis {
   template MatrixXcd CalcD2Mat<1,1>(_EXPs<1>::EXPs a, _EXPs<1>::EXPs b); 
   template MatrixXcd CalcD2Mat<1,2>(_EXPs<1>::EXPs a, _EXPs<2>::EXPs b); 
   template MatrixXcd CalcD2Mat<2,1>(_EXPs<2>::EXPs a, _EXPs<1>::EXPs b); 
-  template MatrixXcd CalcD2Mat<2,2>(_EXPs<2>::EXPs a, _EXPs<2>::EXPs b); 
+  template MatrixXcd CalcD2Mat<2,2>(_EXPs<2>::EXPs a, _EXPs<2>::EXPs b);
+  
+  template<int m1, int m2>  
+  void InitMat(typename _EXPs<m1>::EXPs a,
+	       typename _EXPs<m2>::EXPs b, Eigen::MatrixXcd& mat) {
+    mat = MatrixXcd::Zero(a->size(), b->size());
+  }
+  template<int m1, int m2>
+  void CalcRmMat(typename _EXPs<m1>::EXPs a, int M, typename _EXPs<m2>::EXPs b,
+		 MatrixXcd& mat) {
+    int na(a->size());
+    int nb(b->size());
+    if(mat.rows() != na || mat.cols() != nb) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + " : size mismatch";
+      throw runtime_error(msg);
+    }
 
+    if(!a->HasCoefAll() || !b->HasCoefAll()) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + "EXP does not have coef.";
+      throw runtime_error(msg);
+    }
+    
+    for(int i = 0; i < na; i++) {
+      typename _EXPs<m1>::LC_EXPs bi = a->basis(i);
+      for(int j = 0; j < nb; j++) {
+	typename _EXPs<m2>::LC_EXPs bj = b->basis(j);
+	mat.coeffRef(i, j) = EXPIntLC<m1, m2>(bi, M, bj);
+      }
+    }
+    
+  }  
+  template<int m1, int m2>
+  void CalcD2Mat(typename _EXPs<m1>::EXPs a, typename _EXPs<m2>::EXPs b,
+		 MatrixXcd& mat) {
+    int na(a->size());
+    int nb(b->size());
+    if(mat.rows() != na || mat.cols() != nb) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + " : size mismatch";
+      throw runtime_error(msg);
+    }
+
+    if(!a->HasCoefAll() || !b->HasCoefAll()) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + "EXP does not have coef.";
+      throw runtime_error(msg);
+    }
+
+    for(int i = 0; i < na; i++) {
+      typename _EXPs<m1>::LC_EXPs bi = a->basis(i);
+      for(int j = 0; j < nb; j++) {
+	typename _EXPs<m2>::LC_EXPs bj = b->basis(j);
+	
+	dcomplex acc(0);
+	for(int ii = 0; ii < bi->size(); ii++)
+	  for(int jj = 0; jj < bj->size(); jj++) {
+	    dcomplex c(bi->c(ii) * bj->c(jj));
+	    int      ni(bi->n(ii));
+	    int      nj(bj->n(jj));
+	    dcomplex zi(bi->z(ii));
+	    dcomplex zj(bj->z(jj));
+	    acc += c * EXPIntD2<m1, m2>(ni, zi, nj, zj);
+	  }
+	mat.coeffRef(i, j) = acc;
+      }
+    }
+  }
+  template void CalcRmMat<1,1>(_EXPs<1>::EXPs a, int M, _EXPs<1>::EXPs b, MatrixXcd&);
+  template void CalcRmMat<1,2>(_EXPs<1>::EXPs a, int M, _EXPs<2>::EXPs b, MatrixXcd&);
+  template void CalcRmMat<2,1>(_EXPs<2>::EXPs a, int M, _EXPs<1>::EXPs b, MatrixXcd&);
+  template void CalcRmMat<2,2>(_EXPs<2>::EXPs a, int M, _EXPs<2>::EXPs b, MatrixXcd&);
+  template void CalcD2Mat<1,1>(_EXPs<1>::EXPs a, _EXPs<1>::EXPs b, MatrixXcd&);
+  template void CalcD2Mat<1,2>(_EXPs<1>::EXPs a, _EXPs<2>::EXPs b, MatrixXcd&);
+  template void CalcD2Mat<2,1>(_EXPs<2>::EXPs a, _EXPs<1>::EXPs b, MatrixXcd&);
+  template void CalcD2Mat<2,2>(_EXPs<2>::EXPs a, _EXPs<2>::EXPs b, MatrixXcd&);
+  
   // ==== member field ====
   template<int m>
   _EXPs<m>::_EXPs() {
@@ -522,6 +632,12 @@ namespace cbasis {
   }
 
   template<int m>
+  typename _EXPs<m>::EXPs _EXPs<m>::self() {
+    EXPs ptr = boost::enable_shared_from_this<_EXPs<m> >::shared_from_this();
+    return ptr;
+  }
+  
+  template<int m>
   typename _EXPs<m>::EXPs _EXPs<m>::Clone() const {
     
     EXPs ptr = Create_EXPs<m>();
@@ -568,6 +684,27 @@ namespace cbasis {
     throw runtime_error("do not use");
   }
 
+  template<int m>
+  void _EXPs<m>::InitVec(VectorXcd& vec) {
+    cbasis::InitVec<m>(this->self(), vec);
+  }
+  template<int m>
+  void _EXPs<m>::InitMat(MatrixXcd& mat) {
+    cbasis::InitMat<m, m>(this->self(), this->self(), mat);
+  }
+  template<int m>
+  void _EXPs<m>::CalcVec(LC_STOs stos, VectorXcd& vec) {
+    cbasis::CalcVec<m,1>(this->self(), stos, vec);
+  }
+  template<int m>
+  void _EXPs<m>::CalcRmMat(int M, MatrixXcd& mat) {
+    cbasis::CalcRmMat<m, m>(this->self(), M, this->self(), mat);
+  }
+  template<int m>
+  void _EXPs<m>::CalcD2Mat(       MatrixXcd& mat) {
+    cbasis::CalcD2Mat<m, m>(this->self(), this->self(), mat);
+  }
+  
   // ==== realize ====
   template class _EXPs<1>;
   template class _EXPs<2>;
