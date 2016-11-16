@@ -1,7 +1,7 @@
 #ifndef CFUNC_HPP
 #define CFUNC_HPP
 
-#include "typedef.hpp"
+#include "../utils/typedef.hpp"
 
 dcomplex casin(dcomplex z);
 dcomplex cacos(dcomplex z);

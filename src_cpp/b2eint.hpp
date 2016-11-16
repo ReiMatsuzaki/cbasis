@@ -5,8 +5,8 @@
 #include <vector>
 #include <string>
 #include <boost/shared_ptr.hpp>
-#include "macros.hpp"
-#include "typedef.hpp"
+#include "../utils/macros.hpp"
+#include "../utils/typedef.hpp"
 
 using namespace std;
 

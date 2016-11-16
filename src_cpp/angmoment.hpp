@@ -2,7 +2,7 @@
 #define ANGMOMENT_HPP
 
 #include <exception>
-#include "typedef.hpp"
+#include "../utils/typedef.hpp"
 
 namespace cbasis {
 

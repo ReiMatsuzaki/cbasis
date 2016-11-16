@@ -4,7 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#include "macros.hpp"
+#include "../utils/macros.hpp"
 #include "bmatset.hpp"
 
 using namespace std;

@@ -2,7 +2,7 @@
 #define ONE_INT_H
 
 #include <Eigen/Core>
-#include "typedef.hpp"
+#include "../utils/typedef.hpp"
 #include "mol_func.hpp"
 #include "symmolint.hpp"
 

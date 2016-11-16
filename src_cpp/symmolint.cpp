@@ -1,8 +1,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <numeric>
+#include "../utils/eigen_plus.hpp"
 #include "cfunc.hpp"
-#include "eigen_plus.hpp"
 #include "angmoment.hpp"
 #include "mol_func.hpp"
 #include "one_int.hpp"

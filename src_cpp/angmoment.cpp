@@ -3,12 +3,11 @@
 #include <stdexcept>
 #include <gsl/gsl_sf_coupling.h>
 
-#include "typedef.hpp"
-#include "macros.hpp"
+#include "../utils/typedef.hpp"
+#include "../utils/macros.hpp"
+#include "../utils/fact.hpp"
 
 #include "cfunc.hpp"
-#include "fact.hpp"
-
 #include "angmoment.hpp"
 
 using namespace std;

@@ -1,8 +1,8 @@
 #include <ostream>
 #include <stdexcept>
 #include "symgroup.hpp"
-#include "fact.hpp"
-#include "macros.hpp"
+#include "../utils/fact.hpp"
+#include "../utils/macros.hpp"
 
 using namespace std;
 using namespace Eigen;

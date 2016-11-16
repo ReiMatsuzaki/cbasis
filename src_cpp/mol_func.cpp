@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include <sstream>
 #include "mol_func.hpp"
-#include "fact.hpp"
+#include "../utils/fact.hpp"
 
 using namespace std;
 

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <stdexcept>
-#include "typedef.hpp"
+#include "../utils/typedef.hpp"
 #include "two_int.hpp"
 
 using namespace std;

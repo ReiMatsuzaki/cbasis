@@ -1,4 +1,4 @@
-#include "typedef.hpp"
+#include "../utils/typedef.hpp"
 
 #include "lgamma.hpp"
 

@@ -1,8 +1,8 @@
 #include <stdexcept>
 #include <iostream>
 #include "erfc.hpp"
-#include "../src_cpp/fact.hpp"
-#include "../src_cpp/macros.hpp"
+#include "../utils/fact.hpp"
+#include "../utils/macros.hpp"
 #include "r1basis.hpp"
 #include "r1_lc.hpp"
 

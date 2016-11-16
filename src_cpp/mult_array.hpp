@@ -5,7 +5,7 @@
 #include <ostream>
 #include <iostream>
 #include <stdexcept>
-#include "macros.hpp"
+#include "../utils/macros.hpp"
 
 /**
    MultArray gives multi indexed array. This file is header library for inline optimization.

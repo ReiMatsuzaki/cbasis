@@ -2,7 +2,7 @@
 #define MOL_FUNC_H
 
 #include <Eigen/Core>
-#include "typedef.hpp"
+#include "../utils/typedef.hpp"
 #include "mult_array.hpp"
 
 namespace cbasis {

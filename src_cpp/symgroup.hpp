@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 #include <boost/shared_ptr.hpp>
-#include "typedef.hpp"
-#include "mult_array.hpp"
 #include <Eigen/Core>
+#include "../utils/typedef.hpp"
+#include "mult_array.hpp"
 
 namespace cbasis {
   // ==== primitive GTO ====

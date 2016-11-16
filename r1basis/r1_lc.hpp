@@ -4,7 +4,7 @@
 #include <vector>
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Core>
-#include "../src_cpp/typedef.hpp"
+#include "../utils/typedef.hpp"
 
 /**
    Linear combination of functions

@@ -4,7 +4,7 @@
 #include <map>
 #include <Eigen/Core>
 #include <boost/shared_ptr.hpp>
-#include "typedef.hpp"
+#include "../utils/typedef.hpp"
 
 /**
    BMatSet is Block Matrix set.

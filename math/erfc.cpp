@@ -1,4 +1,4 @@
-#include "../src_cpp/typedef.hpp"
+#include "../utils/typedef.hpp"
 #include "erfc.hpp"
 
 namespace erfc_mori {

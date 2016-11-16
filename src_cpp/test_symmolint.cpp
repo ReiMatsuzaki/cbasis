@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <Eigen/Core>
 
-#include "gtest_plus.hpp"
-#include "eigen_plus.hpp"
+#include "../utils/gtest_plus.hpp"
+#include "../utils/eigen_plus.hpp"
 
 #include "mol_func.hpp"
 #include "one_int.hpp"

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <gtest/gtest.h>
-#include "gtest_plus.hpp"
+#include "../utils/gtest_plus.hpp"
+#include "../utils/macros.hpp"
 #include "symgroup.hpp"
-#include "macros.hpp"
 
 using namespace std;
 using namespace Eigen;

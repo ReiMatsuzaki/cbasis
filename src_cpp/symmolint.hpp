@@ -5,7 +5,7 @@
 #include <vector>
 #include <Eigen/Core>
 #include <boost/shared_ptr.hpp>
-#include "typedef.hpp"
+#include "../utils/typedef.hpp"
 #include "bmatset.hpp"
 #include "symgroup.hpp"
 #include "b2eint.hpp"

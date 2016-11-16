@@ -1,4 +1,5 @@
 include local.mk
+VPATH=../utils
 ARCH=debug
 VALGRIND=valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no 
 
@@ -59,9 +60,8 @@ ${BINDIR}/test_math: $(foreach o, ${MATH_OBJS}, ${BINDIR}/$o)
 check_math: ${BINDIR}/test_math
 	${RUN} ./$<
 
-
 # -- test symgroup --
-SYMGROUP_OBJS=test_symgroup.o symgroup.o
+SYMGROUP_OBJS=test_symgroup.o symgroup.o fact.o gtest.a
 ${BINDIR}/test_symgroup: $(foreach o, ${SYMGROUP_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST}
 .PHONY: check_symgroup
@@ -99,40 +99,22 @@ ${BINDIR}/test_hf: $(foreach o, ${HF_OBJS}, ${BINDIR}/$o)
 check_hf: ${BINDIR}/test_hf
 	${RUNE} ./$<
 
-# -- test L2(R1) --
-L2OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o exp_int.o delta.o
-${BINDIR}/l2.a: $(foreach o, ${L2OBJS}, ${BINDIR}/$o)
-	ar r $@ $^
-${BINDIR}/test_l2: ${BINDIR}/test_l2.o ${BINDIR}/l2.a
-	${CXX} -o $@ ${CXXFLAGS} $^ -lgtest
-.PHONY: /check_l2
-check_l2: ${BINDIR}/test_l2
-	${VALGRIND} ./$<
-
-
-# -- test r1gto --
-${BINDIR}/r1gtoint.a: $(foreach o, r1gtoint.o op_driv.o eigen_plus.o, ${BINDIR}/$o)
-	ar r $@ $^
-R1GTOINT_OBJS=test_r1gtoint.o  l2.a r1gtoint.a
-${BINDIR}/test_r1gtoint: $(foreach o, ${R1GTOINT_OBJS}, ${BINDIR}/$o)
-	${CXX} -o $@ $^  ${CXXFLAGS} ${LIBGTEST} -lgsl
-.PHONY: check_r1gtoint
-check_r1gtoint: ${BINDIR}/test_r1gtoint
-	${RUN} ./$<
-
-# -- test r1gto derivative --
-R1GTOINT_DERIV_OBJS=test_r1gtoint_deriv.o r1gtoint.o l2.a eigen_plus.o opt_alpha.o l_algebra.o op_driv.o
-${BINDIR}/test_r1gtoint_deriv: $(foreach o, ${R1GTOINT_DERIV_OBJS}, ${BINDIR}/$o)
-	${CXX} -o $@ $^ ${CXXFLAGS} ${LIBGTEST}
-check_r1gtoint_deriv: ${BINDIR}/test_r1gtoint_deriv
-	${RUN} ./$<
-
 clean:
 	rm -f ${BINDIR}/*.o
 	rm -f ${BINDIR}/*.a
 	rm -f ${BINDIR}/*.d
 
 # ==== old ====
+# -- test L2(R1) --
+#L2OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o exp_int.o delta.o
+#${BINDIR}/l2.a: $(foreach o, ${L2OBJS}, ${BINDIR}/$o)
+#	ar r $@ $^
+#${BINDIR}/test_l2: ${BINDIR}/test_l2.o ${BINDIR}/l2.a
+#	${CXX} -o $@ ${CXXFLAGS} $^ -lgtest
+#.PHONY: /check_l2
+#check_l2: ${BINDIR}/test_l2
+#	${VALGRIND} ./$<
+
 
 # -- not used now --
 gto3dset.o: gto3dset.cpp gto3dset.hpp

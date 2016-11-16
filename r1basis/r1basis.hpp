@@ -7,7 +7,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "../src_cpp/typedef.hpp"
+#include "../utils/typedef.hpp"
 #include "r1_lc.hpp"
 
 #define COEF_NO 0	   // coefficient is nothing
