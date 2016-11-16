@@ -1,9 +1,9 @@
 import sys
 sys.path.append('../src_py/nnewton')
+from nnewton import ngrad, nhess
 from r1basis import *
 import datetime
 import pandas as pd
-from nnewton import ngrad, nhess
 
 ## ==== Utils ====
 def print_timestamp(label, out):
@@ -444,7 +444,7 @@ class VarTransComb(VarTrans):
 
 class VarTransShift(VarTrans):
     """
-    xi = a0k + yk[0]
+    xi = a0i + yk[0]
     dF/dy0 = sum_i dxi/dy0 dF/dxi = sum_i dF/dxi
     dF/(dy0,dy0) =  sum_ij H_ij
     """
@@ -477,7 +477,42 @@ class VarTransShift(VarTrans):
     def __str__(self):
         res = "VarTransShift({0})".format(self.a0s)
         return res
+class VarTransScale(VarTrans):
+    """
+    xi = a0i * yk[0]
+    dxi/dy0 = a0i
+    dF/dy0 = sum_i dxi/dy0 dF/dxi = sum_i a0i gi
+    d2F/(dy0,dy0) = sum_i a0i sum_j dgi/dxj dxj/dy0
+    .             = sum_ij a0i a0j hij
+    """
+    def __init__(self, a0s):
+        self.Nx = len(a0s)
+        self.Ny = 1
+        self.a0s = VectorXc(a0s)
 
+    def xis(self, yks):
+        return VectorXc([a0*yks[0] for a0 in self.a0s])
+
+    def yks(self, xis):
+        return VectorXc([xis[0]/self.a0s[0]])
+
+    def dF_dyk(self, dF_dxi, xis):
+        res = 0.0
+        for i in range(self.Nx):
+            res = res + self.a0s[i] * dF_dxi[i]
+        return VectorXc([res])
+        # return VectorXc([tdot(self.a0s, dF_dxi)])
+
+    def d2F_dykdyl(self, dF_dxi, d2F_dxidxj, xis):
+        res = 0.0
+        for i in range(self.Nx):
+            for j in range(self.Nx):
+                res += self.a0s[i] * self.a0s[j] * d2F_dxidxj[i, j]
+        return MatrixXc([[res]])
+
+    def __str__(self):
+        return "VarTransScale({0})".format(self.a0s)
+        
 class VarTransGeometric(VarTrans):
     """
     xi = a * r**i
@@ -855,6 +890,10 @@ def newton(vgh, x0, tol=0.00001, maxit=100, grad=True, hess=True, fdif=None,
         dist = lambda dxs,gs: max(map(abs, dxs))
     else:
         raise(Exception('conv must be'))
+
+    if(grad == False or hess == False):
+        if(fdif == None):
+            raise(Exception('when grad or hess is numerical one, fdiff is needed'))
     
     res.x = VectorXc(x0)
     for res.nit in range(maxit):
@@ -865,8 +904,8 @@ def newton(vgh, x0, tol=0.00001, maxit=100, grad=True, hess=True, fdif=None,
             res.hess = nhess(lambda x: vgh(x)[0], res.x, fdif, method='c1')
         elif(not grad and not hess):
             res.val = vgh(res.x)
-            res.grad = ngrad(vgh,                 res.x, fdif, method='c1')
-            res.hess = nhess(lambda x: vgh(x)[0], res.x, fdif, method='c1')
+            res.grad = VectorXc(ngrad(vgh, res.x, fdif, method='c1'))
+            res.hess = MatrixXc(nhess(vgh, res.x, fdif, method='c1'))
         else:
             raise(Exception('grad=False and hess=True is not supported'))
         dx =  -res.hess.inverse() * res.grad
@@ -923,6 +962,13 @@ def h_pi_read_info(basis_type, basis_info):
             a0s= line[3]
             ys= [line[4]]
             var = VarTransShift(a0s)
+        elif(cmd == "scale"):
+            if(len(line) != 5):
+                raise(Exception("scale command must be five element tuple"))
+            pn = line[2]
+            a0s= line[3]
+            ys= [line[4]]
+            var = VarTransScale(a0s)
         else:
             raise(Exception("not implemented"))
         
@@ -945,14 +991,23 @@ def h_pi_read_info(basis_type, basis_info):
 def opt_main_init(args):
 
     ## ---- set default -----
-    args['basis_type']; args['basis_info']
-    args['w0'];  args['target']
-    dict_set_default(args, 'tol',   pow(10.0, -5))
-    dict_set_default(args, 'maxit', 10)
+    args['basis_type'];
+    args['basis_info']
+    args['target']
+    args['w0'];
+
     dict_set_default(args, 'outfile', 'stdout')
     dict_set_default(args, 'wf_outfile', None)
     dict_set_default(args, 'ws', [args['w0']])
     dict_set_default(args, 'print_level', 0)
+    
+    dict_set_default(args, 'tol',   pow(10.0, -5))
+    dict_set_default(args, 'maxit', 10)
+    dict_set_default(args, 'conv', 'grad')
+    dict_set_default(args, 'grad', True)
+    dict_set_default(args, 'hess', True)
+    dict_set_default(args, 'fdif', 0.0001)
+    
 
     ## ---- check input ----
     if('ws_outfile' in args):
@@ -970,18 +1025,27 @@ def opt_main_init(args):
     out.write("optimize the orbital expoent for matrix element of Greens's operator: \n")
     out.write("       alpha(w) = <S, (E0+w-H)R> = SL^{-1}R\n")
     print_timestamp('Init', out)
+    print >> out, "basis and target"
     out.write("basis_type: {0}\n".format(args['basis_type']))
     out.write("basis_info:\n")
     for basis in args['basis_info']:
         out.write("{0}\n".format(basis))
+    out.write("target: {0}\n".format(args['target']))
     out.write("w0: {0}\n".format(args['w0']))
     out.write("ws: {0}\n".format(args['ws']))
-    out.write("tol: {0}\n".format(args['tol']))
-    out.write("target: {0}\n".format(args['target']))
-    print >> out, "out = {0}".format("stdout" if args['outfile']
-                                     else args['outfile'])
-    print >> out, "wf_outfile = {0}".format(args['wf_outfile'] if args['wf_outfile']
+
+    print >>out, "IO"
+    print >> out, "out: {0}".format("stdout" if args['outfile'] else args['outfile'])
+    print >> out, "wf_outfile: {0}".format(args['wf_outfile'] if args['wf_outfile']
                                             else "No")    
+    
+    print >>out, "optimization"
+    print >>out, "tol: ", args['tol']
+    print >>out, "maxit:", args['maxit']
+    print >>out, "conv: ", args['conv']
+    print >>out, 'use_grad: ', args['grad']
+    print >>out, 'use_hess: ', args['hess']
+    print >>out, "fdif: ", args['fdif']
     
 def opt_main_h_pi(args):
 
@@ -996,15 +1060,16 @@ def opt_main_h_pi(args):
     basis_info = args["basis_info"]
     (base_us, opt_list, var, y0s) = h_pi_read_info(basis_type, basis_info)
     
-    vgh_w_xs = vgh_green_h_pi(h_pi, base_us, opt_list)
-    vgh_w_ys = vgh_var(vgh_w_xs, var)
-
     opt_index = get_opt_index(opt_list)
     args['h_pi'] = h_pi
     args['opt_index'] = opt_index
     args['base_us'] = base_us
     #    args['vgh_w_xs'] = vgh_w_xs
+
+    vgh_w_xs = vgh_green_h_pi(h_pi, base_us, opt_list)
+    vgh_w_ys = vgh_var(vgh_w_xs, var)
     args['vgh_w_ys'] = vgh_w_ys
+    args['v_w_ys'] = v_green_h_pi(h_pi, base_us, opt_list, var)
     args['var'] = var
     args['y0s'] = y0s
 
@@ -1031,15 +1096,21 @@ def opt_main_calc(args):
                              key=lambda x:-x)
     ws_plus = sorted([w for w in ws_without_w0 if w > w0],
                      key=lambda x:+x)
-    vgh_w_ys = args["vgh_w_ys"]
+
+    if(args['grad'] and args['hess']):
+        fun_w = args["vgh_w_ys"]
+    elif(not args['grad'] and not args['hess']):
+        fun_w = args["v_w_ys"]
 
     ## ---- calculation ----
     w_res_list = []
     ys = args['y0s']
     for w in ws_minus:
-        res = newton(vgh_w_ys(w), ys, tol=tol, maxit=maxit,
+        res = newton(fun_w(w), ys, tol=tol, maxit=maxit,
                      out = out_newton, conv = args['conv'],
-                     print_level = args['print_level'])
+                     print_level = args['print_level'],
+                     fdif = args['fdif'],
+                     grad = args['grad'], hess = args['hess'])
         w_res_list.append((w, res))
         ys = res.x
             
@@ -1054,9 +1125,11 @@ def opt_main_calc(args):
 
     ys = w_res_list[0][1].x
     for w in ws_plus:
-        res = newton(vgh_w_ys(w), ys, tol=tol, maxit=maxit,
+        res = newton(func_w(w), ys, tol=tol, maxit=maxit,
                      out = out_newton, conv = args['conv'],
-                     print_level = args['print_level'])
+                     print_level = args['print_level'],
+                     fdif = args['fdif'],
+                     grad = args['grad'], hess = args['hess'])
         w_res_list.append((w, res))
         ys = res.x
             

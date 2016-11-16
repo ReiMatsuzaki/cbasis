@@ -392,6 +392,13 @@ class Test_VarTrans(unittest.TestCase):
         f_xs  = lambda xs: np.sin(xs[0]*xs[1]) + np.exp(xs[1]+xs[2]*xs[0])
         test_vartrans(self, f_xs, var, y0s, "shift")
 
+    def test_scale(self):
+        y0s = [1.1]
+        a0s = [0.3, 1.2, 0.8]
+        var = VarTransScale(a0s)
+        f_xs  = lambda xs: np.sin(xs[0]*xs[1]) + np.exp(xs[1]+xs[2]*xs[0])
+        test_vartrans(self, f_xs, var, y0s, "scale")
+
     def test_geometric(self):
         
         var = VarTransGeometric(4)
@@ -767,7 +774,7 @@ class Test_green(unittest.TestCase):
         self.assertVecAlmostEqual(ref_y0s, y0s)
         self.assertVarEqual(ref_var, var)
         
-    def _test_opt_interface(self):
+    def test_opt_interface(self):
 
         opt_main(
             basis_type = 'STO',
@@ -778,8 +785,15 @@ class Test_green(unittest.TestCase):
             target = 'h_pi',
             channel= '1s->kp',
             dipole = 'velocity',
-            outfile = "tmp.out",
-            print_level = 0)
+#            outfile = "tmp.out",
+            print_level = 3,
+            fdif = 0.01,
+            grad = False,
+            hess = False)
+
+        # False, False  => y0: (1.025588652-0.695591840159j)
+        # True,  True   => y0: (1.02558864721-0.695591839889j)
+        """
 
         opt_main(
             basis_type = 'STO',
@@ -806,8 +820,10 @@ class Test_green(unittest.TestCase):
             dipole = 'velocity',
 #            outfile = "tmp.out",
             print_level = 0)
-                 
+   """
+
 """
+
 
 class Test_r1gtos(unittest.TestCase):
     def setUp(self):

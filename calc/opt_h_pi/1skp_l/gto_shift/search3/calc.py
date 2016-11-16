@@ -20,7 +20,7 @@ yos = [0.0001, 0.00014, 0.0002, 0.0003, 0.0005, 0.0007,
 #zos = [x-1.0j*y for (x,y) in product(xos, yos)]
 
 f = open('search.csv', 'w')
-z0s = [0.01*1.8**n for n in range(15)]
+z0s = [0.005*1.8**n for n in range(15)]
 
 for y0 in yos:
     basis_info = [('shift', True, 2, z0s, -1.0j*y0)]

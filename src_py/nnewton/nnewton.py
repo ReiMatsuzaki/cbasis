@@ -134,6 +134,8 @@ def num_grad_hess(g, x, h, method=0):
         raise Exception("mehtod without c1 and r1 is not implemented")
 
 def ngrad(g, x, h, method=0):
+    if(h == None):
+        raise(Exception('h is None'))    
     return np.array([num_pd(g, x, h, k, method)
                      for k in range(len(x))])
 

@@ -14,33 +14,40 @@ with open("search.out", "w") as f:
     print_timestamp("start", f)
 
 yos = [0.0001, 0.00014, 0.0002, 0.0003, 0.0005, 0.0007,
-       0.001,  0.0014,  0.002,  0.003,  0.005,  0.007,
-       0.01,   0.014,   0.02,   0.03,   0.05,   0.07]
+       0.001, 0.0014, 0.002, 0.003, 0.005, 0.007,
+       0.01,  0.014, 0.02,  0.03,  0.05,  0.07]
+xos = [0.0001, 0.00014, 0.0002, 0.0003, 0.0005, 0.0007,
+       0.001, 0.0014, 0.002, 0.003, 0.005, 0.007,
+       0.01,  0.014, 0.02,  0.03,  0.05,  0.07]
+zos = [ x-1.0j*y for y in yos for x in xos]
 
-#zos = [x-1.0j*y for (x,y) in product(xos, yos)]
+numopt = 5
+zs = [0.001*1.8**n for n in range(15)]
+z0s = zs[0:numopt]
+z1s = zs[numopt:]
 
 f = open('search.csv', 'w')
-z0s = [0.01*1.8**n for n in range(15)]
+for z0 in zos:
 
-for y0 in yos:
-    basis_info = [('shift', True, 2, z0s, -1.0j*y0)]
+    basis_info = [('shift', True,  2, z0s, z0),
+                  ('shift', False, 2, z1s, 0.0)]
 
     res = opt_main(
         basis_type = 'GTO',
         basis_info = basis_info,
 
-        target  = 'h_pi',
-        w0      = 1.0,
-        channel = '1s->kp',
-        dipole  = 'length',        
-        
-        tol     = pow(10.0, -5.0),
-        maxit   = 50,
-        conv    = "grad",
-        fdif    = 0.0001,
-        grad    = False,
-        hess    = False,
+        target = 'h_pi',
+        channel= '1s->kp',
+        dipole = 'length',
+        w0 = 1.0,
 
+        tol = pow(10.0, -5.0),
+        maxit = 50,
+        conv = 'grad',
+        fdif = 0.0001,
+        grad = False,
+        hess = False,
+        
         outfile = 'res.out',
         print_level = 0)
     
@@ -57,3 +64,5 @@ f.close()
 with open("search.out", "a") as f:
     print_timestamp("end", f)
 
+
+    

@@ -697,6 +697,10 @@ namespace cbasis {
     cbasis::CalcVec<m,1>(this->self(), stos, vec);
   }
   template<int m>
+  void _EXPs<m>::CalcVec(LC_GTOs gtos, VectorXcd& vec) {
+    cbasis::CalcVec<m,2>(this->self(), gtos, vec);
+  }
+  template<int m>
   void _EXPs<m>::CalcRmMat(int M, MatrixXcd& mat) {
     cbasis::CalcRmMat<m, m>(this->self(), M, this->self(), mat);
   }

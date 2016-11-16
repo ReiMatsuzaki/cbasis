@@ -13,34 +13,25 @@ from opt_green import *
 with open("search.out", "w") as f:
     print_timestamp("start", f)
 
-yos = [0.0001, 0.00014, 0.0002, 0.0003, 0.0005, 0.0007,
-       0.001,  0.0014,  0.002,  0.003,  0.005,  0.007,
-       0.01,   0.014,   0.02,   0.03,   0.05,   0.07]
-
-#zos = [x-1.0j*y for (x,y) in product(xos, yos)]
+ii = 1.0j
+R0s = [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3]
+t0s = [-4, -3, -2, -1, -0.5, 0, 0.5, 1, 2, 3, 4]
+yos = [R * np.exp(-ii*t*np.pi/180.0) for R in R0s for t in t0s]
 
 f = open('search.csv', 'w')
-z0s = [0.01*1.8**n for n in range(15)]
+z0s = [0.005*1.8**n for n in range(15)]
 
 for y0 in yos:
-    basis_info = [('shift', True, 2, z0s, -1.0j*y0)]
+    basis_info = [('scale', True, 2, z0s, y0)]
 
     res = opt_main(
         basis_type = 'GTO',
         basis_info = basis_info,
-
-        target  = 'h_pi',
         w0      = 1.0,
-        channel = '1s->kp',
-        dipole  = 'length',        
-        
         tol     = pow(10.0, -5.0),
-        maxit   = 50,
-        conv    = "grad",
-        fdif    = 0.0001,
-        grad    = False,
-        hess    = False,
-
+        target  = 'h_pi',
+        channel = '1s->kp',
+        dipole  = 'length',
         outfile = 'res.out',
         print_level = 0)
     
