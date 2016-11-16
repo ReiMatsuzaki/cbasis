@@ -5,10 +5,11 @@
 #include "../utils/gtest_plus.hpp"
 #include "../utils/eigen_plus.hpp"
 #include "erfc.hpp"
+#include "int_exp.hpp"
 
 using namespace std;
 using namespace Eigen;
-//using namespace cbasis;
+using namespace cbasis;
 
 TEST(Erfc, real_erfc) {
 
@@ -85,6 +86,23 @@ TEST(Erfc, complex_erfc) {
 
 }
 
+TEST(ExpInt, STO_Int_Rplus) {
+
+  EXPECT_C_EQ(4.09808073219042,  STOInt_Rplus(3, 1.1));
+  EXPECT_C_EQ(0.413223140495868, GTOInt_Rplus(3, 1.1));
+  EXPECT_C_EQ(0.768167471819406, GTOInt_R(2, 1.1));
+  EXPECT_C_EQ(0.0873211906359305 + 0.0197914200245872j,
+	      STO_GTOInt_Rplus(3, 1.1, 1.3-0.2j));
+  EXPECT_C_EQ(0.599365436693823j,
+	      STO_GTOInt_R(3, dcomplex(0, 1.1), 1.2));
+  
+  // -- see support/int_exp.py --
+  //  dcomplex calc = 2.2*2.2*STOInt_Rplus(3+3+2, 1.1+1.1);
+  //  dcomplex ref  = 161.644807242673;
+  //  EXPECT_C_EQ(ref, calc);
+  //  calc = 2.2*1.
+  
+}
 
 int main(int argc, char **args) {
   cout << "wa:" << endl;

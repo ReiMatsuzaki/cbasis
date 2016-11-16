@@ -89,9 +89,6 @@ namespace cbasis {
   boost::shared_ptr<_EXPs<m> > Create_EXPs();
   STOs Create_STOs();
   GTOs Create_GTOs();
-  dcomplex STOInt(int n, dcomplex a);
-  dcomplex GTOInt(int n, dcomplex a);
-  dcomplex STO_GTOInt(int n, dcomplex a, dcomplex b);
   
   template<int m1, int m2>
   Eigen::VectorXcd CalcVec(typename _EXPs<m1>::EXPs a,

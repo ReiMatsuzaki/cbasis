@@ -4,7 +4,8 @@
 #include <boost/python/suite/indexing/map_indexing_suite.hpp>
 #include <Eigen/Core>
 
-#include "erfc.hpp"
+#include "../math/erfc.hpp"
+#include "../math/int_exp.hpp"
 #include "r1_lc.hpp"
 #include "r1basis.hpp"
 
@@ -105,9 +106,9 @@ void BindEXPs() {
 }
 void BindR1Basis() {
 
-  def("sto_int", &STOInt);
-  def("gto_int", &GTOInt);
-  def("sto_gto_int", &STO_GTOInt);
+  def("sto_int", &STOInt_Rplus);
+  def("gto_int", &GTOInt_Rplus);
+  def("sto_gto_int", &STO_GTOInt_Rplus);
 
   def("calc_vec", (VectorXcd(*)(STOs, LC_STOs))&CalcVec<1,1>);
   def("calc_vec", (VectorXcd(*)(STOs, LC_GTOs))&CalcVec<1,2>);
