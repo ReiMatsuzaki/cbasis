@@ -308,6 +308,44 @@ namespace cbasis {
       dz.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
     }
   };
+  void CalcRMap(Molecule mole, dcomplex zetai, dcomplex zetaj, dcomplex d2, dcomplex eAB,
+		dcomplex wPx, dcomplex wPy, dcomplex wPz, int nxij, int nyij, int nzij,
+		A2dc& Fjs_iat, A4dc& rmap) {
+    
+    static double delta(0.0000000000001);
+    int nkat(mole->size());
+    rmap.SetRange(0, nxij, 0, nyij, 0, nzij, 0, nkat);
+
+    dcomplex zetaP = zetai + zetaj;
+    for(int kat = 0; kat < mole->size(); kat++) {
+      dcomplex wKx = mole->x(kat);
+      dcomplex wKy = mole->y(kat);
+      dcomplex wKz = mole->z(kat);
+      dcomplex d2p = dist2(wPx-wKx, wPy-wKy, wPz-wKz);
+      dcomplex arg = zetaP * d2p;
+      
+      if(real(arg)+delta > 0.0) {
+	for(int nx = 0; nx <= nxij; nx++)
+	  for(int ny = 0; ny <= nyij; ny++)
+	    for(int nz = 0; nz <= nzij; nz++)
+	      rmap(nx, ny, nz, kat) =
+		-2.0*M_PI/zetaP*eAB * coef_R(zetaP, wPx, wPy, wPz,
+					     wKx, wKy, wKz, nx, ny, nz,
+					     0, &Fjs_iat(kat, 0));
+      } else {
+	dcomplex arg_other = -zetai * zetaj / zetaP * d2 - arg;
+	for(int nx = 0; nx <= nxij; nx++)
+	  for(int ny = 0; ny <= nyij; ny++)
+	    for(int nz = 0; nz <= nzij; nz++) {
+	      rmap(nx, ny, nz, kat) =
+		-2.0*M_PI/zetaP*exp(arg_other) *
+		coef_R(zetaP, wPx, wPy, wPz,
+		       wKx, wKy, wKz, nx, ny, nz,
+		       0, &Fjs_iat(kat, 0)); 
+	    }
+      }
+    }
+  }
   dcomplex calc_tele(SubIt isub, SubIt jsub, dcomplex zetaj, 
 		     int ipn, int jpn,
 		     A3dc& dxmap, A3dc& dymap, A3dc& dzmap) {
@@ -341,7 +379,7 @@ namespace cbasis {
     return t_ele;
 
   }
-  dcomplex calc_vele(const SymGTOs gtos, SubIt isub, SubIt jsub, int ipn, int jpn,
+  dcomplex calc_vele(Molecule mole, SubIt isub, SubIt jsub, int ipn, int jpn,
 		     A3dc& dxmap, A3dc& dymap, A3dc& dzmap, A4dc& rmap) {
 
     int nxi, nxj, nyi, nyj, nzi, nzj;
@@ -353,9 +391,9 @@ namespace cbasis {
     for(int nx = 0; nx <= nxi + nxj; nx++)
       for(int ny = 0; ny <= nyi + nyj; ny++)
 	for(int nz = 0; nz <= nzi + nzj; nz++)
-	  for(int kat = 0; kat < gtos->size_atom(); kat++) {
+	  for(int kat = 0; kat < mole->size(); kat++) {
 
-	    v_ele += (gtos->q_at(kat) *
+	    v_ele += (mole->q(kat) *
 		      dxmap(nxi, nxj, nx) *
 		      dymap(nyi, nyj, ny) *
 		      dzmap(nzi, nzj, nz) *
@@ -363,7 +401,7 @@ namespace cbasis {
 		  }
     return v_ele;
   }
-  void CalcPrim(const SymGTOs gtos, SubIt isub, SubIt jsub, int iz, int jz,
+  void CalcPrim(Molecule mole, SubIt isub, SubIt jsub, int iz, int jz,
 		PrimBasis& prim, bool calc_coulomb) {
     dcomplex zetai, zetaj;
     zetai = isub->zeta_iz[iz]; zetaj = jsub->zeta_iz[jz];
@@ -377,7 +415,8 @@ namespace cbasis {
     A2dc Fjs_iat(num);
 
     prim.SetRange(niat, nipn, njat, njpn);
-    Fjs_iat.SetRange(0, gtos->size_atom(), 0, isub->maxn+jsub->maxn);
+    if(calc_coulomb)
+      Fjs_iat.SetRange(0, mole->size(), 0, isub->maxn+jsub->maxn);
 
     for(int iat = 0; iat < niat; iat++) {
       // int jat0 = (isub == jsub && iz == jz ? iat : 0);
@@ -397,9 +436,8 @@ namespace cbasis {
 	  calc_d_coef(mi,mj+2,mi+mj,zetaP,wPx,xi,xj,dxmap);
 	  calc_d_coef(mi,mj+2,mi+mj,zetaP,wPy,yi,yj,dymap);
 	  calc_d_coef(mi,mj+2,mi+mj,zetaP,wPz,zi,zj,dzmap);
-	  for(int kat = 0; kat < gtos->size_atom(); kat++) {
-	    dcomplex d2p = dist2(wPx-gtos->x_at(kat), wPy-gtos->y_at(kat),
-				 wPz-gtos->z_at(kat));
+	  for(int kat = 0; kat < mole->size(); kat++) {
+	    dcomplex d2p = dist2(wPx-mole->x(kat), wPy-mole->y(kat), wPz-mole->z(kat));
 	    dcomplex arg = zetaP * d2p;
 	    double delta(0.0000000000001);
 	    if(real(arg)+delta > 0.0) {
@@ -449,42 +487,12 @@ namespace cbasis {
 	    prim.dx(iat, ipn, jat, jpn) = ce*dx_ele;
 	    prim.dy(iat, ipn, jat, jpn) = ce*dy_ele;
 	    prim.dz(iat, ipn, jat, jpn) = ce*dz_ele;
-	    rmap.SetRange(0, nxi+nxj, 0, nyi+nyj,
-			  0, nzi+nzj, 0, gtos->size_atom());
-
-	    if(calc_coulomb) {	      
-	      for(int kat = 0; kat < gtos->size_atom(); kat++) {
-		dcomplex d2p = dist2(wPx-gtos->x_at(kat), wPy-gtos->y_at(kat),
-				     wPz-gtos->z_at(kat));
-		dcomplex arg = zetaP * d2p;
-		double delta(0.0000000000001);
-		dcomplex wKx = gtos->x_at(kat);
-		dcomplex wKy = gtos->y_at(kat);
-		dcomplex wKz = gtos->z_at(kat);
-		if(real(arg)+delta > 0.0) {
-		  for(int nx = 0; nx <= nxi + nxj; nx++)
-		    for(int ny = 0; ny <= nyi + nyj; ny++)
-		      for(int nz = 0; nz <= nzi + nzj; nz++)
-			rmap(nx, ny, nz, kat) =
-			  -2.0*M_PI/zetaP*eAB * coef_R(zetaP, wPx, wPy, wPz,
-						       wKx, wKy, wKz, nx, ny, nz,
-						       0, &Fjs_iat(kat, 0));
-		} else {
-		  dcomplex arg_other = -zetai * zetaj / zetaP * d2 - arg;
-		  for(int nx = 0; nx <= nxi + nxj; nx++)
-		    for(int ny = 0; ny <= nyi + nyj; ny++)
-		      for(int nz = 0; nz <= nzi + nzj; nz++) {
-			rmap(nx, ny, nz, kat) =
-			  -2.0*M_PI/zetaP*exp(arg_other) *
-			  coef_R(zetaP, wPx, wPy, wPz,
-				 wKx, wKy, wKz, nx, ny, nz,
-				 0, &Fjs_iat(kat, 0)); 
-		      }
-		}
-		
-	      }
+	    
+	    if(calc_coulomb) {
+	      CalcRMap(mole, zetai, zetaj, d2, eAB, wPx, wPy, wPz,
+		       nxi+nxj, nyi+nyj, nzi+nzj, Fjs_iat, rmap);
 	      prim.v(iat, ipn, jat, jpn) =  
-		    calc_vele(gtos, isub, jsub, ipn, jpn, dxmap, dymap, dzmap, rmap);
+		calc_vele(mole, isub, jsub, ipn, jpn, dxmap, dymap, dzmap, rmap);
 	    }
 	  }}}}
 
@@ -545,6 +553,11 @@ namespace cbasis {
     if(not b->setupq)
       b->SetUp();
 
+    if(a->GetMolecule() != b->GetMolecule()) {
+      string msg; SUB_LOCATION(msg); msg += "\n" + msg + " : different molecule";
+      throw runtime_error(msg);
+    }
+    Molecule mole = a->GetMolecule();
     int num_sym(a->sym_group->num_class());
 
     for(Irrep isym = 0; isym < num_sym; isym++) {
@@ -580,7 +593,7 @@ namespace cbasis {
       for(SubIt jsub = b->subs.begin(); jsub != b->subs.end(); ++jsub) {
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
 	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
-	    CalcPrim(a, isub, jsub, iz, jz, prim, calc_coulomb);
+	    CalcPrim(mole, isub, jsub, iz, jz, prim, calc_coulomb);
 	    CalcTrans(isub, jsub, iz, jz, prim, bmat);
 	  }
 	}
@@ -601,6 +614,7 @@ namespace cbasis {
   }
 
   // ==== SymGTOs(new) ====
+  // -- init --
   void InitBVec(SymGTOs a, BVec *ptr_bvec) {
     BVec& bvec = *ptr_bvec;
     for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
@@ -648,6 +662,144 @@ namespace cbasis {
       }
     }
   }  
+
+  // -- primitive --
+  void CalcPrimSTV(Molecule mole, SubIt isub, SubIt jsub, int iz, int jz,
+		   A4dc& s, A4dc& t, A4dc& v) {
+    dcomplex zetai, zetaj, zetaP;
+    zetai = isub->zeta_iz[iz]; zetaj = jsub->zeta_iz[jz]; zetaP = zetai + zetaj;
+    int niat, nipn, njat, njpn, nkat;
+    niat = isub->size_at(); nipn = isub->size_pn();
+    njat = jsub->size_at(); njpn = jsub->size_pn(); nkat = mole->size();
+
+    static int num(1000);
+    static A3dc dxmap(num, "dxmap_stv"), dymap(num, "dymap_stv"), dzmap(num, "dzmap_stv");
+    static A4dc rmap(num);
+    static A2dc Fjs_iat(num);
+
+    s.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+    t.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+    v.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+    Fjs_iat.SetRange(0, nkat, 0, isub->maxn + jsub->maxn);
+
+    for(int iat = 0; iat < niat; iat++) {
+      for(int jat = 0; jat < njat; jat++) {
+
+	// -- variables --
+	dcomplex xi, xj, yi, yj, zi, zj, wPx, wPy, wPz;
+	xi = isub->x(iat); yi = isub->y(iat); zi = isub->z(iat);
+	xj = jsub->x(jat); yj = jsub->y(jat); zj = jsub->z(jat);
+	wPx = (zetai*xi+zetaj*xj)/zetaP;
+	wPy = (zetai*yi+zetaj*yj)/zetaP;
+	wPz = (zetai*zi+zetaj*zj)/zetaP;
+	dcomplex d2 = dist2(xi-xj, yi-yj, zi-zj);
+	dcomplex eAB = exp(-zetai*zetaj/zetaP*d2);
+	dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
+	int mi = isub->maxn; int mj = jsub->maxn;
+
+	// -- compute coefficient --
+	calc_d_coef(mi,mj+2,mi+mj,zetaP,wPx,xi,xj,dxmap);
+	calc_d_coef(mi,mj+2,mi+mj,zetaP,wPy,yi,yj,dymap);
+	calc_d_coef(mi,mj+2,mi+mj,zetaP,wPz,zi,zj,dzmap);
+	for(int kat = 0; kat < nkat; kat++) {
+	  dcomplex arg = zetaP * dist2(wPx-mole->x(kat), wPy-mole->y(kat), wPz-mole->z(kat));;
+	  double delta(0.0000000000001);
+	  if(real(arg)+delta > 0.0) 
+	    IncompleteGamma(isub->maxn+jsub->maxn, arg, &Fjs_iat(kat, 0));
+	  else 
+	    ExpIncompleteGamma(isub->maxn+jsub->maxn, -arg, &Fjs_iat(kat, 0));
+	}
+
+	// -- matrix element --
+	for(int ipn = 0; ipn < nipn; ipn++) {
+	  for(int jpn = 0; jpn < njpn; jpn++) {
+	    int nxi, nxj, nyi, nyj, nzi, nzj;
+	    nxi = isub->nx(ipn); nyi = isub->ny(ipn); nzi = isub->nz(ipn);
+	    nxj = jsub->nx(jpn); nyj = jsub->ny(jpn); nzj = jsub->nz(jpn);
+	    s(iat,ipn,jat,jpn) = ce*dxmap(nxi,nxj,0) * dymap(nyi,nyj,0) * dzmap(nzi,nzj,0);
+	    t(iat,ipn,jat,jpn) = -0.5*ce*calc_tele(isub, jsub, zetaj, ipn, jpn, dxmap, dymap, dzmap);
+	    CalcRMap(mole, zetai, zetaj, d2, eAB, wPx, wPy, wPz,
+		     nxi+nxj, nyi+nyj, nzi+nzj, Fjs_iat, rmap);
+	    v(iat,ipn,jat,jpn) = calc_vele(mole, isub, jsub, ipn, jpn,
+					   dxmap, dymap, dzmap, rmap);
+	  }
+	}
+      }
+    }
+  }
+  void CalcPrimDip(Molecule mole, SubIt isub, SubIt jsub, int iz, int jz,
+		   A4dc& x, A4dc& y, A4dc& z, A4dc& dx, A4dc& dy, A4dc& dz) {
+    dcomplex zetai, zetaj, zetaP;
+    zetai = isub->zeta_iz[iz]; zetaj = jsub->zeta_iz[jz]; zetaP = zetai + zetaj;
+    int niat, nipn, njat, njpn, nkat;
+    niat = isub->size_at(); nipn = isub->size_pn();
+    njat = jsub->size_at(); njpn = jsub->size_pn(); nkat = mole->size();
+
+    static int num(1000);
+    static A3dc dxmap(num, "dxmap_dip"), dymap(num, "dymap_dip"), dzmap(num, "d_map_dip");
+
+    x.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn); 
+    y.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);   
+    z.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+    dx.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+    dy.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+    dz.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);    
+
+    for(int iat = 0; iat < niat; iat++) {
+      for(int jat = 0; jat < njat; jat++) {
+
+	// -- variables --
+	dcomplex xi, xj, yi, yj, zi, zj, wPx, wPy, wPz;
+	xi = isub->x(iat); yi = isub->y(iat); zi = isub->z(iat);
+	xj = jsub->x(jat); yj = jsub->y(jat); zj = jsub->z(jat);
+	wPx = (zetai*xi+zetaj*xj)/zetaP;
+	wPy = (zetai*yi+zetaj*yj)/zetaP;
+	wPz = (zetai*zi+zetaj*zj)/zetaP;
+	dcomplex d2 = dist2(xi-xj, yi-yj, zi-zj);
+	dcomplex eAB = exp(-zetai*zetaj/zetaP*d2);
+	dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
+	int mi = isub->maxn; int mj = jsub->maxn;
+
+	// -- compute coefficient --
+	calc_d_coef(mi,mj+1,mi+mj,zetaP,wPx,xi,xj,dxmap);
+	calc_d_coef(mi,mj+1,mi+mj,zetaP,wPy,yi,yj,dymap);
+	calc_d_coef(mi,mj+1,mi+mj,zetaP,wPz,zi,zj,dzmap);
+
+	// -- matrix element --
+	for(int ipn = 0; ipn < nipn; ipn++) {
+	  for(int jpn = 0; jpn < njpn; jpn++) {
+	    int nxi, nxj, nyi, nyj, nzi, nzj;
+	    nxi = isub->nx(ipn); nyi = isub->ny(ipn); nzi = isub->nz(ipn);
+	    nxj = jsub->nx(jpn); nyj = jsub->ny(jpn); nzj = jsub->nz(jpn);
+	    x(iat,ipn,jat,jpn) = (ce*(dxmap(nxi,nxj+1,0) + xj*dxmap(nxi,nxj,0))
+				  * dymap(nyi,nyj,0) * dzmap(nzi,nzj,0));
+	    y(iat,ipn,jat,jpn) = (ce*(dymap(nyi,nyj+1,0) + yj*dymap(nyi,nyj,0))
+				  * dxmap(nxi,nxj,0) * dzmap(nzi,nzj,0));
+	    z(iat,ipn,jat,jpn) = (ce*(dzmap(nzi,nzj+1,0) + zj*dzmap(nzi,nzj,0))
+				  * dxmap(nxi,nxj,0) * dymap(nyi,nyj,0));
+	    
+	    dcomplex dx_ele = -2.0*zetaj * dxmap(nxi, nxj+1, 0);
+	    if(nxj > 0)
+	      dx_ele += dcomplex(nxj) * dxmap(nxi, nxj-1, 0);
+	    dx_ele *= dymap(nyi, nyj, 0) * dzmap(nzi, nzj, 0);
+	    dx(iat,ipn,jat,jpn) = ce * dx_ele;
+
+	    dcomplex dy_ele = -2.0*zetaj * dymap(nyi, nyj+1, 0);
+	    if(nyj > 0)
+	      dy_ele += dcomplex(nyj) * dymap(nyi, nyj-1, 0);
+	    dy_ele *= dxmap(nxi, nxj, 0) * dzmap(nzi, nzj, 0);
+	    dy(iat,ipn,jat,jpn) = ce * dy_ele;
+
+	    dcomplex dz_ele = -2.0*zetaj * dzmap(nzi, nzj+1, 0);
+	    if(nzj > 0)
+	      dz_ele += dcomplex(nzj) * dzmap(nzi, nzj-1, 0);
+	    dz_ele *= dxmap(nxi, nxj, 0) * dymap(nyi, nyj, 0);
+	    dz(iat,ipn,jat,jpn) = ce * dz_ele;	    
+	  }
+	}
+      }
+    }
+  }
   void TransCoef(SubIt isub, SubIt jsub, RdsIt irds, RdsIt jrds, int iz, int jz, A4dc &cc) {
 
     int niat(isub->size_at()); int njat(jsub->size_at());
@@ -676,8 +828,7 @@ namespace cbasis {
 	res = res || sym->Non0_3(irds->irrep, krrep, jrds->irrep);
     return res;
   }
-  void CalcSTVMat(SymGTOs a, SymGTOs b, 
-		  BMat *S, BMat *T, BMat *V) {
+  void CalcSTVMat(SymGTOs a, SymGTOs b, BMat *S, BMat *T, BMat *V) {
     
     if(not a->setupq || not b->setupq) {
       string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
@@ -688,33 +839,33 @@ namespace cbasis {
       string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
       throw runtime_error(msg);
     }
+    if(a->GetMolecule() != b->GetMolecule()) {
+      string msg; SUB_LOCATION(msg); msg += "\n" + msg + " : different molecule";
+      throw runtime_error(msg);
+    }
+    Molecule mole = a->GetMolecule();    
 
-    static PrimBasis prim(100);
+    static A4dc s(1000), t(1000), v(1000);
     A4dc cc(1000);
     
     for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
       for(SubIt jsub = b->subs.begin(); jsub != b->subs.end(); ++jsub) {
 
-	// -- scalar --
-	bool calc_s = HasNon0(sym, isub, sym->irrep_s, jsub);
-
-	if(not calc_s)
+	if(not HasNon0(sym, isub, sym->irrep_s, jsub))
 	  continue;
 
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
 	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
-	    CalcPrim(a, isub, jsub, iz, jz, prim, true);
+	    CalcPrimSTV(mole, isub, jsub, iz, jz, s, t, v);
 	    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
 		TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
 		pair<Irrep, Irrep> ij(irds->irrep, jrds->irrep);
 		int i(irds->offset + iz);
 		int j(jrds->offset + jz);
-		if(calc_s) {
-		  (*S)[ij](i, j) = MultArrayTDot(cc, prim.s);
-		  (*T)[ij](i, j) = MultArrayTDot(cc, prim.t);
-		  (*V)[ij](i, j) = MultArrayTDot(cc, prim.v);
-		}
+		(*S)[ij](i, j) = MultArrayTDot(cc, s);
+		(*T)[ij](i, j) = MultArrayTDot(cc, t);
+		(*V)[ij](i, j) = MultArrayTDot(cc, v);
 	      }
 	    }
 	  }
@@ -734,8 +885,13 @@ namespace cbasis {
       string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
       throw runtime_error(msg);
     }
+    Molecule mole = a->GetMolecule();    
+    if(mole != b->GetMolecule()) {
+      string msg; SUB_LOCATION(msg); msg += "\n" + msg + " : different molecule";
+      throw runtime_error(msg);
+    }
 
-    static PrimBasis prim(100);
+    static A4dc x(1000), y(1000), z(1000), dx(1000), dy(1000), dz(1000);
     A4dc cc(1000);
 
     for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
@@ -751,7 +907,7 @@ namespace cbasis {
 
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
 	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
-	    CalcPrim(a, isub, jsub, iz, jz, prim, true);
+	    CalcPrimDip(mole, isub, jsub, iz, jz, x, y, z, dx, dy, dz);
 	    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
 		TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
@@ -759,12 +915,18 @@ namespace cbasis {
 		int i(irds->offset + iz);
 		int j(jrds->offset + jz);
 	
-		if(calc_x) 
-		  (*X)[ij](i, j) = MultArrayTDot(cc, prim.x);
-		if(calc_y) 
-		  (*Y)[ij](i, j) = MultArrayTDot(cc, prim.y);
-		if(calc_z) 
-		  (*Z)[ij](i, j) = MultArrayTDot(cc, prim.z);
+		if(calc_x) {
+		  (*X)[ij](i, j)  = MultArrayTDot(cc, x);
+		  (*DX)[ij](i, j) = MultArrayTDot(cc, dx);
+		}
+		if(calc_y) {
+		  (*Y)[ij](i, j)  = MultArrayTDot(cc, y);
+		  (*DY)[ij](i, j) = MultArrayTDot(cc, dy);
+		}
+		if(calc_z) {
+		  (*Z)[ij](i, j)  = MultArrayTDot(cc, z);
+		  (*DZ)[ij](i, j) = MultArrayTDot(cc, dz);
+		}
 	      }
 	    }
 	  }

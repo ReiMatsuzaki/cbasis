@@ -387,11 +387,9 @@ namespace cbasis {
   // ---- Constructors ----
   _SymGTOs::_SymGTOs():
     setupq(false)  {
-    xyzq_iat = MatrixXcd::Zero(4, 0);
   }
 
   // ---- Accessors ----
-  int _SymGTOs::size_atom() const {return xyzq_iat.cols(); }
   int _SymGTOs::size_basis() const {
     int cumsum(0);
     for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
@@ -418,65 +416,27 @@ namespace cbasis {
     ostringstream oss;
     oss << "==== SymGTOs ====" << endl;
     oss << "Set Up?" << (setupq ? "Yes" : "No") << endl;
+    oss << "sym:" << endl;
+    oss << this->sym_group->str() << endl;    
     oss << sym_group->str();
     for(cSubIt it = subs.begin(); it != subs.end(); ++it) 
       oss << it->str();
-    oss << "xyzq:" << endl;
-    oss << xyzq_iat << endl;
+    oss << "molecule:";
+    if(molecule) {
+      oss << endl << molecule->str() << endl;
+    } else {
+      oss << "nothing" << endl;
+    }
+    
     return oss.str();
   }
 
-  // ---- Add ----
-  void _SymGTOs::SetSym(pSymmetryGroup sym) {
-    sym_group = sym;
-  }
-  void _SymGTOs::SetAtoms(MatrixXcd _xyzq_iat) {
-
-    if(_xyzq_iat.rows() != 4) {
-      string msg; SUB_LOCATION(msg);
-      msg += "xyzq_iat.rows() must be 4 ";
-      throw runtime_error(msg);
-    }
-
-    if(_xyzq_iat.cols() < 1) {
-      string msg; SUB_LOCATION(msg);
-      msg += "xyzq_iat.cols() must be gerater or equal to 1 ";
-      throw runtime_error(msg);
-    }    
-
-    xyzq_iat = _xyzq_iat;
-
-  }
-  void _SymGTOs::AddAtom(Eigen::Vector3cd _xyz, dcomplex q) {
-
-    int num_atom = xyzq_iat.cols();
-    MatrixXcd res(4, num_atom + 1);
-
-    for(int i = 0; i < num_atom; i++) {
-      for(int j = 0; j < 4; j++)
-	res(j, i) = xyzq_iat(j, i);
-    }
-
-    res(0, num_atom) = _xyz(0);
-    res(1, num_atom) = _xyz(1);
-    res(2, num_atom) = _xyz(2);
-    res(3, num_atom) = q;
-
-    xyzq_iat.swap(res);
-
-  }
-  void _SymGTOs::AddSub(SubSymGTOs sub) {
-
-    subs.push_back(sub);
-
-  }
-  
   // ---- Other ----
   SymGTOs _SymGTOs::Clone() const {
 
     SymGTOs gtos = SymGTOs(new _SymGTOs());
     gtos->SetSym(this->sym_group);
-    gtos->xyzq_iat = this->xyzq_iat;
+    gtos->SetMolecule(this->GetMolecule());
     gtos->subs = this->subs;
     gtos->SetUp();
     return gtos;

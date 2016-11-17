@@ -8,6 +8,7 @@
 #include "../utils/typedef.hpp"
 #include "bmatset.hpp"
 #include "symgroup.hpp"
+#include "molecule.hpp"
 #include "b2eint.hpp"
 
 namespace cbasis {
@@ -144,7 +145,7 @@ namespace cbasis {
   public:
     pSymmetryGroup sym_group;
     std::vector<SubSymGTOs> subs;
-    Eigen::MatrixXcd xyzq_iat;
+    Molecule molecule;
     bool setupq;
   public:
     // ---- Constructors ----
@@ -155,18 +156,15 @@ namespace cbasis {
     int size_atom() const;
     int size_basis() const;
     int size_basis_isym(Irrep isym) const;
-    std::string str() const;    
-    inline dcomplex x_at(int i) const { return xyzq_iat(0, i); }
-    inline dcomplex y_at(int i) const { return xyzq_iat(1, i); }
-    inline dcomplex z_at(int i) const { return xyzq_iat(2, i); }
-    inline dcomplex q_at(int i) const { return xyzq_iat(3, i); }
+    std::string str() const;
     int max_num_prim() const;
 
     // ---- Add information ----
-    void SetSym(pSymmetryGroup sym);
-    void SetAtoms(Eigen::MatrixXcd _xyzq_iat);
-    void AddAtom(Eigen::Vector3cd _xyz, dcomplex q);
-    void AddSub(SubSymGTOs);
+    void SetSym(pSymmetryGroup sym) { sym_group = sym; }
+    void SetMolecule(Molecule _molecule) { molecule = _molecule; }
+    Molecule GetMolecule() { return molecule; }
+    Molecule GetMolecule() const { return molecule; }
+    void AddSub(SubSymGTOs sub) { subs.push_back(sub); }
     
     // ---- Other basis ----
     SymGTOs Clone() const;
@@ -174,6 +172,7 @@ namespace cbasis {
 
     // ---- SetUp ----
     void SetUp();
+    
   private:
     void SetOffset();
     void Normalize();

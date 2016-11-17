@@ -272,14 +272,16 @@ TEST(SubSymGTOs, AddZeta) {
 TEST(SubSymGTOs, SolidSH) {
 
   pSymmetryGroup sym = SymmetryGroup::C1();
+  
   Vector3cd xyz(0.1, 0.2, 0.3);
-  VectorXcd zs(1); zs << 1.1;
+  Molecule mole(new _Molecule());
+  mole->Add(xyz, 1.0);
 
   SymGTOs gtos = CreateSymGTOs();
+  gtos->SetMolecule(mole);
   gtos->SetSym(sym);
-  SubSymGTOs sub_s = Sub_SolidSH_Ms(sym, 0, v1i(0), xyz, zs);
+  VectorXcd zs(1); zs << 1.1;
   gtos->AddSub(Sub_SolidSH_Ms(sym, 0, v1i(0), xyz, zs));
-  gtos->AddAtom(xyz, 1.0);
   
   for(int L = 1; L <= 3; L++) {
     SubSymGTOs sub = Sub_SolidSH_Ms(sym, L, v3i(-1,0,+1), xyz, zs);
@@ -298,22 +300,15 @@ TEST(SubSymGTOs, SolidSH) {
   int n = gtos->size_basis();
   EXPECT_MATXCD_EQ(MatrixXcd::Identity(n, n), s00);
   
-  EXPECT_EQ(1, sub_s.rds.size());  
-  EXPECT_EQ(0, sub_s.rds[0].L);
-  EXPECT_EQ(0, sub_s.rds[0].M);
-  EXPECT_C_EQ(0.1, sub_s.x_iat[0]);
-  EXPECT_C_EQ(0.2, sub_s.y_iat[0]);
-  EXPECT_C_EQ(0.3, sub_s.z_iat[0]);
-  EXPECT_EQ(0, sub_s.nx_ipn[0]);
-  EXPECT_EQ(0, sub_s.ny_ipn[0]);
-  EXPECT_EQ(0, sub_s.nz_ipn[0]);
 }
 
 void test_SymGTOsOneInt(CartGTO a, Vector3cd at, CartGTO b) {
   
   pSymmetryGroup sym = SymmetryGroup::C1();
 
-  // Build SymGTOs
+  Molecule mole(new _Molecule());
+  mole->Add(at, 1.0);
+
   SubSymGTOs sub_a;
   sub_a.AddXyz(Vector3cd(a.x, a.y, a.z));
   sub_a.AddNs( Vector3i( a.nx,a.ny,a.nz));
@@ -330,13 +325,12 @@ void test_SymGTOsOneInt(CartGTO a, Vector3cd at, CartGTO b) {
 
   SymGTOs gtos(new _SymGTOs);
   gtos->SetSym(sym);
+  gtos->SetMolecule(mole);
   gtos->AddSub(sub_a);
   gtos->AddSub(sub_b);
-  gtos->AddAtom(Vector3cd(at[0], at[1], at[2]), 1.0);
   gtos->SetUp();
   BMatSet mat = CalcMat_Complex(gtos, true);
 
-  // Check Matrix
   const MatrixXcd& S_sym  = mat->GetMatrix("s", 0, 0);
   MatrixXcd S_cart(2, 2);
   S_cart(0, 0) = SMatEle(a, a); S_cart(0, 1) = SMatEle(a, b);
@@ -431,6 +425,7 @@ TEST(SymGTOsMatrix, OneInt) {
 void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
 
   pSymmetryGroup sym = SymmetryGroup::C1();
+  Molecule mole(new _Molecule()); mole->Add(at, 1.0);
 
   // Build SymGTOs
   SubSymGTOs sub_a;
@@ -442,8 +437,8 @@ void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
 
   SymGTOs gtos_a(new _SymGTOs);
   gtos_a->SetSym(sym);
+  gtos_a->SetMolecule(mole);
   gtos_a->AddSub(sub_a);
-  gtos_a->AddAtom(at, 1.0);
   gtos_a->SetUp();  
 
   SubSymGTOs sub_b;
@@ -455,8 +450,8 @@ void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
 
   SymGTOs gtos_b(new _SymGTOs);
   gtos_b->SetSym(sym);
+  gtos_b->SetMolecule(mole);
   gtos_b->AddSub(sub_b);
-  gtos_b->AddAtom(at, 1.0);
   gtos_b->SetUp();  
 
   BMat S, T, V, X, Y, Z, DX, DY, DZ;
@@ -479,27 +474,39 @@ void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
   
   dcomplex calc = S[make_pair(0,0)](0,0);
   dcomplex ref = SMatEle(a, b) * norm;
-  EXPECT_C_EQ(ref, calc) << endl << "S matrix " << msg;
+  EXPECT_C_EQ(ref, calc) << "S matrix " << msg;
   
   calc = T[make_pair(0,0)](0,0);
   ref = TMatEle(a, b) * norm;
-  EXPECT_C_EQ(ref, calc) << endl << "T matrix " << msg;
+  EXPECT_C_EQ(ref, calc) << "T matrix " << msg;
 
   calc = V[make_pair(0,0)](0,0);
   ref  = VMatEle(a, at, b) * norm;
-  EXPECT_C_EQ(ref, calc) << endl << "V matrix " << msg;
+  EXPECT_C_EQ(ref, calc) << "V matrix " << msg;
 
   calc = X[make_pair(sym->irrep_x,0)](0,0);
   ref  = XMatEle(a, b) * norm;
-  EXPECT_C_EQ(ref, calc) << endl << "X matrix " << msg;
+  EXPECT_C_EQ(ref, calc) << "X matrix " << msg;
 
   calc = Y[make_pair(sym->irrep_y,0)](0,0);
   ref  = YMatEle(a, b) * norm;
-  EXPECT_C_EQ(ref, calc) << endl << "X matrix " << msg;
+  EXPECT_C_EQ(ref, calc) << "Y matrix " << msg;
 
   calc = Z[make_pair(sym->irrep_z,0)](0,0);
   ref  = ZMatEle(a, b) * norm;
-  EXPECT_C_EQ(ref, calc) << endl << "X matrix " << msg;      
+  EXPECT_C_EQ(ref, calc) << "Z matrix " << msg;      
+
+  calc = DX[make_pair(sym->irrep_x,0)](0,0);
+  ref  = DXMatEle(a, b) * norm;
+  EXPECT_C_EQ(ref, calc) << "DX matrix " << msg;
+
+  calc = DY[make_pair(sym->irrep_y,0)](0,0);
+  ref  = DYMatEle(a, b) * norm;
+  EXPECT_C_EQ(ref, calc) << "DY matrix " << msg;
+
+  calc = DZ[make_pair(sym->irrep_z,0)](0,0);
+  ref  = DZMatEle(a, b) * norm;
+  EXPECT_C_EQ(ref, calc) << "DZ matrix " << msg;      
   
 }
 TEST(SymGTOsMatrix, OneIntNew) {
@@ -516,7 +523,7 @@ TEST(SymGTOsMatrix, OneIntNew) {
   try {
     test_SymGTOsOneIntNew(s0, Vector3cd(0, 0, 0.0), s0);
   } catch(runtime_error& e) {
-    cout << "s,s" << endl;
+    cout << "s0,s0" << s0.str() << endl;
     cout << e.what() << endl;
     throw runtime_error("exception");
   }
@@ -524,21 +531,21 @@ TEST(SymGTOsMatrix, OneIntNew) {
   try {
     test_SymGTOsOneIntNew(s0, Vector3cd(0, 0, 0.35), s1);
   } catch(runtime_error& e) {
-    cout << "s,s" << endl;
+    cout << "s0,s1" << endl;
     cout << e.what() << endl;
     throw runtime_error("exception");
   }  
   try {
     test_SymGTOsOneIntNew(s0, Vector3cd(0, 0, 0.35), dz);
   } catch(runtime_error& e) {
-    cout << "s,zz" << endl;
+    cout << "s0,zz" << endl;
     cout << e.what() << endl;
     throw runtime_error("exception");
   }
   try {
     test_SymGTOsOneIntNew(p0, Vector3cd(0, 0, 0.35), dz);
   } catch(runtime_error& e) {
-    cout << "z,zz" << endl;
+    cout << "p0,dz" << endl;
     cout << e.what() << endl;
   }
   test_SymGTOsOneIntNew(CartGTO(2, 1, 3, 0.1, 0.2, 0.3, dcomplex(1.0, -0.4)),
@@ -560,7 +567,6 @@ void test_SymGTOsTwoInt(CartGTO a, CartGTO b, CartGTO c, CartGTO d) {
     CartGTO *o = cart_gtos[i];
     c_cart *= 1.0/sqrt(SMatEle(*o, *o));
   }
-
   dcomplex eri_cart = ERIEle(a, b, c, d) * c_cart;
   
   
@@ -579,8 +585,8 @@ void test_SymGTOsTwoInt(CartGTO a, CartGTO b, CartGTO c, CartGTO d) {
 
     gtos->AddSub(sub);
   }
+  
   gtos->SetUp();
-
   BMatSet mat = CalcMat_Complex(gtos, false);
   const MatrixXcd& S_sym  = mat->GetMatrix("s", 0, 0);
   dcomplex c_sym(1);
@@ -765,25 +771,23 @@ TEST(SymGTOs, Create) {
   EXPECT_EQ(2,	 gtos->subs[1].size_cont());
   EXPECT_EQ(6,	 gtos->subs[1].size_zeta());
   
-  BMatSet mat = CalcMat_Complex(gtos, true);
+  BMatSet mat = CalcMat_Complex(gtos, false);
   EXPECT_C_EQ(1.0, mat->GetValue("s", Ap, Ap, 0, 0));
 }
-TEST(SymGTOs, add_atom) {
+TEST(SymGTOs, mole) {
 
+  Molecule mole(new _Molecule());
+  mole->Add(Vector3cd(1.2, 1.3, 1.4), 1.5);
+  mole->Add(Vector3cd(2.2, 2.3, 2.4), 2.5);
+  
   SymGTOs gtos = CreateSymGTOs();
   gtos->SetSym(SymmetryGroup::C1()); 
-  gtos->AddAtom(Vector3cd(1.2, 1.3, 1.4), 1.5);
-  gtos->AddAtom(Vector3cd(2.2, 2.3, 2.4), 2.5);
+  gtos->SetMolecule(mole);
   
-  EXPECT_C_EQ(1.2, gtos->xyzq_iat(0, 0));
-  EXPECT_C_EQ(1.3, gtos->xyzq_iat(1, 0));
-  EXPECT_C_EQ(1.4, gtos->xyzq_iat(2, 0));
-  EXPECT_C_EQ(1.5, gtos->xyzq_iat(3, 0));
-
-  EXPECT_C_EQ(2.2, gtos->xyzq_iat(0, 1));
-  EXPECT_C_EQ(2.3, gtos->xyzq_iat(1, 1));
-  EXPECT_C_EQ(2.4, gtos->xyzq_iat(2, 1));
-  EXPECT_C_EQ(2.5, gtos->xyzq_iat(3, 1));
+  EXPECT_C_EQ(1.2, gtos->GetMolecule()->At(0)(0));
+  EXPECT_C_EQ(1.3, mole->At(0)(1));
+  EXPECT_C_EQ(1.4, mole->At(0)(2));
+  EXPECT_C_EQ(1.5, mole->q(0));
   
 }
 TEST(SymGTOs, PW_BVec) {
@@ -861,10 +865,11 @@ TEST(SymGTOs, CalcMatOther) {
   gtos_2->AddSub(sub3);
 
   // -- potential --
-  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
-  gtos_full->SetAtoms(xyzq);
-  gtos_1->SetAtoms(xyzq);
-  gtos_2->SetAtoms(xyzq);
+  Molecule mole(new _Molecule());
+  mole->Add(Vector3cd::Zero(), 1.0);
+  gtos_full->SetMolecule(mole);
+  gtos_1->SetMolecule(mole);
+  gtos_2->SetMolecule(mole);
 
   // -- calculate matrix --
   gtos_full->SetUp();
@@ -897,9 +902,10 @@ TEST(SymGTOs, conjugate) {
   gtos_2->AddSub(Sub_s(Ap, Vector3cd(0, 0, 0), zeta_h.conjugate()));
 
   // -- potential --
-  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 1.0;
-  gtos_1->SetAtoms(xyzq);
-  gtos_2->SetAtoms(xyzq);
+  Molecule mole(new _Molecule());
+  mole->Add(Vector3cd::Zero(), 1.0);
+  gtos_1->SetMolecule(mole);
+  gtos_2->SetMolecule(mole);
   
   gtos_1->SetUp();
   gtos_2->SetUp();
@@ -927,6 +933,10 @@ double h_rad(int L, double r) {
 TEST(SymGTOs, hatom) {
 
   pSymmetryGroup C1 = SymmetryGroup::C1();
+
+  Molecule mole(new _Molecule());
+  mole->Add(Vector3cd(0, 0, 0), 1.0);
+  
   int n0(7);
   VectorXcd zeta(n0+n0);
   for(int n = -n0; n < +n0; n++) {
@@ -939,8 +949,8 @@ TEST(SymGTOs, hatom) {
       SymGTOs gtos = CreateSymGTOs();
       try {
 	gtos->SetSym(C1);
+	gtos->SetMolecule(mole);
 	gtos->AddSub(Sub_SolidSH_M(C1, L, M, Vector3cd(0,0,0), zeta));
-	gtos->AddAtom(Vector3cd(0,0,0), 1.0);
 	gtos->SetUp();
       } catch(exception& e) {
 	cout << e.what() << endl;
@@ -1014,9 +1024,11 @@ TEST(CompareCColumbus, small_h2) {
   MatrixXcd cd(1, 3); cd << 1, 1, -2;
   sub_p_cen.AddRds(Reduction(sym->irrep_s, cd));
   gtos->AddSub(sub_p_cen);
-  
-  gtos->AddAtom(Vector3cd(0, 0, +R0/2), 1.0);
-  gtos->AddAtom(Vector3cd(0, 0, -R0/2), 1.0);
+
+  Molecule mole(new _Molecule());
+  mole->Add(Vector3cd(0, 0, +R0/2), 1.0);
+  mole->Add(Vector3cd(0, 0, -R0/2), 1.0);
+  gtos->SetMolecule(mole);
   gtos->SetUp();
 
   BMatSet mat = CalcMat_Complex(gtos, true);
@@ -1093,8 +1105,9 @@ TEST(CompareCColumbus, small_he) {
   gtos->SetSym(sym);
   gtos->AddSub(sub_s);
   gtos->AddSub(sub_z);
-  MatrixXcd xyzq(4, 1); xyzq << 0.0, 0.0, 0.0, 2.0;
-  gtos->SetAtoms(xyzq);
+  Molecule mole(new _Molecule());
+  mole->Add(Vector3cd::Zero(), 2.0);
+  gtos->SetMolecule(mole);
   gtos->SetUp();
 
   // compute basic matrix
@@ -1191,14 +1204,18 @@ TEST(CompareCColumbus, small_h2_2) {
   sub_d.AddZeta(zeta_d);
   sub_d.AddRds(Reduction(sym->irrep_s, cd));
 
+  // mole
+  Molecule mole(new _Molecule());
+  mole->Add(Vector3cd(0, 0, +R0/2.0), 1.0);
+  mole->Add(Vector3cd(0, 0, -R0/2.0), 1.0);
+
   // GTO set
   SymGTOs gtos(new _SymGTOs);
   gtos->SetSym(sym);
   gtos->AddSub(sub_s);
   gtos->AddSub(sub_z);
   gtos->AddSub(sub_d);
-  gtos->AddAtom(Vector3cd(0, 0, +R0/2), 1);
-  gtos->AddAtom(Vector3cd(0, 0, -R0/2), 1);
+  gtos->SetMolecule(mole);
   gtos->SetUp();
 
   //  BMatSet mat_set; gtos->CalcMat(&mat_set);
@@ -1292,16 +1309,18 @@ TEST(H2Plus, energy) {
   for(int n = 0; n < num_zeta; n++)
     zeta(n) = pow(2.0, n-5);
 
+  Molecule mole(new _Molecule());
+  mole->Add(pos1, 1.0);
+  mole->Add(pos2, 1.0);
+  
   SubSymGTOs sub;
   sub.AddXyz( pos1);
   sub.AddXyz( pos2);
   sub.AddNs(  Vector3i(0, 0, 0));
   sub.AddZeta(zeta);  
   sub.AddRds( Reduction(Ap, MatrixXcd::Ones(2, 1)));
-
   gtos->AddSub(sub);
-  gtos->AddAtom(pos1, 1.0);
-  gtos->AddAtom(pos2, 1.0);
+  gtos->SetMolecule(mole);
   
   gtos->SetUp();
 
@@ -1353,18 +1372,20 @@ TEST(H2Plus, matrix) {
   VectorXcd z4(1); z4 << dcomplex(5.063464, -0.024632); sub4.AddZeta(z4);
   MatrixXcd C4_1(1, 3); C4_1 << -1,-1,+2; sub4.AddRds(Reduction(0, C4_1 ));
 
+  // ==== Molecule ====
+  Molecule mole(new _Molecule());
+  mole->Add(Vector3cd(0, 0, +0.7), 1);
+  mole->Add(Vector3cd(0, 0, -0.7), 1);
+  
   // ==== GTOs ====
   SymGTOs gtos(new _SymGTOs);
   gtos->SetSym(D2h);
   gtos->AddSub(sub1); gtos->AddSub(sub2); gtos->AddSub(sub3); gtos->AddSub(sub4);
-  gtos->AddAtom(Vector3cd(0, 0, +0.7), 1);
-  gtos->AddAtom(Vector3cd(0, 0, -0.7), 1);
+  gtos->SetMolecule(mole);
   gtos->SetUp();
 
   // ==== matrix evaluation ====
   BMatSet mat = CalcMat_Complex(gtos, true);
-  //  IB2EInt *eri = new B2EIntMem(pow(gtos->size_basis(), 4));
-  //  gtos->yCalcERI(eri, 1);
 
   // copied from ~/calc/ccolumbus
   dcomplex s00(2.2781505348887450);
@@ -1406,11 +1427,14 @@ TEST(ExceptCheck, OneInt) {
   sub_b.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
   sub_b.AddZeta(zeta);
 
+  Molecule mole(new _Molecule());
+  mole->Add(Vector3cd(0, 0, 0), 1.0);
+
   SymGTOs gtos(new _SymGTOs);
   gtos->SetSym(sym);
   gtos->AddSub(sub_a);
   gtos->AddSub(sub_b);
-  gtos->AddAtom(Vector3cd(0, 0, 0), 1.0);
+  gtos->SetMolecule(mole);
   gtos->SetUp();
 
   BMatSet mat;
@@ -1421,15 +1445,6 @@ TEST(ExceptCheck, OneInt) {
     cout << e.what() << endl;
     throw runtime_error("exception!");
   }
-  /*
-  try {
-    mat = CalcMat_Complex(gtos, true);
-  } catch(runtime_error& e) {
-    cout << "error on oulomb" << endl;
-    cout << e.what() << endl;
-    throw runtime_error("exception!");
-  }
-  */
 }
 
 int main(int argc, char **args) {

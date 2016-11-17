@@ -25,6 +25,7 @@ namespace cbasis {
     int num_;
     int n0_[N];
     int n1_[N];
+    std::string name_;
   public:
     MultArray(int _num) {
       data_ = new F[_num];
@@ -34,14 +35,16 @@ namespace cbasis {
     ~MultArray() {
       delete[] data_;
     }
+    void set_name(std::string _name) { name_ = _name; }
+    void get_name() { return name_; }    
     int size() const { return num_; }
     void SetRange(int n0, int n1) {
       n0_[0] = n0; n1_[0] = n1;
       int num_ = n1-n0+1;
       if(data_num_ < num_) {
-	delete[] data_;
-	data_num_ = num_;
-	data_ = new F[num_];
+	std::string msg; SUB_LOCATION(msg);
+	msg = "\n" + msg + " : not enough capacity";
+	throw std::runtime_error(msg);
       }
     }
     F& operator()(int nx) {
@@ -61,6 +64,7 @@ namespace cbasis {
 #endif
     return data_[index];
     }
+    
   };
 
   template<class F>
@@ -72,6 +76,7 @@ namespace cbasis {
     int num_;       // Prod_i(n1_[i] - n0_[i] + 1)
     int n0_[N];
     int n1_[N];
+    std::string name_;
   public:
     MultArray(int _num0) {
       data_ = new F[_num0];
@@ -81,6 +86,8 @@ namespace cbasis {
     ~MultArray() {
       delete[] data_;
     }
+    void set_name(std::string _name) { name_ = _name; }
+    std::string get_name() { return name_; }    
     int size() const { return num_; }
     void SetRange(int nx0, int nx1, int ny0, int ny1) {
       n0_[0] = nx0; n0_[1] = ny0;
@@ -122,15 +129,24 @@ namespace cbasis {
     int num_;
     int n0_[N];
     int n1_[N];
+    std::string name_;
   public:
     MultArray(int _num0) {
       data_ = new F[_num0];
       data_num_ = _num0;
       num_ = _num0;
     }
+    MultArray(int _num0, std::string _name) {
+      data_ = new F[_num0];
+      data_num_ = _num0;
+      num_ = _num0;
+      name_ = _name;
+    }    
     ~MultArray() {
       delete[] data_;
     }
+    void set_name(std::string _name) { name_ = _name; }
+    std::string get_name() { return name_; }
     void SetRange(int nx0, int nx1, int ny0, int ny1, int nz0, int nz1) {
       n0_[0] = nx0; n0_[1] = ny0; n0_[2] = nz0; 
       n1_[0] = nx1; n1_[1] = ny1; n1_[2] = nz1; 
@@ -139,7 +155,19 @@ namespace cbasis {
 	delete[] data_;
 	data_num_ = num_;
 	data_ = new F[num_];
+	/*
+	std::string msg; SUB_LOCATION(msg);
+	std::stringstream ss;
+	ss << std::endl;
+	ss << msg << " : not enough capcaity" << std::endl;
+	ss << "name: " << this->get_name() << std::endl;
+	for(int i = 0; i < N; i++) {
+	  ss << "n" << i << "s = (" << n0_[0] << ", " << n1_[0] << ")" << std::endl;
+	}
+	throw std::runtime_error(ss.str());
+	*/
       }
+
     }
     int size() const { return num_; }
     F& operator()(int nx, int ny, int nz) {
@@ -152,18 +180,19 @@ namespace cbasis {
 	 nx < n0_[0] || n1_[0] < nx ||
 	 ny < n0_[1] || n1_[1] < ny ||
 	 nz < n0_[2] || n1_[2] < nz) {
-	std::string msg;
+	std::string msg; SUB_LOCATION(msg);
 	std::stringstream ss;
-	SUB_LOCATION(msg);
 	ss << std::endl;
-	ss << "(nx,ny,nz) = " << nx << ", " << ny << ", " << nz << ") " << std::endl;
+	ss << msg;
+	ss << "index out of range" << std::endl;
+	ss << "name: " << this->get_name() << std::endl;
+	ss << "(n0,n1,n2) = (" << nx << ", " << ny << ", " << nz << ") " << std::endl;
 	ss << "index = " << index << std::endl;
-	ss << "xlim = " << n0_[0] << " " << n1_[0] << std::endl;
-	ss << "ylim = " << n0_[1] << " " << n1_[1] << std::endl;
-	ss << "zlim = " << n0_[2] << " " << n1_[2] << std::endl;
+	for(int i = 0; i < N; i++) {
+	  ss << "n" << i << "s = (" << n0_[0] << ", " << n1_[0] << ")" << std::endl;
+	}
 	   
-	msg += ss.str();
-	throw std::runtime_error(msg);
+	throw std::runtime_error(ss.str());
       }
 #endif
 
@@ -187,6 +216,7 @@ namespace cbasis {
     int num_;
     int n0_[N];
     int n1_[N];
+    std::string name_;
   public:
     MultArray(int _num0) {
       data_ = new F[_num0];
@@ -197,6 +227,8 @@ namespace cbasis {
       delete[] data_;
     }
     int size() const { return num_; }
+    void set_name(std::string _name) { name_ = _name; }
+    void get_name() { return name_; }
     void SetRange(int nx0, int nx1, int ny0, int ny1,
 		  int nz0, int nz1, int nw0, int nw1) {
       n0_[0] = nx0; n0_[1] = ny0; n0_[2] = nz0; n0_[3] = nw0; 
@@ -206,6 +238,11 @@ namespace cbasis {
 	delete[] data_;
 	data_num_ = num_;
 	data_ = new F[num_];
+	/*
+	std::string msg; SUB_LOCATION(msg);
+	msg = "\n" + msg + " : not enough capacity";
+	throw std::runtime_error(msg);
+	*/
       }
     }
     void SetValue(F val) {
