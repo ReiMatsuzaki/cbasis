@@ -459,15 +459,19 @@ void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
   gtos_b->AddAtom(at, 1.0);
   gtos_b->SetUp();  
 
-  BMat S, T, V, X, Y, Z;
+  BMat S, T, V, X, Y, Z, DX, DY, DZ;
   InitBMat(gtos_a, sym->irrep_s, gtos_b, &S);
   InitBMat(gtos_a, sym->irrep_s, gtos_b, &T);
   InitBMat(gtos_a, sym->irrep_s, gtos_b, &V);
   InitBMat(gtos_a, sym->irrep_x, gtos_b, &X);
+  InitBMat(gtos_a, sym->irrep_x, gtos_b, &DX);
   InitBMat(gtos_a, sym->irrep_y, gtos_b, &Y);
+  InitBMat(gtos_a, sym->irrep_y, gtos_b, &DY);
   InitBMat(gtos_a, sym->irrep_z, gtos_b, &Z);
+  InitBMat(gtos_a, sym->irrep_z, gtos_b, &DZ);
 
-  CalcMat(gtos_a, gtos_b, &S, &T, &V, &X, &Y, &Z);
+  CalcSTVMat(gtos_a, gtos_b, &S, &T, &V);
+  CalcDipMat(gtos_a, gtos_b, &X, &Y, &Z, &DX, &DY, &DZ);
 
   string msg = "\na: " + a.str() + "\n" + "b: " + b.str() + "\n";
 
@@ -484,6 +488,18 @@ void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
   calc = V[make_pair(0,0)](0,0);
   ref  = VMatEle(a, at, b) * norm;
   EXPECT_C_EQ(ref, calc) << endl << "V matrix " << msg;
+
+  calc = X[make_pair(sym->irrep_x,0)](0,0);
+  ref  = XMatEle(a, b) * norm;
+  EXPECT_C_EQ(ref, calc) << endl << "X matrix " << msg;
+
+  calc = Y[make_pair(sym->irrep_y,0)](0,0);
+  ref  = YMatEle(a, b) * norm;
+  EXPECT_C_EQ(ref, calc) << endl << "X matrix " << msg;
+
+  calc = Z[make_pair(sym->irrep_z,0)](0,0);
+  ref  = ZMatEle(a, b) * norm;
+  EXPECT_C_EQ(ref, calc) << endl << "X matrix " << msg;      
   
 }
 TEST(SymGTOsMatrix, OneIntNew) {
@@ -503,7 +519,32 @@ TEST(SymGTOsMatrix, OneIntNew) {
     cout << "s,s" << endl;
     cout << e.what() << endl;
     throw runtime_error("exception");
-  }    
+  }
+  
+  try {
+    test_SymGTOsOneIntNew(s0, Vector3cd(0, 0, 0.35), s1);
+  } catch(runtime_error& e) {
+    cout << "s,s" << endl;
+    cout << e.what() << endl;
+    throw runtime_error("exception");
+  }  
+  try {
+    test_SymGTOsOneIntNew(s0, Vector3cd(0, 0, 0.35), dz);
+  } catch(runtime_error& e) {
+    cout << "s,zz" << endl;
+    cout << e.what() << endl;
+    throw runtime_error("exception");
+  }
+  try {
+    test_SymGTOsOneIntNew(p0, Vector3cd(0, 0, 0.35), dz);
+  } catch(runtime_error& e) {
+    cout << "z,zz" << endl;
+    cout << e.what() << endl;
+  }
+  test_SymGTOsOneIntNew(CartGTO(2, 1, 3, 0.1, 0.2, 0.3, dcomplex(1.0, -0.4)),
+		     Vector3cd(-0.1, 0, 0.35),
+		     CartGTO(0, 2, 2, 0.4, 0.3, 0.0, dcomplex(0.1, -0.1)));
+  test_SymGTOsOneIntNew(p0, Vector3cd(0, 0, 0.7), dz);
 }
 void test_SymGTOsTwoInt(CartGTO a, CartGTO b, CartGTO c, CartGTO d) {
   

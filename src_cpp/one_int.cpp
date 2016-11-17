@@ -132,6 +132,30 @@ namespace cbasis {
     return vele;
 
   }
+  dcomplex XMatEle(CartGTO& a, CartGTO& b) {
+    /*
+      x (x-wx)^nx exp(-ar^2) = (x-wx)^(nx+1) exp(-ar^2) + wx (x-wx)^nx exp(-ar^2)
+    */
+
+    CartGTO bb(b);
+    bb.nx += 1;
+    return SMatEle(a, bb) + b.x * SMatEle(a, b);
+    
+  }
+  dcomplex YMatEle(CartGTO& a, CartGTO& b) {
+
+    CartGTO bb(b);
+    bb.ny += 1;
+    return SMatEle(a, bb) + b.y * SMatEle(a, b);
+    
+  }
+  dcomplex ZMatEle(CartGTO& a, CartGTO& b) {
+    
+    CartGTO bb(b);
+    bb.nz += 1;
+    return SMatEle(a, bb) + b.z * SMatEle(a, b);
+    
+  }
   dcomplex DXMatEle(CartGTO& a, CartGTO& b) {
     
     /**
@@ -579,7 +603,6 @@ namespace cbasis {
   // ==== SymGTOs(new) ====
   void InitBVec(SymGTOs a, BVec *ptr_bvec) {
     BVec& bvec = *ptr_bvec;
-    int num_isym = a->sym_group->order();
     for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
       for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 
@@ -653,8 +676,8 @@ namespace cbasis {
 	res = res || sym->Non0_3(irds->irrep, krrep, jrds->irrep);
     return res;
   }
-  void CalcMat(SymGTOs a, SymGTOs b, 
-	       BMat *S, BMat *T, BMat *V, BMat *X, BMat *Y, BMat *Z) {
+  void CalcSTVMat(SymGTOs a, SymGTOs b, 
+		  BMat *S, BMat *T, BMat *V) {
     
     if(not a->setupq || not b->setupq) {
       string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
@@ -674,11 +697,8 @@ namespace cbasis {
 
 	// -- scalar --
 	bool calc_s = HasNon0(sym, isub, sym->irrep_s, jsub);
-	bool calc_x = HasNon0(sym, isub, sym->irrep_x, jsub);
-	bool calc_y = HasNon0(sym, isub, sym->irrep_y, jsub);
-	bool calc_z = HasNon0(sym, isub, sym->irrep_z, jsub);
 
-	if(not calc_s && not calc_x && not calc_y && not calc_z)
+	if(not calc_s)
 	  continue;
 
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
@@ -695,6 +715,50 @@ namespace cbasis {
 		  (*T)[ij](i, j) = MultArrayTDot(cc, prim.t);
 		  (*V)[ij](i, j) = MultArrayTDot(cc, prim.v);
 		}
+	      }
+	    }
+	  }
+	}
+      }
+    }    
+  }
+  void CalcDipMat(SymGTOs a, SymGTOs b,
+		  BMat* X, BMat* Y, BMat* Z, BMat* DX, BMat* DY, BMat* DZ) {
+
+    if(not a->setupq || not b->setupq) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
+      throw runtime_error(msg);
+    }
+    pSymmetryGroup sym = a->sym_group;
+    if(not sym->IsSame(b->sym_group)) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
+      throw runtime_error(msg);
+    }
+
+    static PrimBasis prim(100);
+    A4dc cc(1000);
+
+    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
+      for(SubIt jsub = b->subs.begin(); jsub != b->subs.end(); ++jsub) {
+
+	// -- scalar --
+	bool calc_x = HasNon0(sym, isub, sym->irrep_x, jsub);
+	bool calc_y = HasNon0(sym, isub, sym->irrep_y, jsub);
+	bool calc_z = HasNon0(sym, isub, sym->irrep_z, jsub);	
+
+	if(not calc_x && not calc_y && not calc_z)
+	  continue;
+
+	for(int iz = 0; iz < isub->size_zeta(); iz++) {
+	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
+	    CalcPrim(a, isub, jsub, iz, jz, prim, true);
+	    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
+	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
+		TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
+		pair<Irrep, Irrep> ij(irds->irrep, jrds->irrep);
+		int i(irds->offset + iz);
+		int j(jrds->offset + jz);
+	
 		if(calc_x) 
 		  (*X)[ij](i, j) = MultArrayTDot(cc, prim.x);
 		if(calc_y) 
@@ -706,8 +770,9 @@ namespace cbasis {
 	  }
 	}
       }
-    }
+    }    
     
+
   }
   void CalcPWVec( SymGTOs a, const Vector3cd& k,
 		  BVec *pS, BVec *pX, BVec *pY, BVec *pZ) {

@@ -23,6 +23,9 @@ namespace cbasis {
   dcomplex SMatEle(CartGTO& a, CartGTO& b);
   dcomplex TMatEle(CartGTO& a, CartGTO& b);
   dcomplex VMatEle(CartGTO& a, Eigen::Vector3cd at, CartGTO& b);
+  dcomplex XMatEle(CartGTO& a, CartGTO& b);
+  dcomplex YMatEle(CartGTO& a, CartGTO& b);
+  dcomplex ZMatEle(CartGTO& a, CartGTO& b);  
   dcomplex DXMatEle(CartGTO& a, CartGTO& b);
   dcomplex DYMatEle(CartGTO& a, CartGTO& b);
   dcomplex DZMatEle(CartGTO& a, CartGTO& b);
@@ -37,8 +40,9 @@ namespace cbasis {
   // ==== SymGTOs(new) ====
   void InitBVec(SymGTOs a, BVec *ptr_bvec);
   void InitBMat(SymGTOs a, Irrep krrep, SymGTOs b, BMat *ptr_mat);
-  void CalcMat(SymGTOs a, SymGTOs b, 
-	       BMat *S, BMat *T, BMat *V, BMat *X, BMat *Y, BMat *Z);
+  void CalcSTVMat(SymGTOs a, SymGTOs b, BMat *S, BMat *T, BMat *V);
+  void CalcDipMat(SymGTOs a, SymGTOs b,
+		  BMat* X, BMat* Y, BMat* Z, BMat* DX, BMat* DY, BMat* DZ);
   void CalcPWVec(SymGTOs a, const Eigen::Vector3cd& k,
 		 BVec *S, BVec *X, BVec *Y, BVec *Z);
   

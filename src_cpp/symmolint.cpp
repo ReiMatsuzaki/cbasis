@@ -934,7 +934,6 @@ namespace cbasis {
   // ---- Calculation ----
   void _SymGTOs::InitBVec(BVec *ptr_bvec) {
     BVec& bvec = *ptr_bvec;
-    int num_isym = this->sym_group->order();
     for(SubIt isub = this->subs.begin(); isub != this->subs.end(); ++isub) {
       for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 
