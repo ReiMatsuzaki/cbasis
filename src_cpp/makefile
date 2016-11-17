@@ -1,5 +1,5 @@
 include local.mk
-VPATH=../utils
+VPATH=../utils ../math
 ARCH=debug
 VALGRIND=valgrind --error-limit=no --tool=memcheck --leak-check=full --show-reachable=no 
 
@@ -71,7 +71,7 @@ check_symgroup: ${BINDIR}/test_symgroup
 # -- test symmolint --
 SYMMOLINT_OBJS = \
 	test_symmolint.o symmolint.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o \
-	eigen_plus.o fact.o cfunc.o mol_func.o b2eint.o gtest.a
+	eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o gtest.a 
 ${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
 .PHONY: check_symmolint

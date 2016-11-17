@@ -160,6 +160,7 @@ namespace cbasis {
     bool IsSame(pSymmetryGroup o);
     bool Non0_Scalar(Irrep a, Irrep b);
     bool Non0_Z(Irrep a, Irrep b);
+    bool Non0_3(Irrep a, Irrep b, Irrep c);
     bool Non0_4(Irrep a, Irrep b, Irrep c, Irrep d);
     /**
        Build matrix representing symmetry operation for gtos.

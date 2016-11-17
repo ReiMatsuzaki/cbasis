@@ -122,6 +122,12 @@ TEST_F(TestValue, OneInt) {
     }
   }
 
+  // only check runtime error
+  VectorXcd pw(3);
+  for(int i = 0; i < 3; i++) {
+    pw(i) = PWVecEle(Vector3cd(0.3, 0.1, -0.3), cart_gtos[i]);
+  }
+
 }
 TEST_F(TestValue, TwoInt) {
   
@@ -307,7 +313,6 @@ void test_SymGTOsOneInt(CartGTO a, Vector3cd at, CartGTO b) {
   
   pSymmetryGroup sym = SymmetryGroup::C1();
 
-
   // Build SymGTOs
   SubSymGTOs sub_a;
   sub_a.AddXyz(Vector3cd(a.x, a.y, a.z));
@@ -356,7 +361,7 @@ void test_SymGTOsOneInt(CartGTO a, Vector3cd at, CartGTO b) {
 			     << "V matrix" << endl
 			     << "a: " << a.str() << endl
 			     << "b: " << b.str() << endl;
-  
+
   dcomplex DX_sym = mat->GetMatrix("dx", 0, 0)(0, 1)*c_sym;
   dcomplex DX_cart= DXMatEle(a, b)*c_cart;
   EXPECT_C_EQ(DX_cart, DX_sym) << endl
@@ -380,7 +385,7 @@ void test_SymGTOsOneInt(CartGTO a, Vector3cd at, CartGTO b) {
 }
 TEST(SymGTOsMatrix, OneInt) {
 
-  CartGTO s0(0, 0, 0, 0.0, 0.0, +0.7, 1.336);
+  CartGTO s0(0, 0, 0, 0.0, 0.0, +0.0, 1.336);
   CartGTO s1(0, 0, 0, 0.0, 0.0, -0.7, 1.336);
   CartGTO p0(0, 0, 1, 0.0, 0.0, +0.7, 1.0);
   CartGTO p1(0, 0, 1, 0.0, 0.0, -0.7, 1.0);
@@ -389,6 +394,14 @@ TEST(SymGTOsMatrix, OneInt) {
   CartGTO dy(0, 2, 0, 0.0, 0.0, 0.0, zeta_d);
   CartGTO dz(0, 0, 2, 0.0, 0.0, 0.0, zeta_d);
 
+  try {
+    test_SymGTOsOneInt(s0, Vector3cd(0, 0, 0), s0);
+  } catch(runtime_error& e) {
+    cout << "s0,s0" << endl;
+    cout << e.what() << endl;
+    throw runtime_error("exception");
+  }    
+  
   try {
     test_SymGTOsOneInt(s0, Vector3cd(0, 0, 0.35), s1);
   } catch(runtime_error& e) {
@@ -414,6 +427,83 @@ TEST(SymGTOsMatrix, OneInt) {
 		     CartGTO(0, 2, 2, 0.4, 0.3, 0.0, dcomplex(0.1, -0.1)));
   test_SymGTOsOneInt(p0, Vector3cd(0, 0, 0.7), dz);
 
+}
+void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
+
+  pSymmetryGroup sym = SymmetryGroup::C1();
+
+  // Build SymGTOs
+  SubSymGTOs sub_a;
+  sub_a.AddXyz(Vector3cd(a.x, a.y, a.z));
+  sub_a.AddNs( Vector3i( a.nx,a.ny,a.nz));
+  sub_a.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
+  VectorXcd zeta_a(1); zeta_a << a.zeta;
+  sub_a.AddZeta(zeta_a);
+
+  SymGTOs gtos_a(new _SymGTOs);
+  gtos_a->SetSym(sym);
+  gtos_a->AddSub(sub_a);
+  gtos_a->AddAtom(at, 1.0);
+  gtos_a->SetUp();  
+
+  SubSymGTOs sub_b;
+  sub_b.AddXyz(Vector3cd(b.x, b.y, b.z));
+  sub_b.AddNs( Vector3i( b.nx,b.ny,b.nz));
+  sub_b.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
+  VectorXcd zeta_b(1); zeta_b << b.zeta;  
+  sub_b.AddZeta(zeta_b);
+
+  SymGTOs gtos_b(new _SymGTOs);
+  gtos_b->SetSym(sym);
+  gtos_b->AddSub(sub_b);
+  gtos_b->AddAtom(at, 1.0);
+  gtos_b->SetUp();  
+
+  BMat S, T, V, X, Y, Z;
+  InitBMat(gtos_a, sym->irrep_s, gtos_b, &S);
+  InitBMat(gtos_a, sym->irrep_s, gtos_b, &T);
+  InitBMat(gtos_a, sym->irrep_s, gtos_b, &V);
+  InitBMat(gtos_a, sym->irrep_x, gtos_b, &X);
+  InitBMat(gtos_a, sym->irrep_y, gtos_b, &Y);
+  InitBMat(gtos_a, sym->irrep_z, gtos_b, &Z);
+
+  CalcMat(gtos_a, gtos_b, &S, &T, &V, &X, &Y, &Z);
+
+  string msg = "\na: " + a.str() + "\n" + "b: " + b.str() + "\n";
+
+  dcomplex norm = 1.0/sqrt(SMatEle(a,a) * SMatEle(b,b));
+  
+  dcomplex calc = S[make_pair(0,0)](0,0);
+  dcomplex ref = SMatEle(a, b) * norm;
+  EXPECT_C_EQ(ref, calc) << endl << "S matrix " << msg;
+  
+  calc = T[make_pair(0,0)](0,0);
+  ref = TMatEle(a, b) * norm;
+  EXPECT_C_EQ(ref, calc) << endl << "T matrix " << msg;
+
+  calc = V[make_pair(0,0)](0,0);
+  ref  = VMatEle(a, at, b) * norm;
+  EXPECT_C_EQ(ref, calc) << endl << "V matrix " << msg;
+  
+}
+TEST(SymGTOsMatrix, OneIntNew) {
+  
+  CartGTO s0(0, 0, 0, 0.0, 0.0, +0.0, 1.336);
+  CartGTO s1(0, 0, 0, 0.0, 0.0, -0.7, 1.336);
+  CartGTO p0(0, 0, 1, 0.0, 0.0, +0.7, 1.0);
+  CartGTO p1(0, 0, 1, 0.0, 0.0, -0.7, 1.0);
+  dcomplex zeta_d(0.00256226, -0.01559939);
+  CartGTO dx(2, 0, 0, 0.0, 0.0, 0.0, zeta_d);
+  CartGTO dy(0, 2, 0, 0.0, 0.0, 0.0, zeta_d);
+  CartGTO dz(0, 0, 2, 0.0, 0.0, 0.0, zeta_d);
+
+  try {
+    test_SymGTOsOneIntNew(s0, Vector3cd(0, 0, 0.0), s0);
+  } catch(runtime_error& e) {
+    cout << "s,s" << endl;
+    cout << e.what() << endl;
+    throw runtime_error("exception");
+  }    
 }
 void test_SymGTOsTwoInt(CartGTO a, CartGTO b, CartGTO c, CartGTO d) {
   
@@ -654,6 +744,49 @@ TEST(SymGTOs, add_atom) {
   EXPECT_C_EQ(2.4, gtos->xyzq_iat(2, 1));
   EXPECT_C_EQ(2.5, gtos->xyzq_iat(3, 1));
   
+}
+TEST(SymGTOs, PW_BVec) {
+
+  VectorXcd zeta1(2); zeta1 << 1.1, 1.2;
+  pSymmetryGroup sym = SymmetryGroup::D2h();
+
+  SymGTOs gtos = CreateSymGTOs();
+  gtos->SetSym(sym);
+  gtos->AddSub(Sub_SolidSH_M(sym, 1, +1, Vector3cd(0,0,0), zeta1));
+  gtos->AddSub(Sub_SolidSH_M(sym, 1, -1, Vector3cd(0,0,0), zeta1));
+  gtos->AddSub(Sub_SolidSH_M(sym, 1,  0, Vector3cd(0,0,0), zeta1));
+  gtos->SetUp();
+
+  BVec S, X, Y, Z;
+  gtos->InitBVec(&S);
+  gtos->InitBVec(&X);
+  gtos->InitBVec(&Y);
+  gtos->InitBVec(&Z);
+  
+  CalcPWVec(gtos, Vector3cd(0.4, 0.0, 0.0), &S, &X, &Y, &Z);
+  dcomplex xval = S[sym->irrep_x][0];
+  EXPECT_C_EQ(0.0, S[sym->irrep_y][0]);
+  EXPECT_C_EQ(0.0, S[sym->irrep_z][0]);
+  EXPECT_C_EQ(0.0, X[sym->irrep_y][0]);
+  EXPECT_C_EQ(0.0, X[sym->irrep_z][0]);
+  EXPECT_C_EQ(0.0, Y[sym->irrep_z][0]);  
+
+  CalcPWVec(gtos, Vector3cd(0.0, 0.4, 0.0), &S, &X, &Y, &Z);
+  EXPECT_C_EQ(0.0, S[sym->irrep_x][0]);
+  dcomplex yval = S[sym->irrep_y][0];
+  EXPECT_C_EQ(0.0, S[sym->irrep_z][0]);
+
+  CalcPWVec(gtos, Vector3cd(0.0, 0.0, 0.4), &S, &X, &Y, &Z);
+  EXPECT_C_EQ(0.0, S[sym->irrep_x][0]);
+  EXPECT_C_EQ(0.0, S[sym->irrep_y][0]);
+  dcomplex zval = S[sym->irrep_z][0];
+
+  EXPECT_C_EQ(xval, yval);
+  EXPECT_C_EQ(xval, zval);
+    
+  EXPECT_EQ(2, S[sym->irrep_x].size());
+  EXPECT_EQ(2, S[sym->irrep_y].size());
+  EXPECT_EQ(2, S[sym->irrep_z].size());
 }
 TEST(SymGTOs, CalcMatOther) {
 

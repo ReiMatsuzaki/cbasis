@@ -14,6 +14,8 @@
 namespace cbasis {
 
   typedef std::map<int, Eigen::VectorXcd> BVec;
+  std::ostream& operator << (std::ostream& os, const BVec& a);
+  
   typedef std::map<std::pair<int, int>, Eigen::MatrixXcd> BMat;
   typedef std::map<std::string, BMat> BMatMap;
 

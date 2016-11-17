@@ -180,6 +180,8 @@ namespace cbasis {
 
   public:
     // ---- Calculation ----
+    void InitBVec(BVec *vec);
+    void InitBMat(Irrep irrep, BMat *vec);
     // -- to be removed --
     void loop();
     // -- not uesd now --

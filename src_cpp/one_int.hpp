@@ -26,6 +26,7 @@ namespace cbasis {
   dcomplex DXMatEle(CartGTO& a, CartGTO& b);
   dcomplex DYMatEle(CartGTO& a, CartGTO& b);
   dcomplex DZMatEle(CartGTO& a, CartGTO& b);
+  dcomplex PWVecEle(const Eigen::Vector3cd& k, CartGTO& a);
 
   // ==== SymGTOs ====
   BMatSet CalcMat(SymGTOs a, SymGTOs b, bool calc_coulomb);
@@ -33,6 +34,15 @@ namespace cbasis {
   BMatSet CalcMat_Hermite(SymGTOs g, bool calc_coulomb);
   //  BMatSet CalcMat_V(SymGTOs a, SymGTOs b, Eigen::Vector3cd xyz, dcomplex q);
 
+  // ==== SymGTOs(new) ====
+  void InitBVec(SymGTOs a, BVec *ptr_bvec);
+  void InitBMat(SymGTOs a, Irrep krrep, SymGTOs b, BMat *ptr_mat);
+  void CalcMat(SymGTOs a, SymGTOs b, 
+	       BMat *S, BMat *T, BMat *V, BMat *X, BMat *Y, BMat *Z);
+  void CalcPWVec(SymGTOs a, const Eigen::Vector3cd& k,
+		 BVec *S, BVec *X, BVec *Y, BVec *Z);
+  
+  
 }
 
 #endif

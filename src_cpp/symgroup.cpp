@@ -327,6 +327,12 @@ namespace cbasis {
     this->CheckIrrep(b);
     return this->prod_table_(a, b, this->irrep_z);
   }
+  bool SymmetryGroup::Non0_3(Irrep a, Irrep b, Irrep c) {
+    this->CheckIrrep(a);
+    this->CheckIrrep(b);
+    this->CheckIrrep(c);
+    return this->prod_table_(a, b, c);
+  }
   bool SymmetryGroup::Non0_4(Irrep a, Irrep b, Irrep c, Irrep d) {
     this->CheckIrrep(a);
     this->CheckIrrep(b);

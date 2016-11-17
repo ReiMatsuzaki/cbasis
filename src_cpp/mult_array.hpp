@@ -18,7 +18,7 @@ namespace cbasis {
 
   template<class F>
   class MultArray<F, 1> {
-  private:
+  public:
     static const int N = 1;
     F* data_;
     int data_num_;
@@ -65,7 +65,7 @@ namespace cbasis {
 
   template<class F>
   class MultArray<F, 2> {
-  private:
+  public:
     static const int N = 2;
     F* data_;
     int data_num_;  // size of data_ (Capacity)
@@ -115,7 +115,7 @@ namespace cbasis {
 
   template<class F>
   class MultArray<F, 3> {
-  private:
+  public:
     static const int N = 3;
     F* data_;
     int data_num_;
@@ -180,7 +180,7 @@ namespace cbasis {
 
   template<class F>
   class MultArray<F, 4> {
-  private:
+  public:
     static const int N = 4;
     F* data_;
     int data_num_;
@@ -196,6 +196,7 @@ namespace cbasis {
     ~MultArray() {
       delete[] data_;
     }
+    int size() const { return num_; }
     void SetRange(int nx0, int nx1, int ny0, int ny1,
 		  int nz0, int nz1, int nw0, int nw1) {
       n0_[0] = nx0; n0_[1] = ny0; n0_[2] = nz0; n0_[3] = nw0; 
@@ -242,6 +243,20 @@ namespace cbasis {
     }
   };
 
+  template<class F, int M>
+  F MultArrayTDot(MultArray<F, M>& a, MultArray<F, M>& b) {
+    if(a.size() != b.size()) {
+      std::string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : size mismatch";
+      throw std::runtime_error(msg);
+    }
+
+    int n(a.size());
+    F acc(0);
+    for(int i = 0; i < n; i++) {
+      acc += a.data_[i] * b.data_[i];
+    }
+    return acc;
+  }
 }
 /*
 namespace future {

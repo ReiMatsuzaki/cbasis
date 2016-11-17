@@ -12,7 +12,7 @@ namespace cbasis {
 
   string CartGTO::str() const {
     ostringstream oss;
-    oss << nx << ny << nz << ": " << x << y << z;
+    oss << nx << ny << nz << ": " << x << y << z << ": " << zeta;
     return oss.str();
   }
   dcomplex dist2(dcomplex dx, dcomplex dy, dcomplex dz) {

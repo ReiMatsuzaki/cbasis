@@ -12,7 +12,19 @@ using namespace Eigen;
 
 namespace cbasis {
 
-
+  // ==== BVec ====
+  ostream& operator << (ostream& os, const BVec& a) {
+    os << "==== BVec ====" << endl;
+    os << "Block vector object" << endl;
+    for(BVec::const_iterator it = a.begin(); it != a.end(); ++it) {
+      int irrep = it->first;
+      const VectorXcd& vec = it->second;
+      os << "irrep = " << irrep << endl;
+      os << vec << endl;
+    }
+    return os;
+  }
+  
   // ==== BMat ====
   // typedef map<pair<int, int>, Matrix> BMat 
   void BMatRead(BMat& bmat, string fn) {

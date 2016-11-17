@@ -245,7 +245,21 @@ TEST(MultArray, MultArray4) {
 	}
 
 }
+TEST(MultArray, TDot) {
 
+  MultArray<int, 2> xs(1000), ys(1000);
+  xs.SetRange(0, 1, 0, 1);
+  ys.SetRange(0, 1, 0, 1);
+  
+  xs(0,0) = 7; ys(0,0) = -1; 
+  xs(1,0) = 8; ys(1,0) = -2; 
+  xs(0,1) = 9; ys(0,1) = 3; 
+  xs(1,1) = 11; ys(1,1) = 4;
+
+  int ref = 7*(-1) + 8*(-2) + 9*3+11*4;
+  EXPECT_EQ(ref, MultArrayTDot(xs, ys));
+  
+}
 TEST(lgamma, lower_gamma) {
   double eps = pow(10.0, -13.0);
   dcomplex a(1.1, -0.3);

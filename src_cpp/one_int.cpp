@@ -3,6 +3,7 @@
 */
 
 #include <sstream>
+#include "../math/int_exp.hpp"
 #include "one_int.hpp"
 #include "mol_func.hpp"
 #include "symmolint.hpp"
@@ -193,7 +194,78 @@ namespace cbasis {
     return ele;
 
   }
+  dcomplex PWVecEle(const Vector3cd& k, CartGTO& a) {
 
+    /*
+      <exp[ikr] | cart GTO(W)> = int(exp[-ikr] GTO(W))
+      .                        = exp[-ikw] int(exp[-ikr] GTO(0))
+      .                        = exp[-ikw] int(x^nx exp[-ik_x x -zeta x^2])
+      .                                    int(y^ny exp[-ik_y y -zeta y^2])
+      .                                    int(z^nz exp[-ik_z z -zeta z^2])
+     */
+
+    Vector3cd w(a.x, a.y, a.z);
+    dcomplex kw = k.dot(w);
+    dcomplex ii(0, 1);
+    return (exp(-ii*kw) *
+	    STO_GTOInt_R(a.nx, ii*k[0], a.zeta) *
+	    STO_GTOInt_R(a.ny, ii*k[1], a.zeta) *
+	    STO_GTOInt_R(a.nz, ii*k[2], a.zeta));
+    
+  }
+  dcomplex PWXVecEle(const Vector3cd& k, CartGTO& a) {
+    /*
+      <exp[ikr] | cart GTO(W)> = int(exp[-ikr] x GTO(W))
+      .                        = exp[-ikw] int(exp[-ikr] (x+wx) GTO(0))
+      .                        = exp[-ikw] int(x^(nx+1) exp[-ik_x x -zeta x^2])
+      .                                    int(y^ny     exp[-ik_y y -zeta y^2])
+      .                                    int(z^nz     exp[-ik_z z -zeta z^2])
+      .                     + wx exp[-ikw] int(x^nx     exp[-ik_x x -zeta x^2])
+      .                                    int(y^ny     exp[-ik_y y -zeta y^2])
+      .                                    int(z^nz     exp[-ik_z z -zeta z^2])
+     */
+
+    Vector3cd w(a.x, a.y, a.z);
+    dcomplex kw = k.dot(w);
+    dcomplex ii(0, 1);
+    return (exp(-ii*kw) *
+	    STO_GTOInt_R(a.nx+1, ii*k[0], a.zeta) *
+	    STO_GTOInt_R(a.ny,   ii*k[1], a.zeta) *
+	    STO_GTOInt_R(a.nz,   ii*k[2], a.zeta) +
+	    exp(-ii*kw) * w[0] *
+	    STO_GTOInt_R(a.nx, ii*k[0], a.zeta) *
+	    STO_GTOInt_R(a.ny, ii*k[1], a.zeta) *
+	    STO_GTOInt_R(a.nz, ii*k[2], a.zeta));
+  }
+  dcomplex PWYVecEle(const Vector3cd& k, CartGTO& a) {
+    
+    Vector3cd w(a.x, a.y, a.z);
+    dcomplex kw = k.dot(w);
+    dcomplex ii(0, 1);
+    return (exp(-ii*kw) *
+	    STO_GTOInt_R(a.nx,   ii*k[0], a.zeta) *
+	    STO_GTOInt_R(a.ny+1, ii*k[1], a.zeta) *
+	    STO_GTOInt_R(a.nz,   ii*k[2], a.zeta) +
+	    exp(-ii*kw) * w[1] *
+	    STO_GTOInt_R(a.nx, ii*k[0], a.zeta) *
+	    STO_GTOInt_R(a.ny, ii*k[1], a.zeta) *
+	    STO_GTOInt_R(a.nz, ii*k[2], a.zeta));
+  }  
+  dcomplex PWZVecEle(const Vector3cd& k, CartGTO& a) {
+    
+    Vector3cd w(a.x, a.y, a.z);
+    dcomplex kw = k.dot(w);
+    dcomplex ii(0, 1);
+    return (exp(-ii*kw) *
+	    STO_GTOInt_R(a.nx,   ii*k[0], a.zeta) *
+	    STO_GTOInt_R(a.ny,   ii*k[1], a.zeta) *
+	    STO_GTOInt_R(a.nz+1, ii*k[2], a.zeta) +
+	    exp(-ii*kw) * w[2] *
+	    STO_GTOInt_R(a.nx, ii*k[0], a.zeta) *
+	    STO_GTOInt_R(a.ny, ii*k[1], a.zeta) *
+	    STO_GTOInt_R(a.nz, ii*k[2], a.zeta));
+  }
+  
   // ==== SymGTOs ====
   struct PrimBasis {
     A4dc s, t, v, x, y, z, dx, dy, dz;
@@ -398,7 +470,6 @@ namespace cbasis {
 
     int niat(isub->size_at()); int njat(jsub->size_at());
     int nipn(isub->size_pn()); int njpn(jsub->size_pn());
-    //    cout << "tras before set : " << niat << nipn << njat << njpn << endl;
 
     for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
       for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
@@ -505,15 +576,189 @@ namespace cbasis {
     return CalcMat(c, g, calc_coulomb);
   }
 
-  /*
-  BMatSet CalcMat_V(SymGTOs a, SymGTOs b, Eigen::Vector3cd xyz, dcomplex q) {
-    MatrixXcd xyzq(4,1);
-    xyzq << xyz[0], xyz[1], xyz[2], q;
+  // ==== SymGTOs(new) ====
+  void InitBVec(SymGTOs a, BVec *ptr_bvec) {
+    BVec& bvec = *ptr_bvec;
+    int num_isym = a->sym_group->order();
+    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
+      for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 
-    SymGTOs aa = a->Clone();
-    aa->SetAtoms(xyzq);
-    aa->SetUp();
+	bool need_update = false;
+	Irrep irrep = irds->irrep;
+	if(bvec.find(irrep) == bvec.end()) 
+	  need_update = true;
+	else if(bvec[irrep].size() != a->size_basis_isym(irrep)) 
+	  need_update = true;
 
+	if(need_update)
+	  bvec[irrep] = VectorXcd::Zero(a->size_basis_isym(irrep));
+      }
+    }
   }
-  */
+  void InitBMat(SymGTOs a, Irrep krrep, SymGTOs b, BMat *ptr_mat) {
+
+    if(not a->sym_group->IsSame(b->sym_group))  {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : symmetry is different";
+      throw runtime_error(msg);
+    }
+
+    pSymmetryGroup sym = a->sym_group;
+    BMat& mat = *ptr_mat;
+    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
+      for(SubIt jsub = b->subs.begin(); jsub != b->subs.end(); ++jsub) {
+	for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {	
+	  for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds) {
+	    Irrep irrep = irds->irrep;
+	    Irrep jrrep = jrds->irrep;
+	    int ni = a->size_basis_isym(irrep);
+	    int nj = b->size_basis_isym(jrrep);
+	    
+	    if(sym->Non0_3(irds->irrep, irrep, jrds->irrep)) {
+	      pair<Irrep, Irrep> ijrrep(irrep, jrrep);
+	      if(mat.find(ijrrep) == mat.end())
+		mat[ijrrep] = MatrixXcd::Zero(ni, nj);
+	      if(mat[ijrrep].rows() != ni || mat[ijrrep].cols() != nj) 
+		mat[ijrrep] = MatrixXcd::Zero(ni, nj);
+	    }
+	  }
+	}
+      }
+    }
+  }  
+  void TransCoef(SubIt isub, SubIt jsub, RdsIt irds, RdsIt jrds, int iz, int jz, A4dc &cc) {
+
+    int niat(isub->size_at()); int njat(jsub->size_at());
+    int nipn(isub->size_pn()); int njpn(jsub->size_pn());
+    cc.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+
+    for(int iat = 0; iat < niat; iat++) {
+      for(int ipn = 0; ipn < nipn; ipn++) {
+	for(int jat = 0; jat < njat; jat++) { 
+	  for(int jpn = 0; jpn < njpn; jpn++) {
+	    cc(iat, ipn, jat, jpn) = 
+	      irds->coef_iat_ipn(iat, ipn) *
+	      jrds->coef_iat_ipn(jat, jpn) * 
+	      irds->coef_iz(iz) * 
+	      jrds->coef_iz(jz);
+	    
+	  }
+	}
+      }
+    }
+  }
+  bool HasNon0(pSymmetryGroup sym, SubIt isub, Irrep krrep, SubIt jsub) {
+    bool res = false;
+    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) 
+      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds) 
+	res = res || sym->Non0_3(irds->irrep, krrep, jrds->irrep);
+    return res;
+  }
+  void CalcMat(SymGTOs a, SymGTOs b, 
+	       BMat *S, BMat *T, BMat *V, BMat *X, BMat *Y, BMat *Z) {
+    
+    if(not a->setupq || not b->setupq) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
+      throw runtime_error(msg);
+    }
+    pSymmetryGroup sym = a->sym_group;
+    if(not sym->IsSame(b->sym_group)) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
+      throw runtime_error(msg);
+    }
+
+    static PrimBasis prim(100);
+    A4dc cc(1000);
+    
+    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
+      for(SubIt jsub = b->subs.begin(); jsub != b->subs.end(); ++jsub) {
+
+	// -- scalar --
+	bool calc_s = HasNon0(sym, isub, sym->irrep_s, jsub);
+	bool calc_x = HasNon0(sym, isub, sym->irrep_x, jsub);
+	bool calc_y = HasNon0(sym, isub, sym->irrep_y, jsub);
+	bool calc_z = HasNon0(sym, isub, sym->irrep_z, jsub);
+
+	if(not calc_s && not calc_x && not calc_y && not calc_z)
+	  continue;
+
+	for(int iz = 0; iz < isub->size_zeta(); iz++) {
+	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
+	    CalcPrim(a, isub, jsub, iz, jz, prim, true);
+	    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
+	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
+		TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
+		pair<Irrep, Irrep> ij(irds->irrep, jrds->irrep);
+		int i(irds->offset + iz);
+		int j(jrds->offset + jz);
+		if(calc_s) {
+		  (*S)[ij](i, j) = MultArrayTDot(cc, prim.s);
+		  (*T)[ij](i, j) = MultArrayTDot(cc, prim.t);
+		  (*V)[ij](i, j) = MultArrayTDot(cc, prim.v);
+		}
+		if(calc_x) 
+		  (*X)[ij](i, j) = MultArrayTDot(cc, prim.x);
+		if(calc_y) 
+		  (*Y)[ij](i, j) = MultArrayTDot(cc, prim.y);
+		if(calc_z) 
+		  (*Z)[ij](i, j) = MultArrayTDot(cc, prim.z);
+	      }
+	    }
+	  }
+	}
+      }
+    }
+    
+  }
+  void CalcPWVec( SymGTOs a, const Vector3cd& k,
+		  BVec *pS, BVec *pX, BVec *pY, BVec *pZ) {
+    
+    static A2dc s(1000), x(1000), y(1000), z(1000);
+
+    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
+      for(int iz = 0; iz < isub->size_zeta(); iz++) {
+
+	// -- basic --
+	dcomplex zetai = isub->zeta_iz[iz];
+	int niat(isub->size_at());
+	int nipn(isub->size_pn());
+	s.SetRange(0, niat, 0, nipn);
+	x.SetRange(0, niat, 0, nipn);
+	y.SetRange(0, niat, 0, nipn);
+	z.SetRange(0, niat, 0, nipn);
+
+	// -- primitive --
+	for(int iat = 0; iat < niat; iat++) {
+	  for(int ipn = 0; ipn < nipn; ipn++) {
+
+	    CartGTO gi(isub->nx(ipn), isub->ny(ipn), isub->nz(ipn),
+		       isub->x( iat), isub->y( iat), isub->z( iat),
+		       zetai);
+	    s(iat, ipn) = PWVecEle(k, gi);
+	    x(iat, ipn) = PWXVecEle(k, gi);
+	    y(iat, ipn) = PWYVecEle(k, gi);
+	    z(iat, ipn) = PWZVecEle(k, gi);
+	  }
+	}
+
+	// -- translation --
+	for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
+	  dcomplex accs(0), accx(0), accy(0), accz(0);
+	  for(int iat = 0; iat < niat; iat++) {
+	    for(int ipn = 0; ipn < nipn; ipn++) {
+	      dcomplex cc = irds->coef_iat_ipn(iat, ipn)*irds->coef_iz(iz);
+	      accs += cc * s(iat, ipn);
+	      accx += cc * x(iat, ipn);
+	      accy += cc * y(iat, ipn);
+	      accz += cc * z(iat, ipn);
+	    }
+	  }
+	  (*pS)[irds->irrep][irds->offset + iz] = accs;
+	  (*pX)[irds->irrep][irds->offset + iz] = accx;
+	  (*pY)[irds->irrep][irds->offset + iz] = accy;
+	  (*pZ)[irds->irrep][irds->offset + iz] = accz;
+	}
+      }
+    }
+    
+  }
 }

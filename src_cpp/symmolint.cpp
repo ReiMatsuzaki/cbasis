@@ -930,7 +930,49 @@ namespace cbasis {
       cs = -cs;
     }
   }
+  
+  // ---- Calculation ----
+  void _SymGTOs::InitBVec(BVec *ptr_bvec) {
+    BVec& bvec = *ptr_bvec;
+    int num_isym = this->sym_group->order();
+    for(SubIt isub = this->subs.begin(); isub != this->subs.end(); ++isub) {
+      for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 
+	bool need_update = false;
+	Irrep irrep = irds->irrep;
+	if(bvec.find(irrep) == bvec.end()) 
+	  need_update = true;
+	else if(bvec[irrep].size() != this->size_basis_isym(irrep)) 
+	  need_update = true;
+
+	if(need_update)
+	  bvec[irrep] = VectorXcd::Zero(this->size_basis_isym(irrep));
+      }
+    }
+  }
+  void _SymGTOs::InitBMat(Irrep krrep, BMat *ptr_mat) {
+    BMat& mat = *ptr_mat;
+    for(SubIt isub = this->subs.begin(); isub != this->subs.end(); ++isub) {
+      for(SubIt jsub = this->subs.begin(); jsub != this->subs.end(); ++jsub) {
+	for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {	
+	  for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds) {
+	    Irrep irrep = irds->irrep;
+	    Irrep jrrep = jrds->irrep;
+	    int ni = this->size_basis_isym(irrep);
+	    int nj = this->size_basis_isym(jrrep);
+	    
+	    if(this->sym_group->Non0_3(irds->irrep, irrep, jrds->irrep)) {
+	      pair<Irrep, Irrep> ijrrep(irrep, jrrep);
+	      if(mat.find(ijrrep) == mat.end())
+		mat[ijrrep] = MatrixXcd::Zero(ni, nj);
+	      if(mat[ijrrep].rows() != ni || mat[ijrrep].cols() != nj) 
+		mat[ijrrep] = MatrixXcd::Zero(ni, nj);
+	    }
+	  }
+	}
+      }
+    }
+  }
   SymGTOs CreateSymGTOs() {
     SymGTOs ptr(new _SymGTOs);
     return ptr;
