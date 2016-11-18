@@ -290,7 +290,7 @@ namespace cbasis {
 	    STO_GTOInt_R(a.nz, ii*k[2], a.zeta));
   }
   
-  // ==== SymGTOs ====
+  // ==== SymGTOs(old) ====
   struct PrimBasis {
     A4dc s, t, v, x, y, z, dx, dy, dz;
     PrimBasis(int num):
@@ -622,7 +622,7 @@ namespace cbasis {
 
 	bool need_update = false;
 	Irrep irrep = irds->irrep;
-	if(bvec.find(irrep) == bvec.end()) 
+	if(not bvec.has_irrep(irrep))
 	  need_update = true;
 	else if(bvec[irrep].size() != a->size_basis_isym(irrep)) 
 	  need_update = true;
@@ -761,9 +761,9 @@ namespace cbasis {
 	int mi = isub->maxn; int mj = jsub->maxn;
 
 	// -- compute coefficient --
-	calc_d_coef(mi,mj+1,mi+mj,zetaP,wPx,xi,xj,dxmap);
-	calc_d_coef(mi,mj+1,mi+mj,zetaP,wPy,yi,yj,dymap);
-	calc_d_coef(mi,mj+1,mi+mj,zetaP,wPz,zi,zj,dzmap);
+	calc_d_coef(mi,mj+1,0,zetaP,wPx,xi,xj,dxmap);
+	calc_d_coef(mi,mj+1,0,zetaP,wPy,yi,yj,dymap);
+	calc_d_coef(mi,mj+1,0,zetaP,wPz,zi,zj,dzmap);
 
 	// -- matrix element --
 	for(int ipn = 0; ipn < nipn; ipn++) {
@@ -800,6 +800,7 @@ namespace cbasis {
       }
     }
   }
+  // -- translation --
   void TransCoef(SubIt isub, SubIt jsub, RdsIt irds, RdsIt jrds, int iz, int jz, A4dc &cc) {
 
     int niat(isub->size_at()); int njat(jsub->size_at());
@@ -821,6 +822,8 @@ namespace cbasis {
       }
     }
   }
+
+  // -- main --
   bool HasNon0(pSymmetryGroup sym, SubIt isub, Irrep krrep, SubIt jsub) {
     bool res = false;
     for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) 

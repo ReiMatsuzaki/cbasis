@@ -899,7 +899,7 @@ namespace cbasis {
 
 	bool need_update = false;
 	Irrep irrep = irds->irrep;
-	if(bvec.find(irrep) == bvec.end()) 
+	if(not bvec.has_irrep(irrep))
 	  need_update = true;
 	else if(bvec[irrep].size() != this->size_basis_isym(irrep)) 
 	  need_update = true;

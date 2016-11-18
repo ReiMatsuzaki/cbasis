@@ -802,7 +802,7 @@ TEST(SymGTOs, PW_BVec) {
   gtos->AddSub(Sub_SolidSH_M(sym, 1,  0, Vector3cd(0,0,0), zeta1));
   gtos->SetUp();
 
-  BVec S, X, Y, Z;
+  BVec S("pw_s"), X("pw_x"), Y("pw_y"), Z("pw_z");
   gtos->InitBVec(&S);
   gtos->InitBVec(&X);
   gtos->InitBVec(&Y);
@@ -816,6 +816,8 @@ TEST(SymGTOs, PW_BVec) {
   EXPECT_C_EQ(0.0, X[sym->irrep_z][0]);
   EXPECT_C_EQ(0.0, Y[sym->irrep_z][0]);  
 
+  // cout << S << endl;
+  
   CalcPWVec(gtos, Vector3cd(0.0, 0.4, 0.0), &S, &X, &Y, &Z);
   EXPECT_C_EQ(0.0, S[sym->irrep_x][0]);
   dcomplex yval = S[sym->irrep_y][0];

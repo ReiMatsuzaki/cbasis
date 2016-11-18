@@ -11,11 +11,11 @@ using namespace std;
 using namespace Eigen;
 
 namespace cbasis {
-
-  // ==== BVec ====
+  
   ostream& operator << (ostream& os, const BVec& a) {
     os << "==== BVec ====" << endl;
     os << "Block vector object" << endl;
+    os << "name: " << a.get_name() << endl;
     for(BVec::const_iterator it = a.begin(); it != a.end(); ++it) {
       int irrep = it->first;
       const VectorXcd& vec = it->second;
