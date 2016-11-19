@@ -38,11 +38,16 @@ namespace cbasis {
   }
   string Reduction::str() const {
     ostringstream oss;
-    oss << "==== RedcutionSets ====" << endl;
+    oss << "==== Redcution ====" << endl;
     oss << "irrep : " << irrep << endl;
-    oss << "coef_iat_ipn: " << endl << coef_iat_ipn << endl;
-    oss << "coef_iz: " << endl <<  coef_iz << endl;
+    oss << "coef_iat_ipn: " << endl;
+    oss << coef_iat_ipn << endl;
+    oss << "coef_iz: ";
+    for(int iz = 0; iz < coef_iz.size(); iz++)
+      oss << coef_iz[iz] << " ";
+    oss << endl;
     oss << "offset:  " << offset << endl;
+    oss << "===================" << endl;
     return oss.str();
   }
   void Reduction::Display() const {
@@ -176,20 +181,22 @@ namespace cbasis {
   string SubSymGTOs::str() const {
     ostringstream oss;
     oss << "==== SubSymGTOs ====" << endl;
-    //oss << "sym : " << sym_group->str() << endl;
-    oss << "xyz : " << endl;
+    //oss << "sym : " << sym_group->str() << endl;    
     for(int iat = 0; iat < size_at(); iat++)
-      oss <<  x(iat) << y(iat) << z(iat) << endl;
-    oss << "ns  : " << endl;
+      oss << "xyz" << iat << ": " << x(iat) << y(iat) << z(iat) << endl;
     for(int ipn = 0; ipn < size_pn(); ipn++) 
-      oss <<  nx(ipn) << ny(ipn) << nz(ipn) << endl;
-    oss << "zeta: " << endl <<  zeta_iz << endl;
+      oss << "ns" << ipn << ": " << nx(ipn) << ny(ipn) << nz(ipn) << endl;
+    oss << "zeta: ";
+    for(int iz = 0; iz < zeta_iz.size(); iz++)
+      oss << zeta_iz[iz] << " ";
+    oss << endl;
     oss << "maxn: " << maxn << endl;
-    for(cRdsIt it = rds.begin(); it != rds.end(); ++it)
-      oss << it->str();
     oss << "ip_iat_ipn: " << endl << ip_iat_ipn << endl;
     oss << "ip_jg_kp: " << endl << ip_jg_kp << endl;
-    oss << "sign_ip_jg_kp: " << endl << sign_ip_jg_kp << endl;
+    oss << "sign_ip_jg_kp: " << endl << sign_ip_jg_kp << endl;    
+    for(cRdsIt it = rds.begin(); it != rds.end(); ++it)
+      oss << it->str();
+    oss << "====================" << endl;
     return oss.str();
   }
   void SubSymGTOs::Display() const {
@@ -416,18 +423,25 @@ namespace cbasis {
     ostringstream oss;
     oss << "==== SymGTOs ====" << endl;
     oss << "Set Up?" << (setupq ? "Yes" : "No") << endl;
-    oss << "sym:" << endl;
-    oss << this->sym_group->str() << endl;    
-    oss << sym_group->str();
-    for(cSubIt it = subs.begin(); it != subs.end(); ++it) 
-      oss << it->str();
-    oss << "molecule:";
-    if(molecule) {
-      oss << endl << molecule->str() << endl;
+    oss << "sym:";
+    if(this->sym_group) {
+      oss << endl << this->sym_group->str();
     } else {
-      oss << "nothing" << endl;
+      oss << "No" << endl;
     }
     
+    for(cSubIt it = subs.begin(); it != subs.end(); ++it) {
+      oss << "sub" << distance(subs.begin(), it) << ": " << endl;
+      oss << it->str();
+    }
+    oss << "molecule:";
+    if(molecule) {
+      oss << endl << molecule->str();
+    } else {
+      oss << "No" << endl;
+    }
+
+    oss << "=================" << endl;
     return oss.str();
   }
 
@@ -922,7 +936,7 @@ namespace cbasis {
 	    
 	    if(this->sym_group->Non0_3(irds->irrep, irrep, jrds->irrep)) {
 	      pair<Irrep, Irrep> ijrrep(irrep, jrrep);
-	      if(mat.find(ijrrep) == mat.end())
+	      if(mat.has_block(ijrrep))
 		mat[ijrrep] = MatrixXcd::Zero(ni, nj);
 	      if(mat[ijrrep].rows() != ni || mat[ijrrep].cols() != nj) 
 		mat[ijrrep] = MatrixXcd::Zero(ni, nj);

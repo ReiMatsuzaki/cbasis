@@ -652,7 +652,7 @@ namespace cbasis {
 	    
 	    if(sym->Non0_3(irds->irrep, irrep, jrds->irrep)) {
 	      pair<Irrep, Irrep> ijrrep(irrep, jrrep);
-	      if(mat.find(ijrrep) == mat.end())
+	      if(mat.has_block(ijrrep))
 		mat[ijrrep] = MatrixXcd::Zero(ni, nj);
 	      if(mat[ijrrep].rows() != ni || mat[ijrrep].cols() != nj) 
 		mat[ijrrep] = MatrixXcd::Zero(ni, nj);

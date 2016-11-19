@@ -8,6 +8,7 @@
 #include "one_int.hpp"
 #include "two_int.hpp"
 #include "symmolint.hpp"
+#include "symgtos_io.hpp"
 
 using namespace std;
 using namespace cbasis;
@@ -16,7 +17,8 @@ using namespace Eigen;
 // other calculation:
 // 2016/3/22
 
-  
+
+
 class TestValue : public ::testing::Test {
 public:
   MatrixXcd S_ref, T_ref, V_ref;
@@ -142,8 +144,7 @@ TEST_F(TestValue, TwoInt) {
   }
     
 }
-
-TEST(OneInt, Dx) {
+TEST_F(TestValue, Dx) {
 
   dcomplex zeta0(1.1, -0.3);
   dcomplex x0(0.3, 0.1);
@@ -168,7 +169,7 @@ TEST(OneInt, Dx) {
   EXPECT_C_NEAR(dx0, dx1, eps);
   
 }
-TEST(OneInt, Dy) {
+TEST_F(TestValue, Dy) {
 
   dcomplex zeta0(1.1, -0.3);
   dcomplex y0(0.3, 0.1);
@@ -193,7 +194,7 @@ TEST(OneInt, Dy) {
   EXPECT_C_NEAR(d0, d1, eps);
   
 }
-TEST(OneInt, Dz) {
+TEST_F(TestValue, Dz) {
 
   dcomplex zeta0(1.1, -0.3);
   dcomplex z0(0.3, 0.1);
@@ -468,9 +469,18 @@ void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
   CalcSTVMat(gtos_a, gtos_b, &S, &T, &V);
   CalcDipMat(gtos_a, gtos_b, &X, &Y, &Z, &DX, &DY, &DZ);
 
+  Vector3cd k(1.1, 0.2, -0.3);
+  BVec PW_S("PW_S"), PW_X("PW_X"), PW_Y("PW_Y"), PW_Z("PW_Z");
+  InitBVec(gtos_a, &PW_S);
+  InitBVec(gtos_a, &PW_X);
+  InitBVec(gtos_a, &PW_Y);
+  InitBVec(gtos_a, &PW_Z);
+  CalcPWVec(gtos_a, k, &PW_S, &PW_X, &PW_Y, &PW_Z);
+
   string msg = "\na: " + a.str() + "\n" + "b: " + b.str() + "\n";
 
   dcomplex norm = 1.0/sqrt(SMatEle(a,a) * SMatEle(b,b));
+  dcomplex norma = 1.0/sqrt(SMatEle(a,a));
   
   dcomplex calc = S[make_pair(0,0)](0,0);
   dcomplex ref = SMatEle(a, b) * norm;
@@ -506,7 +516,23 @@ void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
 
   calc = DZ[make_pair(sym->irrep_z,0)](0,0);
   ref  = DZMatEle(a, b) * norm;
-  EXPECT_C_EQ(ref, calc) << "DZ matrix " << msg;      
+  EXPECT_C_EQ(ref, calc) << "DZ matrix " << msg;
+
+  calc = PW_S(0)(0, 0);
+  ref = PWVecEle(k, a) * norma;
+  EXPECT_C_EQ(ref, calc) << "PW S vector" <<msg;
+
+  calc = PW_X(0)(0, 0);
+  ref = PWXVecEle(k, a) * norma;
+  EXPECT_C_EQ(ref, calc) << "PW X vector" <<msg;
+
+  calc = PW_Y(0)(0, 0);
+  ref = PWYVecEle(k, a) * norma;
+  EXPECT_C_EQ(ref, calc) << "PW Y vector" <<msg;
+
+  calc = PW_Z(0)(0, 0);
+  ref = PWZVecEle(k, a) * norma;
+  EXPECT_C_EQ(ref, calc) << "PW Z vector" <<msg;  
   
 }
 TEST(SymGTOsMatrix, OneIntNew) {
@@ -1447,6 +1473,13 @@ TEST(ExceptCheck, OneInt) {
     cout << e.what() << endl;
     throw runtime_error("exception!");
   }
+}
+TEST(SymGTOs_io, first) {
+  //  string json = "{\"player\": \"mamm\" }";
+
+  SymGTOs gtos(new _SymGTOs());
+  SymGTOsReadFile(gtos, "sample_gtos.json");
+  cout << gtos->str() << endl;
 }
 
 int main(int argc, char **args) {

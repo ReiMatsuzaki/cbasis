@@ -11,7 +11,57 @@ using namespace std;
 using namespace Eigen;
 
 namespace cbasis {
-  
+
+  void BVec::Write(string filename) const {
+
+    ofstream f;
+    f.open(filename.c_str(), ios::out|ios::binary|ios::trunc);
+
+    if(!f) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + "file not found";
+      throw runtime_error(msg);
+    }
+
+    int num = this->size();
+    f.write((char*)&num, sizeof(int));
+
+    for(const_iterator it = this->begin(); it != this->end(); ++it) {
+      int irrep = it->first;
+      f.write((char*)&irrep, sizeof(int));
+      const VectorXcd& V = it->second;
+      int n = V.size();
+      f.write((char*)&n, sizeof(int));
+      for(int i = 0; i < n; i++) {
+	f.write((char*)&V.coeff(i), sizeof(dcomplex));
+      }
+    }
+  }
+  void BVec::Read(string filename) {
+    ifstream f(filename.c_str(), ios::in|ios::binary);
+    
+    if(!f) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + "file not found";
+      throw runtime_error(msg);
+    }
+
+    int num;
+    f.read((char*)&num, sizeof(int));
+    for(int i = 0; i < num; i++) {
+
+      int irrep, n;
+      f.read((char*)&irrep, sizeof(int));
+      f.read((char*)&n, sizeof(int));
+      this->at(irrep) = VectorXcd::Zero(n);
+      VectorXcd& V = (*this)(irrep);
+      for(int i = 0; i < n; i++) {
+	dcomplex v;
+	f.read((char*)&v, sizeof(dcomplex));
+	V(i) = v;
+      }
+    }
+
+  }
   ostream& operator << (ostream& os, const BVec& a) {
     os << "==== BVec ====" << endl;
     os << "Block vector object" << endl;
@@ -25,9 +75,83 @@ namespace cbasis {
     return os;
   }
   
+  void BMat::Write(string filename) const {
+    
+    ofstream f;
+    f.open(filename.c_str(), ios::out|ios::binary|ios::trunc);
+
+    if(!f) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + "file not found";
+      throw runtime_error(msg);
+    }
+
+    int num = this->size();
+    f.write((char*)&num, sizeof(int));
+
+    for(const_iterator it = this->begin(); it != this->end(); ++it) {
+      int irrep = it->first.first;
+      int jrrep = it->first.second;
+      f.write((char*)&irrep, sizeof(int));
+      f.write((char*)&jrrep, sizeof(int));
+      const MatrixXcd& M = it->second;
+      int n = M.rows();
+      int m = M.cols();
+      f.write((char*)&n, sizeof(int));
+      f.write((char*)&m, sizeof(int));
+      for(int i = 0; i < n; i++) {
+	for(int j = 0; j < m; j++) {
+	  f.write((char*)&M.coeff(i, j), sizeof(dcomplex));
+	}
+      }
+    }
+  }
+  void BMat::Read(string filename) {
+    ifstream f(filename.c_str(), ios::in|ios::binary);
+    
+    if(!f) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + "file not found";
+      throw runtime_error(msg);
+    }
+
+    int num;
+    f.read((char*)&num, sizeof(int));
+    for(int i = 0; i < num; i++) {
+
+      int irrep, jrrep, n, m;
+      f.read((char*)&irrep, sizeof(int));
+      f.read((char*)&jrrep, sizeof(int));
+      f.read((char*)&n, sizeof(int));
+      f.read((char*)&m, sizeof(int));
+      (*this)(irrep, jrrep) = MatrixXcd::Zero(n, m);
+      MatrixXcd& M = (*this)(irrep, jrrep);
+      for(int i = 0; i < n; i++) {
+	for(int j = 0; j < m; j++) {
+	  dcomplex v;
+	  f.read((char*)&v, sizeof(dcomplex));
+	  M(i, j) = v;
+	}
+      }
+    }
+
+  }
+  ostream& operator << (ostream& os, const BMat& a) {
+    os << "==== BMat ====" << endl;
+    os << "Block matrix object" << endl;
+    os << "name: " << a.get_name() << endl;
+    for(BMat::const_iterator it = a.begin(); it != a.end(); ++it) {
+      BMat::Key key = it->first;
+      int irrep = key.first;
+      int jrrep = key.second;
+      const MatrixXcd& mat = it->second;
+      os << "(irrep, jrrep) = (" << irrep << ", " << jrrep << ")" << endl;
+      os << mat << endl;
+    }
+    return os;
+  }
+  
   // ==== BMat ====
-  // typedef map<pair<int, int>, Matrix> BMat 
-  void BMatRead(BMat& bmat, string fn) {
+  void BMatRead(BMat::Map& bmat, string fn) {
     ifstream f(fn.c_str(), ios::in|ios::binary);
     
     if(!f) {
@@ -58,7 +182,7 @@ namespace cbasis {
     }
 
   }
-  void BMatWrite(BMat& bmat, string fn) {
+  void BMatWrite(BMat::Map& bmat, string fn) {
 
     ofstream f;
     f.open(fn.c_str(), ios::out|ios::binary|ios::trunc);
@@ -156,7 +280,7 @@ namespace cbasis {
 
     return mat_map_[name][make_pair(i, j)];
   }
-  const BMat& _BMatSet::GetBlockMatrix(std::string name) {
+  const BMat::Map& _BMatSet::GetBlockMatrix(std::string name) {
     return mat_map_[name];
   }
   void _BMatSet::SelfAdd(string name, int i, int j, int a, int b, dcomplex v) {
@@ -220,19 +344,19 @@ namespace cbasis {
     typedef BMatMap::iterator It;
     BMatMap tmp_o;
     for(It it_o = o.mat_map_.begin(); it_o != o.mat_map_.end();) {
-      tmp_o[it_o->first] = BMat();
+      tmp_o[it_o->first] = BMat::Map();
       ::swap(tmp_o[it_o->first], it_o->second);
       o.mat_map_.erase(it_o++);
     }
     
     for(It it_this = this->mat_map_.begin(); it_this != this->mat_map_.end();) {
-      o.mat_map_[it_this->first] = BMat();
+      o.mat_map_[it_this->first] = BMat::Map();
       o.mat_map_[it_this->first].swap(it_this->second);
       this->mat_map_.erase(it_this++);
     }
 
     for(It it_tmp = tmp_o.begin(); it_tmp != tmp_o.end();) {
-      this->mat_map_[it_tmp->first] = BMat();
+      this->mat_map_[it_tmp->first] = BMat::Map();
       this->mat_map_[it_tmp->first].swap(it_tmp->second);
       ++it_tmp;
     }
@@ -256,7 +380,7 @@ namespace cbasis {
   }
 	      
   // ==== External ====
-  void swap(BMat& a, BMat& b) {
+  void swap(BMat::Map& a, BMat::Map& b) {
 
     typedef map<pair<int, int>, MatrixXcd>::iterator It;
     map<pair<int, int>, MatrixXcd> tmp_a;

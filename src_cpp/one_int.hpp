@@ -30,6 +30,9 @@ namespace cbasis {
   dcomplex DYMatEle(CartGTO& a, CartGTO& b);
   dcomplex DZMatEle(CartGTO& a, CartGTO& b);
   dcomplex PWVecEle(const Eigen::Vector3cd& k, CartGTO& a);
+  dcomplex PWXVecEle(const Eigen::Vector3cd& k, CartGTO& a);
+  dcomplex PWYVecEle(const Eigen::Vector3cd& k, CartGTO& a);
+  dcomplex PWZVecEle(const Eigen::Vector3cd& k, CartGTO& a);
 
   // ==== SymGTOs ====
   BMatSet CalcMat(SymGTOs a, SymGTOs b, bool calc_coulomb);

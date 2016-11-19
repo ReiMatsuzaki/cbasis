@@ -407,16 +407,23 @@ namespace cbasis {
     oss << "==== SymmetryGroup ====" << endl;
     oss << "name : " << name_ << endl;
     oss << "order: " << this->order() << endl;
-    oss << "num_class: " << this->num_class() << endl;
-    oss << "operators: " << endl;
+    oss << "operators: ";
     for(ItOp it = sym_op_.begin(); it != sym_op_.end(); ++it) {
-      oss << (*it)->str() << endl;
+      oss << (*it)->str() << " ";
     }
-    oss << "operator class:" << endl;
+    oss << endl;
+    oss << "operator_class: ";
     for(It it = sym_op_class_.begin(); it != sym_op_class_.end(); ++it) {
-      oss << int(it->size()) << (*it)[0]->str() << endl;
+      oss << int(it->size()) << (*it)[0]->str() << " ";
     }
-
+    oss << endl;
+    oss << "irrep_name: ";
+    for(vector<string>::const_iterator it = irrep_name_.begin();
+	it != irrep_name_.end(); ++it) {
+      oss << *it  << " ";
+    }
+    oss << endl;
+    oss << "=======================" << endl;
     return oss.str();
   }
   void SymmetryGroup::Display() const {

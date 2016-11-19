@@ -48,18 +48,7 @@ ${BINDIR}/gtest.a : ${BINDIR}/gtest-all.o
 ${BINDIR}/%.o: %.cpp
 	${CXX} -c -o $@ -MMD ${CPPFLAGS} ${CXXFLAGS} $<
 
-# -- test math --
-MATH_OBJS = \
-	test_math.o cfunc.o lgamma.o fact.o mol_func.o \
-	angmoment.o eigen_plus.o bmatset.o gtest.a
-${BINDIR}/test_math: $(foreach o, ${MATH_OBJS}, ${BINDIR}/$o) 
-	${CXX} -o $@ $^  ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
-.PHONY: check_math
-check_math: ${BINDIR}/test_math
-	${RUN} ./$<
-
-
-OBJS=test_utils.o fact.o eigen_plus.o gtest.a
+OBJS=test_utils.o fact.o eigen_plus.o timestamp.o gtest.a
 ${BINDIR}/test: $(foreach o, ${OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
 

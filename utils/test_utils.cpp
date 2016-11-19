@@ -4,13 +4,14 @@
 #include "gtest_plus.hpp"
 #include "eigen_plus.hpp"
 #include "fact.hpp"
+#include "timestamp.hpp"
 
 using namespace std;
 using namespace cbasis;
 using namespace Eigen;
 
 TEST(EigenPlus, Canonical) {
-
+  PrintTimeStamp("EigenPlus", NULL);
   MatrixXcd A2(2,2);
   A2 <<
     1.0, 0.5,
