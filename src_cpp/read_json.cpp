@@ -8,28 +8,29 @@ using namespace Eigen;
 
 namespace cbasis {
 
-  template<> void CheckValue<object>(picojson::value& val, int n, string l) {
+  template<> void CheckValue<object>(picojson::value& val, int n, int m) {
     
     if(not val.is<object>()) {
-      throw(runtime_error("value is not string. " + l));
+      throw(runtime_error("value is not object. "));
     }
     if(n > 0) {
       if((int)val.get<object>().size() != n)
-	throw(runtime_error("invalid size object. " + l));
+	throw(runtime_error("invalid size object."));
     }
   }
-  template<> void CheckValue<string>(picojson::value& val, int n, string l) {
+  template<> void CheckValue<string>(picojson::value& val, int n, int m) {
     if(not val.is<string>()) {
-      throw(runtime_error("value is not string. " + l));
+      throw(runtime_error("value is not string. "));
     }    
   }
-  template<> void CheckValue<double>(picojson::value& val, int n, string l) {
+  template<> void CheckValue<double>(picojson::value& val, int n, int m) {
+    
     if(not val.is<double>()) {
-      throw(runtime_error("value is not string. " + l));
+      throw(runtime_error("value is not double."));
     }    
   }
-  template<> void CheckValue<dcomplex>(picojson::value& val, int n, string l) {
-    string msg = "value  must be complex (double or two element array of double)." +l;
+  template<> void CheckValue<dcomplex>(picojson::value& val, int n, int m) {
+    string msg = "value is not compelx (double or two element array of double).";
     if(val.is<array>()) {
       array& ary = val.get<array>();
       if(ary.size() != 2) {
@@ -43,8 +44,8 @@ namespace cbasis {
       throw runtime_error(msg);
     }
   }
-  template<> void CheckValue<int>(picojson::value& val, int n, string l) {
-    string msg = "value  must be int. " +l;
+  template<> void CheckValue<int>(picojson::value& val, int n, int m) {
+    string msg = "value is not int. ";
     if(not val.is<double>()) {
       throw runtime_error(msg);
     }
@@ -55,111 +56,117 @@ namespace cbasis {
       throw runtime_error(msg);
     }
   }
-  template<> void CheckValue<array>(picojson::value& val, int n, string l) {
+  template<> void CheckValue<array>(picojson::value& val, int n, int m) {
     if(not val.is<array>()) {
-      throw(runtime_error("value  is not array. " + l));
+      throw(runtime_error("value  is not array. "));
     }
 
     if(n > 0) {
       if((int)val.get<array>().size() != n) {
-	throw(runtime_error("invalid size of array. "+l));
+	throw(runtime_error("invalid size of array. "));
       }
     }
   }
-  template<> void CheckValue<VectorXcd>(picojson::value& val, int n, string l) {
+  template<> void CheckValue<VectorXcd>(picojson::value& val, int n, int m) {
 
     try {
-      CheckValue<array>(val, n, l);
-    } catch(...) {
-      throw(runtime_error("val must be array for VectorXcd. "+l));
+      CheckValue<array>(val, n);
+    } catch(exception& e) {
+      throw(runtime_error("value is not array for VectorXcd."));
     }
     array& ary = val.get<array>();
     for(array::iterator it = ary.begin(); it != ary.end(); ++it) {
       try {
 	CheckValue<dcomplex>(*it);
       } catch(...) {
-	throw(runtime_error("element must be dcomplex for VectorXcd. "+l));
+	throw(runtime_error("element of value is not dcomplex for VectorXcd."));
       }
     }
     
   }
-  template<> void CheckValue<VectorXi>(picojson::value& val, int n, string l) {
+  template<> void CheckValue<VectorXi>(picojson::value& val, int n, int m) {
 
     try {
-      CheckValue<array>(val, n, l);
+      CheckValue<array>(val, n);
     } catch(...) {
-      throw(runtime_error("val must be array for VectorXcd. "+l));
+      throw(runtime_error("value is not array for VectorXi."));
     }
     array& ary = val.get<array>();
     for(array::iterator it = ary.begin(); it != ary.end(); ++it) {
       try {
 	CheckValue<int>(*it);
       } catch(...) {
-	throw(runtime_error("element must be dcomplex for VectorXcd. "+l));
+	throw(runtime_error("element is not int for VectorXi."));
       }
     }
     
   }
-  template<> void CheckValue<MatrixXi>(picojson::value& val, int n, string l) {
+  template<> void CheckValue<MatrixXi>(picojson::value& val, int n, int m) {
+    
     try {
       CheckValue<array>(val, -1);
     } catch(exception& e) {
-      string msg = e.what();
-      msg += "\nval must be array for MatrixXi. "+l;
-      throw(runtime_error(msg));
+      throw(runtime_error("value is not array for MatrixXi"));
     }
     array& ary = val.get<array>();
+    
+    if(n > 0) 
+      if(m != (int)ary.size()) 
+	throw(runtime_error("invalid rows size for MatrixXi"));
+	
     for(array::iterator it = ary.begin(); it != ary.end(); ++it) {
       try {
 	CheckValue<array>(*it, n);
       } catch(...) {
-	throw(runtime_error("element of val must be array for MatrixXi. "+l));
+	throw(runtime_error("element of value is not array for MatrixXi."));
       }
       array& aryary = it->get<array>();
-      if(n > 0) {
-	if(n != (int)aryary.size()) {
-	  throw(runtime_error("invalid size of element for MatrixXi. " + l));
+      if(m > 0) {
+	if(m != (int)aryary.size()) {
+	  throw(runtime_error("invalid cols size of element for MatrixXi."));
 	}
       }
       for(array::iterator jt = aryary.begin(); jt != aryary.end(); ++jt) {
 	try {
 	  CheckValue<int>(*jt);
 	} catch(...) {
-	  throw(runtime_error("element of element of val must be int for MatrixXi" + l));
+	  throw(runtime_error("element of element of value is not int for MatrixXi"));
 	}
       }
     }
         
   }
-  template<> void CheckValue<MatrixXcd>(picojson::value& val, int n, string l) {
+  template<> void CheckValue<MatrixXcd>(picojson::value& val, int n, int m) {
+    
     try {
       CheckValue<array>(val, -1);
     } catch(exception& e) {
-      string msg = e.what();
-      msg += "\nval must be array for MatrixXcd. "+l;
-      throw(runtime_error(msg));
+      throw(runtime_error("value is not array for MatrixXcd"));
     }
     array& ary = val.get<array>();
     for(array::iterator it = ary.begin(); it != ary.end(); ++it) {
       try {
 	CheckValue<array>(*it, n);
       } catch(...) {
-	throw(runtime_error("element of val must be array for MatrixXi. "+l));
+	throw(runtime_error("element of value is not array for MatrixXcd."));
       }
       array& aryary = it->get<array>();
       if(n > 0) {
 	if(n != (int)aryary.size()) {
-	  throw(runtime_error("invalid size of element for MatrixXi. " + l));
+	  throw(runtime_error("invalid size of element for MatrixXcd."));
 	}
       }
       for(array::iterator jt = aryary.begin(); jt != aryary.end(); ++jt) {
 	try {
 	  CheckValue<dcomplex>(*jt);
 	} catch(...) {
-	  throw(runtime_error("element of element of val must be int for MatrixXi" + l));
+	  throw(runtime_error("element of element of value is not dcomplex for MatrixXcd"));
 	}
       }
     }  
+  }  
+  template<> int ReadJson<int>(value& json) {
+    return (int)json.get<double>();;
   }  
   template<> dcomplex ReadJson<dcomplex>(value& json) {
     dcomplex x(0);
@@ -230,16 +237,32 @@ namespace cbasis {
   }
   
   template<class T>
-  void CheckObject(picojson::object& obj, std::string k, int n, string l) {
+  void CheckObject(picojson::object& obj, std::string k, int n, int m) {
+    
+    string key = "key \"" + k + "\"";
     if(obj.find(k) == obj.end()) {
-      throw(runtime_error("key \"" + k + "\" not found"));
+      throw(runtime_error(key + " not found."));
     }
-    CheckValue<T>(obj[k], n, l);
+    
+    try {
+      CheckValue<T>(obj[k], n, m);
+    } catch(exception& e) {
+      string msg = "error on parsing value of " + key + "\n";
+      msg += e.what();
+      throw(runtime_error(msg));
+    }
   }
     
   template<> pSymmetryGroup ReadJson<pSymmetryGroup>( value& v) {
-    if(not v.is<string>())
-      throw(runtime_error("sym is string"));
+    
+    try {
+      CheckValue<string>(v);
+    } catch(exception& e) {
+      string msg = "error on parsing SymmetryGroup.\n";
+      msg += e.what();
+      throw(runtime_error(msg));
+    }
+    
     string sym = v.get<string>();
     
     if(sym == "C1")
@@ -251,52 +274,54 @@ namespace cbasis {
     else if(sym == "D2h")
       return SymmetryGroup::D2h();
     else
-      throw(runtime_error("sym must be C1,Cs,C2h or D2h"));
+      throw(runtime_error("error on parsing SymmetryGroup.\nsym must be C1,Cs,C2h or D2h"));
   }  
   template<> Molecule ReadJson<Molecule>(value& v) {
 
+    
     Molecule mole(new _Molecule());
-    if(v.is<array>()) {
+    try {
+      CheckValue<array>(v);
+      array& atoms = v.get<array>();
+      for(array::iterator it = atoms.begin(); it != atoms.end(); ++it) {
 
-      const array& atoms = v.get<array>();
-      for(array::const_iterator it = atoms.begin();
-	  it != atoms.end(); ++it) {
-
-	// -- each object --
-	if(not it->is<object>())
-	  throw(runtime_error("element of molecule object must be object"));
-	object atom = it->get<object>();
-
-	// -- xyz --
-	CheckObject<string>(atom, "name", 1, "molecule");
-	string name = atom["name"].get<string>();
-
-	CheckObject<VectorXcd>(atom, "xyz", 3, "molecule");
-	VectorXcd xyz = ReadJson<VectorXcd>(atom["xyz"]);
-
-	CheckObject<dcomplex>(atom, "q", 1, "molecule");
-	dcomplex q = ReadJson<dcomplex>(atom["q"]);
+	// -- check --
+	CheckValue<object>(*it);
+	CheckObject<string>(it->get<object>(), "name");
+	CheckObject<VectorXcd>(it->get<object>(), "xyz", 3);
+	CheckObject<dcomplex>(it->get<object>(), "q");
 
 	// -- build --
+	object atom = it->get<object>();
+	string name = atom["name"].get<string>();
+	VectorXcd xyz = ReadJson<VectorXcd>(atom["xyz"]);
+	dcomplex q = ReadJson<dcomplex>(atom["q"]);
 	mole->Add(name, xyz, q);
       }
+      
+    } catch(exception& e) {
+      string msg = "error on parsing Molecule\n";
+      msg += e.what();
+      throw(runtime_error(msg));
     }
+    
     return mole;
   }
   template<> Reduction ReadJson<Reduction>(picojson::value& json) {
-    
-    if(not json.is<object>()) 
-      throw(runtime_error("Reduction must be object"));
+
+    try {
+      CheckValue<object>(json);
+      object& obj = json.get<object>();
+      CheckObject<int>(obj, "irrep");
+      CheckObject<MatrixXcd>(obj, "coef");
+    } catch(exception& e) {
+      string msg = "error on parsing Reduction.\n";
+      msg += e.what();
+      throw(runtime_error(msg));      
+    }
 
     object& obj = json.get<object>();
-    
-    if(obj.find("irrep") == obj.end())
-      throw(runtime_error("irrep not found in Reduction"));
-
-    if(obj.find("coef") == obj.end())
-      throw(runtime_error("coef not found in Reduction"));
-
-    int irrep = (int)obj["irrep"].get<double>();
+    int irrep = ReadJson<int>(obj["irrep"]);
     MatrixXcd coef = ReadJson<MatrixXcd>(obj["coef"]);
     
     Reduction rds(irrep, coef);
@@ -305,20 +330,25 @@ namespace cbasis {
   }
   void ReadJson_SymGTOs_Subs_cart( object basis, SymGTOs gtos) {
 
-    string l("SymGTOs_cart");
+    try {
+      CheckObject<VectorXi>(basis, "ns", 3);
+      CheckObject<VectorXcd>(basis, "xyz", 3);
+      CheckObject<VectorXcd>(basis, "zeta");
+    } catch(exception& e) {
+      string msg = "error on parsing SymGTOs_Subs_cart.\n";
+      msg += e.what();
+      throw(runtime_error(msg));      
+    }    
     
     // -- pn --
-    CheckObject<VectorXi>(basis, "ns", 3, l+" ns");
     VectorXi _ns =  ReadJson<VectorXi>(basis["ns"]);
     Vector3i ns(_ns);
     
     // -- xyz --
-    CheckObject<VectorXcd>(basis, "xyz", 3, l + " xyz");
     VectorXcd _xyz = ReadJson<VectorXcd>(basis["xyz"]);
     Vector3cd xyz(_xyz);
 
     // -- zeta --
-    CheckObject<VectorXcd>(basis, "zeta", -1, l + " zeta");
     VectorXcd zeta =  ReadJson<VectorXcd>(basis["zeta"]);
 
     // -- build --    
@@ -328,58 +358,65 @@ namespace cbasis {
   }
   void ReadJson_SymGTOs_Subs_full( object basis, SymGTOs gtos) {
     
-    string l("SymGTOs_Subs_full");
+    try {
+      SubSymGTOs sub;
+      
+      CheckObject<array>(basis, "rds");
+      array& rds_list = basis["rds"].get<array>();
+      for(array::iterator it = rds_list.begin(); it != rds_list.end(); ++it) {
+	Reduction rds = ReadJson<Reduction>(*it);
+	sub.AddRds(rds);
+      }
 
-    SubSymGTOs sub;
-    
-    CheckObject<array>(basis, "rds", -1, l);
-    array& rds_list = basis["rds"].get<array>();
-    for(array::iterator it = rds_list.begin(); it != rds_list.end(); ++it) {
-      Reduction rds = ReadJson<Reduction>(*it);
-      sub.AddRds(rds);
-    }
+      CheckObject<MatrixXi>(basis, "ns", -1, 3);
+      MatrixXi ns = ReadJson<MatrixXi>(basis["ns"]);
+      for(int i = 0; i < ns.rows(); i++) {
+	sub.AddNs(ns(i, 0), ns(i, 1), ns(i, 2));
+      }
 
-    CheckObject<MatrixXi>(basis, "ns", 3, "SymGTOs_Subs_full");
-    MatrixXi ns = ReadJson<MatrixXi>(basis["ns"]);
-    for(int i = 0; i < ns.rows(); i++) {
-      sub.AddNs(ns(i, 0), ns(i, 1), ns(i, 2));
-    }
+      CheckObject<MatrixXcd>(basis, "xyz", -1, 3);
+      MatrixXcd xyz = ReadJson<MatrixXcd>(basis["xyz"]);
+      for(int i = 0; i < xyz.rows(); i++) {
+	sub.AddXyz(xyz(i, 0), xyz(i, 1), xyz(i, 2));
+      }
 
-    CheckObject<MatrixXcd>(basis, "xyz", 3, "SymGTOs_Subs_full");
-    MatrixXcd xyz = ReadJson<MatrixXcd>(basis["xyz"]);
-    for(int i = 0; i < ns.rows(); i++) {
-      sub.AddXyz(xyz(i, 0), xyz(i, 1), xyz(i, 2));
-    }
+      CheckObject<VectorXcd>(basis, "zeta", -1);
+      VectorXcd zeta = ReadJson<VectorXcd>(basis["zeta"]);
+      sub.AddZeta(zeta);
 
-    CheckObject<VectorXcd>(basis, "zeta", -1, "SymGTOs_Subs_full");
-    VectorXcd zeta = ReadJson<VectorXcd>(basis["zeta"]);
-    sub.AddZeta(zeta);
-    
-    gtos->AddSub(sub);
+      gtos->AddSub(sub);
+      
+    } catch(exception& e) {
+      string msg = "error on parsing SymGTOs_Subs_cart.\n";
+      msg += e.what();
+      throw(runtime_error(msg));      
+    }    
   }
   void ReadJson_SymGTOs_Subs(picojson::value& json, SymGTOs gtos) {
 
-    if(not json.is<array>())
-      throw runtime_error("json is not array");
-    const array& ary = json.get<array>();
-    
-    for(array::const_iterator it = ary.begin(); it != ary.end(); ++it) {
+    try {
+      CheckValue<array>(json);
+      array& ary = json.get<array>();
+      
+      for(array::iterator it = ary.begin(); it != ary.end(); ++it) {
 
-      // -- check object --
-      if(not it->is<object>())
-	throw(runtime_error("element of basis must be object"));
-      object basis = it->get<object>();
+	CheckValue<object>(*it);
+	object& basis = it->get<object>();
 
-      // -- type --
-      CheckObject<string>(basis, "type");
-      string type = basis["type"].get<string>();
+	CheckObject<string>(basis, "type");
+	string type = basis["type"].get<string>();
 
-      if(type == "cart")
-	ReadJson_SymGTOs_Subs_cart(basis, gtos);
-      else if(type == "full")
-	ReadJson_SymGTOs_Subs_full(basis, gtos);
-      else 
-	throw(runtime_error("now only type==cart is supported"));
+	if(type == "cart")
+	  ReadJson_SymGTOs_Subs_cart(basis, gtos);
+	else if(type == "full")
+	  ReadJson_SymGTOs_Subs_full(basis, gtos);
+	else 
+	  throw(runtime_error("unsupported type: " + type));
+      }
+    } catch(exception& e) {
+      string msg = "error on parsing SymGTOs_Subs\n";
+      msg += e.what();
+      throw runtime_error(msg);
     }
   }
 

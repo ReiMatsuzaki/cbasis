@@ -9,6 +9,7 @@
 using namespace std;
 using namespace Eigen;
 using namespace cbasis;
+using namespace picojson;
 
 void PrintHelp() {
   cout << "one_eig" << endl;
@@ -55,38 +56,41 @@ int main (int argc, char *argv[]) {
   
   ifstream f;
   f.open(argv[1], ios::in);
+  picojson::value json;  
   
-  picojson::value json;
-  f >> json;
-
-  // ==== check ====
-  PrintTimeStamp("Check", NULL);
-  CheckInput(json);
-  picojson::object& obj = json.get<picojson::object>();
-
   // ==== parse json ====
   PrintTimeStamp("Parse", NULL);
-
-  VectorXcd vec = ReadJson<VectorXcd>(obj["vec"]);
-  cout << vec << endl;
-  MatrixXcd mat = ReadJson<MatrixXcd>(obj["mat"]);
-  cout << mat << endl;
-  
-  pSymmetryGroup sym = ReadJson<pSymmetryGroup>(obj["sym"]);
-  Molecule mole = ReadJson<Molecule>(obj["molecule"]);
-  
+  pSymmetryGroup sym;
   SymGTOs gtos(new _SymGTOs());
-  ReadJson_SymGTOs_Subs(obj["basis"], gtos);
-  gtos->SetSym(sym);
-  gtos->SetMolecule(mole);
-  gtos->SetUp();
+  Molecule mole;
+  string json_out_name, eigvecs_out_name, eigvals_out_name;
 
-  picojson::object& out_obj = obj["out"].get<picojson::object>();
-  string json_out_name = out_obj["json"].get<string>();
-  string prefix = out_obj["prefix"].get<string>();
-  string eigvecs_out_name = prefix + "eigvecs.bin";
-  string eigvals_out_name = prefix + "eigvals.bin";
+  try {
+    f >> json;
+    CheckInput(json);
+    picojson::object& obj = json.get<picojson::object>();
 
+    // -- basis --
+    sym = ReadJson<pSymmetryGroup>(obj["sym"]);
+    mole = ReadJson<Molecule>(obj["molecule"]);
+    ReadJson_SymGTOs_Subs(obj["basis"], gtos);
+    gtos->SetSym(sym);
+    gtos->SetMolecule(mole);
+    gtos->SetUp();
+
+    // -- out --
+    object& out_obj = obj["out"].get<object>();
+    json_out_name = out_obj["json"].get<string>();
+    string prefix = out_obj["prefix"].get<string>();
+    eigvecs_out_name = prefix + "eigvecs.bin";
+    eigvals_out_name = prefix + "eigvals.bin";    
+    
+  } catch(exception& e) {
+    string msg = "error on parsing json\n";
+    msg += e.what();
+    cerr << msg << endl;
+    exit(1);
+  }
   cout << gtos->str() << endl;
 
   // ==== calculation ====
