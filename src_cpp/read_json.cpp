@@ -359,10 +359,14 @@ namespace cbasis {
   void ReadJson_SymGTOs_Subs_cart( object basis, SymGTOs gtos) {
 
     try {
+      Molecule mole = gtos->GetMolecule();
+      
       // -- pn --
       Vector3i ns(ReadJson<VectorXi>(basis, "ns", -1, 3));
 
       // -- xyz --
+      string atom_name = ReadJson<string>(basis["atom"]);
+      
       Vector3cd xyz(ReadJson<VectorXcd>(basis["xyz"], -1, 3));
 
       // -- zeta --
