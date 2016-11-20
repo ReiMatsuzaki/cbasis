@@ -164,11 +164,38 @@ namespace cbasis {
 	}
       }
     }  
+  }
+  template<class T>
+  void CheckObject(picojson::object& obj, std::string k, int n, int m) {
+    
+    string key = "key \"" + k + "\"";
+    if(obj.find(k) == obj.end()) {
+      throw(runtime_error(key + " not found."));
+    }
+    
+    try {
+      CheckValue<T>(obj[k], n, m);
+    } catch(exception& e) {
+      string msg = "error on parsing value of " + key + "\n";
+      msg += e.what();
+      throw(runtime_error(msg));
+    }
+  }
+
+  template<> string ReadJson<string>(value& json, int n, int m) {
+    CheckValue<string>(json);
+    return json.get<string>();
+  }
+  template<> double ReadJson<double>(value& json, int n, int m) {
+    CheckValue<double>(json);
+    return json.get<double>();
   }  
-  template<> int ReadJson<int>(value& json) {
+  template<> int ReadJson<int>(value& json, int n, int m) {
+    CheckValue<int>(json, n, m);
     return (int)json.get<double>();;
   }  
-  template<> dcomplex ReadJson<dcomplex>(value& json) {
+  template<> dcomplex ReadJson<dcomplex>(value& json, int n, int m) {
+    CheckValue<dcomplex>(json);
     dcomplex x(0);
     if(json.is<double>()) {
       x = json.get<double>();
@@ -178,7 +205,9 @@ namespace cbasis {
     }   
     return x;
   }  
-  template<> VectorXcd ReadJson<VectorXcd>(value& json) {
+  template<> VectorXcd ReadJson<VectorXcd>(value& json, int n, int m) {
+
+    CheckValue<VectorXcd>(json, n);
     
     array& ary = json.get<array>();
     VectorXcd vec = VectorXcd::Zero(ary.size());
@@ -188,8 +217,8 @@ namespace cbasis {
     }
     return vec;
   }
-  template<> MatrixXcd ReadJson<MatrixXcd>(value& json) {
-
+  template<> MatrixXcd ReadJson<MatrixXcd>(value& json, int _n, int _m) {
+    CheckValue<MatrixXcd>(json, _n, _m);
     array& ary = json.get<array>();
     int n(0), m(0);
     n = ary.size();
@@ -206,8 +235,8 @@ namespace cbasis {
     
     return mat;
   }
-  template<> VectorXi ReadJson<VectorXi>(value& json) {
-    
+  template<> VectorXi ReadJson<VectorXi>(value& json, int n, int m) {
+    CheckValue<VectorXi>(json, n);
     array& ary = json.get<array>();
     VectorXi vec = VectorXi::Zero(ary.size());
 
@@ -218,8 +247,8 @@ namespace cbasis {
     
     return vec;
   }  
-  template<> MatrixXi ReadJson<MatrixXi>(value& json) {
-
+  template<> MatrixXi ReadJson<MatrixXi>(value& json, int _n, int _m) {
+    CheckValue<MatrixXi>(json, _n, _m);
     array& ary = json.get<array>();
     int n(0), m(0);
     n = ary.size();
@@ -237,33 +266,42 @@ namespace cbasis {
   }
   
   template<class T>
-  void CheckObject(picojson::object& obj, std::string k, int n, int m) {
-    
-    string key = "key \"" + k + "\"";
-    if(obj.find(k) == obj.end()) {
-      throw(runtime_error(key + " not found."));
+  T ReadJson(object& json, string key, int n, int m) {
+    if(json.find(key) == json.end()) {
+      throw runtime_error("key \"" + key + "\" not found");
     }
-    
-    try {
-      CheckValue<T>(obj[k], n, m);
-    } catch(exception& e) {
-      string msg = "error on parsing value of " + key + "\n";
-      msg += e.what();
-      throw(runtime_error(msg));
+    return ReadJson<T>(json[key], n, m);
+  }
+
+  template<>
+  value ToJson<dcomplex>(dcomplex& x) {
+    double eps(0.000000000000001);
+    if(abs(x.imag()) < eps ) {
+      double re_x(x.real());
+      return value(re_x);
+    } else {
+      array xs(2);
+      xs[0] = value(x.real());
+      xs[1] = value(x.imag());
+      return value(xs);
     }
   }
-    
-  template<> pSymmetryGroup ReadJson<pSymmetryGroup>( value& v) {
-    
+  template<>
+  value ToJson<int>(int& x) {
+    double y(x);
+    return value(y);
+  }  
+  
+  template<> pSymmetryGroup ReadJson<pSymmetryGroup>( value& v, int n, int m) {
+
+    string sym;
     try {
-      CheckValue<string>(v);
+      sym = ReadJson<string>(v);
     } catch(exception& e) {
       string msg = "error on parsing SymmetryGroup.\n";
       msg += e.what();
       throw(runtime_error(msg));
     }
-    
-    string sym = v.get<string>();
     
     if(sym == "C1")
       return SymmetryGroup::C1();
@@ -276,8 +314,7 @@ namespace cbasis {
     else
       throw(runtime_error("error on parsing SymmetryGroup.\nsym must be C1,Cs,C2h or D2h"));
   }  
-  template<> Molecule ReadJson<Molecule>(value& v) {
-
+  template<> Molecule ReadJson<Molecule>(value& v, int n, int m) {
     
     Molecule mole(new _Molecule());
     try {
@@ -285,17 +322,12 @@ namespace cbasis {
       array& atoms = v.get<array>();
       for(array::iterator it = atoms.begin(); it != atoms.end(); ++it) {
 
-	// -- check --
-	CheckValue<object>(*it);
-	CheckObject<string>(it->get<object>(), "name");
-	CheckObject<VectorXcd>(it->get<object>(), "xyz", 3);
-	CheckObject<dcomplex>(it->get<object>(), "q");
-
 	// -- build --
-	object atom = it->get<object>();
-	string name = atom["name"].get<string>();
-	VectorXcd xyz = ReadJson<VectorXcd>(atom["xyz"]);
-	dcomplex q = ReadJson<dcomplex>(atom["q"]);
+	CheckValue<object>(*it);
+	object& atom = it->get<object>();
+	string name = ReadJson<string>(atom, "name");
+	VectorXcd xyz = ReadJson<VectorXcd>(atom, "xyz");
+	dcomplex q = ReadJson<dcomplex>(atom, "q");
 	mole->Add(name, xyz, q);
       }
       
@@ -307,53 +339,44 @@ namespace cbasis {
     
     return mole;
   }
-  template<> Reduction ReadJson<Reduction>(picojson::value& json) {
+  template<> Reduction ReadJson<Reduction>(picojson::value& json, int n, int m) {
 
     try {
       CheckValue<object>(json);
       object& obj = json.get<object>();
-      CheckObject<int>(obj, "irrep");
-      CheckObject<MatrixXcd>(obj, "coef");
+      int irrep = ReadJson<int>(obj, "irrep");
+      MatrixXcd coef = ReadJson<MatrixXcd>(obj, "coef");
+      Reduction rds(irrep, coef);
+      return rds;
+
     } catch(exception& e) {
       string msg = "error on parsing Reduction.\n";
       msg += e.what();
       throw(runtime_error(msg));      
     }
-
-    object& obj = json.get<object>();
-    int irrep = ReadJson<int>(obj["irrep"]);
-    MatrixXcd coef = ReadJson<MatrixXcd>(obj["coef"]);
-    
-    Reduction rds(irrep, coef);
-    return rds;
     
   }
   void ReadJson_SymGTOs_Subs_cart( object basis, SymGTOs gtos) {
 
     try {
-      CheckObject<VectorXi>(basis, "ns", 3);
-      CheckObject<VectorXcd>(basis, "xyz", 3);
-      CheckObject<VectorXcd>(basis, "zeta");
+      // -- pn --
+      Vector3i ns(ReadJson<VectorXi>(basis, "ns", -1, 3));
+
+      // -- xyz --
+      Vector3cd xyz(ReadJson<VectorXcd>(basis["xyz"], -1, 3));
+
+      // -- zeta --
+      VectorXcd zeta =  ReadJson<VectorXcd>(basis["zeta"]);
+
+      // -- build --    
+      SubSymGTOs sub(Sub_mono(0, xyz, ns, zeta));
+      gtos->AddSub(sub);
+
     } catch(exception& e) {
       string msg = "error on parsing SymGTOs_Subs_cart.\n";
       msg += e.what();
       throw(runtime_error(msg));      
     }    
-    
-    // -- pn --
-    VectorXi _ns =  ReadJson<VectorXi>(basis["ns"]);
-    Vector3i ns(_ns);
-    
-    // -- xyz --
-    VectorXcd _xyz = ReadJson<VectorXcd>(basis["xyz"]);
-    Vector3cd xyz(_xyz);
-
-    // -- zeta --
-    VectorXcd zeta =  ReadJson<VectorXcd>(basis["zeta"]);
-
-    // -- build --    
-    SubSymGTOs sub(Sub_mono(0, xyz, ns, zeta));
-    gtos->AddSub(sub);
 
   }
   void ReadJson_SymGTOs_Subs_full( object basis, SymGTOs gtos) {
@@ -368,19 +391,16 @@ namespace cbasis {
 	sub.AddRds(rds);
       }
 
-      CheckObject<MatrixXi>(basis, "ns", -1, 3);
       MatrixXi ns = ReadJson<MatrixXi>(basis["ns"]);
       for(int i = 0; i < ns.rows(); i++) {
 	sub.AddNs(ns(i, 0), ns(i, 1), ns(i, 2));
       }
 
-      CheckObject<MatrixXcd>(basis, "xyz", -1, 3);
       MatrixXcd xyz = ReadJson<MatrixXcd>(basis["xyz"]);
       for(int i = 0; i < xyz.rows(); i++) {
 	sub.AddXyz(xyz(i, 0), xyz(i, 1), xyz(i, 2));
       }
 
-      CheckObject<VectorXcd>(basis, "zeta", -1);
       VectorXcd zeta = ReadJson<VectorXcd>(basis["zeta"]);
       sub.AddZeta(zeta);
 
@@ -404,7 +424,7 @@ namespace cbasis {
 	object& basis = it->get<object>();
 
 	CheckObject<string>(basis, "type");
-	string type = basis["type"].get<string>();
+	string type = ReadJson<string>(basis, "type");
 
 	if(type == "cart")
 	  ReadJson_SymGTOs_Subs_cart(basis, gtos);

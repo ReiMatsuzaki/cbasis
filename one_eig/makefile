@@ -29,7 +29,8 @@ OBJS=one_eig.o read_json.o symmolint.o molecule.o one_int.o two_int.o symgroup.o
 ${BINDIR}/one_eig: $(foreach o, ${OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${LIBS} -lgsl -lgslcblas
 check: ${BINDIR}/one_eig
-	./$^ one_eig.in.json
+	./$^ h2plus.json
+#	./$^ h2plus_small.json
 
 ## ==== Basic command ====
 clean:

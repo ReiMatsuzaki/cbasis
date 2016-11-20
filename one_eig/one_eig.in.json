@@ -1,4 +1,5 @@
 {
+    "comment": "test",
     "vec" : [1.1, [1.2,0.1], 1.3],
     "mat" : [[1.1, 1.2, 1.3],
 	     [1.2, 2.2, 2.3]],
@@ -13,7 +14,8 @@
     "molecule" : [
 	{"name": "H", "xyz": [0.1,0.2,0.3], "q": 1.0},
 	{"name": "H1", "xyz": [-0.1,-0.2,-0.3], "q": 1.0}],
-    "out" : {"json": "out/one_eig.out.json",
-	     "prefix": "out/"}
+    "out_json" : "one_eig.out.json",
+    "out_eigvecs": "eigvecs.bin",
+    "out_eigvals": "eigvals.bin"
 } 
 

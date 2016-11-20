@@ -4,6 +4,9 @@ using namespace std;
 using namespace Eigen;
 
 namespace cbasis {
+  void _Molecule::Add(Eigen::Vector3cd at, dcomplex q) {
+    this->Add("", at, q);
+  }
   void _Molecule::Add(string name, Vector3cd at, dcomplex q) {
     Atom atom = {name, at, q};
     atoms.push_back(atom);

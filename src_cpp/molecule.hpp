@@ -30,6 +30,7 @@ namespace cbasis {
     dcomplex& q(int i) { return this->atoms[i].q; }
     const dcomplex& q(int i) const { return this->atoms[i].q; }
     int size() const { return atoms.size(); }
+    void Add(Eigen::Vector3cd at, dcomplex q);
     void Add(std::string name, Eigen::Vector3cd at, dcomplex q);
     std::string str() const;
   };

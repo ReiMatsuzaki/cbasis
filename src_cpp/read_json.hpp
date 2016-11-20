@@ -17,7 +17,11 @@ namespace cbasis {
   void ReadJson_SymGTOs_Subs(picojson::value& json, SymGTOs gtos);
 
   template<class T>
-  T ReadJson(picojson::value& json);
+  T ReadJson(picojson::value& json, int n=-1, int m=-1);
+  template<class T>
+  T ReadJson(picojson::object& obj, std::string, int n=-1, int m=-1);
 
+  template<class T>
+  picojson::value ToJson(T& t);
 }
 

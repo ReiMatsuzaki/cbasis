@@ -8,7 +8,7 @@
 #include "one_int.hpp"
 #include "two_int.hpp"
 #include "symmolint.hpp"
-#include "symgtos_io.hpp"
+#include "read_json.hpp"
 
 using namespace std;
 using namespace cbasis;
@@ -276,7 +276,7 @@ TEST(SubSymGTOs, SolidSH) {
   
   Vector3cd xyz(0.1, 0.2, 0.3);
   Molecule mole(new _Molecule());
-  mole->Add(xyz, 1.0);
+  mole->Add("H", xyz, 1.0);
 
   SymGTOs gtos = CreateSymGTOs();
   gtos->SetMolecule(mole);
@@ -308,7 +308,7 @@ void test_SymGTOsOneInt(CartGTO a, Vector3cd at, CartGTO b) {
   pSymmetryGroup sym = SymmetryGroup::C1();
 
   Molecule mole(new _Molecule());
-  mole->Add(at, 1.0);
+  mole->Add("H", at, 1.0);
 
   SubSymGTOs sub_a;
   sub_a.AddXyz(Vector3cd(a.x, a.y, a.z));
@@ -426,7 +426,7 @@ TEST(SymGTOsMatrix, OneInt) {
 void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
 
   pSymmetryGroup sym = SymmetryGroup::C1();
-  Molecule mole(new _Molecule()); mole->Add(at, 1.0);
+  Molecule mole(new _Molecule()); mole->Add("H", at, 1.0);
 
   // Build SymGTOs
   SubSymGTOs sub_a;
@@ -894,7 +894,7 @@ TEST(SymGTOs, CalcMatOther) {
 
   // -- potential --
   Molecule mole(new _Molecule());
-  mole->Add(Vector3cd::Zero(), 1.0);
+  mole->Add("A", Vector3cd::Zero(), 1.0);
   gtos_full->SetMolecule(mole);
   gtos_1->SetMolecule(mole);
   gtos_2->SetMolecule(mole);
@@ -931,7 +931,7 @@ TEST(SymGTOs, conjugate) {
 
   // -- potential --
   Molecule mole(new _Molecule());
-  mole->Add(Vector3cd::Zero(), 1.0);
+  mole->Add("AB", Vector3cd::Zero(), 1.0);
   gtos_1->SetMolecule(mole);
   gtos_2->SetMolecule(mole);
   
@@ -963,7 +963,7 @@ TEST(SymGTOs, hatom) {
   pSymmetryGroup C1 = SymmetryGroup::C1();
 
   Molecule mole(new _Molecule());
-  mole->Add(Vector3cd(0, 0, 0), 1.0);
+  mole->Add("H", Vector3cd(0, 0, 0), 1.0);
   
   int n0(7);
   VectorXcd zeta(n0+n0);
@@ -984,14 +984,32 @@ TEST(SymGTOs, hatom) {
 	cout << e.what() << endl;
 	cout << "L,M = " << L << "," << M << endl;
       }
-
+      if(L == 0 && M == 0) {
+	cout << gtos->str() << endl;
+      }
+      /*
       BMatSet mat = CalcMat_Complex(gtos, true);  
       MatrixXcd h = mat->GetMatrix("t", 0, 0) + mat->GetMatrix("v", 0, 0);
       MatrixXcd s = mat->GetMatrix("s", 0, 0);
-
       MatrixXcd C;
       VectorXcd eig;
       generalizedComplexEigenSolve(h, s, &C, &eig);
+      */
+      
+      BMat S, H, T, V;
+      gtos->InitBMat(0, &S); gtos->InitBMat(0, &T); gtos->InitBMat(0, &V);
+      //gtos->InitBMat(0, &C); gtos->InitBVec(&E);
+      CalcSTVMat(gtos, gtos, &S, &T, &V);
+      MatrixXcd h = T(0, 0) + V(0, 0);
+      MatrixXcd s = S(0, 0);
+      SymGenComplexEigenSolver solver(h, s);
+      VectorXcd eig = solver.eigenvalues();
+      MatrixXcd C = solver.eigenvectors();
+      if(L==0 && M==0) {
+	cout << "ele = " << T(0,0)(1,0)<<V(0,0)(1,0)<<s(1,0) << endl;
+	cout << eig << endl;
+      }
+
       int n = L+1;
       EXPECT_C_NEAR(eig[0], -1.0/(2.0*n*n), 0.001) <<
 	"L="<<L<<endl<<
@@ -1054,8 +1072,8 @@ TEST(CompareCColumbus, small_h2) {
   gtos->AddSub(sub_p_cen);
 
   Molecule mole(new _Molecule());
-  mole->Add(Vector3cd(0, 0, +R0/2), 1.0);
-  mole->Add(Vector3cd(0, 0, -R0/2), 1.0);
+  mole->Add("A", Vector3cd(0, 0, +R0/2), 1.0);
+  mole->Add("B", Vector3cd(0, 0, -R0/2), 1.0);
   gtos->SetMolecule(mole);
   gtos->SetUp();
 
@@ -1134,7 +1152,7 @@ TEST(CompareCColumbus, small_he) {
   gtos->AddSub(sub_s);
   gtos->AddSub(sub_z);
   Molecule mole(new _Molecule());
-  mole->Add(Vector3cd::Zero(), 2.0);
+  mole->Add("He", Vector3cd::Zero(), 2.0);
   gtos->SetMolecule(mole);
   gtos->SetUp();
 
@@ -1234,8 +1252,8 @@ TEST(CompareCColumbus, small_h2_2) {
 
   // mole
   Molecule mole(new _Molecule());
-  mole->Add(Vector3cd(0, 0, +R0/2.0), 1.0);
-  mole->Add(Vector3cd(0, 0, -R0/2.0), 1.0);
+  mole->Add("A", Vector3cd(0, 0, +R0/2.0), 1.0);
+  mole->Add("B", Vector3cd(0, 0, -R0/2.0), 1.0);
 
   // GTO set
   SymGTOs gtos(new _SymGTOs);
@@ -1362,6 +1380,7 @@ TEST(H2Plus, energy) {
   VectorXcd eig;
   generalizedComplexEigenSolve(h, s, &c, &eig);
   cout << eig << endl;
+  // (-1.27412,5.10968e-12)
 
 }
 TEST(H2Plus, matrix) {
@@ -1473,13 +1492,6 @@ TEST(ExceptCheck, OneInt) {
     cout << e.what() << endl;
     throw runtime_error("exception!");
   }
-}
-TEST(SymGTOs_io, first) {
-  //  string json = "{\"player\": \"mamm\" }";
-
-  SymGTOs gtos(new _SymGTOs());
-  SymGTOsReadFile(gtos, "sample_gtos.json");
-  cout << gtos->str() << endl;
 }
 
 int main(int argc, char **args) {

@@ -14,39 +14,6 @@ using namespace picojson;
 void PrintHelp() {
   cout << "one_eig" << endl;
 }
-void CheckInput(picojson::value& json) {
-
-  if(not json.is<picojson::object>()) {
-    cerr << "json is not object" << endl;
-    exit(1);
-  }
-
-  // ==== Key check ====
-  picojson::object& obj = json.get<picojson::object>();
-
-  if(obj.find("sym") == obj.end()) {
-    cerr << "sym not found" << endl; exit(1);
-  }
-  if(obj.find("basis") == obj.end()) {
-    cerr << "basis not found" << endl; exit(1);
-  }
-  if(obj.find("molecule") == obj.end()) {
-    cerr << "molecule not found" << endl; exit(1);
-  }
-  if(obj.find("out") == obj.end()) {
-    cerr << "out not found" << endl; exit(1);
-  }
-  if(not obj["out"].is<picojson::object>()) {
-    cerr << "out must be object" << endl; exit(1);
-  }
-  picojson::object& out_obj = obj["out"].get<picojson::object>();
-  if(out_obj.find("json") == out_obj.end()) {
-    cerr << "out must contain json" << endl; exit(1);
-  }
-  if(out_obj.find("prefix") == out_obj.end()) {
-    cerr << "out must contain prefix" << endl; exit(1);
-  } 
-}
 int main (int argc, char *argv[]) {
 
   if(argc == 1) {
@@ -57,20 +24,22 @@ int main (int argc, char *argv[]) {
   ifstream f;
   f.open(argv[1], ios::in);
   picojson::value json;  
-  
+  cout << ">>>> one_eig >>>>" << endl;
   // ==== parse json ====
   PrintTimeStamp("Parse", NULL);
   pSymmetryGroup sym;
   SymGTOs gtos(new _SymGTOs());
   Molecule mole;
-  string json_out_name, eigvecs_out_name, eigvals_out_name;
+  string comment, out_json, out_eigvecs, out_eigvals;
 
   try {
     f >> json;
-    CheckInput(json);
     picojson::object& obj = json.get<picojson::object>();
 
-    // -- basis --
+    // -- Comment --
+    comment = ReadJson<string>(obj, "comment");
+
+    // -- Basis --
     sym = ReadJson<pSymmetryGroup>(obj["sym"]);
     mole = ReadJson<Molecule>(obj["molecule"]);
     ReadJson_SymGTOs_Subs(obj["basis"], gtos);
@@ -79,11 +48,9 @@ int main (int argc, char *argv[]) {
     gtos->SetUp();
 
     // -- out --
-    object& out_obj = obj["out"].get<object>();
-    json_out_name = out_obj["json"].get<string>();
-    string prefix = out_obj["prefix"].get<string>();
-    eigvecs_out_name = prefix + "eigvecs.bin";
-    eigvals_out_name = prefix + "eigvals.bin";    
+    out_json = ReadJson<string>(obj, "out_json");
+    out_eigvecs =ReadJson<string>(obj, "out_eigvecs");
+    out_eigvals =ReadJson<string>(obj, "out_eigvals");    
     
   } catch(exception& e) {
     string msg = "error on parsing json\n";
@@ -91,7 +58,12 @@ int main (int argc, char *argv[]) {
     cerr << msg << endl;
     exit(1);
   }
-  cout << gtos->str() << endl;
+  cout << "comment: " << comment << endl;
+  cout << "in_json: " << argv[1] << endl;
+  cout << "out_json: " << out_json << endl;
+  cout << "out_eigvecs: " << out_eigvecs << endl;
+  cout << "out_eigvals: " << out_eigvals << endl;
+  cout << "gtos: " << endl << gtos->str() << endl;
 
   // ==== calculation ====
   PrintTimeStamp("Calc", NULL);
@@ -103,24 +75,31 @@ int main (int argc, char *argv[]) {
   CalcSTVMat(gtos, gtos, &S, &T, &V);  
 
   for(int irrep = 0; irrep < sym->order(); irrep++) {
-    MatrixXcd h = -0.5 * T(irrep, irrep) + V(irrep, irrep);
-    MatrixXcd s = S(irrep, irrep);
-    SymGenComplexEigenSolver solver(h, s);
-    E(irrep) = solver.eigenvalues();
-    C(irrep, irrep) = solver.eigenvectors();
+    if(gtos->size_basis_isym(irrep) != 0) {
+      MatrixXcd h = T(irrep, irrep) + V(irrep, irrep);
+      MatrixXcd s = S(irrep, irrep);
+      SymGenComplexEigenSolver solver(h, s);
+      E(irrep) = solver.eigenvalues();
+      C(irrep, irrep) = solver.eigenvectors();
+    }
   }
   
   // ==== output ====
   PrintTimeStamp("Out", NULL);
   cout << "E0 = " << E(0)(0) << endl;
-  E.Write(eigvals_out_name);
-  C.Write(eigvecs_out_name);
-  picojson::object out;
-  out["in_json"] = picojson::value(argv[1]);
-  out["eigvals"] = picojson::value(eigvals_out_name);
-  out["eigvecs"] = picojson::value(eigvecs_out_name);
-  picojson::value out_val(out);
-  ofstream of(json_out_name.c_str(), ios::out);
-  of << out_val.serialize();
+  E.Write(out_eigvals);
+  C.Write(out_eigvecs);
   
+  picojson::object out;
+  out["comment"] = picojson::value(comment);
+  out["in_json"] = picojson::value(argv[1]);
+  out["out_eigvals"] = picojson::value(out_eigvals);
+  out["out_eigvecs"] = picojson::value(out_eigvecs);
+  out["E0"] = ToJson(E(0)(0));
+  int irrep0(0);
+  out["irrep0"] = ToJson(irrep0);
+  picojson::value out_val(out);
+  ofstream of(out_json.c_str(), ios::out);
+  of << out_val.serialize();
+  cout << "<<<< one_eig <<<<" << endl;
 }
