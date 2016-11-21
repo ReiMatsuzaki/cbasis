@@ -43,6 +43,9 @@ VectorXcd v3cd(dcomplex v0, dcomplex v1, dcomplex v2) {
   return vec;
 }
 
+dcomplex TDot(const VectorXcd& xs, const VectorXcd& ys) {
+  return (xs.array() * ys.array()).sum();
+}
 double TakeReal(dcomplex x) {
   return x.real();
 }

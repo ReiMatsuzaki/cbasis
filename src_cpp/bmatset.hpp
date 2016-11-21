@@ -30,7 +30,7 @@ namespace cbasis {
     const_iterator end() const { return map_.end(); }
     void set_name(std::string _name) { name_ = _name; }
     std::string get_name() const { return name_; }
-    bool has_irrep(int irrep) { return map_.find(irrep) != map_.end(); }
+    bool has_block(int irrep) { return map_.find(irrep) != map_.end(); }
     int size() const { return map_.size(); }
     Eigen::VectorXcd& at(int irrep) {return map_[irrep];}
     const Eigen::VectorXcd& at(int irrep) const {return map_.find(irrep)->second;}    
@@ -108,7 +108,6 @@ namespace cbasis {
     std::string str() const;
   };
   typedef boost::shared_ptr<_BMatSet> BMatSet;
-  void swap(BMat& a, BMat& b);
 }
 
 #endif

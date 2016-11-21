@@ -22,6 +22,9 @@ namespace cbasis {
       throw runtime_error(msg);
     }
 
+    int id(6677);
+    f.write((char*)&id, sizeof(int));
+    
     int num = this->size();
     f.write((char*)&num, sizeof(int));
 
@@ -41,14 +44,22 @@ namespace cbasis {
     
     if(!f) {
       string msg; SUB_LOCATION(msg);
-      msg = "\n" + msg + "file not found";
+      msg = "\n" + msg + "file not found. filename: " + filename;
+      throw runtime_error(msg);
+    }
+
+    int id;
+    f.read((char*)&id, sizeof(int));
+    if(id != 6677) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + ": invalid format. filename: " + filename;
       throw runtime_error(msg);
     }
 
     int num;
     f.read((char*)&num, sizeof(int));
     for(int i = 0; i < num; i++) {
-
+      
       int irrep, n;
       f.read((char*)&irrep, sizeof(int));
       f.read((char*)&n, sizeof(int));
@@ -72,6 +83,7 @@ namespace cbasis {
       os << "irrep = " << irrep << endl;
       os << vec << endl;
     }
+    os << "==============" << endl;
     return os;
   }
   
@@ -85,6 +97,8 @@ namespace cbasis {
       throw runtime_error(msg);
     }
 
+    int id(668778);
+    f.write((char*)&id, sizeof(int));
     int num = this->size();
     f.write((char*)&num, sizeof(int));
 
@@ -110,14 +124,22 @@ namespace cbasis {
     
     if(!f) {
       string msg; SUB_LOCATION(msg);
-      msg = "\n" + msg + "file not found";
+      msg = "\n" + msg + "file not found. filename: " + filename;
       throw runtime_error(msg);
     }
 
+    int id;
+    f.read((char*)&id, sizeof(int));
+    if(id != 668778) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + "invalid format. filename: "+filename;
+      throw runtime_error(msg);
+    }
+    
     int num;
     f.read((char*)&num, sizeof(int));
     for(int i = 0; i < num; i++) {
-
+      
       int irrep, jrrep, n, m;
       f.read((char*)&irrep, sizeof(int));
       f.read((char*)&jrrep, sizeof(int));
@@ -139,6 +161,7 @@ namespace cbasis {
     os << "==== BMat ====" << endl;
     os << "Block matrix object" << endl;
     os << "name: " << a.get_name() << endl;
+    os << "non0_block: " << a.size() << endl;
     for(BMat::const_iterator it = a.begin(); it != a.end(); ++it) {
       BMat::Key key = it->first;
       int irrep = key.first;
@@ -147,6 +170,7 @@ namespace cbasis {
       os << "(irrep, jrrep) = (" << irrep << ", " << jrrep << ")" << endl;
       os << mat << endl;
     }
+    os << "==============" << endl;
     return os;
   }
   
@@ -159,16 +183,23 @@ namespace cbasis {
       msg += ": file not found";
       throw runtime_error(msg);
     }
-
+    
+    int id;
+    f.read((char*)&id, sizeof(int));
+    if(id != 8371) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + ": invalid format";
+      throw runtime_error(msg);
+    }
     int num;
     f.read((char*)&num, sizeof(int));
     for(int i = 0; i < num; i++) {
-
       int irrep, jrrep, n, m;
       f.read((char*)&irrep, sizeof(int));
       f.read((char*)&jrrep, sizeof(int));
       f.read((char*)&n, sizeof(int));
       f.read((char*)&m, sizeof(int));
+      
       MatrixXcd M(n, m);
       for(int i = 0; i < n; i++) {
 	for(int j = 0; j < m; j++) {
@@ -180,7 +211,6 @@ namespace cbasis {
       bmat[make_pair(irrep, jrrep)] = MatrixXcd::Zero(1, 1);
       bmat[make_pair(irrep, jrrep)].swap(M);
     }
-
   }
   void BMatWrite(BMat::Map& bmat, string fn) {
 
@@ -191,7 +221,8 @@ namespace cbasis {
       string msg; SUB_LOCATION(msg); msg+=": file not found";
       throw runtime_error(msg);
     }
-
+    int id(8371);
+    f.write((char*)&id, sizeof(int));
     int num = bmat.size();
     f.write((char*)&num, sizeof(int));
 

@@ -25,12 +25,15 @@ ${BINDIR}/%.o: %.cpp
 
 ## ==== MAIN ====
 ## -- one_eig --
-OBJS=one_eig.o read_json.o symmolint.o molecule.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o timestamp.o
+OBJS=one_driv.o read_json.o symmolint.o molecule.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o timestamp.o
 ${BINDIR}/one_eig: $(foreach o, ${OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${LIBS} -lgsl -lgslcblas
 check: ${BINDIR}/one_eig
-#	./$^ hatom.json
-	./$^ h2plus.json; echo "reference is -1.1026342144949"; cat out.json
+	../one_eig/bin/fast/one_eig hatom0.json
+	./$^ hatom.json
+	cat cs.csv
+	@echo reference value at w=1 at length are 0.954
+#	./$^ h2plus.json; echo "reference is -1.1026342144949"
 #	./$^ h2plus_small.json
 
 ## ==== Basic command ====

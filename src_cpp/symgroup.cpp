@@ -61,7 +61,16 @@ namespace cbasis {
     else
       return 0;
   }
+  Vector3cd ISymOp::OpPos(const Vector3cd& x) {
+    PrimGTO gto_x(0, 0, 0,  x[0], x[1], x[2]);
+    PrimGTO gto_y;
+    int sig;
+    bool is_prim;
+    this->getOp(gto_x, &gto_y, &sig, &is_prim);
 
+    Vector3cd res(gto_y.x, gto_y.y, gto_y.z);
+    return res;
+  }
   // ---- Mult ----
   Mult::Mult(SymOp _sym_op, int _mult) {
     sym_op = _sym_op;
@@ -289,7 +298,7 @@ namespace cbasis {
   }
 
   // ==== Symmmetry Group ====
-  SymmetryGroup::SymmetryGroup(int num_class, string name, int id_num):
+  _SymmetryGroup::_SymmetryGroup(int num_class, string name, int id_num):
     name_(name),
     id_num_(id_num),
     prod_table_(num_class * num_class * num_class) {
@@ -308,32 +317,36 @@ namespace cbasis {
       }
     
   }
-  void SymmetryGroup::CheckIrrep(Irrep a) {
+  void _SymmetryGroup::CheckIrrep(Irrep a) {
     if(a < 0 || this->order() <= a) {
+      ostringstream oss;
       std::string msg; SUB_LOCATION(msg);
-      throw runtime_error(msg);
+      oss << endl << msg << "irrep: " << a << endl;
+      oss << "this:" << endl;
+      oss << this->str() << endl;
+      throw runtime_error(oss.str());
     }
   }
-  bool SymmetryGroup::IsSame(pSymmetryGroup o) {
+  bool _SymmetryGroup::IsSame(SymmetryGroup o) {
     return this->id_num() == o->id_num();
   }
-  bool SymmetryGroup::Non0_Scalar(Irrep a, Irrep b) {
+  bool _SymmetryGroup::Non0_Scalar(Irrep a, Irrep b) {
     this->CheckIrrep(a);
     this->CheckIrrep(b);
     return this->prod_table_(a, b, this->irrep_s);
   }
-  bool SymmetryGroup::Non0_Z(Irrep a, Irrep b) {
+  bool _SymmetryGroup::Non0_Z(Irrep a, Irrep b) {
     this->CheckIrrep(a);
     this->CheckIrrep(b);
     return this->prod_table_(a, b, this->irrep_z);
   }
-  bool SymmetryGroup::Non0_3(Irrep a, Irrep b, Irrep c) {
+  bool _SymmetryGroup::Non0_3(Irrep a, Irrep b, Irrep c) {
     this->CheckIrrep(a);
     this->CheckIrrep(b);
     this->CheckIrrep(c);
     return this->prod_table_(a, b, c);
   }
-  bool SymmetryGroup::Non0_4(Irrep a, Irrep b, Irrep c, Irrep d) {
+  bool _SymmetryGroup::Non0_4(Irrep a, Irrep b, Irrep c, Irrep d) {
     this->CheckIrrep(a);
     this->CheckIrrep(b);
     this->CheckIrrep(c);
@@ -346,7 +359,7 @@ namespace cbasis {
     }
     return find_non0;
   }
-  void SymmetryGroup::CalcSymMatrix(const vector<PrimGTO>& gtos,
+  void _SymmetryGroup::CalcSymMatrix(const vector<PrimGTO>& gtos,
 				    MatrixXi& a_Ii, MatrixXi& sig_Ii) {
     int n(gtos.size());
     int n_g(this->order());
@@ -366,7 +379,7 @@ namespace cbasis {
       }
     }
   }
-  void SymmetryGroup::setProdTable() {
+  void _SymmetryGroup::setProdTable() {
     int n(this->num_class());
 
     // -- set default value --
@@ -393,14 +406,14 @@ namespace cbasis {
       }
     }
   }
-  void SymmetryGroup::setSymOp() {
+  void _SymmetryGroup::setSymOp() {
     typedef std::vector<SymOpClass>::iterator It;
     typedef std::vector<SymOp>::iterator ItOp;
     for(It it = sym_op_class_.begin(); it != sym_op_class_.end(); ++it) 
       for(ItOp itop = it->begin(); itop != it->end(); ++itop)
 	sym_op_.push_back(*itop);
   }
-  string SymmetryGroup::str() const {
+  string _SymmetryGroup::str() const {
     ostringstream oss; 
     typedef std::vector<SymOpClass>::const_iterator It;
     typedef std::vector<SymOp>::const_iterator ItOp;
@@ -426,10 +439,10 @@ namespace cbasis {
     oss << "=======================" << endl;
     return oss.str();
   }
-  void SymmetryGroup::Display() const {
+  void _SymmetryGroup::Display() const {
     cout << this->str(); 
   }
-  Irrep SymmetryGroup::GetIrrep(std::string name) const {
+  Irrep _SymmetryGroup::GetIrrep(std::string name) const {
     typedef vector<string>::const_iterator It;
     for(It it = irrep_name_.begin(); it != irrep_name_.end(); ++it) {
       if(*it == name)
@@ -439,13 +452,43 @@ namespace cbasis {
     msg += ": fail to find name. Input name is " + name;
     throw runtime_error(msg);
   }
-  string SymmetryGroup::GetIrrepName(Irrep irrep) const {
+  string _SymmetryGroup::GetIrrepName(Irrep irrep) const {
     return irrep_name_[irrep];
   }
+  void _SymmetryGroup::CalcSymPosList(const vector<Vector3cd>& xs,
+				      vector<Vector3cd> *ys) {
+    double eps(0.0000000001);
 
+    vector<Vector3cd> _ys;
+    ys->swap(_ys);
+    
+    typedef vector<Vector3cd>::const_iterator cIt;
+    typedef vector<Vector3cd>::iterator It;
+    for(cIt it_x = xs.begin(); it_x != xs.end(); ++it_x) {
+
+      for(ItSymOp it_op = sym_op_.begin(); it_op != sym_op_.end(); ++it_op) {
+	Vector3cd new_y = (*it_op)->OpPos(*it_x);
+
+	bool find_equal = false;
+	for(It it_y = ys->begin(); it_y != ys->end(); ++it_y) 
+	  if((new_y - *it_y).norm() < eps)
+	    find_equal = true;
+	if(not find_equal)
+	  ys->push_back(new_y);
+      }
+      
+    }
+  }
+  void _SymmetryGroup::Non0IrrepList(Irrep irrep, Irrep jrrep, vector<Irrep> *res) {
+    res->clear();
+    for(int krrep = 0; krrep < this->order(); krrep++) {
+      if(this->Non0_3(irrep, jrrep, krrep))
+	res->push_back(krrep);
+    }
+  }
   // ---- Specific symmetry group ----
-  pSymmetryGroup SymmetryGroup::C1() {
-    pSymmetryGroup g(new SymmetryGroup(1, "C1", 0));
+  SymmetryGroup SymmetryGroup_C1() {
+    SymmetryGroup g(new _SymmetryGroup(1, "C1", 0));
     g->sym_op_class_.push_back(ClassMono(id()));
     g->irrep_name_.push_back("A");
     g->character_table_(0, 0) = 1;
@@ -459,8 +502,8 @@ namespace cbasis {
     g->irrep_z = 0;
     return g;
   }
-  pSymmetryGroup SymmetryGroup::Cs() {
-    pSymmetryGroup g(new SymmetryGroup(2, "Cs", 1));
+  SymmetryGroup SymmetryGroup_Cs() {
+    SymmetryGroup g(new _SymmetryGroup(2, "Cs", 1));
 
     g->sym_op_class_.push_back(ClassMono(id()));
     g->sym_op_class_.push_back(ClassMono(reflect(CoordZ)));
@@ -490,8 +533,8 @@ namespace cbasis {
     g->irrep_z = App;
     return g;
   }
-  pSymmetryGroup SymmetryGroup::C2h() {
-    pSymmetryGroup g(new SymmetryGroup(4, "C2h", 2));
+  SymmetryGroup SymmetryGroup_C2h() {
+    SymmetryGroup g(new _SymmetryGroup(4, "C2h", 2));
 
     g->sym_op_class_.push_back(ClassMono(id()));
     g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
@@ -541,8 +584,8 @@ namespace cbasis {
 
     return g;
   }
-  pSymmetryGroup SymmetryGroup::C2v() {
-    pSymmetryGroup g(new SymmetryGroup(4, "C2v", 3));
+  SymmetryGroup SymmetryGroup_C2v() {
+    SymmetryGroup g(new _SymmetryGroup(4, "C2v", 3));
 
     g->sym_op_class_.push_back(ClassMono(id()));
     g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
@@ -570,8 +613,8 @@ namespace cbasis {
 
     return g;
   }
-  pSymmetryGroup SymmetryGroup::D2h() {
-    pSymmetryGroup g(new SymmetryGroup(8, "D2h", 4));
+  SymmetryGroup SymmetryGroup_D2h() {
+    SymmetryGroup g(new _SymmetryGroup(8, "D2h", 4));
     
     g->sym_op_class_.push_back(ClassMono(id()));
     g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));
@@ -611,8 +654,8 @@ namespace cbasis {
 
     return g;
   }
-  pSymmetryGroup SymmetryGroup::C4() {
-    pSymmetryGroup g(new SymmetryGroup(3, "C4", 5));
+  SymmetryGroup SymmetryGroup_C4() {
+    SymmetryGroup g(new _SymmetryGroup(3, "C4", 5));
     
     g->sym_op_class_.push_back(ClassMono(id()));
     g->sym_op_class_.push_back(ClassMono(cyclic(CoordZ, 2)));

@@ -43,16 +43,14 @@ TEST(BMat, ReadWrite) {
   bmat1[make_pair(1, 2)] = M12;
 
   string filename("tmp.dat");
-  BMatWrite(bmat1, filename);
+  bmat1.Write(filename);
 
   BMat bmat2;
-  BMatRead(bmat2, filename);
+  bmat2.Read(filename);
 
   EXPECT_EQ(bmat1.size(), bmat2.size());
-  EXPECT_MATXCD_EQ(bmat1[make_pair(1, 0)],
-		   bmat2[make_pair(1, 0)]);
-  EXPECT_MATXCD_EQ(bmat1[make_pair(1, 2)],
-		   bmat2[make_pair(1, 2)]);
+  EXPECT_MATXCD_EQ(bmat1(1, 0), bmat2(1, 0));
+  EXPECT_MATXCD_EQ(bmat1(1, 2), bmat2(1, 2));
   
 }
 
@@ -154,6 +152,7 @@ TEST(BmatSet, Swap) {
   EXPECT_C_EQ(set2->GetValue("s", 0, 1, 1, 1), 2.3);
   
 }
+
 
 TEST(MultArray, MultArray1) {
 

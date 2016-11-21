@@ -42,6 +42,7 @@ namespace cbasis {
 
   // ==== SymGTOs(new) ====
   void InitBVec(SymGTOs a, BVec *ptr_bvec);
+  void InitBVec(SymGTOs a, const std::vector<Irrep>& irrep_list, BVec *ptr_bvec);
   void InitBMat(SymGTOs a, Irrep krrep, SymGTOs b, BMat *ptr_mat);
   void CalcSTVMat(SymGTOs a, SymGTOs b, BMat *S, BMat *T, BMat *V);
   void CalcDipMat(SymGTOs a, SymGTOs b,

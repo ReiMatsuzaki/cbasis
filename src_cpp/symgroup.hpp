@@ -46,6 +46,10 @@ namespace cbasis {
        is_prim : true => resultant GTO is primitive
      */
     virtual void getOp(const PrimGTO& a, PrimGTO* b, int *sig, bool *is_prim) const = 0;
+    /**
+       gives operation resultant of position x.
+     */
+    Eigen::Vector3cd OpPos(const Eigen::Vector3cd& x);
     virtual std::string str() const = 0;
   };
   typedef boost::shared_ptr<ISymOp> SymOp;
@@ -121,9 +125,9 @@ namespace cbasis {
   //typedef Eigen::Matrix<std::complex<int>, Eigen::Dynamic, Eigen::Dynamic> MatrixXci;
   //typedef Eigen::Matrix<std::complex<int>, 1, Eigen::Dynamic> VectorXci;
 
-  class SymmetryGroup;
-  typedef boost::shared_ptr<SymmetryGroup> pSymmetryGroup;
-  class SymmetryGroup {
+  class _SymmetryGroup;
+  typedef boost::shared_ptr<_SymmetryGroup> SymmetryGroup;
+  class _SymmetryGroup {
   public:
     std::string name_;
     int id_num_; 
@@ -141,7 +145,7 @@ namespace cbasis {
     typedef std::vector<SymOp>::const_iterator ItSymOp;
 
     // ---- Constructors ----
-    SymmetryGroup(int num_class, std::string name, int id_num);
+    _SymmetryGroup(int num_class, std::string name, int id_num);
 
     // ---- Accessor ----
     int order()  const { return sym_op_.size(); }
@@ -157,7 +161,7 @@ namespace cbasis {
     void setProdTable();
     void setSymOp();
     void CheckIrrep(Irrep a);
-    bool IsSame(pSymmetryGroup o);
+    bool IsSame(SymmetryGroup o);
     bool Non0_Scalar(Irrep a, Irrep b);
     bool Non0_Z(Irrep a, Irrep b);
     bool Non0_3(Irrep a, Irrep b, Irrep c);
@@ -168,17 +172,28 @@ namespace cbasis {
      */
     void CalcSymMatrix(const std::vector<PrimGTO>& gtos,
 		       Eigen::MatrixXi& a, Eigen::MatrixXi& sig);
-
-    // ---- Specific symmetry group ----
+    /**
+       Build vector list ys which satisfy above
+       (1) ys contain each element of xs
+       (2) each pair of ys is different
+       (3) for every symmetry operation U and y in ys, U(y) is also in ys.
+     */
+    void CalcSymPosList(const std::vector<Eigen::Vector3cd>& xs,
+			std::vector<Eigen::Vector3cd> *ys);
+    /**
+       Build vector for non0 krrep which satisfy <irrep|jrrep|krrep> is non0.
+     */
+    void Non0IrrepList(Irrep irrep, Irrep jrrep, std::vector<Irrep> *res);
     
-    static pSymmetryGroup C1();
-    static pSymmetryGroup Cs();
-    static pSymmetryGroup C2h();
-    static pSymmetryGroup C2v();
-    static pSymmetryGroup D2h();
-    static pSymmetryGroup C4();
-    //    static SymmetryGroup C4v();
   };
 
+  // ---- Specific symmetry group ----
+  SymmetryGroup SymmetryGroup_C1();
+  SymmetryGroup SymmetryGroup_Cs();
+  SymmetryGroup SymmetryGroup_C2h();
+  SymmetryGroup SymmetryGroup_C2v();
+  SymmetryGroup SymmetryGroup_D2h();
+  SymmetryGroup SymmetryGroup_C4();
+  //    static SymmetryGroup C4v();
 }
 #endif

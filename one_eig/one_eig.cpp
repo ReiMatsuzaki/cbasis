@@ -27,8 +27,8 @@ int main (int argc, char *argv[]) {
   cout << ">>>> one_eig >>>>" << endl;
   // ==== parse json ====
   PrintTimeStamp("Parse", NULL);
-  pSymmetryGroup sym;
-  SymGTOs gtos(new _SymGTOs());
+  SymmetryGroup sym;
+  SymGTOs gtos;
   Molecule mole;
   string comment, out_json, out_eigvecs, out_eigvals;
 
@@ -40,12 +40,13 @@ int main (int argc, char *argv[]) {
     comment = ReadJson<string>(obj, "comment");
 
     // -- Basis --
-    sym = ReadJson<pSymmetryGroup>(obj["sym"]);
-    mole = ReadJson<Molecule>(obj["molecule"]);
-    ReadJson_SymGTOs_Subs(obj["basis"], gtos);
-    gtos->SetSym(sym);
-    gtos->SetMolecule(mole);
-    gtos->SetUp();
+    sym = ReadJson<SymmetryGroup>(obj, "sym");
+    
+    mole = NewMolecule(sym);
+    ReadJson_Molecule(obj, "molecule", mole);
+    
+    gtos = NewSymGTOs(mole);
+    ReadJson_SymGTOs_Subs(obj, "basis", gtos);    
 
     // -- out --
     out_json = ReadJson<string>(obj, "out_json");
@@ -58,6 +59,17 @@ int main (int argc, char *argv[]) {
     cerr << msg << endl;
     exit(1);
   }
+  try {
+    gtos->SetUp();
+  } catch(exception& e) {
+    cerr << "error on setup" << endl;
+    cerr << "error message:" << endl;
+    cerr << e.what() << endl;
+    cerr << "gtos::" << endl;
+    cerr << gtos->str() << endl;
+    exit(1);
+  }
+  
   cout << "comment: " << comment << endl;
   cout << "in_json: " << argv[1] << endl;
   cout << "out_json: " << out_json << endl;
@@ -69,8 +81,11 @@ int main (int argc, char *argv[]) {
   PrintTimeStamp("Calc", NULL);
   BMat S, T, V, C;
   BVec E;
-  gtos->InitBMat(0, &S); gtos->InitBMat(0, &T); gtos->InitBMat(0, &V);
-  gtos->InitBMat(0, &C); gtos->InitBVec(&E);
+  InitBMat(gtos, 0, gtos, &S);
+  InitBMat(gtos, 0, gtos, &T);
+  InitBMat(gtos, 0, gtos, &V);
+  InitBMat(gtos, 0, gtos, &C);
+  InitBVec(gtos, &E);
   
   CalcSTVMat(gtos, gtos, &S, &T, &V);  
 
@@ -87,8 +102,11 @@ int main (int argc, char *argv[]) {
   // ==== output ====
   PrintTimeStamp("Out", NULL);
   cout << "E0 = " << E(0)(0) << endl;
+  cout << "writing E" << endl;
   E.Write(out_eigvals);
+  cout << "writing C" << endl;
   C.Write(out_eigvecs);
+  cout << "out.json" << endl;
   
   picojson::object out;
   out["comment"] = picojson::value(comment);

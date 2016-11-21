@@ -47,6 +47,7 @@ namespace {
   typedef Eigen::VectorXcd CV;
 }
 
+dcomplex TDot(const Eigen::VectorXcd& xs, const Eigen::VectorXcd& ys);
 double TakeReal(dcomplex x);
 double TakeAbs(dcomplex x);
 std::complex<double> cnorm(const CV& v);

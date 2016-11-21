@@ -55,14 +55,16 @@ namespace cbasis {
   }
   
   // ==== Sub ====
-  SubSymGTOs::SubSymGTOs() {
+  SubSymGTOs::SubSymGTOs(SymmetryGroup _sym, Atom _atom) {
+    sym_group_ = _sym;
+    atom_ = _atom;
     zeta_iz = VectorXcd::Zero(0);
     setupq = false;
   }
   void SubSymGTOs::SetUp() {
 
     // ---- check values ----
-    if(sym_group.get() == NULL) {
+    if(sym_group().get() == NULL) {
       string msg; SUB_LOCATION(msg);
       msg += ": sym_group is not set.";
       throw runtime_error(msg);
@@ -97,7 +99,7 @@ namespace cbasis {
 	    << "(" << it->size_pn() << "," << this->size_pn() << ")"
 	    << endl << endl;
 	oss << "object:" << this->str() << endl;
-
+	throw runtime_error(oss.str());
       }
     }
 
@@ -134,38 +136,26 @@ namespace cbasis {
 			   this->z(iat));
       }
     // -- compute symmetry operation and primitive GTO relations --
-    sym_group->CalcSymMatrix(gtos, this->ip_jg_kp, this->sign_ip_jg_kp);
+    sym_group()->CalcSymMatrix(gtos, this->ip_jg_kp, this->sign_ip_jg_kp);
 
     // -- set flag --
     setupq = true;
   }
-  void SubSymGTOs::AddXyz(dcomplex x, dcomplex y, dcomplex z) {
-
-    setupq = false;
-    this->x_iat.push_back(x);
-    this->y_iat.push_back(y);
-    this->z_iat.push_back(z);
-
-  }
-  void SubSymGTOs::AddXyz(Vector3cd xyz) {
-
-    this->AddXyz(xyz[0], xyz[1], xyz[2]);
-
-  }
-  void SubSymGTOs::AddNs(int nx, int ny, int nz) {
+  SubSymGTOs& SubSymGTOs::AddNs(int nx, int ny, int nz) {
 
     setupq = false;
     this->nx_ipn.push_back(nx);
     this->ny_ipn.push_back(ny);
     this->nz_ipn.push_back(nz);
-    
+    return *this;
   }
-  void SubSymGTOs::AddNs(Vector3i ns) {
+  SubSymGTOs& SubSymGTOs::AddNs(Vector3i ns) {
     
     this->AddNs(ns[0], ns[1], ns[2]);
+    return *this;
     
   }
-  void SubSymGTOs::AddZeta(const VectorXcd& zs) {
+  SubSymGTOs& SubSymGTOs::AddZeta(const VectorXcd& zs) {
     setupq = false;
     VectorXcd res(zeta_iz.size() + zs.size());
     for(int i = 0; i < zeta_iz.size(); i++)
@@ -173,10 +163,12 @@ namespace cbasis {
     for(int i = 0; i < zs.size(); i++)
       res(i+zeta_iz.size()) = zs(i);
     zeta_iz.swap(res);
+    return *this;
   }
-  void SubSymGTOs::AddRds(const Reduction& _rds) {
+  SubSymGTOs& SubSymGTOs::AddRds(const Reduction& _rds) {
     setupq = false;
     rds.push_back(_rds);
+    return *this;
   }
   string SubSymGTOs::str() const {
     ostringstream oss;
@@ -199,9 +191,8 @@ namespace cbasis {
     oss << "====================" << endl;
     return oss.str();
   }
-  void SubSymGTOs::Display() const {
-    cout << this->str();
-  }
+
+  /*
   SubSymGTOs Sub_s(Irrep irrep, Vector3cd xyz, VectorXcd zs) {
 
     MatrixXcd cs = MatrixXcd::Ones(1,1);
@@ -389,17 +380,16 @@ namespace cbasis {
 
     return sub;
   }
-    
+  */
   // ==== SymGTOs ====
   // ---- Constructors ----
-  _SymGTOs::_SymGTOs():
-    setupq(false)  {
-  }
+  _SymGTOs::_SymGTOs(Molecule mole):
+    sym_group_(mole->sym_group()), molecule_(mole), setupq(false) {}
 
   // ---- Accessors ----
   int _SymGTOs::size_basis() const {
     int cumsum(0);
-    for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
+    for(cSubIt isub = subs_.begin(); isub != subs_.end(); ++isub) {
       cumsum += isub->size_zeta() * isub->rds.size();
     }
     return cumsum;
@@ -407,7 +397,7 @@ namespace cbasis {
   int _SymGTOs::size_basis_isym(Irrep isym) const {
 
     int cumsum(0);
-    for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
+    for(cSubIt isub = subs_.begin(); isub != subs_.end(); ++isub) {
 
       for(cRdsIt irds = isub->rds.begin(); irds != isub->rds.end(); 
 	  ++irds) {
@@ -424,23 +414,23 @@ namespace cbasis {
     oss << "==== SymGTOs ====" << endl;
     oss << "Set Up?" << (setupq ? "Yes" : "No") << endl;
     oss << "sym:";
-    if(this->sym_group) {
-      oss << endl << this->sym_group->str();
+    if(this->sym_group()) {
+      oss << endl << this->sym_group()->str();
     } else {
       oss << "No" << endl;
     }
     
-    for(cSubIt it = subs.begin(); it != subs.end(); ++it) {
-      oss << "sub" << distance(subs.begin(), it) << ": " << endl;
+    for(cSubIt it = subs_.begin(); it != subs_.end(); ++it) {
+      oss << "sub" << distance(subs_.begin(), it) << ": " << endl;
       oss << it->str();
     }
     oss << "molecule:";
-    if(molecule) {
-      oss << endl << molecule->str();
+    if(this->molecule()) {
+      oss << endl << this->molecule()->str();
     } else {
-      oss << "No" << endl;
+      oss << "No";
     }
-
+    oss << endl;
     oss << "=================" << endl;
     return oss.str();
   }
@@ -448,10 +438,8 @@ namespace cbasis {
   // ---- Other ----
   SymGTOs _SymGTOs::Clone() const {
 
-    SymGTOs gtos = SymGTOs(new _SymGTOs());
-    gtos->SetSym(this->sym_group);
-    gtos->SetMolecule(this->GetMolecule());
-    gtos->subs = this->subs;
+    SymGTOs gtos = NewSymGTOs(this->molecule());
+    gtos->subs_ = this->subs_;
     gtos->SetUp();
     return gtos;
 
@@ -459,7 +447,8 @@ namespace cbasis {
   SymGTOs _SymGTOs::Conj() const {
 
     SymGTOs gtos = this->Clone();
-    for(SubIt isub = gtos->subs.begin(); isub != gtos->subs.end(); ++isub) {
+    
+    for(SubIt isub = gtos->subs_.begin(); isub != gtos->subs_.end(); ++isub) {
       isub->zeta_iz = isub->zeta_iz.conjugate();
       for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 	irds->coef_iat_ipn = irds->coef_iat_ipn.conjugate();
@@ -471,23 +460,32 @@ namespace cbasis {
   }
 
   // ---- SetUp ----
-  void _SymGTOs::SetUp() {
-
-    if(sym_group.get() == NULL) {
-      string msg; SUB_LOCATION(msg);
-      msg += ": symmetry_group is not set";
-      throw runtime_error(msg);
-    }
+  _SymGTOs* _SymGTOs::AddSub(SubSymGTOs sub) {
+    subs_.push_back(sub);
+    return this;
+  }
+  _SymGTOs* _SymGTOs::SetUp() {
     
-    for(SubIt it = subs.begin(); it != subs.end(); ++it) {
-
+    for(SubIt it = subs_.begin(); it != subs_.end(); ++it) {
+      
       // -- setup sub --
-      it->sym_group = this->sym_group;
-      if(it->setupq == false)
-	it->SetUp();
+      it->sym_group_ = this->sym_group();
+      if(it->setupq == false) {
+	
+	try {
+	  it->SetUp();
+	} catch(exception& e) {
+	  ostringstream oss;
+	  string loc; SUB_LOCATION(loc);
+	  oss << endl << loc << ": error in SetUp of SubSymGTOs" << endl;
+	  oss << "error on " << distance(subs().begin(), it) << " th sub" << endl;
+	  oss << e.what();
+	  throw runtime_error(oss.str());
+	}
+      }
 
       // -- check each sub --
-      if(it->ip_jg_kp.rows() != sym_group->order()) {
+      if(it->ip_jg_kp.rows() != sym_group_->order()) {
 	string msg; SUB_LOCATION(msg); 
 	msg += ": size of symmetry transformation matrix and num_class of symmetry group is not matched.";
 	cout << "ip_jg_kp:" << endl;
@@ -497,20 +495,32 @@ namespace cbasis {
       
       // -- init offset --
       for(RdsIt irds = it->begin_rds(); irds != it->end_rds(); ++irds) {
-	sym_group->CheckIrrep(irds->irrep);
+	sym_group_->CheckIrrep(irds->irrep);
 	irds->offset = 0;
       }
     }
-
-    this->SetOffset();
-    this->Normalize();
+    try {
+      this->SetOffset();
+    } catch(exception& e) {
+      string loc; SUB_LOCATION(loc);
+      string msg = "\n" + loc + ": error in SetOffset\n" + e.what();
+      throw runtime_error(msg);
+    }
+    try {
+      this->Normalize();
+    } catch(exception& e) {
+      string loc; SUB_LOCATION(loc);
+      string msg = "\n" + loc + ": error in Normalize\n" + e.what();
+      throw runtime_error(msg);      
+    }
     setupq = true;
+    return this;
   }
   void _SymGTOs::SetOffset() {
     
     vector<int> num_irrep(10, 0);
     
-    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
+    for(SubIt isub = subs_.begin(); isub != subs_.end(); ++isub) {
       for(RdsIt irds = isub->rds.begin(), end = isub->rds.end();
 	  irds != end; ++irds) {
 	irds->offset = num_irrep[irds->irrep];
@@ -556,14 +566,15 @@ namespace cbasis {
 
     A3dc dxmap(100), dymap(100), dzmap(100);
     // >>> Irrep Adapted GTOs >>>
-    for(SubIt isub = subs.begin(), end = subs.end(); isub != end; ++isub) {
+    for(SubIt isub = subs_.begin(), end = subs_.end(); isub != end; ++isub) {
       for(int iz = 0; iz < isub->size_zeta(); iz++) {
-      for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end();
-	    ++irds) {
+	vector<Reduction>& rds(isub->rds);
+	for(RdsIt irds = rds.begin(); irds != rds.end(); ++irds) {
 	  dcomplex zetai = isub->zeta_iz[iz];
 	  dcomplex zetaP = zetai + zetai;
 	  int niat(isub->size_at()); int nipn(isub->size_pn());
 	  dcomplex norm2(0.0);
+	  
 
 	  // >>> Primitive GTOs >>>
 	  for(int iat = 0; iat < niat; iat++) {
@@ -584,11 +595,11 @@ namespace cbasis {
 	      calc_d_coef(mi,mi,0, zetaP,wPz,zi,zj,dzmap);
 	      
 	      for(int ipn = 0; ipn < nipn; ipn++) {
-		for(int jpn = 0; jpn < nipn; jpn++) {		    
+		for(int jpn = 0; jpn < nipn; jpn++) {
 		  int nxi, nxj, nyi, nyj, nzi, nzj;
 		  nxi = isub->nx(ipn); nxj = isub->nx(jpn);
 		  nyi = isub->ny(ipn); nyj = isub->ny(jpn);
-		  nzi = isub->nz(ipn); nzj = isub->nz(jpn);
+		  nzi = isub->nz(ipn); nzj = isub->nz(jpn); 
 		  dcomplex dx00, dy00, dz00;
 		  dx00 = dxmap(nxi, nxj ,0);
 		  dy00 = dymap(nyi, nyj ,0);
@@ -606,7 +617,7 @@ namespace cbasis {
 	    string msg; SUB_LOCATION(msg);
 	    ostringstream oss; oss << msg << ": " << endl;
 	    oss << "norm is too small" << endl;
-	    oss << "isub:"  << distance(subs.begin(), isub) << endl;
+	    oss << "isub:"  << distance(subs_.begin(), isub) << endl;
 	    oss << "iz  : " << iz << endl;
 	    oss << "zeta: " << zetai << endl;
 	    oss << "irds:" << distance(isub->rds.begin(), irds) << endl;
@@ -629,7 +640,7 @@ namespace cbasis {
   // -- not used now --
   int _SymGTOs::max_n() const {
     int max_n(0);
-    for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
+    for(cSubIt isub = subs_.begin(); isub != subs_.end(); ++isub) {
       for(int ipn = 0; ipn < isub->size_pn(); ipn++) {
 	int nx(isub->nx(ipn));
 	int ny(isub->ny(ipn));
@@ -648,8 +659,8 @@ namespace cbasis {
   // ---- CalcMat ---- 
   void _SymGTOs::loop() {
 
-    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
-      for(SubIt jsub = subs.begin(); jsub != subs.end(); ++jsub) {
+    for(SubIt isub = subs_.begin(); isub != subs_.end(); ++isub) {
+      for(SubIt jsub = subs_.begin(); jsub != subs_.end(); ++jsub) {
 
 	// -- loop over each zeta --
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
@@ -678,7 +689,7 @@ namespace cbasis {
   int _SymGTOs::max_num_prim() const {
     
     int max_num_prim(0);
-    for(cSubIt isub = subs.begin(); isub != subs.end(); ++isub) {
+    for(cSubIt isub = subs_.begin(); isub != subs_.end(); ++isub) {
       max_num_prim = std::max(max_num_prim, isub->size_prim());
     }
     return max_num_prim;
@@ -785,7 +796,7 @@ namespace cbasis {
     }
 
     try{
-      sym_group->CheckIrrep(irrep);
+      sym_group_->CheckIrrep(irrep);
     } catch(const runtime_error& e) {
       string msg; SUB_LOCATION(msg);
       msg += ": Invalid irreq.\n";
@@ -814,7 +825,7 @@ namespace cbasis {
 
     // Y00   = 1/sqrt(4pi)
     // r Y10 = sqrt(3/4pi) z
-    for(SubIt isub = subs.begin(); isub != subs.end(); ++isub) {
+    for(SubIt isub = subs_.begin(); isub != subs_.end(); ++isub) {
       for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 	if(irds->irrep != irrep) 
 	  continue;
@@ -883,7 +894,7 @@ namespace cbasis {
     }
 
     try{
-      sym_group->CheckIrrep(irrep);
+      sym_group_->CheckIrrep(irrep);
     } catch(const runtime_error& e) {
       string msg; SUB_LOCATION(msg);
       msg += ": Invalid irreq.\n";
@@ -907,13 +918,14 @@ namespace cbasis {
   
   // ---- Calculation ----
   void _SymGTOs::InitBVec(BVec *ptr_bvec) {
+    throw(runtime_error("dont use _SymGTOs::InitBVec"));
     BVec& bvec = *ptr_bvec;
-    for(SubIt isub = this->subs.begin(); isub != this->subs.end(); ++isub) {
+    for(SubIt isub = this->subs_.begin(); isub != this->subs_.end(); ++isub) {
       for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 
 	bool need_update = false;
 	Irrep irrep = irds->irrep;
-	if(not bvec.has_irrep(irrep))
+	if(not bvec.has_block(irrep))
 	  need_update = true;
 	else if(bvec[irrep].size() != this->size_basis_isym(irrep)) 
 	  need_update = true;
@@ -924,9 +936,10 @@ namespace cbasis {
     }
   }
   void _SymGTOs::InitBMat(Irrep krrep, BMat *ptr_mat) {
+    throw(runtime_error("dont use _SymGTOs::InitBMat"));
     BMat& mat = *ptr_mat;
-    for(SubIt isub = this->subs.begin(); isub != this->subs.end(); ++isub) {
-      for(SubIt jsub = this->subs.begin(); jsub != this->subs.end(); ++jsub) {
+    for(SubIt isub = this->subs_.begin(); isub != this->subs_.end(); ++isub) {
+      for(SubIt jsub = this->subs_.begin(); jsub != this->subs_.end(); ++jsub) {
 	for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {	
 	  for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds) {
 	    Irrep irrep = irds->irrep;
@@ -934,7 +947,7 @@ namespace cbasis {
 	    int ni = this->size_basis_isym(irrep);
 	    int nj = this->size_basis_isym(jrrep);
 	    
-	    if(this->sym_group->Non0_3(irds->irrep, irrep, jrds->irrep)) {
+	    if(this->sym_group_->Non0_3(irds->irrep, krrep, jrds->irrep)) {
 	      pair<Irrep, Irrep> ijrrep(irrep, jrrep);
 	      if(mat.has_block(ijrrep))
 		mat[ijrrep] = MatrixXcd::Zero(ni, nj);
@@ -946,10 +959,133 @@ namespace cbasis {
       }
     }
   }
-  SymGTOs CreateSymGTOs() {
-    SymGTOs ptr(new _SymGTOs);
-    return ptr;
-  }  
+
+  SymGTOs NewSymGTOs(Molecule mole) { return SymGTOs(new _SymGTOs(mole)); }
   
+  // ==== Add Sub ====
+  SubSymGTOs Sub_Mono(SymmetryGroup sym, Atom atom, Irrep irrep, 
+			 Vector3i ns, VectorXcd zs) {
+
+    if(atom->size() != 1) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + ": atom have to have only one xyz";
+      throw runtime_error(msg);
+    }
+    
+    SubSymGTOs sub(sym, atom);
+    sub.AddNs(ns);
+    sub.AddZeta(zs);
+    sub.AddRds(Reduction(irrep, MatrixXcd::Ones(1, 1)));
+
+    return sub;
+  }
+  SubSymGTOs Sub_SolidSH_Ms(SymmetryGroup sym, Atom atom, int L, VectorXi _Ms,
+			       VectorXcd zs) {
+
+    // -- memo --
+    // from wiki
+    // real form and complex form:
+    // Ylm = sqrt(2)(-)^m Im[Yl^|m|]   (m<0)
+    // Yl0 = Yl^0   (m=0)
+    // Ylm = sqrt(2)(-)^m Re[Yl^m]     (m>0)
+    // or do google "spherical harmonics table"
+    
+    // Us(r) = N exp[-ar^2] = N exp[-ar^2] Y00 sqrt(4pi)
+    // upz(r) = N z exp[-ar^2] = N exp[-ar^2] Y10 sqrt(4pi/3)
+    // ud_z2(r) = N (2z^2-x^2-y^2) exp[-ar^2] = ...sqrt(16pi/5)
+    // ud_zx(r) = N zx exp[-ar^2] = ...sqrt(4pi/15)
+    
+    SubSymGTOs sub(sym, atom);
+    sub.AddZeta(zs);
+    
+    vector<int> Ms;
+    for(int i = 0; i < _Ms.size(); i++) {
+      int m = _Ms[i];
+      if(abs(m) > 1) {
+	string msg; SUB_LOCATION(msg); msg += ": now |m| > 1 is not implemented";
+	throw runtime_error(msg);
+      }
+      Ms.push_back(m);
+    }
+
+    if(L < 0 || L > 3) {
+      string msg; SUB_LOCATION(msg); msg += ": only L=0,1,2,3 is supported";
+      throw runtime_error(msg);
+    }
+
+    bool find_0 = find(Ms.begin(), Ms.end(),   0) != Ms.end();
+    bool find_p1 = find(Ms.begin(), Ms.end(), +1) != Ms.end();
+    bool find_m1 = find(Ms.begin(), Ms.end(), -1) != Ms.end();
+
+    if(L == 0) {
+      sub.AddNs(Vector3i::Zero());
+      if(find_0) {
+	Reduction rds(sym->irrep_s, MatrixXcd::Ones(1, 1));
+	rds.SetLM(0, 0, sqrt(4.0*M_PI)); sub.AddRds(rds);
+      }
+    }
+    if(L == 1) {
+      sub.AddNs(1,0,0); sub.AddNs(0,1,0); sub.AddNs(0,0,1);
+      if(find_p1) {
+	Reduction rds(sym->irrep_x, m13cd(1,0,0));
+	rds.SetLM(1, 1, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
+      }      
+      if(find_0) {
+	Reduction rds(sym->irrep_z, m13cd(0,0,1));
+	rds.SetLM(1, 0, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
+      }
+      if(find_m1) {
+	Reduction rds(sym->irrep_y, m13cd(0,1,0));
+	rds.SetLM(1, -1, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
+      }
+    }
+    if(L == 2) {
+      sub.AddNs(2,0,0); sub.AddNs(0,2,0); sub.AddNs(0,0,2);
+      sub.AddNs(1,1,0); sub.AddNs(0,1,1); sub.AddNs(1,0,1);
+      if(find_p1) {
+	MatrixXcd m(1, 6); m << 0,0,0, 0,0,1;
+	Reduction rds(sym->irrep_x, m);
+	rds.SetLM(2, 1, sqrt(4.0*M_PI/15.0)); sub.AddRds(rds);
+      }      
+      if(find_0) {
+	MatrixXcd m(1, 6); m << -1,-1,2, 0,0,0;
+	Reduction rds(sym->irrep_z, m);
+	rds.SetLM(2, 0, sqrt(16.0*M_PI/5.0)); sub.AddRds(rds);
+      }
+      if(find_m1) {
+	MatrixXcd m(1, 6); m << 0,0,0, 0,1,0;
+	Reduction rds(sym->irrep_y, m);
+	rds.SetLM(2, -1, sqrt(4.0*M_PI/15.0)); sub.AddRds(rds);
+      }
+    }
+    if(L == 3) {
+      sub.AddNs(1,0,2); sub.AddNs(3,0,0); sub.AddNs(1,2,0);
+      sub.AddNs(0,0,3); sub.AddNs(2,0,1); sub.AddNs(0,2,1);
+      sub.AddNs(0,1,2); sub.AddNs(2,1,0); sub.AddNs(0,3,0);
+      if(find_p1) {
+	MatrixXcd m(1,9); m << 4,-1,-1,  0,0,0,  0,0,0;
+	Reduction rds(sym->irrep_x, m);
+	rds.SetLM(3, +1, sqrt(32.0*M_PI/21.0)); sub.AddRds(rds);
+      }
+      if(find_0) {
+	MatrixXcd m(1,9); m << 0,0,0,  2,-3,-3,  0,0,0;
+	Reduction rds(sym->irrep_z, m);
+	rds.SetLM(3, 0, sqrt(16.0*M_PI/7.0)); sub.AddRds(rds);
+      }
+      if(find_m1) {
+	MatrixXcd m(1,9); m << 0,0,0,  0,0,0,  4,-1,-1;
+	Reduction rds(sym->irrep_y, m);
+	rds.SetLM(3, -1, sqrt(32.0*M_PI/21.0)); sub.AddRds(rds);
+      }
+    }
+
+    return sub;    
+  }
+  SubSymGTOs Sub_SolidSH_M(SymmetryGroup sym, Atom atom, int L, int M, 
+			      VectorXcd zs) {
+    VectorXi Ms(1);
+    Ms(0) = M;
+    return Sub_SolidSH_Ms(sym, atom, L, Ms, zs);
+  }
 }
 

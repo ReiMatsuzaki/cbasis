@@ -553,12 +553,12 @@ namespace cbasis {
     if(not b->setupq)
       b->SetUp();
 
-    if(a->GetMolecule() != b->GetMolecule()) {
+    if(a->molecule() != b->molecule()) {
       string msg; SUB_LOCATION(msg); msg += "\n" + msg + " : different molecule";
       throw runtime_error(msg);
     }
-    Molecule mole = a->GetMolecule();
-    int num_sym(a->sym_group->num_class());
+    Molecule mole = a->molecule();
+    int num_sym(a->sym_group()->num_class());
 
     for(Irrep isym = 0; isym < num_sym; isym++) {
       for(Irrep jsym = 0; jsym < num_sym; jsym++) {
@@ -589,8 +589,8 @@ namespace cbasis {
 
     PrimBasis prim(100);
     
-    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
-      for(SubIt jsub = b->subs.begin(); jsub != b->subs.end(); ++jsub) {
+    for(SubIt isub = a->subs().begin(); isub != a->subs().end(); ++isub) {
+      for(SubIt jsub = b->subs().begin(); jsub != b->subs().end(); ++jsub) {
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
 	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
 	    CalcPrim(mole, isub, jsub, iz, jz, prim, calc_coulomb);
@@ -615,44 +615,62 @@ namespace cbasis {
 
   // ==== SymGTOs(new) ====
   // -- init --
-  void InitBVec(SymGTOs a, BVec *ptr_bvec) {
-    BVec& bvec = *ptr_bvec;
-    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
-      for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
-
-	bool need_update = false;
-	Irrep irrep = irds->irrep;
-	if(not bvec.has_irrep(irrep))
-	  need_update = true;
-	else if(bvec[irrep].size() != a->size_basis_isym(irrep)) 
-	  need_update = true;
-
-	if(need_update)
-	  bvec[irrep] = VectorXcd::Zero(a->size_basis_isym(irrep));
-      }
+  void InitBVec(SymGTOs a, BVec *ptr) {
+    vector<Irrep> irrep_list;
+    for(Irrep irrep = 0; irrep < a->sym_group()->order(); ++irrep)
+      irrep_list.push_back(irrep);
+    InitBVec(a, irrep_list, ptr);
+  }
+  void InitBVec(SymGTOs a, const vector<Irrep>& irrep_list, BVec *ptr) {
+    BVec& vec = *ptr;
+    SymmetryGroup sym = a->sym_group();
+    
+    typedef vector<Irrep>::const_iterator It;
+    for(It it = irrep_list.begin(); it != irrep_list.end(); ++it) {
+      Irrep irrep = *it;
+      int n = a->size_basis_isym(irrep);
+      if(not vec.has_block(irrep))
+	vec[irrep] = VectorXcd::Zero(n);
+      if(vec[irrep].size() != n)
+	vec[irrep] = VectorXcd::Zero(n);
     }
   }
   void InitBMat(SymGTOs a, Irrep krrep, SymGTOs b, BMat *ptr_mat) {
 
-    if(not a->sym_group->IsSame(b->sym_group))  {
+    if(not a->sym_group()->IsSame(b->sym_group()))  {
       string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : symmetry is different";
       throw runtime_error(msg);
     }
 
-    pSymmetryGroup sym = a->sym_group;
+    SymmetryGroup sym = a->sym_group();
     BMat& mat = *ptr_mat;
-    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
-      for(SubIt jsub = b->subs.begin(); jsub != b->subs.end(); ++jsub) {
+    /*
+    for(Irrep irrep = 0; irrep < sym->order(); ++irrep) {
+      for(Irrep jrrep = 0; jrrep < sym->order(); ++jrrep) {
+	if(sym->Non0_3(irrep, krrep, jrrep)) {
+	  int ni = a->size_basis_isym(irrep);
+	  int nj = b->size_basis_isym(jrrep);
+	  if(not mat.has_block(irrep, jrrep))
+	    mat(irrep, jrrep) = MatrixXcd::Zero(ni, nj);
+	  if(mat(irrep, jrrep).rows() != ni || mat(irrep, jrrep).cols() != nj) 
+	    mat(irrep, jrrep) = MatrixXcd::Zero(ni, nj);
+	}
+      }
+    }
+    */
+
+    for(SubIt isub = a->subs().begin(); isub != a->subs().end(); ++isub) {
+      for(SubIt jsub = b->subs().begin(); jsub != b->subs().end(); ++jsub) {
 	for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {	
 	  for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds) {
 	    Irrep irrep = irds->irrep;
 	    Irrep jrrep = jrds->irrep;
 	    int ni = a->size_basis_isym(irrep);
 	    int nj = b->size_basis_isym(jrrep);
-	    
-	    if(sym->Non0_3(irds->irrep, irrep, jrds->irrep)) {
+		 
+	    if(sym->Non0_3(irrep, krrep, jrrep)) {
 	      pair<Irrep, Irrep> ijrrep(irrep, jrrep);
-	      if(mat.has_block(ijrrep))
+	      if(not mat.has_block(ijrrep))
 		mat[ijrrep] = MatrixXcd::Zero(ni, nj);
 	      if(mat[ijrrep].rows() != ni || mat[ijrrep].cols() != nj) 
 		mat[ijrrep] = MatrixXcd::Zero(ni, nj);
@@ -661,6 +679,7 @@ namespace cbasis {
 	}
       }
     }
+
   }  
 
   // -- primitive --
@@ -824,7 +843,7 @@ namespace cbasis {
   }
 
   // -- main --
-  bool HasNon0(pSymmetryGroup sym, SubIt isub, Irrep krrep, SubIt jsub) {
+  bool HasNon0(SymmetryGroup sym, SubIt isub, Irrep krrep, SubIt jsub) {
     bool res = false;
     for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) 
       for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds) 
@@ -837,22 +856,22 @@ namespace cbasis {
       string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
       throw runtime_error(msg);
     }
-    pSymmetryGroup sym = a->sym_group;
-    if(not sym->IsSame(b->sym_group)) {
+    SymmetryGroup sym = a->sym_group();
+    if(not sym->IsSame(b->sym_group())) {
       string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
       throw runtime_error(msg);
     }
-    if(a->GetMolecule() != b->GetMolecule()) {
+    if(a->molecule() != b->molecule()) {
       string msg; SUB_LOCATION(msg); msg += "\n" + msg + " : different molecule";
       throw runtime_error(msg);
     }
-    Molecule mole = a->GetMolecule();    
+    Molecule mole = a->molecule();    
 
     static A4dc s(1000), t(1000), v(1000);
     A4dc cc(1000);
     
-    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
-      for(SubIt jsub = b->subs.begin(); jsub != b->subs.end(); ++jsub) {
+    for(SubIt isub = a->subs().begin(); isub != a->subs().end(); ++isub) {
+      for(SubIt jsub = b->subs().begin(); jsub != b->subs().end(); ++jsub) {
 
 	if(not HasNon0(sym, isub, sym->irrep_s, jsub))
 	  continue;
@@ -883,13 +902,13 @@ namespace cbasis {
       string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
       throw runtime_error(msg);
     }
-    pSymmetryGroup sym = a->sym_group;
-    if(not sym->IsSame(b->sym_group)) {
+    SymmetryGroup sym = a->sym_group();
+    if(not sym->IsSame(b->sym_group())) {
       string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
       throw runtime_error(msg);
     }
-    Molecule mole = a->GetMolecule();    
-    if(mole != b->GetMolecule()) {
+    Molecule mole = a->molecule();
+    if(mole != b->molecule()) {
       string msg; SUB_LOCATION(msg); msg += "\n" + msg + " : different molecule";
       throw runtime_error(msg);
     }
@@ -897,8 +916,8 @@ namespace cbasis {
     static A4dc x(1000), y(1000), z(1000), dx(1000), dy(1000), dz(1000);
     A4dc cc(1000);
 
-    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
-      for(SubIt jsub = b->subs.begin(); jsub != b->subs.end(); ++jsub) {
+    for(SubIt isub = a->subs().begin(); isub != a->subs().end(); ++isub) {
+      for(SubIt jsub = b->subs().begin(); jsub != b->subs().end(); ++jsub) {
 
 	// -- scalar --
 	bool calc_x = HasNon0(sym, isub, sym->irrep_x, jsub);
@@ -944,7 +963,7 @@ namespace cbasis {
     
     static A2dc s(1000), x(1000), y(1000), z(1000);
 
-    for(SubIt isub = a->subs.begin(); isub != a->subs.end(); ++isub) {
+    for(SubIt isub = a->subs().begin(); isub != a->subs().end(); ++isub) {
       for(int iz = 0; iz < isub->size_zeta(); iz++) {
 
 	// -- basic --

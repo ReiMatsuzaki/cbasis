@@ -52,9 +52,9 @@ void ExpectOpEq(SymOp a, SymOp b, int num = 5) {
     << a->str() << endl
     << b->str() << endl;
 }
-void ExpectSymmetryGroup(pSymmetryGroup g) {
+void ExpectSymmetryGroup(SymmetryGroup g) {
 
-  typedef SymmetryGroup::ItSymOp It;
+  typedef _SymmetryGroup::ItSymOp It;
   It i0 = g->sym_op_.begin();
   It end = g->sym_op_.end();
   for(It it = i0; it != end; ++it) {
@@ -169,7 +169,7 @@ TEST(SymOp, D2h) {
 
 TEST(SymGroup, C1) {
 
-  pSymmetryGroup C1 = SymmetryGroup::C1();
+  SymmetryGroup C1 = SymmetryGroup_C1();
   ExpectSymmetryGroup(C1);  
     
   EXPECT_TRUE(C1->Non0_Scalar(0, 0));
@@ -178,7 +178,7 @@ TEST(SymGroup, C1) {
 }
 TEST(SymGroup, Cs) {
 
-  pSymmetryGroup Cs = SymmetryGroup::Cs();
+  SymmetryGroup Cs = SymmetryGroup_Cs();
   ExpectSymmetryGroup(Cs);  
 
   EXPECT_TRUE(Cs->Non0_Scalar(0, 0));
@@ -214,7 +214,7 @@ TEST(SymGroup, Cs) {
 }
 TEST(SymGroup, C2h) {
 
-  pSymmetryGroup C2h = SymmetryGroup::C2h();
+  SymmetryGroup C2h = SymmetryGroup_C2h();
   ExpectSymmetryGroup(C2h);  
 
   int Ag = 0;   
@@ -243,7 +243,7 @@ TEST(SymGroup, C2h) {
   EXPECT_TRUE(C2h->prod_table_(Bu, Bu, Ag));
 }
 TEST(SymGroup, C2v) {
-  pSymmetryGroup C2v = SymmetryGroup::C2v();
+  SymmetryGroup C2v = SymmetryGroup_C2v();
   ExpectSymmetryGroup(C2v);
 
   int A1 = C2v->GetIrrep("A1");
@@ -274,7 +274,7 @@ TEST(SymGroup, C2v) {
 }
 TEST(SymGroup, D2h) {
   
-  pSymmetryGroup D2h = SymmetryGroup::D2h();
+  SymmetryGroup D2h = SymmetryGroup_D2h();
   ExpectSymmetryGroup(D2h);
   //  cout << D2h.str() << endl;
   int Ag = 0;    
@@ -295,7 +295,7 @@ TEST(SymGroup, D2h) {
   EXPECT_FALSE(D2h->prod_table_(Au, B2u, B3g));
 }
 TEST(SymGroup, C4) {
-  pSymmetryGroup C4 = SymmetryGroup::C4();
+  SymmetryGroup C4 = SymmetryGroup_C4();
   //  cout << C4.str() << endl;
   ExpectSymmetryGroup(C4);
 
@@ -321,15 +321,15 @@ TEST(SymGroup, C4) {
 }
 TEST(SymGroup, Equality) {
 
-  vector<pSymmetryGroup> syms;
-  syms.push_back(SymmetryGroup::C1());
-  syms.push_back(SymmetryGroup::Cs());
-  syms.push_back(SymmetryGroup::C2h());
-  syms.push_back(SymmetryGroup::C2v());
-  syms.push_back(SymmetryGroup::D2h());
-  syms.push_back(SymmetryGroup::C4());
+  vector<SymmetryGroup> syms;
+  syms.push_back(SymmetryGroup_C1());
+  syms.push_back(SymmetryGroup_Cs());
+  syms.push_back(SymmetryGroup_C2h());
+  syms.push_back(SymmetryGroup_C2v());
+  syms.push_back(SymmetryGroup_D2h());
+  syms.push_back(SymmetryGroup_C4());
   
-  typedef vector<pSymmetryGroup>::iterator It;
+  typedef vector<SymmetryGroup>::iterator It;
   for(It it = syms.begin(); it != syms.end(); ++it)
     for(It jt = syms.begin(); jt != syms.end(); ++jt) {
 
@@ -342,7 +342,21 @@ TEST(SymGroup, Equality) {
     
 
 }
+TEST(SymGroup, SymPosList) {
 
+  vector<Vector3cd> xs(1);
+  xs[0] = Vector3cd(0.1, 0.2, 0.3);
+  
+  SymmetryGroup cs = SymmetryGroup_Cs();
+
+  vector<Vector3cd> ys;
+  cs->CalcSymPosList(xs, &ys);
+
+  EXPECT_EQ(2, ys.size());
+  EXPECT_C_EQ(0.1, ys[1][0]);
+  EXPECT_C_EQ(0.2, ys[1][1]);
+  EXPECT_C_EQ(-0.3, ys[1][2]);
+}
 int main (int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);
   return RUN_ALL_TESTS();

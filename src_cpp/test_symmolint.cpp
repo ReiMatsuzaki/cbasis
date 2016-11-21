@@ -256,43 +256,44 @@ void SymGTOs_AtR_Ylm_NDeriv(SymGTOs gtos, int L, int M, int irrep,
 
 TEST(SubSymGTOs, AddZeta) {
 
-  SubSymGTOs sub;
-  sub.SetSym(SymmetryGroup::C1());
+  Atom atom(new _Atom("H", 1.0));
+  SubSymGTOs sub(SymmetryGroup_C1(), atom);
+
   VectorXcd z1(2); z1 << 1.0, 1.1;
   VectorXcd z2(3); z2 << 2.0, 2.1, 2.2;
   sub.AddZeta(z1);
   sub.AddZeta(z2);
 
-  EXPECT_C_EQ(1.0, sub.get_zeta_iz()(0));
-  EXPECT_C_EQ(1.1, sub.get_zeta_iz()(1));
-  EXPECT_C_EQ(2.0, sub.get_zeta_iz()(2));
-  EXPECT_C_EQ(2.1, sub.get_zeta_iz()(3));
-  EXPECT_C_EQ(2.2, sub.get_zeta_iz()(4));
+  EXPECT_C_EQ(1.0, sub.zeta(0));
+  EXPECT_C_EQ(1.1, sub.zeta(1));
+  EXPECT_C_EQ(2.0, sub.zeta(2));
+  EXPECT_C_EQ(2.1, sub.zeta(3));
+  EXPECT_C_EQ(2.2, sub.zeta(4));
 
 }
 TEST(SubSymGTOs, SolidSH) {
 
-  pSymmetryGroup sym = SymmetryGroup::C1();
+  SymmetryGroup sym = SymmetryGroup_C1();
   
   Vector3cd xyz(0.1, 0.2, 0.3);
-  Molecule mole(new _Molecule());
-  mole->Add("H", 1.0, xyz);
+  Molecule mole(new _Molecule(sym));
+  mole->Add(NewAtom("H", 1.0, xyz));
 
-  SymGTOs gtos = CreateSymGTOs();
-  gtos->SetMolecule(mole);
-  gtos->SetSym(sym);
+  SymGTOs gtos(new _SymGTOs(mole));
+
   VectorXcd zs(1); zs << 1.1;
-  gtos->AddSub(Sub_SolidSH_Ms(sym, 0, v1i(0), xyz, zs));
+  Atom atom = mole->atom("H");
+  gtos->AddSub(Sub_SolidSH_Ms(sym, atom, 0, v1i(0), zs));
   
   for(int L = 1; L <= 3; L++) {
-    SubSymGTOs sub = Sub_SolidSH_Ms(sym, L, v3i(-1,0,+1), xyz, zs);
+    SubSymGTOs sub(Sub_SolidSH_Ms(sym, atom, L, v3i(-1,0,+1), zs));
+    gtos->AddSub(sub);
     EXPECT_EQ(3, sub.rds.size());
     for(int im = 0; im < 3; im++) {
       EXPECT_EQ(L, sub.rds[im].L);
       EXPECT_TRUE(sub.rds[im].is_solid_sh);
       EXPECT_EQ(-(im-1), sub.rds[im].M);
     }
-    gtos->AddSub(sub);
   }
   gtos->SetUp();
   
@@ -305,30 +306,28 @@ TEST(SubSymGTOs, SolidSH) {
 
 void test_SymGTOsOneInt(CartGTO a, Vector3cd at, CartGTO b) {
   
-  pSymmetryGroup sym = SymmetryGroup::C1();
+  SymmetryGroup sym = SymmetryGroup_C1();
 
-  Molecule mole(new _Molecule());
-  mole->Add("H", 1.0, at);
+  Atom h = NewAtom("H", 1.0); h->Add(at);
+  Molecule mole(new _Molecule(sym));
+  mole->Add(h);
 
-  SubSymGTOs sub_a;
-  sub_a.AddXyz(Vector3cd(a.x, a.y, a.z));
+  SymGTOs gtos(new _SymGTOs(mole));
+
+  SubSymGTOs sub_a(sym, h);
   sub_a.AddNs( Vector3i( a.nx,a.ny,a.nz));
   sub_a.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
   VectorXcd zeta_a(1); zeta_a << a.zeta;
   sub_a.AddZeta(zeta_a);
-
-  SubSymGTOs sub_b;
-  sub_b.AddXyz(Vector3cd(b.x, b.y, b.z));
-  sub_b.AddNs( Vector3i( b.nx,b.ny,b.nz));
+  gtos->AddSub(sub_a);
+  
+  SubSymGTOs sub_b(sym, h);
+  sub_b.AddNs( b.nx,b.ny,b.nz);
   sub_b.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
   VectorXcd zeta_b(1); zeta_b << b.zeta;
   sub_b.AddZeta(zeta_b);
-
-  SymGTOs gtos(new _SymGTOs);
-  gtos->SetSym(sym);
-  gtos->SetMolecule(mole);
-  gtos->AddSub(sub_a);
   gtos->AddSub(sub_b);
+
   gtos->SetUp();
   BMatSet mat = CalcMat_Complex(gtos, true);
 
@@ -388,7 +387,7 @@ TEST(SymGTOsMatrix, OneInt) {
   CartGTO dx(2, 0, 0, 0.0, 0.0, 0.0, zeta_d);
   CartGTO dy(0, 2, 0, 0.0, 0.0, 0.0, zeta_d);
   CartGTO dz(0, 0, 2, 0.0, 0.0, 0.0, zeta_d);
-
+  /*
   try {
     test_SymGTOsOneInt(s0, Vector3cd(0, 0, 0), s0);
   } catch(runtime_error& e) {
@@ -421,37 +420,30 @@ TEST(SymGTOsMatrix, OneInt) {
 		     Vector3cd(-0.1, 0, 0.35),
 		     CartGTO(0, 2, 2, 0.4, 0.3, 0.0, dcomplex(0.1, -0.1)));
   test_SymGTOsOneInt(p0, Vector3cd(0, 0, 0.7), dz);
-
+  */
 }
 void test_SymGTOsOneIntNew(CartGTO a, Vector3cd at, CartGTO b) {
 
-  pSymmetryGroup sym = SymmetryGroup::C1();
-  Molecule mole(new _Molecule()); mole->Add("H", 1.0, at);
+  SymmetryGroup sym = SymmetryGroup_C1();
+
+  Atom at_a = NewAtom("A", 0.0); at_a->Add(a.x, a.y, a.z);
+  Atom at_b = NewAtom("B", 0.0); at_b->Add(b.x, b.y, b.z);
+  Atom at_c = NewAtom("C", 1.0); at_c->Add(at);
+  Molecule mole = NewMolecule(sym);
+  mole->Add(at_a)->Add(at_b)->Add(at_c);
 
   // Build SymGTOs
-  SubSymGTOs sub_a;
-  sub_a.AddXyz(Vector3cd(a.x, a.y, a.z));
-  sub_a.AddNs( Vector3i( a.nx,a.ny,a.nz));
-  sub_a.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
   VectorXcd zeta_a(1); zeta_a << a.zeta;
-  sub_a.AddZeta(zeta_a);
+  SubSymGTOs sub_a(Sub_Mono(sym, at_a, 0, Vector3i(a.nx, a.ny, a.nz), zeta_a));
 
-  SymGTOs gtos_a(new _SymGTOs);
-  gtos_a->SetSym(sym);
-  gtos_a->SetMolecule(mole);
+  SymGTOs gtos_a = NewSymGTOs(mole);
   gtos_a->AddSub(sub_a);
   gtos_a->SetUp();  
 
-  SubSymGTOs sub_b;
-  sub_b.AddXyz(Vector3cd(b.x, b.y, b.z));
-  sub_b.AddNs( Vector3i( b.nx,b.ny,b.nz));
-  sub_b.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
   VectorXcd zeta_b(1); zeta_b << b.zeta;  
-  sub_b.AddZeta(zeta_b);
+  SubSymGTOs sub_b(Sub_Mono(sym, at_b, 0, Vector3i(b.nx, b.ny, b.nz), zeta_b));
 
-  SymGTOs gtos_b(new _SymGTOs);
-  gtos_b->SetSym(sym);
-  gtos_b->SetMolecule(mole);
+  SymGTOs gtos_b(new _SymGTOs(mole));
   gtos_b->AddSub(sub_b);
   gtos_b->SetUp();  
 
@@ -580,7 +572,7 @@ TEST(SymGTOsMatrix, OneIntNew) {
   test_SymGTOsOneIntNew(p0, Vector3cd(0, 0, 0.7), dz);
 }
 void test_SymGTOsTwoInt(CartGTO a, CartGTO b, CartGTO c, CartGTO d) {
-  
+
   // == Cart GTO ==
   CartGTO *cart_gtos[4];
   cart_gtos[0] = &a;
@@ -597,18 +589,22 @@ void test_SymGTOsTwoInt(CartGTO a, CartGTO b, CartGTO c, CartGTO d) {
   
   
   // == SymGTOs ==
-  pSymmetryGroup sym = SymmetryGroup::C1();
-  SymGTOs gtos(new _SymGTOs);
-  gtos->SetSym(sym);
+  SymmetryGroup sym = SymmetryGroup_C1();
+  Molecule mole(new _Molecule(sym));
+  string names[4] = {"A", "B", "C", "D"};
   for(int i = 0; i < 4; i++) {
-    SubSymGTOs sub;
     CartGTO *o = cart_gtos[i];
-    sub.AddXyz(Vector3cd(o->x, o->y, o->z));
+    mole->Add(NewAtom(names[i], 0.0, Vector3cd(o->x, o->y, o->z)));
+  }
+  
+  SymGTOs gtos(new _SymGTOs(mole));
+  for(int i = 0; i < 4; i++) {
+    SubSymGTOs sub(sym, mole->atom(names[i]));
+    CartGTO *o = cart_gtos[i];
     sub.AddNs( Vector3i( o->nx,o->ny,o->nz));
     sub.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
     VectorXcd zeta(1); zeta << o->zeta;
     sub.AddZeta(zeta);
-
     gtos->AddSub(sub);
   }
   
@@ -630,7 +626,7 @@ void test_SymGTOsTwoInt(CartGTO a, CartGTO b, CartGTO c, CartGTO d) {
     << "b: " << b.str() << endl
     << "c: " << c.str() << endl
     << "d: " << d.str() << endl;
-  
+
 }
 TEST(SymGTOsMatrix, TwoInt) {
 
@@ -652,12 +648,16 @@ TEST(SymGTOsMatrix, TwoInt) {
 }
 
 TEST(SymGTOs, at_r_ylm_lin) {
-
-  pSymmetryGroup C1 = SymmetryGroup::C1();
-  SymGTOs gtos(new _SymGTOs);
-  gtos->SetSym(C1);
+  
+  SymmetryGroup C1 = SymmetryGroup_C1();
+  
+  Molecule mole(new _Molecule(C1));
+  mole->Add(NewAtom("X", 0, Vector3cd(0,0,2)));
+  
+  SymGTOs gtos(new _SymGTOs(mole));
   VectorXcd zeta(1); zeta << 1.1;
-  gtos->AddSub(Sub_s(0, Vector3cd(0, 0, 2), zeta));
+  gtos->AddSub(Sub_SolidSH_M(C1, mole->atom("X"), 0, 0, zeta));
+  //  gtos->AddSub(Sub_s(0, Vector3cd(0, 0, 2), zeta));
   gtos->SetUp();
   VectorXcd cs1(1); cs1 << 1.1;  
   VectorXcd cs2(1); cs2 << 2.2;  
@@ -687,9 +687,10 @@ void test_SymGTOs_at_r_ylm_nd(SymGTOs gtos, dcomplex r, VectorXcd& cs, string la
 }
 TEST(SymGTOs, at_r_ylm_nd_s) {
 
-  pSymmetryGroup C1 = SymmetryGroup::C1();
-  SymGTOs gtos = CreateSymGTOs();
-  gtos->SetSym(C1);
+  SymmetryGroup C1 = SymmetryGroup_C1();
+  Molecule mole(new _Molecule(C1));
+  mole->Add(NewAtom("X", 0, Vector3cd(0,0,0)));
+  SymGTOs gtos(new _SymGTOs(mole));
 
   /*
   VectorXcd zeta(1); zeta << 1.2;
@@ -698,7 +699,7 @@ TEST(SymGTOs, at_r_ylm_nd_s) {
   */
 
   VectorXcd zeta(2); zeta << 1.2, 1.4;
-  gtos->AddSub(Sub_SolidSH_M(C1, 0, 0, Vector3cd(0,0,0), zeta));
+  gtos->AddSub(Sub_SolidSH_M(C1, mole->atom("X"), 0, 0, zeta));
   VectorXcd cs(2); cs << 0.2, 1.1;
 
   gtos->SetUp();
@@ -708,16 +709,17 @@ TEST(SymGTOs, at_r_ylm_nd_s) {
 TEST(SymGTOs, at_r_ylm_p) {
 
   VectorXcd zeta(2); zeta << 1.1, 1.2;
-  pSymmetryGroup sym = SymmetryGroup::C1();
+  SymmetryGroup sym = SymmetryGroup_C1();
 
-  SymGTOs gtos_y = CreateSymGTOs();
-  gtos_y->SetSym(sym);
-  gtos_y->AddSub(Sub_SolidSH_M(sym, 1, -1, Vector3cd(0,0,0), zeta));
+  Molecule mole(new _Molecule(sym));
+  mole->Add(NewAtom("X", 0, Vector3cd(0,0,0)));
+  
+  SymGTOs gtos_y(new _SymGTOs(mole));
+  gtos_y->AddSub(Sub_SolidSH_M(sym, mole->atom("X"), 1, -1, zeta));
   gtos_y->SetUp();
 
-  SymGTOs gtos_z = CreateSymGTOs();
-  gtos_z->SetSym(sym);
-  gtos_z->AddSub(Sub_SolidSH_M(sym, 1, 0, Vector3cd(0,0,0), zeta));
+  SymGTOs gtos_z(new _SymGTOs(mole));
+  gtos_z->AddSub(Sub_SolidSH_M(sym, mole->atom("X"), 1, 0, zeta));
   gtos_z->SetUp();
 
   VectorXcd cs(2); cs << 0.2, 1.1;
@@ -734,11 +736,16 @@ TEST(SymGTOs, at_r_ylm_p) {
 }
 TEST(SymGTOs, at_r_ylm_nd) {
 
-  pSymmetryGroup C1 = SymmetryGroup::C1();
-  SymGTOs gtos = CreateSymGTOs();
-  gtos->SetSym(C1);
+  SymmetryGroup C1 = SymmetryGroup_C1();
+
+  Molecule mole(new _Molecule(C1));
+  Atom atom = NewAtom("X", 0); atom->Add(0.1, 0.2, 0.3);
+  mole->Add(atom);
+  
+  SymGTOs gtos(new _SymGTOs(mole));
   VectorXcd zeta(2); zeta << 1.2, 1.1;
-  gtos->AddSub(Sub_SolidSH_M(C1, 0, 0, Vector3cd(0.1, 0.2, 0.3), zeta));
+  gtos->AddSub(Sub_SolidSH_M(C1, atom, 0, 0, zeta));
+  //  gtos->AddSub(Sub_SolidSH_M(C1, 0, 0, Vector3cd(0.1, 0.2, 0.3), zeta));
   VectorXcd cs(2); cs << 0.2, 0.4;
 
   //  VectorXcd zeta(1); zeta << 1.2;
@@ -751,66 +758,66 @@ TEST(SymGTOs, at_r_ylm_nd) {
 }
 TEST(SymGTOs, Create) {
 
-  pSymmetryGroup sym_group = SymmetryGroup::Cs();
-  SymGTOs gtos = CreateSymGTOs();
-  gtos->SetSym(sym_group);
+  SymmetryGroup sym_group = SymmetryGroup_Cs();
+  
+  Molecule mole = NewMolecule(sym_group);
+  Atom cen = NewAtom("Cen", 0.0); cen->Add(0,0,0);
+  Atom hatom = NewAtom("H", 1.0); hatom->Add(0,0,1)->Add(0,0,-1);
+  mole->Add(cen)->Add(hatom);
+  
+  SymGTOs gtos(new _SymGTOs(mole));
 
   // -- Symmetries --
   Irrep Ap = sym_group->GetIrrep("A'");
-  //  Irrep App= sym_group->GetIrrep("A''");
+  Irrep App = sym_group->GetIrrep("A''");
 
-  // -- s-GTO at Center, Sym = (0, 0)
-  SubSymGTOs sgto_cen;
+  // -- s-GTO at Center, Sym = (0, 0)  
+  SubSymGTOs sgto_cen(sym_group, cen);
   VectorXcd zetas(10);
   for(int n = 0; n < 10; n++)
     zetas(n) = pow(2.0, n-5);
-  sgto_cen.AddXyz( Vector3cd(0, 0, 0));
-  sgto_cen.AddNs(  Vector3i(0, 0, 0));
+  sgto_cen.AddNs(  0, 0, 0);
   sgto_cen.AddZeta(zetas);
   sgto_cen.AddRds( Reduction(Ap, MatrixXcd::Ones(1, 1)));
   gtos->AddSub(sgto_cen);
 
    // -- s-GTO at z-axis, sym = (1, 0)
-  SubSymGTOs pgto_z;
+  SubSymGTOs pgto_z(sym_group, hatom);
   VectorXcd zetas2(6);
   for(int n = 0; n < 6; n++)
     zetas2[n] = pow(1.6, n-3);
-  pgto_z.AddXyz(Vector3cd(0, 0, +1));
-  pgto_z.AddXyz(Vector3cd(0, 0, -1));
-  pgto_z.AddNs( Vector3i( 0, 0, +1));	
+  pgto_z.AddNs( 0, 0, +1);	
   pgto_z.AddZeta(zetas2);
   MatrixXcd c1(2, 1); c1 << 1.0, -1.0;
   pgto_z.AddRds(Reduction(Ap, c1));
   MatrixXcd c2(2, 1); c2 << 1.0, +1.0;
-  pgto_z.AddRds(Reduction(Ap, c2));
+  pgto_z.AddRds(Reduction(App, c2));
   gtos->AddSub(pgto_z);
 
   gtos->SetUp();
   
-  EXPECT_EQ(1,	 gtos->subs[0].size_at());
-  EXPECT_EQ(1,	 gtos->subs[0].size_pn());
-  EXPECT_EQ(1,	 gtos->subs[0].size_cont());
-  EXPECT_EQ(10, gtos->subs[0].size_zeta());
+  EXPECT_EQ(1,	 gtos->sub(0).size_at());
+  EXPECT_EQ(1,	 gtos->sub(0).size_pn());
+  EXPECT_EQ(1,	 gtos->sub(0).size_rds());
+  EXPECT_EQ(10, gtos->sub(0).size_zeta());
   
-  EXPECT_EQ(2,	 gtos->subs[1].size_at());
-  EXPECT_EQ(1,	 gtos->subs[1].size_pn());
-  EXPECT_EQ(2,	 gtos->subs[1].size_cont());
-  EXPECT_EQ(6,	 gtos->subs[1].size_zeta());
+  EXPECT_EQ(2,	 gtos->sub(1).size_at());
+  EXPECT_EQ(1,	 gtos->sub(1).size_pn());
+  EXPECT_EQ(2,	 gtos->sub(1).size_rds());
+  EXPECT_EQ(6,	 gtos->sub(1).size_zeta());
   
   BMatSet mat = CalcMat_Complex(gtos, false);
   EXPECT_C_EQ(1.0, mat->GetValue("s", Ap, Ap, 0, 0));
 }
 TEST(SymGTOs, mole) {
-
-  Molecule mole(new _Molecule());
-  mole->Add("A", 1.5, Vector3cd(1.2, 1.3, 1.4));
-  mole->Add("B", 2.5, Vector3cd(2.2, 2.3, 2.4));
+  SymmetryGroup sym = SymmetryGroup_C1();
+  Molecule mole(new _Molecule(sym));
+  mole->Add(NewAtom("A", 1.5, Vector3cd(1.2, 1.3, 1.4)));
+  mole->Add(NewAtom("B", 2.5, Vector3cd(2.2, 2.3, 2.4)));
   
-  SymGTOs gtos = CreateSymGTOs();
-  gtos->SetSym(SymmetryGroup::C1()); 
-  gtos->SetMolecule(mole);
+  SymGTOs gtos(new _SymGTOs(mole));
   
-  EXPECT_C_EQ(1.2, gtos->GetMolecule()->At(0)(0));
+  EXPECT_C_EQ(1.2, gtos->molecule()->At(0)(0));
   EXPECT_C_EQ(1.3, mole->At(0)(1));
   EXPECT_C_EQ(1.4, mole->At(0)(2));
   EXPECT_C_EQ(1.5, mole->q(0));
@@ -818,21 +825,28 @@ TEST(SymGTOs, mole) {
 }
 TEST(SymGTOs, PW_BVec) {
 
-  VectorXcd zeta1(2); zeta1 << 1.1, 1.2;
-  pSymmetryGroup sym = SymmetryGroup::D2h();
 
-  SymGTOs gtos = CreateSymGTOs();
-  gtos->SetSym(sym);
-  gtos->AddSub(Sub_SolidSH_M(sym, 1, +1, Vector3cd(0,0,0), zeta1));
-  gtos->AddSub(Sub_SolidSH_M(sym, 1, -1, Vector3cd(0,0,0), zeta1));
-  gtos->AddSub(Sub_SolidSH_M(sym, 1,  0, Vector3cd(0,0,0), zeta1));
+  SymmetryGroup sym = SymmetryGroup_D2h();
+  
+  Molecule mole(new _Molecule(sym));
+  Atom cen = NewAtom("Cen", 0); cen->Add(0,0,0);
+  mole->Add(cen);
+  
+  SymGTOs gtos(new _SymGTOs(mole));
+  VectorXcd zeta1(2); zeta1 << 1.1, 1.2;
+  gtos->AddSub(Sub_SolidSH_M(sym, cen, 1, +1, zeta1));
+  gtos->AddSub(Sub_SolidSH_M(sym, cen, 1, -1, zeta1));
+  gtos->AddSub(Sub_SolidSH_M(sym, cen, 1, 0, zeta1));
+  //  gtos->AddSub(Sub_SolidSH_M(sym, 1, +1, Vector3cd(0,0,0), zeta1));
+  //  gtos->AddSub(Sub_SolidSH_M(sym, 1, -1, Vector3cd(0,0,0), zeta1));
+  //  gtos->AddSub(Sub_SolidSH_M(sym, 1,  0, Vector3cd(0,0,0), zeta1));
   gtos->SetUp();
 
   BVec S("pw_s"), X("pw_x"), Y("pw_y"), Z("pw_z");
-  gtos->InitBVec(&S);
-  gtos->InitBVec(&X);
-  gtos->InitBVec(&Y);
-  gtos->InitBVec(&Z);
+  InitBVec(gtos, &S);
+  InitBVec(gtos, &X);
+  InitBVec(gtos, &Y);
+  InitBVec(gtos, &Z);
   
   CalcPWVec(gtos, Vector3cd(0.4, 0.0, 0.0), &S, &X, &Y, &Z);
   dcomplex xval = S[sym->irrep_x][0];
@@ -861,46 +875,60 @@ TEST(SymGTOs, PW_BVec) {
 }
 TEST(SymGTOs, CalcMatOther) {
 
-  pSymmetryGroup Cs = SymmetryGroup::Cs();
-  SymGTOs gtos_full(new _SymGTOs);
-  gtos_full->SetSym(Cs);
-  SymGTOs gtos_1(new _SymGTOs);
-  gtos_1->SetSym(   Cs);
-  SymGTOs gtos_2(new _SymGTOs);
-  gtos_2->SetSym(   Cs);
+  dcomplex z_gh(1.1);
+  
+  SymmetryGroup Cs = SymmetryGroup_Cs();
+  
+  Atom atom_cen = NewAtom("Cen", 0); atom_cen->Add(0,0,0);
+  Molecule mole(new _Molecule(Cs)); mole->Add(atom_cen);
+  Atom atom_h = NewAtom("H",  1.0);
+  atom_h->Add(0,0,+z_gh)->Add(0,0,-z_gh);
+  SymGTOs gtos_full = NewSymGTOs(mole);
+  SymGTOs gtos_1 =  NewSymGTOs(mole);
+  SymGTOs gtos_2 =  NewSymGTOs(mole);
   Irrep Ap = Cs->GetIrrep("A'");
   Irrep App= Cs->GetIrrep("A''");
-  dcomplex z_gh(1.1);
 
   // -- A' symmetry --
   VectorXcd zeta_h = VectorXcd::Zero(3); zeta_h << 0.4, 1.0, 2.0;
-  SubSymGTOs sub1(Sub_s(Ap, Vector3cd(0, 0, 0), zeta_h));
+  SubSymGTOs sub1(Cs, atom_cen);
+  sub1.AddNs(0,0,0);
+  sub1.AddZeta(zeta_h);
+  Reduction rds(Ap, MatrixXcd::Ones(1, 1));
+  sub1.AddRds(rds);
   gtos_full->AddSub(sub1);
   gtos_1->AddSub(sub1);
-  
 
-  // -- A'' symmetry, Center --
+  // -- A'' symmetry  --
   VectorXcd zeta_gh = VectorXcd::Zero(3); zeta_gh << 0.6, 1.2, 2.2;
-  SubSymGTOs sub2(Sub_TwoSGTO(Cs, App, Vector3cd(0.0, 0.0, z_gh), zeta_gh));
-			      
+  SubSymGTOs sub2(Cs, atom_h);
+  sub2.AddNs(0, 0, 0);
+  sub2.AddZeta(zeta_gh);
+  MatrixXcd c(2, 1); c << 1, -1;
+  Reduction rds2(App, c);
+  sub2.AddRds(rds2);
   gtos_full->AddSub(sub2);
   gtos_2->AddSub(sub2);
+
+  // -- A'' symmetry --
   VectorXcd zeta_cen(2); zeta_cen << 0.2, 1.2;
-  SubSymGTOs sub3(Sub_pz(App, Vector3cd(0, 0, 0), zeta_cen));
+  SubSymGTOs sub3(Cs, atom_cen);  
+  sub3.AddNs(0,0,1);
+  sub3.AddZeta(zeta_cen);
+  Reduction rds3(App, MatrixXcd::Ones(1, 1));
+  sub3.AddRds(rds3);
   gtos_full->AddSub(sub3);
   gtos_2->AddSub(sub3);
-
-  // -- potential --
-  Molecule mole(new _Molecule());
-  mole->Add("H", 1.0, Vector3cd(0, 0, 0));
-  gtos_full->SetMolecule(mole);
-  gtos_1->SetMolecule(mole);
-  gtos_2->SetMolecule(mole);
-
   // -- calculate matrix --
-  gtos_full->SetUp();
+  try {
+    gtos_full->SetUp();
+  } catch(exception& e) {
+    cerr << "error on gtos_full->SetUp\n";
+    cerr << e.what() << endl;
+    exit(1);
+  }
   gtos_1->SetUp();
-  gtos_2->SetUp();
+  gtos_2->SetUp();    
   BMatSet mat_full = CalcMat_Complex(gtos_full, false);
   BMatSet mat_12   = CalcMat(gtos_1, gtos_2, false);
 
@@ -909,40 +937,88 @@ TEST(SymGTOs, CalcMatOther) {
 		   mat_12->GetMatrix(  "z", Ap, App));
 
  }
+TEST(SymGTOs, InitBMat) {
+  
+  SymmetryGroup Cs = SymmetryGroup_Cs();
+  Atom atom_cen = NewAtom("Cen", 0); atom_cen->Add(0,0,0);
+  Molecule mole = NewMolecule(Cs); mole->Add(atom_cen);
+  SymGTOs gtos = NewSymGTOs(mole);
+  VectorXcd zs(2); zs<< dcomplex(1.1, -0.5), dcomplex(0.4, -0.5);
+  gtos->AddSub(Sub_SolidSH_M(Cs, atom_cen, 1, 0, zs));
+  gtos->AddSub(Sub_SolidSH_M(Cs, atom_cen, 0, 0, zs));
+  gtos->SetUp();
+
+  BMat S; InitBMat(gtos, 0, gtos, &S);
+  EXPECT_EQ(2, S.size());
+  EXPECT_TRUE(S.has_block(0, 0));
+  EXPECT_TRUE(S.has_block(1, 1));
+
+  BMat Z; InitBMat(gtos, 1, gtos, &Z);
+  EXPECT_TRUE(Z.has_block(0, 1));
+  EXPECT_TRUE(Z.has_block(1, 0));
+}
+TEST(SymGTOs, InitBMat2) {
+  SymmetryGroup D2h = SymmetryGroup_D2h();
+  Atom atom_cen = NewAtom("Cen", 0); atom_cen->Add(0,0,0);
+  Molecule mole = NewMolecule(D2h); mole->Add(atom_cen);
+  SymGTOs gtos = NewSymGTOs(mole);
+  VectorXcd zs(2); zs<< dcomplex(1.1, -0.5), dcomplex(0.4, -0.5);
+  SubSymGTOs sub2_0(Sub_SolidSH_M(D2h, atom_cen, 0,  0, zs));
+  SubSymGTOs sub2_1(Sub_SolidSH_M(D2h, atom_cen, 1, -1, zs));
+  SubSymGTOs sub2_2(Sub_SolidSH_M(D2h, atom_cen, 1, 0, zs));
+  SubSymGTOs sub2_3(Sub_SolidSH_M(D2h, atom_cen, 1, +1, zs));
+  gtos->AddSub(sub2_0)->AddSub(sub2_1)->AddSub(sub2_2)->AddSub(sub2_3)->SetUp();
+
+  Irrep s = D2h->GetIrrep("Ag");
+  Irrep x = D2h->GetIrrep("B3u");
+  Irrep y = D2h->GetIrrep("B2u");
+  Irrep z = D2h->GetIrrep("B1u");
+  BMat S2; InitBMat(gtos, s, gtos, &S2);
+  EXPECT_EQ(4, S2.size());
+  EXPECT_TRUE(S2.has_block(s, s));
+  EXPECT_TRUE(S2.has_block(x, x));
+  EXPECT_TRUE(S2.has_block(y, y));
+  EXPECT_TRUE(S2.has_block(z, z));
+
+  BMat Z; InitBMat(gtos, D2h->GetIrrep("B1u"), gtos, &Z);
+  EXPECT_EQ(2, Z.size());
+  EXPECT_TRUE(Z.has_block(D2h->GetIrrep("Ag"), D2h->GetIrrep("B1u")));  
+
+  BVec Xs;
+  vector<Irrep> irrep_xs;
+  D2h->Non0IrrepList(s, x, &irrep_xs);
+  InitBVec(gtos, irrep_xs, &Xs);
+  EXPECT_TRUE(Xs.has_block(x));
+
+}
 TEST(SymGTOs, conjugate) {
+
+  SymmetryGroup Cs = SymmetryGroup_Cs();
+
+  Molecule mole(new _Molecule(Cs));
+  Atom atom = NewAtom("AB", 1.0); atom->Add(0,0,0);
+  mole->Add(atom);
+
+  SymGTOs gtos_1(new _SymGTOs(mole));
+  SymGTOs gtos_2(new _SymGTOs(mole));
   
-  SymGTOs gtos_1(new _SymGTOs);
-  SymGTOs gtos_2(new _SymGTOs);
-    
-  pSymmetryGroup Cs = SymmetryGroup::Cs();
-  gtos_1->SetSym(Cs);
-  gtos_2->SetSym(Cs);
-  Irrep Ap = Cs->GetIrrep("A'");
-  //  Irrep App= Cs->GetIrrep("A''");
   dcomplex z_gh(1.1);
-  
+
   // -- A' symmetry --
   VectorXcd zeta_h(3);
   zeta_h << dcomplex(0.4, 0.3), dcomplex(1.0, 0.4), dcomplex(2.0, 0.1);
-  gtos_1->AddSub(Sub_s(Ap, Vector3cd(0, 0, 0), zeta_h));
-  gtos_2->AddSub(Sub_s(Ap, Vector3cd(0, 0, 0), zeta_h.conjugate()));
-
-  // -- potential --
-  Molecule mole(new _Molecule());
-  mole->Add("AB", 1.0, Vector3cd(0,0,0));
-  gtos_1->SetMolecule(mole);
-  gtos_2->SetMolecule(mole);
+  gtos_1->AddSub(Sub_SolidSH_M(Cs, atom, 0, 0, zeta_h));
+  gtos_2->AddSub(Sub_SolidSH_M(Cs, atom, 0, 0, zeta_h.conjugate()));
   
   gtos_1->SetUp();
   gtos_2->SetUp();
-  SymGTOs gtos_3 = gtos_1->Conj();
-
+  SymGTOs gtos_3;
+  gtos_3 = gtos_1->Conj();
   BMatSet mat2 = CalcMat_Complex(gtos_2, false);
   BMatSet mat3 = CalcMat_Complex(gtos_3, false);
-  
   EXPECT_C_EQ(mat2->GetMatrix("t", 0, 0)(0, 1),
 	      mat3->GetMatrix("t", 0, 0)(0, 1));
-
+  
 }
 double h_rad(int L, double r) {
   if(L == 0) 
@@ -958,10 +1034,12 @@ double h_rad(int L, double r) {
 }
 TEST(SymGTOs, hatom) {
 
-  pSymmetryGroup C1 = SymmetryGroup::C1();
+  SymmetryGroup C1 = SymmetryGroup_C1();
 
-  Molecule mole(new _Molecule());
-  mole->Add("H", 1.0, Vector3cd(0, 0, 0));
+  Atom hatom    = NewAtom("H", 1);
+  hatom->Add(Vector3cd(0, 0, 0));
+  Molecule mole = NewMolecule(C1);
+  mole->Add(hatom);
   
   int n0(7);
   VectorXcd zeta(n0+n0);
@@ -972,11 +1050,9 @@ TEST(SymGTOs, hatom) {
   for(int L = 0; L <= 3; L++) {
     int M0 = L==0 ? 0 : 1;
     for(int M = -M0; M <= M0; M++) {
-      SymGTOs gtos = CreateSymGTOs();
+      SymGTOs gtos(new _SymGTOs(mole));
       try {
-	gtos->SetSym(C1);
-	gtos->SetMolecule(mole);
-	gtos->AddSub(Sub_SolidSH_M(C1, L, M, Vector3cd(0,0,0), zeta));
+	gtos->AddSub(Sub_SolidSH_M(C1, hatom, L, M, zeta));
 	gtos->SetUp();
       } catch(exception& e) {
 	cout << e.what() << endl;
@@ -984,7 +1060,10 @@ TEST(SymGTOs, hatom) {
       }
       
       BMat S, H, T, V;
-      gtos->InitBMat(0, &S); gtos->InitBMat(0, &T); gtos->InitBMat(0, &V);
+      InitBMat(gtos, 0, gtos, &S);
+      InitBMat(gtos, 0, gtos, &H);
+      InitBMat(gtos, 0, gtos, &T);
+      InitBMat(gtos, 0, gtos, &V);
       CalcSTVMat(gtos, gtos, &S, &T, &V);
       MatrixXcd h = T(0, 0) + V(0, 0);
       MatrixXcd s = S(0, 0);
@@ -1011,28 +1090,31 @@ TEST(SymGTOs, hatom) {
 	
     }
   }
+  
 }
 TEST(CompareCColumbus, small_h2) {
 
   double R0 = 1.4;
-  pSymmetryGroup sym = SymmetryGroup::D2h();
-  SymGTOs gtos(new _SymGTOs);
-  gtos->SetSym(sym);
+  SymmetryGroup sym = SymmetryGroup_D2h();
+  
+  Atom h = NewAtom("H", 1.0);
+  h->Add(0,0,+R0/2.0)->Add(0,0,-R0/2.0);
+  Atom cen = NewAtom("cen", 0.0);
+  cen->Add(0,0,0);
+  Molecule mole(new _Molecule(sym));
+  mole->Add(h); mole->Add(cen);
+  
+  SymGTOs gtos(new _SymGTOs(mole));
 
-  SubSymGTOs sub_s;
-  sub_s.AddXyz(Vector3cd(0, 0,+R0/2.0));
-  sub_s.AddXyz(Vector3cd(0, 0,-R0/2.0));
+  SubSymGTOs sub_s(sym, h);
   sub_s.AddNs(Vector3i(0, 0, 0));
-  VectorXcd zetas(1);
-  zetas << 1.336;
+  VectorXcd zetas(1); zetas << 1.336;
   sub_s.AddZeta(zetas); 
   MatrixXcd c(2, 1); c << 1, 1;
   sub_s.AddRds(Reduction(sym->irrep_s, c));
   gtos->AddSub(sub_s); 
 
-  SubSymGTOs sub_p;
-  sub_p.AddXyz(Vector3cd(0, 0, +R0/2.0));
-  sub_p.AddXyz(Vector3cd(0, 0, -R0/2.0));
+  SubSymGTOs sub_p(sym, h);
   sub_p.AddNs(Vector3i(  0, 0, 1));
   VectorXcd zeta_p(1); zeta_p << 1.0;
   sub_p.AddZeta(zeta_p);
@@ -1040,26 +1122,17 @@ TEST(CompareCColumbus, small_h2) {
   sub_p.AddRds(Reduction(sym->irrep_s, cp));
   gtos->AddSub(sub_p);
 
-  SubSymGTOs sub_p_cen;
-  sub_p_cen.AddXyz(Vector3cd(0, 0, 0));
+  SubSymGTOs sub_p_cen(sym, cen);
   sub_p_cen.AddNs( Vector3i( 2, 0, 0));
   sub_p_cen.AddNs( Vector3i( 0, 2, 0));
   sub_p_cen.AddNs( Vector3i( 0, 0, 2));
   VectorXcd zeta_cen(1);
   zeta_cen << dcomplex(0.00256226, -0.01559939);
-  //zeta_cen << dcomplex(0.00256226, -0.01559939);
   sub_p_cen.AddZeta(zeta_cen);
   MatrixXcd cd(1, 3); cd << 1, 1, -2;
   sub_p_cen.AddRds(Reduction(sym->irrep_s, cd));
   gtos->AddSub(sub_p_cen);
 
-  Molecule mole(new _Molecule());
-  vector<Vector3cd> xyzs(2);
-  xyzs[0] = Vector3cd(0, 0, +R0/2);
-  xyzs[1] = Vector3cd(0, 0, -R0/2);
-  mole->Add("H", 1.0, xyzs);
-
-  gtos->SetMolecule(mole);
   gtos->SetUp();
 
   BMatSet mat = CalcMat_Complex(gtos, true);
@@ -1112,33 +1185,29 @@ TEST(CompareCColumbus, small_he) {
 
   dcomplex z1(0.09154356, -0.24865707);
   
-  // set symmetry
-  pSymmetryGroup sym = SymmetryGroup::Cs();
+  SymmetryGroup sym = SymmetryGroup_Cs();
+  Molecule mole = NewMolecule(sym);
+  Atom he = NewAtom("He", 2.0); he->Add(0,0,0);
+  mole->Add(he);
 
   // sub set (S orbital)
-  SubSymGTOs sub_s;
-  sub_s.AddXyz(Vector3cd(0, 0, 0));
+  SubSymGTOs sub_s(sym, he);
   sub_s.AddNs(Vector3i(0, 0, 0));
   VectorXcd zeta_s(2); zeta_s << 0.107951, 3293.694;
   sub_s.AddZeta(zeta_s);
   sub_s.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
 
   // sub set (P orbital)
-  SubSymGTOs sub_z;
-  sub_z.AddXyz(Vector3cd(0, 0, 0));
+  SubSymGTOs sub_z(sym, he);
   sub_z.AddNs(Vector3i(0, 0, 1));
   VectorXcd zeta_z(1); zeta_z << z1;
   sub_z.AddZeta(zeta_z);
   sub_z.AddRds(Reduction(sym->irrep_z, MatrixXcd::Ones(1, 1)));
 
   // GTO set
-  SymGTOs gtos = CreateSymGTOs();
-  gtos->SetSym(sym);
+  SymGTOs gtos(new _SymGTOs(mole));
   gtos->AddSub(sub_s);
   gtos->AddSub(sub_z);
-  Molecule mole(new _Molecule());
-  mole->Add("He", 2.0, Vector3cd(0, 0, 0));
-  gtos->SetMolecule(mole);
   gtos->SetUp();
 
   // compute basic matrix
@@ -1199,15 +1268,18 @@ TEST(CompareCColumbus, small_he) {
 	   
 }
 TEST(CompareCColumbus, small_h2_2) {
-
+  /*
   // set symmetry
-  pSymmetryGroup sym = SymmetryGroup::D2h();
+  SymmetryGroup sym = SymmetryGroup_D2h();
   double R0 = 1.4;
 
+  // set molecule
+  Atom h = NewAtom("H", 1.0); h->Add(0, 0, +R0/2.0)->Add(0, 0, -R0);
+  Atom cen= NewAtom("Cen", 0.0); cen->Add(0,0,0);
+  Molecule mole = NewMolecule(sym); mole->Add(h);
+
   // sub set (S orbital)
-  SubSymGTOs sub_s;
-  sub_s.AddXyz(Vector3cd(0, 0, +R0/2.0));
-  sub_s.AddXyz(Vector3cd(0, 0, -R0/2.0));
+  SubSymGTOs sub_s(sym, h);
   sub_s.AddNs(Vector3i(0, 0, 0));
   VectorXcd zeta_s(1); zeta_s <<2.013;
   sub_s.AddZeta(zeta_s);
@@ -1215,9 +1287,7 @@ TEST(CompareCColumbus, small_h2_2) {
   sub_s.AddRds(Reduction(sym->irrep_s, cs));
 
   // sub set (P orbital)
-  SubSymGTOs sub_z;
-  sub_z.AddXyz(Vector3cd(0, 0, +R0/2.0));
-  sub_z.AddXyz(Vector3cd(0, 0, -R0/2.0));
+  SubSymGTOs sub_z(sym, h);
   sub_z.AddNs(Vector3i(0, 0, 1));
   VectorXcd zeta_z(1); zeta_z << 1.0;
   MatrixXcd cz(2, 1); cz << 1.0, -1.0;
@@ -1225,8 +1295,7 @@ TEST(CompareCColumbus, small_h2_2) {
   sub_z.AddRds(Reduction(sym->irrep_s, cz));
 
   // sub set (D orbital)
-  SubSymGTOs sub_d;
-  sub_d.AddXyz(Vector3cd(0, 0, 0));
+  SubSymGTOs sub_d(sym, cen);
   sub_d.AddNs(Vector3i(2, 0, 0));
   sub_d.AddNs(Vector3i(0, 2, 0));
   sub_d.AddNs(Vector3i(0, 0, 2));
@@ -1235,20 +1304,11 @@ TEST(CompareCColumbus, small_h2_2) {
   sub_d.AddZeta(zeta_d);
   sub_d.AddRds(Reduction(sym->irrep_s, cd));
 
-  // mole
-  Molecule mole(new _Molecule());
-  vector<Vector3cd> xyzs(2);
-  xyzs[0] = Vector3cd(0, 0, +R0/2.0);
-  xyzs[1] = Vector3cd(0, 0, -R0/2.0);
-  mole->Add("H", 1.0, xyzs);
-
   // GTO set
-  SymGTOs gtos(new _SymGTOs);
-  gtos->SetSym(sym);
+  SymGTOs gtos(new _SymGTOs(mole));
   gtos->AddSub(sub_s);
   gtos->AddSub(sub_z);
   gtos->AddSub(sub_d);
-  gtos->SetMolecule(mole);
   gtos->SetUp();
 
   //  BMatSet mat_set; gtos->CalcMat(&mat_set);
@@ -1324,39 +1384,30 @@ TEST(CompareCColumbus, small_h2_2) {
   //1  1  1  1  1  1  1  1   6.082101996924533   0.000000000000000
   //2  2  1  1  1  1  1  1   4.499506255091513   0.000000000000000
   //2  2  2  2  1  1  1  1   3.412356981545473   0.000000000000000
-  //2  1  2  1  1  1  1  1   1.780420011334297   0.000000000000000
-
+    //2  1  2  1  1  1  1  1   1.780420011334297   0.000000000000000
+    */
 }
 
 TEST(H2Plus, energy) {
-  pSymmetryGroup Cs = SymmetryGroup::Cs();
-  SymGTOs gtos(new _SymGTOs);
-  gtos->SetSym(Cs);
-  int Ap = Cs->GetIrrep("A'");
-  //  int App= 1;
-
-
-  Molecule mole(new _Molecule());
-  Vector3cd pos1(0,0,+0.7);
-  Vector3cd pos2(0,0,-0.7);
-  vector<Vector3cd> xyzs(2);
-  xyzs[0] = pos1;
-  xyzs[1] = pos2;
-  mole->Add("H", 1.0, xyzs);
   
+  SymmetryGroup Cs = SymmetryGroup_Cs();
+
+  Atom hatom = NewAtom("H", 1.0); hatom->Add(0,0,+0.7)->Add(0,0,-0.7);
+  Molecule mole = NewMolecule(Cs); mole->Add(hatom);
+  
+  SymGTOs gtos = NewSymGTOs(mole);
+  int Ap = Cs->GetIrrep("A'");
+
   int num_zeta(10);
   VectorXcd zeta(num_zeta);
   for(int n = 0; n < num_zeta; n++)
     zeta(n) = pow(2.0, n-5);
   
-  SubSymGTOs sub;
-  sub.AddXyz( pos1);
-  sub.AddXyz( pos2);
+  SubSymGTOs sub(Cs, hatom);
   sub.AddNs(  Vector3i(0, 0, 0));
   sub.AddZeta(zeta);  
   sub.AddRds( Reduction(Ap, MatrixXcd::Ones(2, 1)));
   gtos->AddSub(sub);
-  gtos->SetMolecule(mole);
   
   gtos->SetUp();
 
@@ -1376,51 +1427,44 @@ TEST(H2Plus, energy) {
 TEST(H2Plus, matrix) {
   
   // ==== Symmetry ====
-  pSymmetryGroup D2h = SymmetryGroup::D2h();
+  SymmetryGroup D2h = SymmetryGroup_D2h();
+
+  // ==== Molecule ====
+  Atom hatom = NewAtom("H", 1.0);   hatom->Add(0,0,+0.7)->Add(0,0,-0.7);
+  Atom cen   = NewAtom("Cen", 0.0); cen->Add(0,0,0);
+  Molecule mole = NewMolecule(D2h); mole->Add(hatom)->Add(cen);
 
   // ==== Sub ====
-  SubSymGTOs sub1;
-  sub1.AddXyz(Vector3cd(0, 0, +0.7));
-  sub1.AddXyz(Vector3cd(0, 0, -0.7));
-  sub1.AddNs( Vector3i( 0, 0, 0));
+  SubSymGTOs sub1(D2h, hatom);
+  sub1.AddNs( 0, 0, 0);
   VectorXcd z1(4); z1 << 2.013, 0.1233, 0.0411, 0.0137; sub1.AddZeta(z1);
   MatrixXcd c1_1(2, 1); c1_1 <<+1.0,+1.0; sub1.AddRds(Reduction(0, c1_1));
   MatrixXcd c1_2(2, 1); c1_2 <<+1.0,-1.0; sub1.AddRds(Reduction(1, c1_2));
 
-  SubSymGTOs sub2;
-  sub2.AddXyz(Vector3cd(0, 0, +0.7));
-  sub2.AddXyz(Vector3cd(0, 0, -0.7));
-  sub2.AddNs( Vector3i( 0, 0, 1));
+  SubSymGTOs sub2(D2h, hatom);
+  sub2.AddNs( 0, 0, 1);
   VectorXcd z2(1); z2 << 1.0; sub2.AddZeta(z2);
   MatrixXcd C2_1(2, 1); C2_1 << +1,-1; sub2.AddRds(Reduction(0, C2_1));
   MatrixXcd C2_2(2, 1); C2_2 << +1,+1; sub2.AddRds(Reduction(1, C2_2));
 
-  SubSymGTOs sub3;
-  sub3.AddXyz(Vector3cd(0, 0, 0));
-  sub3.AddNs( Vector3i( 0, 0, 0));
+  SubSymGTOs sub3(D2h, cen);
+  sub3.AddNs( 0, 0, 0);
   VectorXcd z3(1); z3 << dcomplex(0.011389, -0.002197); sub3.AddZeta(z3); 
   MatrixXcd C3_1(1, 1); C3_1 << 1; sub3.AddRds(Reduction(0, C3_1));
   
-  SubSymGTOs sub4;
-  sub4.AddXyz(Vector3cd(0, 0, 0));
-  sub4.AddNs( Vector3i( 2, 0, 0));
-  sub4.AddNs( Vector3i( 0, 2, 0));
-  sub4.AddNs( Vector3i( 0, 0, 2));
-  VectorXcd z4(1); z4 << dcomplex(5.063464, -0.024632); sub4.AddZeta(z4);
-  MatrixXcd C4_1(1, 3); C4_1 << -1,-1,+2; sub4.AddRds(Reduction(0, C4_1 ));
-
-  // ==== Molecule ====
-  Molecule mole(new _Molecule());
-  vector<Vector3cd> xyzs(2); 
-  xyzs[0] = Vector3cd(0, 0, +0.7);
-  xyzs[1] = Vector3cd(0, 0, -0.7);
-  mole->Add("H", 1.0, xyzs);
+  SubSymGTOs sub4(D2h, cen);
+  VectorXcd z4(1); z4 << dcomplex(5.063464, -0.024632); 
+  MatrixXcd C4_1(1, 3); C4_1 << -1,-1,+2; 
+  sub4
+    .AddNs(2, 0, 0)
+    .AddNs(0, 2, 0)
+    .AddNs(0, 0, 2)  
+    .AddZeta(z4)
+    .AddRds(Reduction(0, C4_1 ));
   
   // ==== GTOs ====
-  SymGTOs gtos(new _SymGTOs);
-  gtos->SetSym(D2h);
-  gtos->AddSub(sub1); gtos->AddSub(sub2); gtos->AddSub(sub3); gtos->AddSub(sub4);
-  gtos->SetMolecule(mole);
+  SymGTOs gtos = NewSymGTOs(mole);
+  gtos->AddSub(sub1)->AddSub(sub2)->AddSub(sub3)->AddSub(sub4);
   gtos->SetUp();
 
   // ==== matrix evaluation ====
@@ -1448,41 +1492,19 @@ TEST(H2Plus, matrix) {
   EXPECT_C_EQ(v01/sqrt(s11*s00), mat->GetMatrix("v", 1, 1)(0, 1));
   
 }
-TEST(ExceptCheck, OneInt) {
 
-  pSymmetryGroup sym = SymmetryGroup::C1();
-  VectorXcd zeta(1); zeta << 1.336;
+TEST(Molecule, energy) {
+  SymmetryGroup Cs = SymmetryGroup_Cs();
+  double R0 = 2.0;
+  double q = 1.1;
+  Atom h = NewAtom("H", q);
+  h->Add(0, 0, R0/2.0);
+  Molecule mole = NewMolecule(Cs);
+  mole->Add(h)->SetSymPos();
   
-  SubSymGTOs sub_a;
-  sub_a.AddXyz(Vector3cd(0, 0, +0.7));
-  sub_a.AddNs( Vector3i( 0, 0, 0));
-  sub_a.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_a.AddZeta(zeta);
+  dcomplex ene = mole->NucEnergy();
 
-  SubSymGTOs sub_b;
-  sub_b.AddXyz(Vector3cd(0, 0, -0.7));
-  sub_b.AddNs( Vector3i( 0, 0, 0));
-  sub_b.AddRds(Reduction(sym->irrep_s, MatrixXcd::Ones(1, 1)));
-  sub_b.AddZeta(zeta);
-
-  Molecule mole(new _Molecule());
-  mole->Add("H", 1.0, Vector3cd(0, 0, 0));
-
-  SymGTOs gtos(new _SymGTOs);
-  gtos->SetSym(sym);
-  gtos->AddSub(sub_a);
-  gtos->AddSub(sub_b);
-  gtos->SetMolecule(mole);
-  gtos->SetUp();
-
-  BMatSet mat;
-  try {
-    mat = CalcMat_Complex(gtos, false);
-  } catch(runtime_error& e) {
-    cout << "error on non coulomb" << endl;
-    cout << e.what() << endl;
-    throw runtime_error("exception!");
-  }
+  EXPECT_C_EQ(q*q/R0, ene);
 }
 
 int main(int argc, char **args) {

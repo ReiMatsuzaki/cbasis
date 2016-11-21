@@ -202,7 +202,7 @@ namespace cbasis {
 
   // ==== SymGTOs ====
   bool ExistNon0(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub) {
-    pSymmetryGroup sym = isub->sym_group;
+    SymmetryGroup sym = isub->sym_group();
     bool non0(false);
     for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds)
     for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds)
@@ -361,7 +361,7 @@ namespace cbasis {
   int one_dim(int ip, int ni, int jp, int nj, int kp, int nk, int lp) {
     return ip + jp * ni + kp * ni * nj + lp * ni * nj * nk;
   }
-  void CheckEqERI(pSymmetryGroup sym_group, 
+  void CheckEqERI(SymmetryGroup sym_group, 
 		  SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
 		  int ip, int jp, int kp, int lp,
 		  int ni, int nj, int nk,
@@ -453,7 +453,7 @@ namespace cbasis {
     }
   }
   // -- Symmetry considerration --
-  void CalcPrimERI1(pSymmetryGroup sym,
+  void CalcPrimERI1(SymmetryGroup sym,
 		    SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
 		    dcomplex zetai, dcomplex zetaj, dcomplex zetak, dcomplex zetal,
 		    A4dc& prim, ERIMethod method) {
@@ -493,7 +493,7 @@ namespace cbasis {
 	int ip = isub->ip_iat_ipn(iat, ipn); int jp = jsub->ip_iat_ipn(jat, jpn);
 	int kp = ksub->ip_iat_ipn(kat, kpn); int lp = lsub->ip_iat_ipn(lat, lpn);
 	int mark_I[10]; bool is_zero, is_youngest;
-	CheckEqERI(isub->sym_group, isub, jsub, ksub, lsub, ip, jp, kp, lp,
+	CheckEqERI(isub->sym_group(), isub, jsub, ksub, lsub, ip, jp, kp, lp,
 		   nati*npni, natj*npnj, natk*npnk, mark_I, &is_zero, &is_youngest);
 	if(!is_zero && is_youngest)
 	  find_non0 = true;
@@ -515,7 +515,7 @@ namespace cbasis {
 	  int kp = ksub->ip_iat_ipn(kat, kpn); int lp = lsub->ip_iat_ipn(lat, lpn);
 
 	  int mark_I[10]; bool is_zero, is_youngest;
-	  CheckEqERI(isub->sym_group, isub, jsub, ksub, lsub, ip, jp, kp, lp,
+	  CheckEqERI(isub->sym_group(), isub, jsub, ksub, lsub, ip, jp, kp, lp,
 		     nati*npni, natj*npnj, natk*npnk, mark_I, &is_zero, &is_youngest);
 	  if(!is_zero && is_youngest) {
 	    dcomplex v;
@@ -662,7 +662,7 @@ namespace cbasis {
       
       
 
-      if(isub->sym_group->Non0_4(irds->irrep, jrds->irrep, krds->irrep, lrds->irrep)) {
+      if(isub->sym_group()->Non0_4(irds->irrep, jrds->irrep, krds->irrep, lrds->irrep)) {
 	dcomplex cz(irds->coef_iz(iz) * 
 		    jrds->coef_iz(jz) * 
 		    krds->coef_iz(kz) * 
@@ -751,7 +751,7 @@ namespace cbasis {
   }
 
   // ==== calc for Sub  ====
-  void CalcERI0(pSymmetryGroup sym, SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
+  void CalcERI0(SymmetryGroup sym, SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
 		A4dc& prim, ERIMethod method, B2EInt eri) {
     for(int iz = 0; iz < isub->size_zeta(); ++iz)
     for(int jz = 0; jz < jsub->size_zeta(); ++jz)
@@ -779,10 +779,10 @@ namespace cbasis {
     if(!ExistNon0(isub, jsub, ksub, lsub))
       return;
 
-    int n_ij = (distance(gi->subs.begin(), isub) +
-		distance(gj->subs.begin(), jsub) * gi->subs.size());
-    int n_kl = (distance(gk->subs.begin(), ksub) +
-		distance(gl->subs.begin(), lsub) * gk->subs.size());    
+    int n_ij = (distance(gi->subs().begin(), isub) +
+		distance(gj->subs().begin(), jsub) * gi->subs().size());
+    int n_kl = (distance(gk->subs().begin(), ksub) +
+		distance(gl->subs().begin(), lsub) * gk->subs().size());    
 
     if(isub == ksub && jsub == lsub) {
       for(int iz = 0; iz < isub->size_zeta(); ++iz)
@@ -792,7 +792,7 @@ namespace cbasis {
 	int nnnij = iz + isub->size_zeta() * jz;
 	int nnnkl = kz + ksub->size_zeta() * lz;
 	if(nnnij >= nnnkl) {
-	  CalcPrimERI1(gi->sym_group, isub, jsub, ksub, lsub,
+	  CalcPrimERI1(gi->sym_group(), isub, jsub, ksub, lsub,
 		       isub->zeta_iz[iz], jsub->zeta_iz[jz],
 		       ksub->zeta_iz[kz], lsub->zeta_iz[lz],
 		       prim, method);
@@ -807,7 +807,7 @@ namespace cbasis {
       for(int jz = 0; jz < jsub->size_zeta(); ++jz)
       for(int kz = 0; kz < ksub->size_zeta(); ++kz)
       for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
-	CalcPrimERI1(gi->sym_group, isub, jsub, ksub, lsub,
+	CalcPrimERI1(gi->sym_group(), isub, jsub, ksub, lsub,
 		     isub->zeta_iz[iz], jsub->zeta_iz[jz],
 		     ksub->zeta_iz[kz], lsub->zeta_iz[lz],
 		     prim, method);
@@ -827,7 +827,7 @@ namespace cbasis {
     for(int kz = 0; kz < ksub->size_zeta(); ++kz)
     for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
       if(kz > lz) {
-	CalcPrimERI1(g0->sym_group, isub, jsub, ksub, lsub,
+	CalcPrimERI1(g0->sym_group(), isub, jsub, ksub, lsub,
 		     isub->zeta_iz[iz], jsub->zeta_iz[jz],
 		     ksub->zeta_iz[kz], lsub->zeta_iz[lz],
 		     prim, method);
@@ -835,7 +835,7 @@ namespace cbasis {
 		     false, false, true);
 
       } else if(kz == lz) {
-	CalcPrimERI1(g0->sym_group, isub, jsub, ksub, lsub,
+	CalcPrimERI1(g0->sym_group(), isub, jsub, ksub, lsub,
 		     isub->zeta_iz[iz], jsub->zeta_iz[jz],
 		     ksub->zeta_iz[kz], lsub->zeta_iz[lz],
 		     prim, method);
@@ -874,12 +874,12 @@ namespace cbasis {
     A4dc prim(gi->max_num_prim() * gj->max_num_prim() *
 	      gk->max_num_prim() * gl->max_num_prim());
     
-      for(SubIt isub = gi->subs.begin(); isub != gi->subs.end(); ++isub) 
-	for(SubIt jsub = gj->subs.begin(); jsub != gj->subs.end(); ++jsub)
-	  for(SubIt ksub = gk->subs.begin(); ksub != gk->subs.end(); ++ksub)
-	    for(SubIt lsub = gl->subs.begin(); lsub != gl->subs.end(); ++lsub)
+    for(SubIt isub = gi->subs().begin(); isub != gi->subs().end(); ++isub) 
+      for(SubIt jsub = gj->subs().begin(); jsub != gj->subs().end(); ++jsub)
+	for(SubIt ksub = gk->subs().begin(); ksub != gk->subs().end(); ++ksub)
+	  for(SubIt lsub = gl->subs().begin(); lsub != gl->subs().end(); ++lsub)
 	      if(method.perm == 0) 
-		CalcERI0(gi->sym_group,isub, jsub, ksub, lsub, prim, method, eri);
+		CalcERI0(gi->sym_group(),isub, jsub, ksub, lsub, prim, method, eri);
 	      else
 		CalcERI1(gi, gj, gk, gl, isub, jsub, ksub, lsub, prim, method, eri);
 

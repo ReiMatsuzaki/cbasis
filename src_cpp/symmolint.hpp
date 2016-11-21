@@ -62,10 +62,8 @@ namespace cbasis {
     typedef std::vector<Reduction>::iterator RdsIt;
 
     // ---- Calculation data ----
-    pSymmetryGroup sym_group;
-    std::vector<dcomplex> x_iat;
-    std::vector<dcomplex> y_iat;
-    std::vector<dcomplex> z_iat;
+    SymmetryGroup sym_group_;
+    Atom atom_;
     std::vector<int> nx_ipn;
     std::vector<int> ny_ipn;
     std::vector<int> nz_ipn;
@@ -82,32 +80,33 @@ namespace cbasis {
     //    int maxnx;
 
     // ---- Constructors ----
-    SubSymGTOs();
+    SubSymGTOs(SymmetryGroup _sym, Atom _atom);
 
     // ---- Accessors ----
     std::string str() const;
+    inline SymmetryGroup sym_group() { return sym_group_; }
+    inline Atom atom() { return atom_; }
     inline int nx(int ipn) const { return nx_ipn[ipn]; }
     inline int ny(int ipn) const { return ny_ipn[ipn]; }
     inline int nz(int ipn) const { return nz_ipn[ipn]; }
-    inline dcomplex x(int iat) const { return x_iat[iat]; }
-    inline dcomplex y(int iat) const { return y_iat[iat]; }
-    inline dcomplex z(int iat) const { return z_iat[iat]; }
+    inline dcomplex x(int iat) const { return atom_->xyz_list()[iat][0]; }
+    inline dcomplex y(int iat) const { return atom_->xyz_list()[iat][1]; }
+    inline dcomplex z(int iat) const { return atom_->xyz_list()[iat][2]; }    
     inline dcomplex zeta(int iz) const { return zeta_iz[iz]; }
     inline cRdsIt begin_rds() const { return rds.begin(); }
     inline cRdsIt end_rds() const { return rds.end(); }
     inline RdsIt begin_rds() { return rds.begin(); }
     inline RdsIt end_rds() { return rds.end(); }
-    inline void SetSym(pSymmetryGroup _sym_group) {
-      sym_group = _sym_group;
-    }
-    void AddXyz(dcomplex x, dcomplex y, dcomplex z);
-    void AddXyz(Eigen::Vector3cd xyz);
-    void AddNs(int nx, int ny, int nz);
-    void AddNs(Eigen::Vector3i ns);
-    void AddZeta(const Eigen::VectorXcd& zs);
-    void AddRds(const Reduction& rds);   
-    inline int size_at() const { return x_iat.size();}
+    //    inline void SetSym(pSymmetryGroup _sym_group) {
+    //      sym_group = _sym_group;
+    //    }
+    SubSymGTOs& AddNs(int nx, int ny, int nz);
+    SubSymGTOs& AddNs(Eigen::Vector3i ns);
+    SubSymGTOs& AddZeta(const Eigen::VectorXcd& zs);
+    SubSymGTOs& AddRds(const Reduction& rds);   
+    inline int size_at() const { return this->atom_->size(); }
     inline int size_pn() const { return nx_ipn.size(); }
+    inline int size_rds() const { return rds.size(); }
     inline int size_prim() const { return this->size_at() * this->size_pn(); }
     inline int size_zeta() const { return zeta_iz.rows(); }
 
@@ -118,15 +117,16 @@ namespace cbasis {
     // ---- old ----
     //    SubSymGTOs(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
     //	       std::vector<Reduction> cs, Eigen::VectorXcd zs);
-    int size_cont() const { return rds.size(); }
+    //    int size_cont() const { return rds.size(); }
     //    const Eigen::MatrixXcd& get_xyz_iat() { return xyz_iat; }
     //    const Eigen::MatrixXi&  get_ns_ipn() const { return  ns_ipn; }
-    const Reduction&  get_rds(int i) const { return  rds[i]; }
-    const Eigen::VectorXcd& get_zeta_iz() const { return  zeta_iz; }    
-    void Display() const;
+    //    const Reduction&  get_rds(int i) const { return  rds[i]; }
+    //    const Eigen::VectorXcd& get_zeta_iz() const { return  zeta_iz; }    
+    //    void Display() const;
   };
 
   // ---- Helper ----
+  /*
   SubSymGTOs Sub_s(Irrep irrep,
 		   Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
   SubSymGTOs Sub_pz(Irrep irrep,
@@ -137,41 +137,44 @@ namespace cbasis {
 		      Eigen::Vector3cd xyz, Eigen::Vector3i ns, Eigen::VectorXcd zs);
   SubSymGTOs Sub_SolidSH_M(pSymmetryGroup sym, int L, int M, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
   SubSymGTOs Sub_SolidSH_Ms(pSymmetryGroup sym, int L, Eigen::VectorXi Ms, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
+  */
 
   // ==== SymGTOs ====
   class _SymGTOs;
   typedef boost::shared_ptr<_SymGTOs> SymGTOs;
   class _SymGTOs {
   public:
-    pSymmetryGroup sym_group;
-    std::vector<SubSymGTOs> subs;
-    Molecule molecule;
+    SymmetryGroup sym_group_;
+    std::vector<SubSymGTOs> subs_;
+    Molecule molecule_;
     bool setupq;
   public:
     // ---- Constructors ----
-    _SymGTOs();
+    _SymGTOs(Molecule mole);
     //_SymGTOs(pSymmetryGroup _sym_group);
 
     // ---- Accessors ----    
     int size_atom() const;
     int size_basis() const;
     int size_basis_isym(Irrep isym) const;
+    int size_subs() const {return subs_.size(); }
     std::string str() const;
     int max_num_prim() const;
-
-    // ---- Add information ----
-    void SetSym(pSymmetryGroup sym) { sym_group = sym; }
-    void SetMolecule(Molecule _molecule) { molecule = _molecule; }
-    Molecule GetMolecule() { return molecule; }
-    Molecule GetMolecule() const { return molecule; }
-    void AddSub(SubSymGTOs sub) { subs.push_back(sub); }
+    SymmetryGroup sym_group() { return sym_group_; }
+    SymmetryGroup sym_group() const { return sym_group_; }
+    Molecule molecule() { return molecule_; }
+    Molecule molecule() const { return molecule_; }
+    std::vector<SubSymGTOs>& subs() { return subs_; };
+    const std::vector<SubSymGTOs>& subs() const { return subs_; };
+    SubSymGTOs& sub(int i) { return subs_[i]; };
     
     // ---- Other basis ----
     SymGTOs Clone() const;
     SymGTOs Conj() const;
 
     // ---- SetUp ----
-    void SetUp();
+    _SymGTOs* AddSub(SubSymGTOs sub);
+    _SymGTOs* SetUp();
     
   private:
     void SetOffset();
@@ -197,7 +200,16 @@ namespace cbasis {
     // -- Correction of wave function sign --
     void CorrectSign(int L, int M, int irrep, Eigen::VectorXcd& cs);
   };
-  SymGTOs CreateSymGTOs();
+  SymGTOs NewSymGTOs(Molecule mole);
+  
+  // ==== Add Sub ====
+  SubSymGTOs Sub_Mono(SymmetryGroup sym, Atom atom, Irrep irrep, 
+			 Eigen::Vector3i ns, Eigen::VectorXcd zs);
+  SubSymGTOs Sub_SolidSH_Ms(SymmetryGroup sym, Atom atom, int L,
+			       Eigen::VectorXi _Ms, Eigen::VectorXcd zs);
+  SubSymGTOs Sub_SolidSH_M(SymmetryGroup sym, Atom atom, int L, int M, 
+			      Eigen::VectorXcd zs);
+  
 }
 
 #endif
