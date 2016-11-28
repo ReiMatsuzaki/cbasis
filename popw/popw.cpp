@@ -83,10 +83,12 @@ void PrintIn() {
   cout << "out_json: " << out_json << endl;
   cout << "E0: " << E0 << endl;
   cout << "k_list: "  << endl;
+
   BOOST_FOREACH(Vector3d& k, k_list) {
-    cout << k[0] << " " << k[1] << " " << k[2] << endl;
-  }  
-  cout << "basis0:" << endl << basis0->str() << endl;  
+    cout << "[" << k[0] << ", " << k[1] << ", " << k[2] << "]" << endl;
+  }
+  cout << "mole:" << endl << mole->show() << endl;
+  cout << "basis0:" << endl << basis0->show() << endl;
 
 }
 void Init() {

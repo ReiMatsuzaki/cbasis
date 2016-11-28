@@ -124,6 +124,10 @@ namespace cbasis {
   void calcD2Mat(typename _EXPs<m1>::EXPs a,
 		 typename _EXPs<m2>::EXPs b,
 		 Eigen::MatrixXcd& mat);
+
+  template<int m>
+  void CalcSTVMat(typename _EXPs<m>::EXPs us, std::vector<dcomplex>& buf,
+		  Eigen::MatrixXcd *S, Eigen::MatrixXcd *T, Eigen::MatrixXcd *V);  
 }
 
 #endif

@@ -4,7 +4,7 @@
 #include <vector>
 #include <Eigen/Core>
 #include <boost/shared_ptr.hpp>
-#include "typedef.hpp"
+#include "../utils/typedef.hpp"
 #include "symgroup.hpp"
 #include "symmolint.hpp"
 
@@ -13,7 +13,7 @@ namespace cbasis {
   class _MO {
   public:
     _MO();
-    pSymmetryGroup sym;
+    SymmetryGroup sym;
     BMat H, S, J, K, F, C, P;
     BVec eigs;
     std::vector<int> num_occ_irrep;
@@ -33,7 +33,7 @@ namespace cbasis {
 
   // ---- RHF ----
   vector<int> CalcOccNum(const BVec& eigs, int num_sym, int num_orb);
-  MO CalcOneEle(pSymmetryGroup sym, BMatSet mat_set, int debug_lvl = 0);
+  MO CalcOneEle(SymmetryGroup sym, BMatSet mat_set, int debug_lvl = 0);
   void AddJK(B2EInt eri,  BMat& C, int I0, int i0,
 	     dcomplex coef_J, dcomplex coef_K, BMat& JK);
   void AddJK_Slow(B2EInt eri, BMat& C, int I0, int i0,
@@ -42,7 +42,7 @@ namespace cbasis {
   void AddK(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K);
   MO CalcRHF(SymGTOs gtos, int nele, int max_iter, double eps, bool *is_conv,
 	     int debug_lvl = 0);
-  MO CalcRHF(pSymmetryGroup sym, BMatSet mat_set, B2EInt eri, int nele, 
+  MO CalcRHF(SymmetryGroup sym, BMatSet mat_set, B2EInt eri, int nele, 
 	     int max_iter, double eps, bool *is_conv, int debug_lvl=0);
   void CalcSEHamiltonian(MO mo, B2EInt eri, Irrep I0, int i0, BMat* hmat,
 			 int method = 0);

@@ -1,6 +1,8 @@
+#include <iomanip>
 #include <iostream>
 #include <stdexcept>
 #include <numeric>
+#include <boost/foreach.hpp>
 #include "../utils/eigen_plus.hpp"
 #include "cfunc.hpp"
 #include "angmoment.hpp"
@@ -70,9 +72,14 @@ namespace cbasis {
       throw runtime_error(msg);
     }
 
-    if(this->size_at() * this->size_pn() == 0) {
+    if(this->size_at() == 0) {
       string msg; SUB_LOCATION(msg);
-      msg += ": primitive GTO is not set.";
+      msg += ": size_at=0";
+      throw runtime_error(msg);
+    }
+    if( this->size_pn() == 0) {
+      string msg; SUB_LOCATION(msg);
+      msg += ": size_pn==0";
       throw runtime_error(msg);
     }
     if(this->zeta_iz.size() == 0) {
@@ -170,6 +177,128 @@ namespace cbasis {
     rds.push_back(_rds);
     return *this;
   }
+  void SubSymGTOs::Mono(Irrep irrep, Vector3i ns, VectorXcd zs) {
+
+    if(this->atom_->size() != 1) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + ": atom have to have only one xyz";
+      throw runtime_error(msg);
+    }
+
+    this->AddNs(ns);
+    this->AddZeta(zs);
+    this->AddRds(Reduction(irrep, MatrixXcd::Ones(1, 1)));
+
+  }
+  void SubSymGTOs::SolidSH_Ms(int L, VectorXi _Ms, VectorXcd zs) {
+    // -- memo --
+    // from wiki
+    // real form and complex form:
+    // Ylm = sqrt(2)(-)^m Im[Yl^|m|]   (m<0)
+    // Yl0 = Yl^0   (m=0)
+    // Ylm = sqrt(2)(-)^m Re[Yl^m]     (m>0)
+    // or do google "spherical harmonics table"
+    
+    // Us(r) = N exp[-ar^2] = N exp[-ar^2] Y00 sqrt(4pi)
+    // upz(r) = N z exp[-ar^2] = N exp[-ar^2] Y10 sqrt(4pi/3)
+    // ud_z2(r) = N (2z^2-x^2-y^2) exp[-ar^2] = ...sqrt(16pi/5)
+    // ud_zx(r) = N zx exp[-ar^2] = ...sqrt(4pi/15)
+
+    if(this->atom_->size() != 1) {
+      string msg; SUB_LOCATION(msg);
+      msg = "\n" + msg + ": atom have to have only one xyz";
+      throw runtime_error(msg);
+    }
+    
+    this->AddZeta(zs);
+    SymmetryGroup sym = this->sym_group();
+    
+    vector<int> Ms;
+    for(int i = 0; i < _Ms.size(); i++) {
+      int m = _Ms[i];
+      if(abs(m) > 1) {
+	string msg; SUB_LOCATION(msg); msg += ": now |m| > 1 is not implemented";
+	throw runtime_error(msg);
+      }
+      Ms.push_back(m);
+    }
+
+    if(L < 0 || L > 3) {
+      string msg; SUB_LOCATION(msg); msg += ": only L=0,1,2,3 is supported";
+      throw runtime_error(msg);
+    }
+
+    bool find_0 = find(Ms.begin(), Ms.end(),   0) != Ms.end();
+    bool find_p1 = find(Ms.begin(), Ms.end(), +1) != Ms.end();
+    bool find_m1 = find(Ms.begin(), Ms.end(), -1) != Ms.end();
+
+    if(L == 0) {
+      this->AddNs(Vector3i::Zero());
+      if(find_0) {
+	Reduction rds(sym->irrep_s(), MatrixXcd::Ones(1, 1));
+	rds.SetLM(0, 0, sqrt(4.0*M_PI)); this->AddRds(rds);
+      }
+    }
+    if(L == 1) {
+      this->AddNs(1,0,0); this->AddNs(0,1,0); this->AddNs(0,0,1);
+      if(find_p1) {
+	Reduction rds(sym->irrep_x(), m13cd(1,0,0));
+	rds.SetLM(1, 1, sqrt(4.0 * M_PI / 3.0)); this->AddRds(rds);
+      }      
+      if(find_0) {
+	Reduction rds(sym->irrep_z(), m13cd(0,0,1));
+	rds.SetLM(1, 0, sqrt(4.0 * M_PI / 3.0)); this->AddRds(rds);
+      }
+      if(find_m1) {
+	Reduction rds(sym->irrep_y(), m13cd(0,1,0));
+	rds.SetLM(1, -1, sqrt(4.0 * M_PI / 3.0)); this->AddRds(rds);
+      }
+    }
+    if(L == 2) {
+      this->AddNs(2,0,0); this->AddNs(0,2,0); this->AddNs(0,0,2);
+      this->AddNs(1,1,0); this->AddNs(0,1,1); this->AddNs(1,0,1);
+      if(find_p1) {
+	MatrixXcd m(1, 6); m << 0,0,0, 0,0,1;
+	Reduction rds(sym->irrep_x(), m);
+	rds.SetLM(2, 1, sqrt(4.0*M_PI/15.0)); this->AddRds(rds);
+      }      
+      if(find_0) {
+	MatrixXcd m(1, 6); m << -1,-1,2, 0,0,0;
+	Reduction rds(sym->irrep_z(), m);
+	rds.SetLM(2, 0, sqrt(16.0*M_PI/5.0)); this->AddRds(rds);
+      }
+      if(find_m1) {
+	MatrixXcd m(1, 6); m << 0,0,0, 0,1,0;
+	Reduction rds(sym->irrep_y(), m);
+	rds.SetLM(2, -1, sqrt(4.0*M_PI/15.0)); this->AddRds(rds);
+      }
+    }
+    if(L == 3) {
+      this->AddNs(1,0,2); this->AddNs(3,0,0); this->AddNs(1,2,0);
+      this->AddNs(0,0,3); this->AddNs(2,0,1); this->AddNs(0,2,1);
+      this->AddNs(0,1,2); this->AddNs(2,1,0); this->AddNs(0,3,0);
+      if(find_p1) {
+	MatrixXcd m(1,9); m << 4,-1,-1,  0,0,0,  0,0,0;
+	Reduction rds(sym->irrep_x(), m);
+	rds.SetLM(3, +1, sqrt(32.0*M_PI/21.0)); this->AddRds(rds);
+      }
+      if(find_0) {
+	MatrixXcd m(1,9); m << 0,0,0,  2,-3,-3,  0,0,0;
+	Reduction rds(sym->irrep_z(), m);
+	rds.SetLM(3, 0, sqrt(16.0*M_PI/7.0)); this->AddRds(rds);
+      }
+      if(find_m1) {
+	MatrixXcd m(1,9); m << 0,0,0,  0,0,0,  4,-1,-1;
+	Reduction rds(sym->irrep_y(), m);
+	rds.SetLM(3, -1, sqrt(32.0*M_PI/21.0)); this->AddRds(rds);
+      }
+    }
+  }    
+  void SubSymGTOs::SolidSH_M(int L, int M, Eigen::VectorXcd zs) {
+    VectorXi Ms(1);
+    Ms(0) = M;
+    this->SolidSH_Ms(L, Ms, zs);
+  }
   string SubSymGTOs::str() const {
     ostringstream oss;
     oss << "==== SubSymGTOs ====" << endl;
@@ -192,195 +321,6 @@ namespace cbasis {
     return oss.str();
   }
 
-  /*
-  SubSymGTOs Sub_s(Irrep irrep, Vector3cd xyz, VectorXcd zs) {
-
-    MatrixXcd cs = MatrixXcd::Ones(1,1);
-    Reduction rds(irrep, cs);
-    MatrixXi symmat = MatrixXi::Ones(1, 1);
-    MatrixXi signmat= MatrixXi::Ones(1, 1);
-
-    SubSymGTOs sub;
-    sub.AddXyz(xyz);
-    sub.AddNs(Vector3i(0, 0, 0));
-    sub.AddZeta(zs);
-    sub.AddRds(rds);
-
-    return sub;
-  }
-  SubSymGTOs Sub_pz(Irrep irrep, Vector3cd xyz, VectorXcd zs) {
-
-    MatrixXcd cs = MatrixXcd::Ones(1,1);
-    Reduction rds(irrep, cs);
-
-    SubSymGTOs sub;
-    sub.AddXyz(xyz);
-    sub.AddNs(Vector3i(0, 0, 1));
-    sub.AddRds(rds);
-    sub.AddZeta(zs);
-
-    return sub;    
-  }
-  SubSymGTOs Sub_TwoSGTO(pSymmetryGroup sym, Irrep irrep,
-			 Vector3cd xyz, VectorXcd zs) {
-
-    sym->CheckIrrep(irrep);
-    SubSymGTOs sub;
-    
-    sub.SetSym(sym);
-
-    if(sym->name() == "Cs") {
-      dcomplex x = xyz[0];
-      dcomplex y = xyz[1];
-      dcomplex z = xyz[2];
-      sub.AddXyz(xyz);
-      sub.AddXyz(Vector3cd(x, y, -z));
-      sub.AddNs(Vector3i(0, 0, 0));
-      sub.AddZeta(zs);
-
-      MatrixXcd cs(2, 1);
-      if(irrep == sym->GetIrrep("A'")) {
-	cs << 1.0, 1.0;
-      } else if (irrep == sym->GetIrrep("A''")){
-	cs << 1.0, -1.0;
-      }
-      Reduction rds(irrep, cs);
-      sub.AddRds(rds);
-      
-      sub.SetUp();
-      return sub;
-
-    } else {
-      string msg; SUB_LOCATION(msg);
-      msg += "only Cs symmetry is implemented now";
-      throw runtime_error(msg);
-    }
-  }
-  SubSymGTOs Sub_mono(Irrep irrep,
-		      Vector3cd xyz, Vector3i ns, VectorXcd zs) {
-
-    SubSymGTOs sub;
-
-    sub.AddXyz(xyz);
-    sub.AddNs(ns);
-    sub.AddZeta(zs);
-    sub.AddRds(Reduction(irrep, MatrixXcd::Ones(1, 1)));
-
-    return sub;
-  }
-  SubSymGTOs Sub_SolidSH_M(pSymmetryGroup sym, int L, int M, Vector3cd xyz, VectorXcd zs) {
-    
-    SubSymGTOs sub;
-    sub.AddXyz(xyz);
-    sub.AddZeta(zs);
-
-    VectorXi Ms(1); Ms << M;
-    return Sub_SolidSH_Ms(sym, L, Ms, xyz, zs);
-    
-  }
-  SubSymGTOs Sub_SolidSH_Ms(pSymmetryGroup sym, int L, VectorXi _Ms, Vector3cd xyz, VectorXcd zs) {
-
-    // -- memo --
-    // from wiki
-    // real form and complex form:
-    // Ylm = sqrt(2)(-)^m Im[Yl^|m|]   (m<0)
-    // Yl0 = Yl^0   (m=0)
-    // Ylm = sqrt(2)(-)^m Re[Yl^m]     (m>0)
-    // or do google "spherical harmonics table"
-    
-    // Us(r) = N exp[-ar^2] = N exp[-ar^2] Y00 sqrt(4pi)
-    // upz(r) = N z exp[-ar^2] = N exp[-ar^2] Y10 sqrt(4pi/3)
-    // ud_z2(r) = N (2z^2-x^2-y^2) exp[-ar^2] = ...sqrt(16pi/5)
-    // ud_zx(r) = N zx exp[-ar^2] = ...sqrt(4pi/15)
-    
-    SubSymGTOs sub;
-    sub.AddXyz(xyz);
-    sub.AddZeta(zs);
-    
-    vector<int> Ms;
-    for(int i = 0; i < _Ms.size(); i++) {
-      int m = _Ms[i];
-      if(abs(m) > 1) {
-	string msg; SUB_LOCATION(msg); msg += ": now |m| > 1 is not implemented";
-	throw runtime_error(msg);
-      }
-      Ms.push_back(m);
-    }
-
-    if(L < 0 || L > 3) {
-      string msg; SUB_LOCATION(msg); msg += ": only L=0,1,2,3 is supported";
-      throw runtime_error(msg);
-    }
-
-    bool find_0 = find(Ms.begin(), Ms.end(),   0) != Ms.end();
-    bool find_p1 = find(Ms.begin(), Ms.end(), +1) != Ms.end();
-    bool find_m1 = find(Ms.begin(), Ms.end(), -1) != Ms.end();
-
-    if(L == 0) {
-      sub.AddNs(Vector3i::Zero());
-      if(find_0) {
-	Reduction rds(sym->irrep_s, MatrixXcd::Ones(1, 1));
-	rds.SetLM(0, 0, sqrt(4.0*M_PI)); sub.AddRds(rds);
-      }
-    }
-    if(L == 1) {
-      sub.AddNs(1,0,0); sub.AddNs(0,1,0); sub.AddNs(0,0,1);
-      if(find_p1) {
-	Reduction rds(sym->irrep_x, m13cd(1,0,0));
-	rds.SetLM(1, 1, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
-      }      
-      if(find_0) {
-	Reduction rds(sym->irrep_z, m13cd(0,0,1));
-	rds.SetLM(1, 0, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
-      }
-      if(find_m1) {
-	Reduction rds(sym->irrep_y, m13cd(0,1,0));
-	rds.SetLM(1, -1, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
-      }
-    }
-    if(L == 2) {
-      sub.AddNs(2,0,0); sub.AddNs(0,2,0); sub.AddNs(0,0,2);
-      sub.AddNs(1,1,0); sub.AddNs(0,1,1); sub.AddNs(1,0,1);
-      if(find_p1) {
-	MatrixXcd m(1, 6); m << 0,0,0, 0,0,1;
-	Reduction rds(sym->irrep_x, m);
-	rds.SetLM(2, 1, sqrt(4.0*M_PI/15.0)); sub.AddRds(rds);
-      }      
-      if(find_0) {
-	MatrixXcd m(1, 6); m << -1,-1,2, 0,0,0;
-	Reduction rds(sym->irrep_z, m);
-	rds.SetLM(2, 0, sqrt(16.0*M_PI/5.0)); sub.AddRds(rds);
-      }
-      if(find_m1) {
-	MatrixXcd m(1, 6); m << 0,0,0, 0,1,0;
-	Reduction rds(sym->irrep_y, m);
-	rds.SetLM(2, -1, sqrt(4.0*M_PI/15.0)); sub.AddRds(rds);
-      }
-    }
-    if(L == 3) {
-      sub.AddNs(1,0,2); sub.AddNs(3,0,0); sub.AddNs(1,2,0);
-      sub.AddNs(0,0,3); sub.AddNs(2,0,1); sub.AddNs(0,2,1);
-      sub.AddNs(0,1,2); sub.AddNs(2,1,0); sub.AddNs(0,3,0);
-      if(find_p1) {
-	MatrixXcd m(1,9); m << 4,-1,-1,  0,0,0,  0,0,0;
-	Reduction rds(sym->irrep_x, m);
-	rds.SetLM(3, +1, sqrt(32.0*M_PI/21.0)); sub.AddRds(rds);
-      }
-      if(find_0) {
-	MatrixXcd m(1,9); m << 0,0,0,  2,-3,-3,  0,0,0;
-	Reduction rds(sym->irrep_z, m);
-	rds.SetLM(3, 0, sqrt(16.0*M_PI/7.0)); sub.AddRds(rds);
-      }
-      if(find_m1) {
-	MatrixXcd m(1,9); m << 0,0,0,  0,0,0,  4,-1,-1;
-	Reduction rds(sym->irrep_y, m);
-	rds.SetLM(3, -1, sqrt(32.0*M_PI/21.0)); sub.AddRds(rds);
-      }
-    }
-
-    return sub;
-  }
-  */
   // ==== SymGTOs ====
   // ---- Constructors ----
   _SymGTOs::_SymGTOs(Molecule mole):
@@ -434,7 +374,63 @@ namespace cbasis {
     oss << "=================" << endl;
     return oss.str();
   }
+  string _SymGTOs::show() {
+    
+    string sep = " | ";
+    string line = "-|-";
+    ostringstream oss;
 
+    ostringstream lines;
+    lines << setfill('-')
+	  << line << setw(4) << right << ""
+	  << line << setw(4) << right << ""
+	  << line << setw(5) << right << ""
+	  << line << setw(3) << right << ""
+	  << line << setw(20) << right << ""
+	  << line << endl;
+    oss << lines.str();
+    
+    oss << setfill(' ')
+	<< sep << setw(4) << right << "atom"
+	<< sep << setw(4) << right << "pn"
+	<< sep << setw(5) << right << "irrep"
+	<< sep << setw(3) << right << "idx"
+	<< sep << setw(20)<< right << "zeta"
+	<< sep << endl;
+    oss << lines.str();
+    
+    BOOST_FOREACH(SubSymGTOs& sub, this->subs_) {
+      
+
+      for(RdsIt irds = sub.rds.begin(); irds != sub.rds.end(); ++irds) {
+
+	ostringstream pn_oss;
+	if(sub.size_pn() == 1) {
+	  pn_oss << sub.nx(0)<<sub.ny(0)<<sub.nz(0);
+	} else if(sub.maxn==1) {
+	  pn_oss << sub.maxn;
+	}
+	oss << sep << setw(4) << right << sub.atom()->name()
+	    << sep << setw(4) << right << pn_oss.str()
+	    << sep << setw(5) << right << sym_group_->GetIrrepName(irds->irrep)
+	    << sep << setw(3) << right << ""
+	    << sep << setw(20) << right << ""
+	    << sep << endl;
+
+	for(int iz = 0; iz < sub.size_zeta(); iz++) {
+	  oss << sep << setw(4) << right << ""
+	      << sep << setw(4) << right << ""
+	      << sep << setw(5) << right << ""
+	      << sep << setw(3) << right << irds->offset+iz
+	      << sep << setw(20) << right <<  sub.zeta(iz)
+	      << sep << endl;
+	}
+      }
+    }
+    oss << lines.str();
+    return oss.str();
+  }
+  
   // ---- Other ----
   SymGTOs _SymGTOs::Clone() const {
 
@@ -463,6 +459,14 @@ namespace cbasis {
   _SymGTOs* _SymGTOs::AddSub(SubSymGTOs sub) {
     subs_.push_back(sub);
     return this;
+  }
+  SubSymGTOs& _SymGTOs::NewSub(Atom atom) {
+    SubSymGTOs new_sub(this->sym_group(), atom);
+    subs_.push_back(new_sub);
+    return subs_[subs_.size()-1];
+  }
+  SubSymGTOs& _SymGTOs::NewSub(std::string atom_name) {
+    return this->NewSub(this->molecule()->atom(atom_name));
   }
   _SymGTOs* _SymGTOs::SetUp() {
     
@@ -1020,22 +1024,22 @@ namespace cbasis {
     if(L == 0) {
       sub.AddNs(Vector3i::Zero());
       if(find_0) {
-	Reduction rds(sym->irrep_s, MatrixXcd::Ones(1, 1));
+	Reduction rds(sym->irrep_s(), MatrixXcd::Ones(1, 1));
 	rds.SetLM(0, 0, sqrt(4.0*M_PI)); sub.AddRds(rds);
       }
     }
     if(L == 1) {
       sub.AddNs(1,0,0); sub.AddNs(0,1,0); sub.AddNs(0,0,1);
       if(find_p1) {
-	Reduction rds(sym->irrep_x, m13cd(1,0,0));
+	Reduction rds(sym->irrep_x(), m13cd(1,0,0));
 	rds.SetLM(1, 1, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
       }      
       if(find_0) {
-	Reduction rds(sym->irrep_z, m13cd(0,0,1));
+	Reduction rds(sym->irrep_z(), m13cd(0,0,1));
 	rds.SetLM(1, 0, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
       }
       if(find_m1) {
-	Reduction rds(sym->irrep_y, m13cd(0,1,0));
+	Reduction rds(sym->irrep_y(), m13cd(0,1,0));
 	rds.SetLM(1, -1, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
       }
     }
@@ -1044,17 +1048,17 @@ namespace cbasis {
       sub.AddNs(1,1,0); sub.AddNs(0,1,1); sub.AddNs(1,0,1);
       if(find_p1) {
 	MatrixXcd m(1, 6); m << 0,0,0, 0,0,1;
-	Reduction rds(sym->irrep_x, m);
+	Reduction rds(sym->irrep_x(), m);
 	rds.SetLM(2, 1, sqrt(4.0*M_PI/15.0)); sub.AddRds(rds);
       }      
       if(find_0) {
 	MatrixXcd m(1, 6); m << -1,-1,2, 0,0,0;
-	Reduction rds(sym->irrep_z, m);
+	Reduction rds(sym->irrep_z(), m);
 	rds.SetLM(2, 0, sqrt(16.0*M_PI/5.0)); sub.AddRds(rds);
       }
       if(find_m1) {
 	MatrixXcd m(1, 6); m << 0,0,0, 0,1,0;
-	Reduction rds(sym->irrep_y, m);
+	Reduction rds(sym->irrep_y(), m);
 	rds.SetLM(2, -1, sqrt(4.0*M_PI/15.0)); sub.AddRds(rds);
       }
     }
@@ -1064,17 +1068,17 @@ namespace cbasis {
       sub.AddNs(0,1,2); sub.AddNs(2,1,0); sub.AddNs(0,3,0);
       if(find_p1) {
 	MatrixXcd m(1,9); m << 4,-1,-1,  0,0,0,  0,0,0;
-	Reduction rds(sym->irrep_x, m);
+	Reduction rds(sym->irrep_x(), m);
 	rds.SetLM(3, +1, sqrt(32.0*M_PI/21.0)); sub.AddRds(rds);
       }
       if(find_0) {
 	MatrixXcd m(1,9); m << 0,0,0,  2,-3,-3,  0,0,0;
-	Reduction rds(sym->irrep_z, m);
+	Reduction rds(sym->irrep_z(), m);
 	rds.SetLM(3, 0, sqrt(16.0*M_PI/7.0)); sub.AddRds(rds);
       }
       if(find_m1) {
 	MatrixXcd m(1,9); m << 0,0,0,  0,0,0,  4,-1,-1;
-	Reduction rds(sym->irrep_y, m);
+	Reduction rds(sym->irrep_y(), m);
 	rds.SetLM(3, -1, sqrt(32.0*M_PI/21.0)); sub.AddRds(rds);
       }
     }

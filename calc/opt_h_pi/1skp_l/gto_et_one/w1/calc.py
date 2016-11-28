@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 
+sys.path.append("../../../../../src_py/nnewton")
 sys.path.append("../../../../../r1basis")
 from r1basis import *
 from opt_green import *
@@ -18,7 +19,7 @@ opt_main(basis_type = 'GTO',
          target = 'h_pi',
          channel= '1s->kp',
          dipole = 'length',
-         print_level = 2,
+         print_level = 5,
          outfile = "res.out",
          wf_outfile = "wf.csv",
          wf_rs = np.linspace(0.0, 40.0, 200))

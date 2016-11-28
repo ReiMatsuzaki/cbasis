@@ -75,19 +75,16 @@ int main (int argc, char *argv[]) {
   cout << "out_json: " << out_json << endl;
   cout << "out_eigvecs: " << out_eigvecs << endl;
   cout << "out_eigvals: " << out_eigvals << endl;
-  cout << "gtos: " << endl << gtos->str() << endl;
+  cout << "symmetry: " << sym->name() << endl;
+  cout << "molecule: " << endl << mole->show() << endl;
+  cout << "gtos: " << endl << gtos->show() << endl;
 
   // ==== calculation ====
   PrintTimeStamp("Calc", NULL);
   BMat S, T, V, C;
   BVec E;
-  InitBMat(gtos, 0, gtos, &S);
-  InitBMat(gtos, 0, gtos, &T);
-  InitBMat(gtos, 0, gtos, &V);
-  InitBMat(gtos, 0, gtos, &C);
-  InitBVec(gtos, &E);
   
-  CalcSTVMat(gtos, gtos, &S, &T, &V);  
+  CalcSTVMat(gtos, gtos, &S, &T, &V);
 
   for(int irrep = 0; irrep < sym->order(); irrep++) {
     if(gtos->size_basis_isym(irrep) != 0) {
@@ -96,12 +93,22 @@ int main (int argc, char *argv[]) {
       SymGenComplexEigenSolver solver(h, s);
       E(irrep) = solver.eigenvalues();
       C(irrep, irrep) = solver.eigenvectors();
+      /*
+      MatrixXcd Ctmp;
+      VectorXcd Etmp;
+      generalizedComplexEigenSolve(h, s, &Ctmp, &Etmp);
+      cout << Etmp << endl;
+      */
+
+      ComplexEigenSolver<MatrixXcd> s_solver(s);
+      cout << "eig_of_s: " << s_solver.eigenvalues()[0] << endl;
     }
   }
   
   // ==== output ====
   PrintTimeStamp("Out", NULL);
   cout << "E0 = " << E(0)(0) << endl;
+
   cout << "writing E" << endl;
   E.Write(out_eigvals);
   cout << "writing C" << endl;

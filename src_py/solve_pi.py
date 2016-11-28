@@ -23,7 +23,7 @@ def calc_coef_Azeta0(w, Alm, zeta, ls):
     cumsum = 0.0
     for L1 in ls:
 	for L2 in ls:
-	    c1 = np.sqrt((2*L1+1)*(2*L2+1)*1.0)/(4.0*np.pi*(2*zeta+1))	    
+	    c1 = np.sqrt((2*L1+1)*(2*L2+1)*1.0)/(4.0*np.pi*(2*zeta+1))
 	    for M1 in range(-L1,L1+1):
 		for M2 in range(-L2,L2+1):
 		    for mzeta in range(-zeta, zeta+1):
@@ -250,12 +250,21 @@ class PhotoIonizationCoulombPlus():
             v_H_01 = calc_mat(g_psi0.conj(), g_psi1, True)["v"]
             v_C_01 = calc_mat(g_psi0,        g_psi1, True)["v"]
             v0_H_01= calc_v_mat(g_psi0.conj(),g_psi1, [0,0,0], Z )
-            v0_C_01= calc_v_mat(g_psi0, g_psi1, [0,0,0], Z )            
+            v0_C_01= calc_v_mat(g_psi0, g_psi1, [0,0,0], Z )
+            
             
             for (mpp, xyz, ir) in dip_list(g_i.sym_group, self.dipole):
                 m = mpp + self.Mi
                 self.v_H[L, m] = v_H_01[ir, ir] - v0_H_01[ir,ir]
                 self.v_C[L, m] = v_C_01[ir, ir] - v0_C_01[ir,ir]
+                print "v_C",  L,m, self.v_C[L,m][1,2]
+                print "v_H",  L,m, self.v_H[L,m][1,2]
+                """
+                print "v_C",  L,m,v_C_01[ir,ir][1,2]
+                print "v0_C", L,m,v0_C_01[ir,ir][1,2]
+                print "v_H",  L,m,v_H_01[ir,ir][1,2]
+                print "v0_H", L,m,v0_H_01[ir,ir][1,2]
+                """
         
         self.precalc_common( g_i, g_chi_L, g_psi1, g_psi0_L)
 
@@ -330,7 +339,8 @@ class PhotoIonizationCoulombPlus():
 
         ## compute psi1 if necessary
         if self.use_2:
-            c1_psi1_m = {}
+            self.c1_psi1_m = {}
+            c1_psi1_m = self.c1_psi1_m
             for m in [self.Mi-1, self.Mi, self.Mi+1]:
                 L1 = self.S11[m] * ene - self.H11[m]
                 c1_psi1_m[m] = la.solve(L1, self.mu_phi_1[m])
@@ -365,6 +375,7 @@ class PhotoIonizationCoulombPlus():
                 else:
                     impsi0_other = impsi0_muphi
 
+                print "matele: ", L, m, impsi0_other
                 dl = np.sqrt(1.0*self.ne) * 2j/np.sqrt(k) * impsi0_other
                 dl_ss[m, mppc] = np.sqrt(3.0/(4.0*np.pi)) * dl
                 
@@ -379,6 +390,7 @@ class PhotoIonizationCoulombPlus():
                     Alm[L, m] = 0.0
                 else:
                     Alm[L, m] = coef * dl_yy[m, m]
+                    print "Alm: ",L,m, Alm[L,m]
                     
         A00 = calc_coef_Azeta0(w, Alm, 0, ls)
 	A20 = calc_coef_Azeta0(w, Alm, 2, ls)
@@ -398,11 +410,12 @@ class PhotoIonizationCoulombPlus():
             c1_psi1_m = la.solve(L1, self.mu_phi_1[m])
             alpha_m = np.dot(c1_psi1_m,  self.mu_phi_1[m]) / 3.0
             alpha += alpha_m
-
+        cs = 0.0
         if(self.dipole == "length"):
-            return 4.0 * np.pi * w / c_light * alpha.imag * au2mb
+            cs = 4.0 * np.pi * w / c_light * alpha.imag * au2mb
         elif(self.dipole == "velocity"):
-            return 4.0 * np.pi / (w * c_light) * alpha.imag * au2mb
+            cs = 4.0 * np.pi / (w * c_light) * alpha.imag * au2mb
+        return cs
        
     def phase_shift_easy(self, w, L, irrep_Dooh):
         """compute phase shift

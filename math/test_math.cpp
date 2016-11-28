@@ -103,7 +103,25 @@ TEST(ExpInt, STO_Int_Rplus) {
   //  calc = 2.2*1.
   
 }
+TEST(ExpInt, fast_array) {
 
+  dcomplex a(1.1, 0.3);
+  dcomplex b(0.5, 0.2);
+
+  vector<dcomplex> res;
+  for(int maxn = 0; maxn < 4; maxn++) {
+    STOInt_Rplus_array(maxn, a, &res);
+    for(int n = 0; n <= maxn; n++)
+      EXPECT_C_EQ(STOInt_Rplus(n, a), res[n]);
+    GTOInt_Rplus_array(maxn, a, &res);
+    for(int n = 0; n <= maxn; n++)
+      EXPECT_C_EQ(GTOInt_Rplus(n, a), res[n]);
+    STO_GTOInt_Rplus_array(maxn, a, b, &res);
+    for(int n = 0; n <= maxn; n++)
+      EXPECT_C_EQ(STO_GTOInt_Rplus(n, a, b), res[n]);        
+  }
+  
+}
 int main(int argc, char **args) {
   cout << "wa:" << endl;
   ::testing::InitGoogleTest(&argc, args);

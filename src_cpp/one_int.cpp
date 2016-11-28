@@ -621,6 +621,10 @@ namespace cbasis {
       irrep_list.push_back(irrep);
     InitBVec(a, irrep_list, ptr);
   }
+  void InitBVec(SymGTOs a, Irrep irrep, BVec *ptr_bvec) {
+    vector<Irrep> irrep_list(1); irrep_list[0] = irrep;
+    InitBVec(a, irrep_list, ptr_bvec);
+  }
   void InitBVec(SymGTOs a, const vector<Irrep>& irrep_list, BVec *ptr) {
     BVec& vec = *ptr;
     SymmetryGroup sym = a->sym_group();
@@ -690,15 +694,14 @@ namespace cbasis {
     int niat, nipn, njat, njpn, nkat;
     niat = isub->size_at(); nipn = isub->size_pn();
     njat = jsub->size_at(); njpn = jsub->size_pn(); nkat = mole->size();
-
     static int num(1000);
     static A3dc dxmap(num, "dxmap_stv"), dymap(num, "dymap_stv"), dzmap(num, "dzmap_stv");
     static A4dc rmap(num);
     static A2dc Fjs_iat(num);
 
-    s.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
-    t.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
-    v.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+    s.SetRange(0, niat-1, 0, nipn-1, 0, njat-1, 0, njpn-1);
+    t.SetRange(0, niat-1, 0, nipn-1, 0, njat-1, 0, njpn-1);
+    v.SetRange(0, niat-1, 0, nipn-1, 0, njat-1, 0, njpn-1);
     Fjs_iat.SetRange(0, nkat, 0, isub->maxn + jsub->maxn);
 
     for(int iat = 0; iat < niat; iat++) {
@@ -746,23 +749,23 @@ namespace cbasis {
       }
     }
   }
-  void CalcPrimDip(Molecule mole, SubIt isub, SubIt jsub, int iz, int jz,
+  void CalcPrimDip(SubIt isub, SubIt jsub, int iz, int jz,
 		   A4dc& x, A4dc& y, A4dc& z, A4dc& dx, A4dc& dy, A4dc& dz) {
     dcomplex zetai, zetaj, zetaP;
     zetai = isub->zeta_iz[iz]; zetaj = jsub->zeta_iz[jz]; zetaP = zetai + zetaj;
-    int niat, nipn, njat, njpn, nkat;
+    int niat, nipn, njat, njpn;
     niat = isub->size_at(); nipn = isub->size_pn();
-    njat = jsub->size_at(); njpn = jsub->size_pn(); nkat = mole->size();
+    njat = jsub->size_at(); njpn = jsub->size_pn();
 
     static int num(1000);
     static A3dc dxmap(num, "dxmap_dip"), dymap(num, "dymap_dip"), dzmap(num, "d_map_dip");
 
-    x.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn); 
-    y.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);   
-    z.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
-    dx.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
-    dy.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
-    dz.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);    
+    x.SetRange( 0, niat-1, 0, nipn-1, 0, njat-1, 0, njpn-1);
+    y.SetRange( 0, niat-1, 0, nipn-1, 0, njat-1, 0, njpn-1);
+    z.SetRange( 0, niat-1, 0, nipn-1, 0, njat-1, 0, njpn-1);
+    dx.SetRange(0, niat-1, 0, nipn-1, 0, njat-1, 0, njpn-1);
+    dy.SetRange(0, niat-1, 0, nipn-1, 0, njat-1, 0, njpn-1);
+    dz.SetRange(0, niat-1, 0, nipn-1, 0, njat-1, 0, njpn-1);
 
     for(int iat = 0; iat < niat; iat++) {
       for(int jat = 0; jat < njat; jat++) {
@@ -824,7 +827,7 @@ namespace cbasis {
 
     int niat(isub->size_at()); int njat(jsub->size_at());
     int nipn(isub->size_pn()); int njpn(jsub->size_pn());
-    cc.SetRange(0, niat, 0, nipn, 0, njat, 0, njpn);
+    cc.SetRange(0, niat-1, 0, nipn-1, 0, njat-1, 0, njpn-1);
 
     for(int iat = 0; iat < niat; iat++) {
       for(int ipn = 0; ipn < nipn; ipn++) {
@@ -869,11 +872,15 @@ namespace cbasis {
 
     static A4dc s(1000), t(1000), v(1000);
     A4dc cc(1000);
+
+    InitBMat(a, 0, b, S);
+    InitBMat(a, 0, b, T);
+    InitBMat(a, 0, b, V);
     
     for(SubIt isub = a->subs().begin(); isub != a->subs().end(); ++isub) {
       for(SubIt jsub = b->subs().begin(); jsub != b->subs().end(); ++jsub) {
 
-	if(not HasNon0(sym, isub, sym->irrep_s, jsub))
+	if(not HasNon0(sym, isub, sym->irrep_s(), jsub))
 	  continue;
 
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
@@ -881,19 +888,113 @@ namespace cbasis {
 	    CalcPrimSTV(mole, isub, jsub, iz, jz, s, t, v);
 	    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
-		TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
-		pair<Irrep, Irrep> ij(irds->irrep, jrds->irrep);
-		int i(irds->offset + iz);
-		int j(jrds->offset + jz);
-		(*S)[ij](i, j) = MultArrayTDot(cc, s);
-		(*T)[ij](i, j) = MultArrayTDot(cc, t);
-		(*V)[ij](i, j) = MultArrayTDot(cc, v);
+
+		if(sym->Non0_3(irds->irrep, 0, jrds->irrep)) {
+		  int i(irds->offset + iz);
+		  int j(jrds->offset + jz);	
+		  TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
+		  pair<Irrep, Irrep> ij(irds->irrep, jrds->irrep);		  
+		  (*S)[ij](i, j) = MultArrayTDot(cc, s);
+		  (*T)[ij](i, j) = MultArrayTDot(cc, t);
+		  (*V)[ij](i, j) = MultArrayTDot(cc, v);
+		}
 	      }
 	    }
 	  }
 	}
       }
     }    
+  }
+  void CalcSMat(SymGTOs a, SymGTOs b, BMat *S) {
+    
+    if(not a->setupq || not b->setupq) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
+      throw runtime_error(msg);
+    }
+    SymmetryGroup sym = a->sym_group();
+    if(not sym->IsSame(b->sym_group())) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
+      throw runtime_error(msg);
+    }
+
+    static A4dc s(1000), t(1000), v(1000);
+    static A4dc cc(1000);
+    
+    InitBMat(a, 0, b, S);
+
+    Molecule mole = NewMolecule(sym); 
+    for(SubIt isub = a->subs().begin(); isub != a->subs().end(); ++isub) {
+      for(SubIt jsub = b->subs().begin(); jsub != b->subs().end(); ++jsub) {
+
+	if(not HasNon0(sym, isub, sym->irrep_s(), jsub))
+	  continue;
+
+	for(int iz = 0; iz < isub->size_zeta(); iz++) {
+	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
+	    CalcPrimSTV(mole, isub, jsub, iz, jz, s, t, v);
+	    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
+	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
+		
+		if(sym->Non0_3(irds->irrep, 0, jrds->irrep)) {
+		  TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
+		  pair<Irrep, Irrep> ij(irds->irrep, jrds->irrep);
+		  int i(irds->offset + iz);
+		  int j(jrds->offset + jz);
+		  (*S)[ij](i, j) = MultArrayTDot(cc, s);
+		}
+		
+	      }
+	    }
+	  }
+	}
+      }
+    }    
+
+  }
+  void CalcVMat(SymGTOs a, Molecule mole, SymGTOs b, BMat *V) {
+
+    if(not a->setupq || not b->setupq) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
+      throw runtime_error(msg);
+    }
+    SymmetryGroup sym = a->sym_group();
+    if(not sym->IsSame(b->sym_group())) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
+      throw runtime_error(msg);
+    }
+
+    static A4dc s(1000), t(1000), v(1000);
+    static A4dc cc(1000);
+
+    InitBMat(a, 0, b, V);
+    
+    for(SubIt isub = a->subs().begin(); isub != a->subs().end(); ++isub) {
+      for(SubIt jsub = b->subs().begin(); jsub != b->subs().end(); ++jsub) {
+
+	if(not HasNon0(sym, isub, sym->irrep_s(), jsub))
+	  continue;
+
+	for(int iz = 0; iz < isub->size_zeta(); iz++) {
+	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
+	    CalcPrimSTV(mole, isub, jsub, iz, jz, s, t, v);
+	    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
+	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
+
+		if(sym->Non0_3(irds->irrep, 0, jrds->irrep)) {
+		  TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
+		  pair<Irrep, Irrep> ij(irds->irrep, jrds->irrep);
+		  int i(irds->offset + iz);
+		  int j(jrds->offset + jz);
+		  (*V)[ij](i, j) = MultArrayTDot(cc, v);
+		}
+		
+	      }
+	    }
+	  }
+	}
+      }
+    }    
+    
   }
   void CalcDipMat(SymGTOs a, SymGTOs b,
 		  BMat* X, BMat* Y, BMat* Z, BMat* DX, BMat* DY, BMat* DZ) {
@@ -907,12 +1008,14 @@ namespace cbasis {
       string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
       throw runtime_error(msg);
     }
-    Molecule mole = a->molecule();
-    if(mole != b->molecule()) {
-      string msg; SUB_LOCATION(msg); msg += "\n" + msg + " : different molecule";
-      throw runtime_error(msg);
-    }
 
+    InitBMat(a, sym->irrep_x(), b, X);
+    InitBMat(a, sym->irrep_x(), b, DX);
+    InitBMat(a, sym->irrep_y(), b, Y);
+    InitBMat(a, sym->irrep_y(), b, DY);
+    InitBMat(a, sym->irrep_z(), b, Z);
+    InitBMat(a, sym->irrep_z(), b, DZ);        
+    
     static A4dc x(1000), y(1000), z(1000), dx(1000), dy(1000), dz(1000);
     A4dc cc(1000);
 
@@ -920,16 +1023,16 @@ namespace cbasis {
       for(SubIt jsub = b->subs().begin(); jsub != b->subs().end(); ++jsub) {
 
 	// -- scalar --
-	bool calc_x = HasNon0(sym, isub, sym->irrep_x, jsub);
-	bool calc_y = HasNon0(sym, isub, sym->irrep_y, jsub);
-	bool calc_z = HasNon0(sym, isub, sym->irrep_z, jsub);	
+	bool calc_x = HasNon0(sym, isub, sym->irrep_x(), jsub);
+	bool calc_y = HasNon0(sym, isub, sym->irrep_y(), jsub);
+	bool calc_z = HasNon0(sym, isub, sym->irrep_z(), jsub);	
 
 	if(not calc_x && not calc_y && not calc_z)
 	  continue;
 
 	for(int iz = 0; iz < isub->size_zeta(); iz++) {
 	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
-	    CalcPrimDip(mole, isub, jsub, iz, jz, x, y, z, dx, dy, dz);
+	    CalcPrimDip(isub, jsub, iz, jz, x, y, z, dx, dy, dz);
 	    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
 		TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
@@ -937,15 +1040,15 @@ namespace cbasis {
 		int i(irds->offset + iz);
 		int j(jrds->offset + jz);
 	
-		if(calc_x) {
+		if(sym->Non0_3(irds->irrep, sym->irrep_x(), jrds->irrep)) {
 		  (*X)[ij](i, j)  = MultArrayTDot(cc, x);
 		  (*DX)[ij](i, j) = MultArrayTDot(cc, dx);
 		}
-		if(calc_y) {
+		if(sym->Non0_3(irds->irrep, sym->irrep_y(), jrds->irrep)) {
 		  (*Y)[ij](i, j)  = MultArrayTDot(cc, y);
 		  (*DY)[ij](i, j) = MultArrayTDot(cc, dy);
 		}
-		if(calc_z) {
+		if(sym->Non0_3(irds->irrep, sym->irrep_z(), jrds->irrep)) {  
 		  (*Z)[ij](i, j)  = MultArrayTDot(cc, z);
 		  (*DZ)[ij](i, j) = MultArrayTDot(cc, dz);
 		}

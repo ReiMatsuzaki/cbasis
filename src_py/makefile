@@ -1,4 +1,5 @@
 include local.mk
+#VPATH=../src_cpp ../utils ../math
 
 # ==== Common settings ====
 CXXFLAGS=-Wall -fPIC
@@ -15,7 +16,7 @@ endif
 
 BIN_ORIG=bin
 ARCH=debug
-BINDIR=bin/${ARCH}
+BINDIR=./bin/${ARCH}
 
 $(shell mkdir -p ${BINDIR})
 
@@ -41,6 +42,12 @@ DEPS:=$(SRCS:%.cpp=${BINDIR}/%.d)
 ${BINDIR}/%.o: ../src_cpp/%.cpp
 	${CXX} -c -o $@ -MMD ${CXXFLAGS} $<
 
+${BINDIR}/%.o: ../utils/%.cpp
+	${CXX} -c -o $@ -MMD ${CXXFLAGS} $<
+
+${BINDIR}/%.o: ../math/%.cpp
+	${CXX} -c -o $@ -MMD ${CXXFLAGS} $<
+
 # ==== L2(R1) ====
 L2_OBJS=fact.o erfc.o lgamma.o math_utils.o exp_func.o cut_exp.o cip_exp.o delta.o
 ${BINDIR}/l2func_bind.so: l2func_bind.cpp $(foreach o, ${L2_OBJS}, ${BINDIR}/$o)
@@ -54,7 +61,7 @@ install_l2: ${BINDIR}/l2func_bind.so
 	cp $< ${PY_DIR}
 
 # ==== SymMolInt ====
-SYMMOLINT_OBJS=mo.o symmolint.o one_int.o two_int.o fact.o cfunc.o mol_func.o bmatset.o angmoment.o eigen_plus.o b2eint.o symgroup.o 
+SYMMOLINT_OBJS=symmolint.o one_int.o fact.o cfunc.o mol_func.o bmatset.o angmoment.o eigen_plus.o symgroup.o molecule.o int_exp.o erfc.o
 ${BINDIR}/symmolint_bind.so: symmolint_bind.cpp $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${PY_FLAGS} ${LIBS} -lgsl -lgslcblas
 check_symmolint: ${BINDIR}/symmolint_bind.so

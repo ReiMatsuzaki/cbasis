@@ -6,8 +6,10 @@
 
 #include "../math/erfc.hpp"
 #include "../math/int_exp.hpp"
+#include "../utils/eigen_plus.hpp"
 #include "r1_lc.hpp"
 #include "r1basis.hpp"
+#include "opt_green.hpp"
 
 using namespace Eigen;
 using namespace std;
@@ -15,9 +17,6 @@ using namespace cbasis;
 using namespace erfc_mori;
 using namespace boost::python;
 
-dcomplex TDot(const VectorXcd& a, const VectorXcd& b) {
-  return (a.array() * b.array()).sum();
-}
 void BindMath() {
   def("tdot", &TDot);
   def("erfc", &erfc<dcomplex>);
@@ -136,12 +135,16 @@ void BindR1Basis() {
   BindEXPs<2>();
 
 }
-
+void BindOptGreen() {
+  class_<OptGreen<1,1,1> >("OptGreen_SSS", init<LC_STOs,STOs,LC_STOs,int,double>())
+    .def("L00", &OptGreen<1,1,1>::L00, return_internal_reference<>())
+    .def("calc_S0_L00_R0", &OptGreen<1,1,1>::Calc_S0_L00_R0);
+}
 BOOST_PYTHON_MODULE(r1basis_bind) {
 
   Py_Initialize();
   BindMath();
   BindR1LC();
   BindR1Basis();
-  
+  BindOptGreen();
 }

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <algorithm>
 #include "../utils/macros.hpp"
 #include "bmatset.hpp"
 
@@ -12,6 +13,7 @@ using namespace Eigen;
 
 namespace cbasis {
 
+  // ==== BVec ====  
   void BVec::Write(string filename) const {
 
     ofstream f;
@@ -86,7 +88,12 @@ namespace cbasis {
     os << "==============" << endl;
     return os;
   }
-  
+
+  // ==== BMat ====  
+  void BMat::swap(BMat& o) {
+    this->name_.swap(o.name_);
+    this->map_.swap(o.map_);
+  }
   void BMat::Write(string filename) const {
     
     ofstream f;
@@ -172,9 +179,7 @@ namespace cbasis {
     }
     os << "==============" << endl;
     return os;
-  }
-  
-  // ==== BMat ====
+  }  
   void BMatRead(BMat::Map& bmat, string fn) {
     ifstream f(fn.c_str(), ios::in|ios::binary);
     
@@ -311,7 +316,7 @@ namespace cbasis {
 
     return mat_map_[name][make_pair(i, j)];
   }
-  const BMat::Map& _BMatSet::GetBlockMatrix(std::string name) {
+  const BMat& _BMatSet::GetBlockMatrix(std::string name) {
     return mat_map_[name];
   }
   void _BMatSet::SelfAdd(string name, int i, int j, int a, int b, dcomplex v) {
@@ -371,7 +376,10 @@ namespace cbasis {
     return mat_map_[name][make_pair(i, j)](a, b);
   } 
   void _BMatSet::swap(_BMatSet& o) {
+    ::swap(this->block_num_, o.block_num_);
+    this->mat_map_.swap(o.mat_map_);
     
+    /*
     typedef BMatMap::iterator It;
     BMatMap tmp_o;
     for(It it_o = o.mat_map_.begin(); it_o != o.mat_map_.end();) {
@@ -395,7 +403,7 @@ namespace cbasis {
     int tmp = o.block_num_;
     o.block_num_ = this->block_num_;
     this->block_num_ = tmp;
-
+    */
   }
   string _BMatSet::str() const {
     ostringstream oss;

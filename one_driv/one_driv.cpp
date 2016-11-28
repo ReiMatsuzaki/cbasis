@@ -12,6 +12,7 @@ using namespace std;
 using namespace Eigen;
 using namespace cbasis;
 using namespace picojson;
+
 // -- Input --
 string comment;
 string in_json, out_json, cs_csv;
@@ -95,25 +96,16 @@ void PrintIn() {
   cout << "cs_csv: "  << cs_csv;
   cout << "out_json: " << out_json << endl;
   cout << "E0: " << E0 << endl;
-  cout << "basis0:" << endl << basis0->str() << endl;  
-  cout << "basis1:" << endl << basis1->str() << endl; 
+  cout << "mole:" << endl << mole->show() << endl;
+  cout << "basis0:" << endl << basis0->show() << endl;  
+  cout << "basis1:" << endl << basis1->show() << endl; 
 }
 void Init() {
   PrintTimeStamp("Init", NULL);
 
-  InitBMat(basis1, 0, basis1, &S);
-  InitBMat(basis1, 0, basis1, &T);
-  InitBMat(basis1, 0, basis1, &V);
-
-  Irrep x = sym->irrep_x;
-  Irrep y = sym->irrep_y;
-  Irrep z = sym->irrep_z;
-  InitBMat(basis1, x, basis0, &X);
-  InitBMat(basis1, x, basis0, &DX);
-  InitBMat(basis1, y, basis0, &Y);
-  InitBMat(basis1, y, basis0, &DY);
-  InitBMat(basis1, z, basis0, &Z);
-  InitBMat(basis1, z, basis0, &DZ);
+  Irrep x = sym->irrep_x();
+  Irrep y = sym->irrep_y();
+  Irrep z = sym->irrep_z();
 
   InitBVec(basis1, &cX); InitBVec(basis1, &cY); InitBVec(basis1, &cZ);
   InitBVec(basis1, &cDX);InitBVec(basis1, &cDY);InitBVec(basis1, &cDZ);
@@ -153,7 +145,7 @@ void Calc() {
 
   for(int iw = 0; iw < (int)w_list.size(); iw++) {
     dcomplex w = w_list[iw];
-    
+    cout << "w = " << w << endl;
     for(int irrep = 0; irrep < sym->order(); irrep ++) {
       if(X.has_block(irrep, irrep0)) {
 	MatrixXcd& Li = L(irrep, irrep);
@@ -163,7 +155,7 @@ void Calc() {
 	cDX(irrep) = piv.solve(sDX(irrep));
 	alpha_x[iw]  = TDot(cX(irrep), sX(irrep));
 	alpha_dx[iw] = TDot(cDX(irrep), sDX(irrep));
-	cout << w << " : x : " << alpha_x[iw] << "  " << alpha_dx[iw] << endl;
+	cout << "x : " << alpha_x[iw] << "  " << alpha_dx[iw] << endl;
       }
       if(Y.has_block(irrep, irrep0)) {
 	MatrixXcd& Li = L(irrep, irrep);
@@ -173,7 +165,7 @@ void Calc() {
 	cDY(irrep) = piv.solve(sDY(irrep));
 	alpha_y[iw]  = TDot(cY(irrep),  sY(irrep));
 	alpha_dy[iw] = TDot(cDY(irrep), sDY(irrep));
-	cout << w << " : y : " << alpha_y[iw] << "  " << alpha_dy[iw] << endl;
+	cout << "y : " << alpha_y[iw] << "  " << alpha_dy[iw] << endl;
       }
       if(Z.has_block(irrep, irrep0)) {
 	MatrixXcd& Li = L(irrep, irrep);
@@ -183,7 +175,7 @@ void Calc() {
 	cDZ(irrep) = piv.solve(sDZ(irrep));
 	alpha_z[iw]  = TDot(cZ(irrep),  sZ(irrep));
 	alpha_dz[iw] = TDot(cDZ(irrep), sDZ(irrep));
-	cout << w << " : z : " << alpha_z[iw] << "  " << alpha_dz[iw] << endl;
+	cout << "z : " << alpha_z[iw] << "  " << alpha_dz[iw] << endl;
       }
     }
   }
@@ -195,22 +187,28 @@ void PrintOut() {
   double au2mb = 5.291772 * 5.291772;
 
   ofstream f(cs_csv.c_str(), ios::out);
-  f << "w,x,y,z,dx,dy,dz" << endl;
+  f << "w,E,x,y,z,totl,dx,dy,dz,totv" << endl;
   for(int iw = 0; iw < (int)w_list.size(); iw++) {
     double w = w_list[iw].real();
     double cs_x = 4.0*M_PI*w/c   * alpha_x[iw].imag() * au2mb;
     double cs_y = 4.0*M_PI*w/c   * alpha_y[iw].imag() * au2mb;
     double cs_z = 4.0*M_PI*w/c   * alpha_z[iw].imag() * au2mb;
+    double cs_l = (cs_x+cs_y+cs_z);
     double cs_dx= 4.0*M_PI/(w*c) * alpha_dx[iw].imag() * au2mb;
     double cs_dy= 4.0*M_PI/(w*c) * alpha_dy[iw].imag() * au2mb;
     double cs_dz= 4.0*M_PI/(w*c) * alpha_dz[iw].imag() * au2mb;
+    double cs_v = (cs_dx+cs_dy+cs_dz);
     f << w
+      << "," << w+E0
       << "," << cs_x
       << "," << cs_y
       << "," << cs_z
+      << "," << cs_l
       << "," << cs_dx
       << "," << cs_dy
-      << "," << cs_dz << endl;
+      << "," << cs_dz
+      << "," << cs_v
+      << endl;
 
   }
 }

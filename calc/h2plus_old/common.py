@@ -8,6 +8,10 @@ from local import *
 
 sym = D2h()
 R0 = 2.0
+mole = Molecule(sym,
+                [Atom("H", 1.0, [(0,0,+R0/2),
+                                 (0,0,-R0/2)]),
+                 Atom("Cen", 0.0, [(0, 0, 0)])])
 
 def get_gi_RM(reduce_num=0):
     """ see T.Rescigno and C.McCurdy(1985) PRA 31, 624
@@ -16,17 +20,8 @@ def get_gi_RM(reduce_num=0):
     zeta_s_h = map(mult,
 		   [0.0285649, 0.0812406, 0.190537, 0.463925, 1.202518,
 		    3.379649, 10.60720, 38.65163, 173.5822, 1170.498])
-     
     
     ## see lin_dip/
-    """
-    if(reduce_num == 1):
-        del zeta_s_h
-    elif(reduce_num == 2):
-        zeta_s_h = [zeta_s_h[0]] + zeta_s_h[3:-1]
-    elif(reduce_num == 3):
-        zeta_s_h = zeta_s_h[3:-1]
-    """
     if(reduce_num > 3):
         raise(Exception("not implemented"))
 
@@ -35,6 +30,7 @@ def get_gi_RM(reduce_num=0):
 		    0.227763, 0.710128, 3.009711])
     zeta_d_h = [15.0, 5.0, 5.0/3.0, 5.0/9.0]
     zeta_s_cen = [14.4/(3.0**n) for n in range(12)]
+    zeta_d_cen = [10.0/(3.0**n) for n in range(9)]
 
     if(reduce_num==1):
         del zeta_s_cen[3]
@@ -45,36 +41,28 @@ def get_gi_RM(reduce_num=0):
         del zeta_s_cen[3]
         del zeta_s_cen[4]
         del zeta_s_cen[5]
-
-    zeta_d_cen = [10.0/(3.0**n) for n in range(9)]
-    g_i = (SymGTOs.create().sym(sym)
-	   .sub(SubSymGTOs()
-		.xyz((0,0,+R0/2.0)).xyz((0,0,-R0/2.0))
+        
+    g_i = (SymGTOs(mole)
+	   .sub(SubSymGTOs(sym, mole.atom("H"))
 		.ns( (0,0,0))
 		.rds(Reduction(sym.irrep_s, [[1], [1]]))
 		.zeta(zeta_s_h))
-	   .sub(SubSymGTOs()
-		.xyz((0,0,+R0/2.0)).xyz((0,0,-R0/2.0))
+	   .sub(SubSymGTOs(sym, mole.atom("H"))
 		.ns( (0,0,1))
 		.rds((Reduction(sym.irrep_s, [[1], [-1]])))
 		.zeta(zeta_p_h))
-	   .sub(SubSymGTOs()
-		.xyz((0,0,+R0/2.0)).xyz((0,0,-R0/2.0))
+	   .sub(SubSymGTOs(sym, mole.atom("H"))
 		.ns( (0,0,2))
 		.rds(Reduction(sym.irrep_s, [[1], [1]]))
 		.zeta(zeta_d_h))
-	   .sub(SubSymGTOs()
-		.xyz((0,0,0))
+	   .sub(SubSymGTOs(sym, mole.atom("Cen"))
 		.ns( (0,0,0))
 		.rds(Reduction(sym.irrep_s, [[1]]))
 		.zeta(zeta_s_cen))
-           .sub(SubSymGTOs()
-		.xyz((0,0,0))
+           .sub(SubSymGTOs(sym, mole.atom("Cen"))
 		.ns( (0,0,2))
 		.rds(Reduction(sym.irrep_s, [[1]]))
 		.zeta(zeta_d_cen))
-	   .atom((0,0,0+R0/2.0), 1)
-	   .atom((0,0,0-R0/2.0), 1)
 	   .setup())
     return g_i
 
@@ -114,18 +102,12 @@ def fitted_zeta(L, ene):
     zeta_map[5, 1.0] = zeta_p_10
     return zeta_map[L, ene]
 
-def add_h2(g, R0):
-    g.atom((0,0,+R0/2.0), 1)
-    g.atom((0,0,-R0/2.0), 1)
-    return g
-
 
 def get_gpsi1_simple(ls, zs, add_sub_list=[]):
-    g_psi1 = SymGTOs.create().sym(sym)
-    add_h2(g_psi1, R0)
+    g_psi1 = SymGTOs(mole)
 
     for L in ls:
-        g_psi1.sub(sub_solid_sh(L, [-1,0,1], zs, sym))
+        g_psi1.sub(sub_solid_sh(sym, mole.atom("Cen"), L, [-1,0,1], zs))
 
     for sub in add_sub_list:
         g_psi1.sub(sub)
@@ -133,12 +115,11 @@ def get_gpsi1_simple(ls, zs, add_sub_list=[]):
     return g_psi1
 
 def get_gpsi1(ls, add_zs, add_sub_list=[], ene=0.5):
-    g_psi1 = SymGTOs.create().sym(sym)
-    add_h2(g_psi1, R0)
+    g_psi1 = SymGTOs(mole)
 
     for L in ls:
         zs = fitted_zeta(L, ene) + add_zs
-        g_psi1.sub(sub_solid_sh(sym, L, [-1,0,1], (0,0,0), zs))
+        g_psi1.sub(sub_solid_sh(sym, mole.atom("Cen"), L, [-1,0,1], zs))
 
     for sub in add_sub_list:
         g_psi1.sub(sub)
@@ -150,9 +131,8 @@ def get_gpsi0_L_simple(ls, zs):
     gpsi0_L = {}
 
     for L in ls:
-        gpsi0_L[L] = SymGTOs.create().sym(sym)
-        add_h2(gpsi0_L[L], R0)
-        gpsi0_L[L].sub(sub_solid_sh(L, [-1,0,1], zs, sym))
+        gpsi0_L[L] = SymGTOs(mole)
+        gpsi0_L[L].sub(sub_solid_sh(sym, mole.atom("H"), L, [-1,0,1], zs))
         gpsi0_L[L].setup()
     
     return gpsi0_L
@@ -163,14 +143,19 @@ def get_gpsi0_L(ls, add_zs, ene=0.5):
 
     for L in ls:
         zs = fitted_zeta(L, ene) + add_zs
-        gpsi0_L[L] = SymGTOs.create().sym(sym)
-        add_h2(gpsi0_L[L], R0)
-        gpsi0_L[L].sub(sub_solid_sh_old(L, [-1,0,1], zs, sym))
+        gpsi0_L[L] = SymGTOs(mole)
+        gpsi0_L[L].sub(sub_solid_sh(sym, mole.atom("Cen"), L, [-1,0,1], zs))
         gpsi0_L[L].setup()
     
     return gpsi0_L
 
 
 def get_gchi_L(ls, zeta_chi):
-    return {L:solid_part_waves(sym, L, (-1,0,1), [zeta_chi]) for L in ls}
+    res = {}
+    for L in ls:
+        gtos = (SymGTOs(mole)
+                .sub(sub_solid_sh(sym, mole.atom("Cen"), L, [-1,0,1], [zeta_chi]))
+                .setup())
+        res[L] = gtos
+    return res
 

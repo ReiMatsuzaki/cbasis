@@ -136,10 +136,10 @@ namespace cbasis {
     std::vector<std::string> irrep_name_;
     Eigen::MatrixXi character_table_;
     MultArray<bool, 3> prod_table_;
-    Irrep irrep_s;
-    Irrep irrep_x;
-    Irrep irrep_y;
-    Irrep irrep_z;    
+    Irrep irrep_s_;
+    Irrep irrep_x_;
+    Irrep irrep_y_;
+    Irrep irrep_z_;    
   public:
     // ---- typedef ----
     typedef std::vector<SymOp>::const_iterator ItSymOp;
@@ -153,6 +153,10 @@ namespace cbasis {
     int id_num() const { return id_num_;}
     std::string name() const { return name_; }
     std::string str() const;
+    Irrep irrep_s() const { return irrep_s_; }
+    Irrep irrep_x() const { return irrep_x_; }
+    Irrep irrep_y() const { return irrep_y_; }
+    Irrep irrep_z() const { return irrep_z_; }
     void Display() const;
     Irrep GetIrrep(std::string name) const;
     std::string GetIrrepName(Irrep irrep) const;
@@ -192,7 +196,7 @@ namespace cbasis {
   SymmetryGroup SymmetryGroup_Cs();
   SymmetryGroup SymmetryGroup_C2h();
   SymmetryGroup SymmetryGroup_C2v();
-  SymmetryGroup SymmetryGroup_D2h();
+ SymmetryGroup SymmetryGroup_D2h();
   SymmetryGroup SymmetryGroup_C4();
   //    static SymmetryGroup C4v();
 }

@@ -100,17 +100,23 @@ namespace cbasis {
     //    inline void SetSym(pSymmetryGroup _sym_group) {
     //      sym_group = _sym_group;
     //    }
+   
     SubSymGTOs& AddNs(int nx, int ny, int nz);
     SubSymGTOs& AddNs(Eigen::Vector3i ns);
     SubSymGTOs& AddZeta(const Eigen::VectorXcd& zs);
-    SubSymGTOs& AddRds(const Reduction& rds);   
+    SubSymGTOs& AddRds(const Reduction& rds);
+
+    void Mono(Irrep irrep, Eigen::Vector3i ns, Eigen::VectorXcd zs);
+    void SolidSH_Ms(int L, Eigen::VectorXi _Ms, Eigen::VectorXcd zs);
+    void SolidSH_M(int L, int M, Eigen::VectorXcd zs);
+    
     inline int size_at() const { return this->atom_->size(); }
     inline int size_pn() const { return nx_ipn.size(); }
     inline int size_rds() const { return rds.size(); }
     inline int size_prim() const { return this->size_at() * this->size_pn(); }
     inline int size_zeta() const { return zeta_iz.rows(); }
 
-    // ---- SetUp ----
+    // ---- SetUp ----   
     // -- calculate inner information and check values.
     void SetUp();
 
@@ -159,11 +165,14 @@ namespace cbasis {
     int size_basis_isym(Irrep isym) const;
     int size_subs() const {return subs_.size(); }
     std::string str() const;
+    std::string show();
     int max_num_prim() const;
     SymmetryGroup sym_group() { return sym_group_; }
     SymmetryGroup sym_group() const { return sym_group_; }
+    void set_sym_group(SymmetryGroup sym) { sym_group_ = sym; }
     Molecule molecule() { return molecule_; }
     Molecule molecule() const { return molecule_; }
+    void set_molecule(Molecule mole) { molecule_ = mole; }
     std::vector<SubSymGTOs>& subs() { return subs_; };
     const std::vector<SubSymGTOs>& subs() const { return subs_; };
     SubSymGTOs& sub(int i) { return subs_[i]; };
@@ -174,6 +183,8 @@ namespace cbasis {
 
     // ---- SetUp ----
     _SymGTOs* AddSub(SubSymGTOs sub);
+    SubSymGTOs& NewSub(Atom atom);
+    SubSymGTOs& NewSub(std::string atom_name);
     _SymGTOs* SetUp();
     
   private:

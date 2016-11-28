@@ -118,6 +118,19 @@ namespace cbasis {
 #endif
       return data_[index];
     }
+    std::string str() {
+      std::ostringstream oss;
+      oss << "MultArray<2> object:" << std::endl;
+      oss << "  name: " << this->get_name() << std::endl;
+      oss << "  size: " << this->size() << std::endl;
+      for(int n0 = n0_[0]; n0 < n1_[0]+1; n0++)
+	for(int n1 = n0_[1]; n1 < n1_[1]+1; n1++){
+	  oss << n0 << n1 << " : "
+	      << (*this)(n0, n1)
+	      << std::endl;
+	}
+      return oss.str();
+    } 
   };
 
   template<class F>
@@ -218,17 +231,22 @@ namespace cbasis {
     int n1_[N];
     std::string name_;
   public:
-    MultArray(int _num0) {
+    MultArray(int _num0, std::string _name="") {
       data_ = new F[_num0];
       data_num_ = _num0;
       num_ = _num0;
+      n0_[0] = 0; n1_[0] = _num0;
+      for(int i = 1; i < N; i++) {
+	n0_[i] = 0; n0_[i] = _num0;
+      }
+      name_ = _name;
     }
     ~MultArray() {
       delete[] data_;
     }
     int size() const { return num_; }
     void set_name(std::string _name) { name_ = _name; }
-    void get_name() { return name_; }
+    std::string get_name() { return name_; }
     void SetRange(int nx0, int nx1, int ny0, int ny1,
 		  int nz0, int nz1, int nw0, int nw1) {
       n0_[0] = nx0; n0_[1] = ny0; n0_[2] = nz0; n0_[3] = nw0; 
@@ -249,18 +267,17 @@ namespace cbasis {
       for(int i = 0; i < data_num_; i++)
 	data_[i] = val;
     }
-    F& operator()(int nx, int ny, int nz, int nw) {
-
+    int index(int nx, int ny, int nz, int nw) {
       int num1 = n1_[1] - n0_[1] + 1;
       int num2 = n1_[2] - n0_[2] + 1;
       int num3 = n1_[3] - n0_[3] + 1;
-      int index = ((nx - n0_[0]) * num3 * num2 * num1 + 
+      int _index = ((nx - n0_[0]) * num3 * num2 * num1 + 
 		   (ny - n0_[1]) * num3 * num2 + 
 		   (nz - n0_[2]) * num3 +
 		   (nw - n0_[3]));
 
 #ifndef ARG_NO_CHECK
-      if(index < 0   || num_-1 < index ||
+      if(_index < 0   || num_-1 < _index ||
 	 nx < n0_[0] || n1_[0] < nx ||
 	 ny < n0_[1] || n1_[1] < ny ||
 	 nz < n0_[2] || n1_[2] < nz ||
@@ -269,24 +286,47 @@ namespace cbasis {
 	std::stringstream ss;
 	SUB_LOCATION(msg);
 	ss << ": index: (" << nx << ", " << ny << ", " << nz << ", " << nw << ") "
-	   << index << std::endl;
+	   << _index << std::endl;
 	for(int i = 0; i < N; i++)
 	  ss << n0_[i] << ", " << n1_[i] << " ";
 	msg += ss.str();
 	throw std::out_of_range(msg);
       }
-#endif
-      return data_[index];
+#endif      
+      
+      return _index;
+    }
+    F& operator()(int nx, int ny, int nz, int nw) {
+      int _index = this->index(nx, ny, nz, nw);
+      return data_[_index];
+    }
+    std::string str() {
+      std::ostringstream oss;
+      oss << "MultArray<4> object:" << std::endl;
+      oss << "  name: " << this->get_name() << std::endl;
+      oss << "  size: " << this->size() << std::endl;
+      for(int n0 = n0_[0]; n0 < n1_[0]+1; n0++)
+	for(int n1 = n0_[1]; n1 < n1_[1]+1; n1++)
+	  for(int n2 = n0_[2]; n2 < n1_[2]+1; n2++)
+	    for(int n3 = n0_[3]; n3 < n1_[3]+1; n3++) {
+	      oss << n0 << n1 << n2 << n3 << " : "
+		  << this->index(n0, n1, n2, n3) << " : "
+		  << (*this)(n0, n1, n2, n3)
+		  << std::endl;
+	    }
+      return oss.str();
     }
   };
 
-  template<class F, int M>
-  F MultArrayTDot(MultArray<F, M>& a, MultArray<F, M>& b) {
-    if(a.size() != b.size()) {
-      std::string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : size mismatch";
-      throw std::runtime_error(msg);
-    }
-
+  template<class F, int N>
+  F MultArrayTDot(MultArray<F, N>& a, MultArray<F, N>& b) {
+    for(int n = 0; n < N; n++) {
+      if(a.n0_[n] != b.n0_[n] || a.n1_[n] != b.n1_[n]) {
+	std::string msg; SUB_LOCATION(msg);
+	msg = "\n" + msg + " : size mismatch";
+	throw std::runtime_error(msg);	
+      }
+    }      
     int n(a.size());
     F acc(0);
     for(int i = 0; i < n; i++) {

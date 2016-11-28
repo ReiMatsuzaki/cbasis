@@ -908,20 +908,22 @@ def newton(vgh, x0, tol=0.00001, maxit=100, grad=True, hess=True, fdif=None,
             res.hess = MatrixXc(nhess(vgh, res.x, fdif, method='c1'))
         else:
             raise(Exception('grad=False and hess=True is not supported'))
-        dx =  -res.hess.inverse() * res.grad
-        if(dist(dx, res.grad) < tol):
-            res.success = True
-            break
+        dx =  -res.hess.inverse() * res.grad        
                                       
         if(out):
             print >>out, "iter: ", res.nit
             print >>out, "x:",     res.x
+            print >>out, "dist:",  dist(dx, res.grad)
             if(print_level > 0):
                 print >>out, "dx  :",  dx
                 print >>out, "grad:",  res.grad
             if(print_level > 1):
                 print >>out, "hess:",  res.hess
                 
+        if(dist(dx, res.grad) < tol):
+            res.success = True
+            break
+        
         res.x = res.x + dx
 
     if(out):
@@ -998,6 +1000,7 @@ def opt_main_init(args):
 
     dict_set_default(args, 'outfile', 'stdout')
     dict_set_default(args, 'wf_outfile', None)
+    dict_set_default(args, "zeta_outfile", None)
     dict_set_default(args, 'ws', [args['w0']])
     dict_set_default(args, 'print_level', 0)
     
@@ -1037,6 +1040,9 @@ def opt_main_init(args):
     print >>out, "IO"
     print >> out, "out: {0}".format("stdout" if args['outfile'] else args['outfile'])
     print >> out, "wf_outfile: {0}".format(args['wf_outfile'] if args['wf_outfile']
+                                            else "No")
+    print >> out, "zeta_outfile: {0}".format(args['zeta_outfile']
+                                             if args['zeta_outfile']
                                             else "No")    
     
     print >>out, "optimization"
@@ -1172,6 +1178,16 @@ def opt_main_wf_h_pi(args):
     df = pd.DataFrame([rs, ys.real, ys.imag]).T
     df.columns = ["r", "re_y", "im_y"]
     df.to_csv(args['wf_outfile'], index=False)
+
+def opt_main_zeta_h_pi(args):
+    out = args['out']
+    print_timestamp("zeta_h_pi", out)
+
+    us = args["base_us"]
+    zetas = np.array([us.basis(i).z(0) for i in range(us.size())])
+    df = pd.DataFrame([zetas.real, zetas.imag]).T
+    df.columns = ["re", "im"]
+    df.to_csv(args["zeta_outfile"], index=False)
     
 def opt_main_print_final_h_pi(args):
     out = args['out']
@@ -1198,7 +1214,7 @@ def opt_main_print_final_h_pi(args):
         for i in range(len(c_vec)):
             print >>out, "c{0} : {1}".format(i, c_vec[i])
     args['cs'] = cs
-
+    
     
 def opt_main_print(args):
     out = args['out']
@@ -1254,7 +1270,10 @@ def opt_main(**args):
     if(args['wf_outfile']):
         if(args['target'] == "h_pi"):
             opt_main_wf_h_pi(args)
-            
+    if(args['zeta_outfile']):
+        if(args['target'] == "h_pi"):
+            opt_main_zeta_h_pi(args)
+       
     opt_main_finalize(args)
     return args
 

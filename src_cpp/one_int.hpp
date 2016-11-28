@@ -38,13 +38,15 @@ namespace cbasis {
   BMatSet CalcMat(SymGTOs a, SymGTOs b, bool calc_coulomb);
   BMatSet CalcMat_Complex(SymGTOs g, bool calc_coulomb);
   BMatSet CalcMat_Hermite(SymGTOs g, bool calc_coulomb);
-  //  BMatSet CalcMat_V(SymGTOs a, SymGTOs b, Eigen::Vector3cd xyz, dcomplex q);
 
   // ==== SymGTOs(new) ====
   void InitBVec(SymGTOs a, BVec *ptr_bvec);
+  void InitBVec(SymGTOs a, Irrep irrep, BVec *ptr_bvec);
   void InitBVec(SymGTOs a, const std::vector<Irrep>& irrep_list, BVec *ptr_bvec);
   void InitBMat(SymGTOs a, Irrep krrep, SymGTOs b, BMat *ptr_mat);
   void CalcSTVMat(SymGTOs a, SymGTOs b, BMat *S, BMat *T, BMat *V);
+  void CalcSMat(SymGTOs a, SymGTOs b, BMat *S);
+  void CalcVMat(SymGTOs a, Molecule mole, SymGTOs b, BMat *V);
   void CalcDipMat(SymGTOs a, SymGTOs b,
 		  BMat* X, BMat* Y, BMat* Z, BMat* DX, BMat* DY, BMat* DZ);
   void CalcPWVec(SymGTOs a, const Eigen::Vector3cd& k,

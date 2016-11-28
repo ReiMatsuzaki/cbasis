@@ -318,7 +318,14 @@ class Test_matele(unittest.TestCase):
         self.assertAlmostEqual(sDs_ref, sDs_calc)
         self.assertAlmostEqual(gDg_ref, gDg_calc)
         self.assertAlmostEqual(sDg_ref, sDg_calc)
-
+        
+    def test_stv(self):
+        s = STOs().add(3, 1.1).add(2, 0.3-0.1j).setup()
+        driv = LC_STOs().add(1.1, 2, 1.0)
+        opt_green = OptGreen_SSS(driv, s, driv, 1, 1.0)
+        opt_green.calc_S0_L00_R0()
+        print opt_green.L00()
+        
 def test_vartrans(utest, f_xs, var, y0s, label):
 
     ## -- basic test --
@@ -785,7 +792,7 @@ class Test_green(unittest.TestCase):
             target = 'h_pi',
             channel= '1s->kp',
             dipole = 'velocity',
-#            outfile = "tmp.out",
+            outfile = "tmp.out",
             print_level = 3,
             fdif = 0.01,
             grad = False,

@@ -14,7 +14,7 @@ with open("search.out", "w") as f:
     print_timestamp("start", f)
 
 ii = 1.0j
-R0s = [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3]
+R0s = [1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
 t0s = [-4, -3, -2, -1, -0.5, 0, 0.5, 1, 2, 3, 4]
 yos = [R * np.exp(-ii*t*np.pi/180.0) for R in R0s for t in t0s]
 
@@ -29,11 +29,17 @@ for y0 in yos:
     res = opt_main(
         basis_type = 'GTO',
         basis_info = basis_info,
+        
         w0      = 1.0,
-        tol     = pow(10.0, -5.0),
         target  = 'h_pi',
         channel = '1s->kp',
-        dipole  = 'length',
+        dipole  = 'length',        
+
+        tol  = pow(10.0, -5.0),
+        grad = False,
+        hess = False,
+        fdif = 0.0001,
+
         outfile = 'res.out',
         print_level = 0)
     

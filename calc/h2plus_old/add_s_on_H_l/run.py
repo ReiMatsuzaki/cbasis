@@ -19,9 +19,7 @@ g_i = get_gi_RM()
 
 ## ==== Final state ====
 def get_sub_s(zs):
-    sub_s = (SubSymGTOs()
-	     .xyz((0,0,+R0/2.0))
-	     .xyz((0,0,-R0/2.0))
+    sub_s = (SubSymGTOs(sym, mole.atom("H"))
 	     .ns( (0,0,0))
 	     .rds(Reduction(sym.irrep_z, [[1], [-1]]))
 	     .zeta(zs))
@@ -30,15 +28,19 @@ def get_sub_s(zs):
 ## ==== setting basis set ====
 ls0 = [1,3]
 ls1 = [1,3]
-enes = [0.001] + list(np.linspace(0.1,3.0, 30))
+#enes = [0.001] + list(np.linspace(0.1,3.0, 30))
+enes = [0.1]
 rzeta = et_zeta(15, 0.01, 30.0)
 g_psi0_L = get_gpsi0_L(ls0, rzeta)
 g_chi_L = get_gchi_L(ls0, 1.0)
 
-
+"""
 for (name, zs) in [("3_9", [3,9]),
                    ("3", [3]),
                    ("null", None)]:
+"""
+for (name, zs) in [("null", None)]:
+                   
     print name
     
     ## setting basis set
@@ -48,19 +50,28 @@ for (name, zs) in [("3_9", [3,9]),
     else:
         g_psi1 = get_gpsi1(   ls1, rzeta, [get_sub_s(zs)])    
 
+    print "gto:"
+    print g_psi1
+    print "gto_p:"
+    print g_psi0_L[1]
+    print "gto_f:"
+    print g_psi0_L[3]    
     solver = PhotoIonizationCoulombPlus(2.0, 1, ls0)
     solver.precalc_1ele(g_i, g_chi_L, g_psi1, g_psi0_L)
-    
+    print "ws:", [ene-ei for ene in enes]
     ## calculate cross sections and beta
     print "calc"
     ws = [ene-ei for ene in enes]
     cs_sigu = [solver.calc_one(w, True, "sigu")[0]   for w in ws]
+    cs_tot = [solver.calc_one(w, True, "total")[0]   for w in ws]
     cs_sigu_ima = [solver.calc_cs_imalpha(w, "sigu") for w in ws]
+    cs_tot_ima = [solver.calc_cs_imalpha(w, "total") for w in ws]
     beta=     [solver.calc_one(w, True, "total")[1]  for w in ws]
-    df = pd.DataFrame([enes, ws, cs_sigu, beta, cs_sigu_ima]).T
-    df.columns = ["energy", "w", "cs_sigu", "beta", "cs_sigu_ima"]
+    df = pd.DataFrame([enes, ws, cs_sigu, cs_tot, beta, cs_sigu_ima, cs_tot_ima]).T
+    df.columns = ["energy", "w", "cs_sigu", "cs_tot", "beta",
+                  "cs_sigu_ima", "cs_tot_ima"]
     df.to_csv(name + ".res.csv", index=False)
-
+    
     ## calculate psi at E=1.0
     print "psi"
     ene = 1.0

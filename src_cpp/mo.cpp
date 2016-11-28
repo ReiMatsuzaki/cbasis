@@ -4,7 +4,7 @@
 #include "mo.hpp"
 #include "one_int.hpp"
 #include "two_int.hpp"
-#include "eigen_plus.hpp"
+#include "../utils/eigen_plus.hpp"
 
 using namespace Eigen;
 

@@ -333,12 +333,12 @@ namespace cbasis {
   bool _SymmetryGroup::Non0_Scalar(Irrep a, Irrep b) {
     this->CheckIrrep(a);
     this->CheckIrrep(b);
-    return this->prod_table_(a, b, this->irrep_s);
+    return this->prod_table_(a, b, this->irrep_s());
   }
   bool _SymmetryGroup::Non0_Z(Irrep a, Irrep b) {
     this->CheckIrrep(a);
     this->CheckIrrep(b);
-    return this->prod_table_(a, b, this->irrep_z);
+    return this->prod_table_(a, b, this->irrep_z());
   }
   bool _SymmetryGroup::Non0_3(Irrep a, Irrep b, Irrep c) {
     this->CheckIrrep(a);
@@ -496,10 +496,10 @@ namespace cbasis {
     g->setSymOp();
     g->setProdTable();
 
-    g->irrep_s = 0;
-    g->irrep_x = 0;
-    g->irrep_y = 0;
-    g->irrep_z = 0;
+    g->irrep_s_ = 0;
+    g->irrep_x_ = 0;
+    g->irrep_y_ = 0;
+    g->irrep_z_ = 0;
     return g;
   }
   SymmetryGroup SymmetryGroup_Cs() {
@@ -527,10 +527,10 @@ namespace cbasis {
 
     Irrep Ap = 0;
     Irrep App= 1;
-    g->irrep_s = Ap;
-    g->irrep_x = Ap;
-    g->irrep_y = Ap;
-    g->irrep_z = App;
+    g->irrep_s_ = Ap;
+    g->irrep_x_ = Ap;
+    g->irrep_y_ = Ap;
+    g->irrep_z_ = App;
     return g;
   }
   SymmetryGroup SymmetryGroup_C2h() {
@@ -577,10 +577,10 @@ namespace cbasis {
     g->prod_table_(Bu, Bu, Ag) = true;
     */
 
-    g->irrep_s = Ag;
-    g->irrep_x = Bu;
-    g->irrep_y = Bu;
-    g->irrep_z = Au;
+    g->irrep_s_ = Ag;
+    g->irrep_x_ = Bu;
+    g->irrep_y_ = Bu;
+    g->irrep_z_ = Au;
 
     return g;
   }
@@ -606,10 +606,10 @@ namespace cbasis {
     g->setSymOp();
     g->setProdTable();
 
-    g->irrep_s = A1;
-    g->irrep_x = B1;
-    g->irrep_y = B2;
-    g->irrep_z = A1;
+    g->irrep_s_ = A1;
+    g->irrep_x_ = B1;
+    g->irrep_y_ = B2;
+    g->irrep_z_ = A1;
 
     return g;
   }
@@ -647,10 +647,10 @@ namespace cbasis {
     g->setSymOp();
     g->setProdTable();
 
-    g->irrep_s = Ag;
-    g->irrep_x = B3u;
-    g->irrep_y = B2u;
-    g->irrep_z = B1u;
+    g->irrep_s_ = Ag;
+    g->irrep_x_ = B3u;
+    g->irrep_y_ = B2u;
+    g->irrep_z_ = B1u;
 
     return g;
   }
@@ -677,10 +677,10 @@ namespace cbasis {
     g->setSymOp();
     g->setProdTable();
 
-    g->irrep_s = 0;
-    g->irrep_x = 2;
-    g->irrep_y = 2;
-    g->irrep_z = 0;
+    g->irrep_s_ = 0;
+    g->irrep_x_ = 2;
+    g->irrep_y_ = 2;
+    g->irrep_z_ = 0;
     return g;
   }
 }

@@ -1,4 +1,6 @@
 #include <stdexcept>
+#include <iomanip>
+#include <boost/foreach.hpp>
 #include "molecule.hpp"
 #include "../utils/macros.hpp"
 
@@ -6,18 +8,19 @@ using namespace std;
 using namespace Eigen;
 
 namespace cbasis {  
-  _Atom* _Atom::Add(Eigen::Vector3cd xyz) {
+  Atom _Atom::Add(Eigen::Vector3cd xyz) {
     xyz_list_.push_back(xyz);
-    return this; }
-  _Atom* _Atom::Add(dcomplex x, dcomplex y, dcomplex z) {
+    return shared_from_this();
+  }
+  Atom _Atom::Add(dcomplex x, dcomplex y, dcomplex z) {
     return this->Add(Vector3cd(x, y, z));
   }
-  _Atom* _Atom::SetSymPos(SymmetryGroup sym) {
+  Atom _Atom::SetSymPos(SymmetryGroup sym) {
 
      vector<Vector3cd> new_xyz_list;
      sym->CalcSymPosList(this->xyz_list(), &new_xyz_list);
      this->xyz_list_.swap(new_xyz_list);   
-     return this;
+     return shared_from_this();
   }
   Atom NewAtom(std::string _name, dcomplex _q) {
     return Atom(new _Atom(_name, _q));
@@ -76,9 +79,19 @@ namespace cbasis {
   }
   _Molecule* _Molecule::SetSymPos() {
 
+    vector<Atom> atoms;
     for(Map::iterator it = atom_map_.begin(); it != atom_map_.end(); ++it) {
       Atom atom = it->second;
       atom->SetSymPos(this->sym_group());
+      atoms.push_back(atom);
+    }
+    this->atom_map_.clear();
+    this->names.clear();
+    this->qs.clear();
+    this->xyzs.clear();
+
+    BOOST_FOREACH(Atom atom, atoms) {
+      this->Add(atom);
     }
     return this;
   }
@@ -100,6 +113,55 @@ namespace cbasis {
       }
       oss << "]}" << endl;
     }
+    return oss.str();
+  }
+  string _Molecule::show() {
+    string sep = " | ";
+    string line = "-|-";
+    ostringstream oss;
+
+    ostringstream lines;
+    lines << setfill('-')
+	  << line << setw(4) << right << ""
+	  << line << setw(6) << right << ""
+	  << line << setw(10) << right << ""
+	  << line << setw(10) << right << ""
+	  << line << setw(10) << right << ""
+	  << line << endl;
+    oss << lines.str();
+    
+    oss << setfill(' ')
+	<< sep << setw(4) << right << "name"
+	<< sep << setw(6) << right << "q"
+	<< sep << setw(10) << right << "x"
+	<< sep << setw(10) << right << "y"
+	<< sep << setw(10) << right << "z"
+	<< sep << endl;
+    
+    oss << lines.str();
+
+    BOOST_FOREACH(Map::value_type key_atom, atom_map_) {
+      Atom atom = key_atom.second;
+      oss << setfill(' ')
+	  << sep << setw(4) << right << atom->name()	
+	  << sep << setw(6) << right << atom->q()
+	  << sep << setw(10) << right << ""
+	  << sep << setw(10) << right << ""
+	  << sep << setw(10) << right << ""
+	  << sep<< endl;
+      
+      typedef vector<Vector3cd>::const_iterator It;
+      BOOST_FOREACH(Vector3cd xyz, atom->xyz_list()) {
+	oss << setfill(' ')
+	    << sep << setw(4) << ""
+	    << sep << setw(6) << ""
+	    << sep << setw(10) << right << xyz[0]
+	    << sep << setw(10) << right << xyz[1]
+	    << sep << setw(10) << right << xyz[2]
+	    << sep << endl;
+      }
+    }
+    oss << lines.str();
     return oss.str();
   }
   Molecule NewMolecule(SymmetryGroup _sym) {

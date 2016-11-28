@@ -84,9 +84,8 @@ namespace cbasis {
 	}
       }
       
-    } else if(val.is<object>()) {
     } else {
-      throw runtime_error("value must be array or object");
+      throw runtime_error("value must be array");
     }
   }
   template<> void CheckValue<VectorXi>(picojson::value& val, int n, int m) {
@@ -436,16 +435,10 @@ namespace cbasis {
 	key = "atom"; string name = ReadJson<string>(obj_atom, "atom");
 	key = "q";    dcomplex q = ReadJson<dcomplex>(obj_atom, "q");
 	key = "xyz";  MatrixXcd xyz_mat = ReadJson<MatrixXcd>(obj_atom, "xyz", -1, 3);
-	vector<Vector3cd> xyz0;
-	for(int i = 0 ; i < xyz_mat.rows(); i++) {
-	  xyz0.push_back(Vector3cd(xyz_mat(i, 0), xyz_mat(i, 1), xyz_mat(i, 2)));
-	}
-	vector<Vector3cd> xyz1;
-	mole->sym_group()->CalcSymPosList(xyz0, &xyz1);
 
 	Atom atom = NewAtom(name, q);
-	for(int i = 0 ; i < (int)xyz1.size(); i++) {
-	  atom->Add(xyz1[i][0], xyz1[i][1], xyz1[i][2]);
+	for(int i = 0 ; i < xyz_mat.rows(); i++) {
+	  atom->Add(Vector3cd(xyz_mat(i, 0), xyz_mat(i, 1), xyz_mat(i, 2)));
 	}
 	mole->Add(atom);
       } catch(exception& e) {
@@ -457,6 +450,7 @@ namespace cbasis {
 	throw(runtime_error(oss.str()));
       }
     }
+    mole->SetSymPos();
 
   }
   void ReadJson_Molecule(picojson::object& obj, std::string k, Molecule mole) {
@@ -632,7 +626,13 @@ namespace cbasis {
     if(obj.find(k) == obj.end()) {
       throw runtime_error("key \"" + k + "\" not found.");
     }
-    ReadJson_SymGTOs_Subs(obj[k], gtos);
+    try {
+      ReadJson_SymGTOs_Subs(obj[k], gtos);
+    } catch(exception& e) {
+      string msg = "error on parsing SymGTOs_Subs. keys = \"" + k + "\"\n";
+      msg += e.what();
+      throw runtime_error(msg);
+    }
   }
 
   void ReadJson_Orbital_file(object& initstate, SymmetryGroup _sym, dcomplex *_E0,

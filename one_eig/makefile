@@ -31,7 +31,9 @@ ${BINDIR}/one_eig: $(foreach o, ${OBJS}, ${BINDIR}/$o)
 check: ${BINDIR}/one_eig
 #	./$^ hatom.json
 	./$^ h2plus.json; echo "reference is -1.1026342144949"; cat out.json
-#	./$^ h2plus_small.json
+
+check_small: ${BINDIR}/one_eig
+	./$^ h2plus_small.json; echo "reference is -1.1026342144949"; cat out.json
 
 ## ==== Basic command ====
 clean:

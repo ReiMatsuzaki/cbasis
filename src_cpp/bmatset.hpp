@@ -63,6 +63,8 @@ namespace cbasis {
     const_iterator begin() const { return map_.begin(); }
     iterator end() { return map_.end(); }
     const_iterator end() const { return map_.end(); }
+    iterator find(Key& k) { return map_.find(k); }
+    const_iterator find(const Key& k) const { return map_.find(k); }
     void set_name(std::string _name) { name_ = _name; }
     std::string get_name() const { return name_; }
     bool has_block(Key ijrrep) {
@@ -80,6 +82,7 @@ namespace cbasis {
     }
     Value& operator[] (Key k) { return map_[k]; }
     const Value& operator[](Key k) const {return map_.find(k)->second; }
+    void swap(BMat& o);
     
     void Write(std::string filename) const;
     void Read(std::string filename);
@@ -89,7 +92,7 @@ namespace cbasis {
   // ==== Old ====
   void BMatRead(BMat::Map& bmat, std::string fn);
   void BMatWrite(BMat::Map& bmat, std::string fn);
-  typedef std::map<std::string, BMat::Map> BMatMap;
+  typedef std::map<std::string, BMat> BMatMap;
   class _BMatSet {
   private:
     int     block_num_;
@@ -101,7 +104,7 @@ namespace cbasis {
     void SetMatrix(std::string name, int i, int j, Eigen::MatrixXcd& a);
     bool Exist(std::string, int i, int j);
     const Eigen::MatrixXcd& GetMatrix(std::string name, int i, int j);
-    const BMat::Map& GetBlockMatrix(std::string name);
+    const BMat& GetBlockMatrix(std::string name);
     void SelfAdd(std::string name, int ib, int jb, int i, int j, dcomplex v);
     dcomplex GetValue(std::string name, int ib, int jb, int i, int j);
     void swap(_BMatSet& o);
