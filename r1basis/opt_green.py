@@ -1061,7 +1061,7 @@ def opt_main_h_pi(args):
     out.write("dipole:  {0}\n".format(args['dipole']))
     
     h_pi = H_Photoionization(args['channel'], args['dipole'])
-
+    
     basis_type = args["basis_type"]
     basis_info = args["basis_info"]
     (base_us, opt_list, var, y0s) = h_pi_read_info(basis_type, basis_info)
@@ -1121,17 +1121,19 @@ def opt_main_calc(args):
         ys = res.x
             
         if(args['print_level'] > 0):
-            out.write("w: {0}\n".format(w))
-            print >>out, "convergenec = {0}\n".format("Yes" if res.success else "No")
+            print >>out, "w: {0}".format(w)
+            print >>out, "convergenec = {0}".format("Yes" if res.success else "No")
             for (i, y) in zip(range(len(ys)), ys):
-                out.write("y{0}: {1}\n".format(i, y))
+                print >>out, "y{0}: {1}".format(i, y)
         if(args['print_level'] > 1):
             for (i, g) in zip(range(len(ys)), res.grad):
-                out.write("grad{0}: {1}\n".format(i, g))
+                print >>out,"grad{0}: {1}".format(i, g)
+        if(args['print_level'] > 0):
+            print >>out, ""
 
     ys = w_res_list[0][1].x
     for w in ws_plus:
-        res = newton(func_w(w), ys, tol=tol, maxit=maxit,
+        res = newton(fun_w(w), ys, tol=tol, maxit=maxit,
                      out = out_newton, conv = args['conv'],
                      print_level = args['print_level'],
                      fdif = args['fdif'],
@@ -1143,10 +1145,12 @@ def opt_main_calc(args):
             print >>out, "w: {0}".format(w)
             print >>out, "convergenec = "+ ("Yes" if res.success else "No")
             for (i, y) in zip(range(len(ys)), ys):
-                out.write("y{0}: {1}\n".format(i, y))
+                print >>out, "y{0}: {1}".format(i, y)
         if(args['print_level'] > 1):
             for (i, g) in zip(range(len(ys)), res.grad):
-                out.write("grad{0}: {1}\n".format(i, g))        
+                print >>out, "grad{0}: {1}".format(i, g)
+        if(args['print_level'] > 0):
+            print >>out, ""                
 
     w_res_list.sort(key = lambda wr: wr[0])
     args["w_res_list"] = w_res_list
@@ -1195,17 +1199,25 @@ def opt_main_print_final_h_pi(args):
     opt_index = args['opt_index']
     base_us = args["base_us"]
     var = args['var']
+    h_pi = args["h_pi"]
 
+    if "skip_w_num" in args:
+        skip_w_num = args["skip_w_num"]
+    else:
+        skip_w_num = 1
+    
     cs = []
-    for (w, res) in args['w_res_list']:
+    for (w, res) in args['w_res_list'][0:-1:skip_w_num]:
+        k = np.sqrt(2.0*(w + h_pi.E0))
         print >>out, "w = {0}".format(w)
+        print >>out, "k = {0}".format(k)
+        print >>out, "E = {0}".format(w + h_pi.E0)
         print >>out, "convergenec = {0}".format("Yes" if res.success else "No")
         print >>out, "alpha = {0}".format(res.val)
+        print >>out, "<R|mu|phi0> = {0}".format(np.sqrt(-res.val.imag*k/2.0))
         ys = res.x           ## optimization variable
         xs = var.xis(ys)     ## orbital exponent without fixed
-        us = update_basis(base_us, opt_index, xs)
-        print >>out, us
-        h_pi = args['h_pi']
+        us = update_basis(base_us, opt_index, xs)        
         l_mat = h_pi.l_mat(w, us, us)
         s_vec = h_pi.dip_vec(us)
         g_mat = l_mat.inverse()
@@ -1213,8 +1225,8 @@ def opt_main_print_final_h_pi(args):
         cs.append(c_vec)
         for i in range(len(c_vec)):
             print >>out, "c{0} : {1}".format(i, c_vec[i])
+        print >>out, us
     args['cs'] = cs
-    
     
 def opt_main_print(args):
     out = args['out']
@@ -1334,7 +1346,7 @@ def cbf_main_h_pi(args):
     print >>out, "us: \n", us
     
     out = args['out']
-    print_timestamp('Calc', out)
+    print_timestamp('Calc_H_PI', out)
     
     ## ---- w range ----
     ws = args['ws']

@@ -66,7 +66,7 @@ class SymGenComplexEigenSolver {
 private:
   // -- solution of calculation --
   CM eigenvectors_;
-  CV eigenvalues_;
+  CV eigenvalues_;  
 
   // -- intermediate --
   Eigen::ComplexEigenSolver<CM> es_;
@@ -75,17 +75,35 @@ private:
   CM c_;
   CV v_;
   CM lambda_mat_;
+  int num0_;    // size of calculations
   
 public:
   SymGenComplexEigenSolver();
+  SymGenComplexEigenSolver(int _num0);
   SymGenComplexEigenSolver(const CM& f, const CM& s);
+  SymGenComplexEigenSolver(const CM& f, const CM& s, int _num0);
   void compute(const CM& f, const CM& s);
   void compute_inv_sqrt(const CM& s);
   const CV& eigenvalues() const;
   const CM& eigenvectors() const;
 };
 
-
+class LinearSolver {
+private:
+  static const int method_householderQr = 0;
+  static const int method_colPivHouseholderQr = 1;
+  static const int method_fullPivHouseholderQr = 2;
+  int method_;
+  //  Eigen::MatrixXcd *ptr_mat_;
+  //  Eigen::HouseholderQR householder;
+  //  Eigen::ColPivHouseholderQr col_piv;
+  //  Eigen::fullPivHouseholderQr full_piv;
+public:
+  LinearSolver(): method_(0) {}
+  LinearSolver(std::string method);
+  void Solve(Eigen::MatrixXcd& mat, Eigen::VectorXcd& vec, Eigen::VectorXcd *sol);
+  std::string show();
+};
 
 
 #endif

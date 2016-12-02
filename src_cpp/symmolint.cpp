@@ -407,7 +407,7 @@ namespace cbasis {
 	ostringstream pn_oss;
 	if(sub.size_pn() == 1) {
 	  pn_oss << sub.nx(0)<<sub.ny(0)<<sub.nz(0);
-	} else if(sub.maxn==1) {
+	} else {
 	  pn_oss << sub.maxn;
 	}
 	oss << sep << setw(4) << right << sub.atom()->name()
@@ -966,130 +966,5 @@ namespace cbasis {
 
   SymGTOs NewSymGTOs(Molecule mole) { return SymGTOs(new _SymGTOs(mole)); }
   
-  // ==== Add Sub ====
-  SubSymGTOs Sub_Mono(SymmetryGroup sym, Atom atom, Irrep irrep, 
-			 Vector3i ns, VectorXcd zs) {
-
-    if(atom->size() != 1) {
-      string msg; SUB_LOCATION(msg);
-      msg = "\n" + msg + ": atom have to have only one xyz";
-      throw runtime_error(msg);
-    }
-    
-    SubSymGTOs sub(sym, atom);
-    sub.AddNs(ns);
-    sub.AddZeta(zs);
-    sub.AddRds(Reduction(irrep, MatrixXcd::Ones(1, 1)));
-
-    return sub;
-  }
-  SubSymGTOs Sub_SolidSH_Ms(SymmetryGroup sym, Atom atom, int L, VectorXi _Ms,
-			       VectorXcd zs) {
-
-    // -- memo --
-    // from wiki
-    // real form and complex form:
-    // Ylm = sqrt(2)(-)^m Im[Yl^|m|]   (m<0)
-    // Yl0 = Yl^0   (m=0)
-    // Ylm = sqrt(2)(-)^m Re[Yl^m]     (m>0)
-    // or do google "spherical harmonics table"
-    
-    // Us(r) = N exp[-ar^2] = N exp[-ar^2] Y00 sqrt(4pi)
-    // upz(r) = N z exp[-ar^2] = N exp[-ar^2] Y10 sqrt(4pi/3)
-    // ud_z2(r) = N (2z^2-x^2-y^2) exp[-ar^2] = ...sqrt(16pi/5)
-    // ud_zx(r) = N zx exp[-ar^2] = ...sqrt(4pi/15)
-    
-    SubSymGTOs sub(sym, atom);
-    sub.AddZeta(zs);
-    
-    vector<int> Ms;
-    for(int i = 0; i < _Ms.size(); i++) {
-      int m = _Ms[i];
-      if(abs(m) > 1) {
-	string msg; SUB_LOCATION(msg); msg += ": now |m| > 1 is not implemented";
-	throw runtime_error(msg);
-      }
-      Ms.push_back(m);
-    }
-
-    if(L < 0 || L > 3) {
-      string msg; SUB_LOCATION(msg); msg += ": only L=0,1,2,3 is supported";
-      throw runtime_error(msg);
-    }
-
-    bool find_0 = find(Ms.begin(), Ms.end(),   0) != Ms.end();
-    bool find_p1 = find(Ms.begin(), Ms.end(), +1) != Ms.end();
-    bool find_m1 = find(Ms.begin(), Ms.end(), -1) != Ms.end();
-
-    if(L == 0) {
-      sub.AddNs(Vector3i::Zero());
-      if(find_0) {
-	Reduction rds(sym->irrep_s(), MatrixXcd::Ones(1, 1));
-	rds.SetLM(0, 0, sqrt(4.0*M_PI)); sub.AddRds(rds);
-      }
-    }
-    if(L == 1) {
-      sub.AddNs(1,0,0); sub.AddNs(0,1,0); sub.AddNs(0,0,1);
-      if(find_p1) {
-	Reduction rds(sym->irrep_x(), m13cd(1,0,0));
-	rds.SetLM(1, 1, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
-      }      
-      if(find_0) {
-	Reduction rds(sym->irrep_z(), m13cd(0,0,1));
-	rds.SetLM(1, 0, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
-      }
-      if(find_m1) {
-	Reduction rds(sym->irrep_y(), m13cd(0,1,0));
-	rds.SetLM(1, -1, sqrt(4.0 * M_PI / 3.0)); sub.AddRds(rds);
-      }
-    }
-    if(L == 2) {
-      sub.AddNs(2,0,0); sub.AddNs(0,2,0); sub.AddNs(0,0,2);
-      sub.AddNs(1,1,0); sub.AddNs(0,1,1); sub.AddNs(1,0,1);
-      if(find_p1) {
-	MatrixXcd m(1, 6); m << 0,0,0, 0,0,1;
-	Reduction rds(sym->irrep_x(), m);
-	rds.SetLM(2, 1, sqrt(4.0*M_PI/15.0)); sub.AddRds(rds);
-      }      
-      if(find_0) {
-	MatrixXcd m(1, 6); m << -1,-1,2, 0,0,0;
-	Reduction rds(sym->irrep_z(), m);
-	rds.SetLM(2, 0, sqrt(16.0*M_PI/5.0)); sub.AddRds(rds);
-      }
-      if(find_m1) {
-	MatrixXcd m(1, 6); m << 0,0,0, 0,1,0;
-	Reduction rds(sym->irrep_y(), m);
-	rds.SetLM(2, -1, sqrt(4.0*M_PI/15.0)); sub.AddRds(rds);
-      }
-    }
-    if(L == 3) {
-      sub.AddNs(1,0,2); sub.AddNs(3,0,0); sub.AddNs(1,2,0);
-      sub.AddNs(0,0,3); sub.AddNs(2,0,1); sub.AddNs(0,2,1);
-      sub.AddNs(0,1,2); sub.AddNs(2,1,0); sub.AddNs(0,3,0);
-      if(find_p1) {
-	MatrixXcd m(1,9); m << 4,-1,-1,  0,0,0,  0,0,0;
-	Reduction rds(sym->irrep_x(), m);
-	rds.SetLM(3, +1, sqrt(32.0*M_PI/21.0)); sub.AddRds(rds);
-      }
-      if(find_0) {
-	MatrixXcd m(1,9); m << 0,0,0,  2,-3,-3,  0,0,0;
-	Reduction rds(sym->irrep_z(), m);
-	rds.SetLM(3, 0, sqrt(16.0*M_PI/7.0)); sub.AddRds(rds);
-      }
-      if(find_m1) {
-	MatrixXcd m(1,9); m << 0,0,0,  0,0,0,  4,-1,-1;
-	Reduction rds(sym->irrep_y(), m);
-	rds.SetLM(3, -1, sqrt(32.0*M_PI/21.0)); sub.AddRds(rds);
-      }
-    }
-
-    return sub;    
-  }
-  SubSymGTOs Sub_SolidSH_M(SymmetryGroup sym, Atom atom, int L, int M, 
-			      VectorXcd zs) {
-    VectorXi Ms(1);
-    Ms(0) = M;
-    return Sub_SolidSH_Ms(sym, atom, L, Ms, zs);
-  }
 }
 

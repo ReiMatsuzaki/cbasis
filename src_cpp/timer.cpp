@@ -2,7 +2,7 @@
 #include <iostream>
 #include <time.h>
 #include "timer.hpp"
-#include "macros.hpp"
+#include "../utils/macros.hpp"
 
 using namespace std;
 

@@ -32,6 +32,7 @@ namespace cbasis {
   typedef boost::shared_ptr<_MO> MO;
 
   // ---- RHF ----
+  MO NewMO(SymmetryGroup sym, BMat& _H, BMat& _C, BVec& _eigs, int num_ele);
   vector<int> CalcOccNum(const BVec& eigs, int num_sym, int num_orb);
   MO CalcOneEle(SymmetryGroup sym, BMatSet mat_set, int debug_lvl = 0);
   void AddJK(B2EInt eri,  BMat& C, int I0, int i0,

@@ -120,30 +120,7 @@ namespace cbasis {
     // -- calculate inner information and check values.
     void SetUp();
 
-    // ---- old ----
-    //    SubSymGTOs(Eigen::MatrixXcd xyz, Eigen::MatrixXi ns,
-    //	       std::vector<Reduction> cs, Eigen::VectorXcd zs);
-    //    int size_cont() const { return rds.size(); }
-    //    const Eigen::MatrixXcd& get_xyz_iat() { return xyz_iat; }
-    //    const Eigen::MatrixXi&  get_ns_ipn() const { return  ns_ipn; }
-    //    const Reduction&  get_rds(int i) const { return  rds[i]; }
-    //    const Eigen::VectorXcd& get_zeta_iz() const { return  zeta_iz; }    
-    //    void Display() const;
   };
-
-  // ---- Helper ----
-  /*
-  SubSymGTOs Sub_s(Irrep irrep,
-		   Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_pz(Irrep irrep,
-		    Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_TwoSGTO(pSymmetryGroup sym, Irrep irrep,
-			 Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_mono(Irrep irrep,
-		      Eigen::Vector3cd xyz, Eigen::Vector3i ns, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_SolidSH_M(pSymmetryGroup sym, int L, int M, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_SolidSH_Ms(pSymmetryGroup sym, int L, Eigen::VectorXi Ms, Eigen::Vector3cd xyz, Eigen::VectorXcd zs);
-  */
 
   // ==== SymGTOs ====
   class _SymGTOs;
@@ -214,12 +191,12 @@ namespace cbasis {
   SymGTOs NewSymGTOs(Molecule mole);
   
   // ==== Add Sub ====
-  SubSymGTOs Sub_Mono(SymmetryGroup sym, Atom atom, Irrep irrep, 
-			 Eigen::Vector3i ns, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_SolidSH_Ms(SymmetryGroup sym, Atom atom, int L,
-			       Eigen::VectorXi _Ms, Eigen::VectorXcd zs);
-  SubSymGTOs Sub_SolidSH_M(SymmetryGroup sym, Atom atom, int L, int M, 
-			      Eigen::VectorXcd zs);
+  //  SubSymGTOs Sub_Mono(SymmetryGroup sym, Atom atom, Irrep irrep, 
+  //			 Eigen::Vector3i ns, Eigen::VectorXcd zs);
+  //  SubSymGTOs Sub_SolidSH_Ms(SymmetryGroup sym, Atom atom, int L,
+  //			       Eigen::VectorXi _Ms, Eigen::VectorXcd zs);
+  //  SubSymGTOs Sub_SolidSH_M(SymmetryGroup sym, Atom atom, int L, int M, 
+  //			      Eigen::VectorXcd zs);
   
 }
 

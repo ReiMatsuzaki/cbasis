@@ -249,13 +249,22 @@ void CEigenSolveCanonicalNum(const CM& F, const CM& S, int num0,
 }
 
 SymGenComplexEigenSolver::SymGenComplexEigenSolver() {}
+SymGenComplexEigenSolver::SymGenComplexEigenSolver(int _num0) {
+  num0_ = _num0;
+}
 SymGenComplexEigenSolver::SymGenComplexEigenSolver(const CM& f, const CM& s) {
-
+  num0_ = f.rows();
   this->compute(f, s);
-
+}
+SymGenComplexEigenSolver::SymGenComplexEigenSolver(const CM& f, const CM& s, int _num0) {
+  num0_ = _num0;
+  CEigenSolveCanonicalNum(f, s, num0_,
+			  &this->eigenvectors_, &this->eigenvalues_);
 }
 void SymGenComplexEigenSolver::compute(const CM& f, const CM& s) {
 
+  
+  
   if(f.rows() != s.rows() || f.rows() != f.cols() || f.rows() == 0) {
     string msg; SUB_LOCATION(msg);
     stringstream oss;
@@ -266,6 +275,13 @@ void SymGenComplexEigenSolver::compute(const CM& f, const CM& s) {
   }
 
   int n(f.rows());
+
+  if(n != num0_) {
+    CEigenSolveCanonicalNum(f, s, num0_,
+			    &this->eigenvectors_, &this->eigenvalues_);
+    return;
+  }
+  
   if(s2inv_.rows() != n) {
     s2inv_ = MatrixXcd::Zero(n, n);
   }
@@ -319,4 +335,56 @@ const CV& SymGenComplexEigenSolver::eigenvalues() const {
 }
 const CM& SymGenComplexEigenSolver::eigenvectors() const {
   return eigenvectors_;
+}
+
+LinearSolver::LinearSolver(string _method) {
+  if(_method == "householderQr") {
+    method_ = 0;
+  } else if(_method == "colPivHouseholderQr") {
+    method_ = 1;
+  } else if(_method == "fullPivHouseholderQr") {
+    method_ = 2;
+  } else {
+    string loc; SUB_LOCATION(loc);
+    string msg = loc + "\nunsupported method. choose (householderQr, colPivHouseholderQr, fullPivHouseholderQr)";
+    throw runtime_error(msg);
+  }
+  
+}
+/*
+void LinearSolver::SetMatrix(Eigen::MatrixXcd& _mat) {
+  if(method_ == method_householderQr) {
+    householder = _mat.householderQr();
+  }
+  if(method_ == method_colPivHouseholderQr) {
+    col_piv = _mat.colPivHouseholderQr();
+  }
+  if(method_ == method_fullPivHouseholderQr) {
+    full_piv = _mat.fullPivHouseholderQr();
+  }
+}
+*/
+void LinearSolver::Solve(MatrixXcd& mat, VectorXcd& vec, VectorXcd *sol) {
+  if(method_ == method_householderQr) {
+    *sol = mat.householderQr().solve(vec);
+  }
+  if(method_ == method_colPivHouseholderQr) {
+    *sol = mat.colPivHouseholderQr().solve(vec);
+  }
+  if(method_ == method_fullPivHouseholderQr) {
+    *sol = mat.fullPivHouseholderQr().solve(vec);
+  }
+}
+string LinearSolver::show() {
+  if(method_ == method_householderQr) {
+    return "householderQr";
+  }
+  if(method_ == method_colPivHouseholderQr) {
+    return "colPivHouseholderQr";
+  }
+  if(method_ == method_fullPivHouseholderQr) {
+    return "fullPivHouseholderQr";
+  } else {
+    return "unsupported";
+  }
 }

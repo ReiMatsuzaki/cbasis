@@ -128,6 +128,14 @@ TEST(EigenPlus, sort_reverse) {
 
   
 }
+TEST(EigenPlus, lin_solve) {
+  LinearSolver solver("householderQr");
+  MatrixXcd A(2,2); A << 1.0, 1.2, 1.2, 1.5;
+  VectorXcd a(2);   a << 1.3, 0.1;
+  VectorXcd x(2);
+  solver.Solve(A, a, &x);
+  EXPECT_C_EQ(0.0, (A*x-a).array().sum());
+}
 
 TEST(Fact, iabs) {
 

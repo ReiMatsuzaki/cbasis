@@ -79,7 +79,7 @@ check_symmolint: ${BINDIR}/test_symmolint
 
 # -- test 2e int --
 TWOINT_OBJS = test_2eint.o b2eint.o symmolint.o symgroup.o one_int.o two_int.o bmatset.o angmoment.o  \
-	eigen_plus.o fact.o cfunc.o mol_func.o timer.o gtest.a
+	eigen_plus.o molecule.o erfc.o int_exp.o fact.o cfunc.o mol_func.o timer.o gtest.a
 ${BINDIR}/test_2eint:  $(foreach o, ${TWOINT_OBJS}, ${BINDIR}/$o) 
 	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
 .PHONY: check_2eint
@@ -90,7 +90,7 @@ time_2eint: ${BINDIR}/test_2eint
 
 # -- test hf --
 HF_OBJS = test_hf.o trans_eri.o mo.o b2eint.o symmolint.o one_int.o two_int.o \
-	symgroup.o bmatset.o angmoment.o eigen_plus.o \
+	symgroup.o bmatset.o angmoment.o eigen_plus.o molecule.o int_exp.o erfc.o\
 	fact.o cfunc.o mol_func.o timer.o gtest.a
 ${BINDIR}/test_hf: $(foreach o, ${HF_OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas

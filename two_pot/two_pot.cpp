@@ -11,7 +11,9 @@
 #include "../utils/timestamp.hpp"
 #include "../src_cpp/symmolint.hpp"
 #include "../src_cpp/angmoment.hpp"
+#include "../src_cpp/mo.hpp"
 #include "../src_cpp/one_int.hpp"
+#include "../src_cpp/two_int.hpp"
 #include "../src_cpp/read_json.hpp"
 
 using namespace std;
@@ -21,6 +23,7 @@ using namespace picojson;
 using namespace boost::assign;
 
 // -- const --
+double au2ev = 27.2114;
 double c_light = 137.035999139;
 double au2mb = 5.291772 * 5.291772;
 
@@ -35,6 +38,9 @@ dcomplex Z;
 Molecule mole0;
 vector<double> w_list;
 int ne;
+string calc_type;
+bool use_stex;
+ERIMethod eri_method;
 
 // -- Initial state --
 SymGTOs basis0;
@@ -50,6 +56,9 @@ SymGTOs basis1;
 map<int, SymGTOs> basis_psi0_L;
 map<int, SymGTOs> basis_c_psi0_L;
 map<int, SymGTOs> basis_chi0_L;
+
+// -- solver --
+LinearSolver linear_solver;
 
 // -- intermediate --
 BMat S1, T1, V1, L1;
@@ -74,7 +83,11 @@ MultArray<dcomplex, 2> impsi0_chi(100);
 
 // -- results --
 vector<double> cs_list;
+vector<double> cs_sigu_list;
+vector<double> cs_piu_list;
 vector<double> cs_alpha_list;
+vector<double> cs_sigu_alpha_list;
+vector<double> cs_piu_alpha_list;
 vector<double> beta_list;
 
 void s2y(MultArray<dcomplex, 1>& sM,
@@ -176,8 +189,7 @@ dcomplex CoefAzeta0(dcomplex w, MultArray<dcomplex, 2>& Alm,
 }
 
 void Parse() {
-  PrintTimeStamp("Parse", NULL);
-  ne = 1;
+  PrintTimeStamp("Parse", NULL);  
   try {
     ifstream f(in_json.c_str());  
     value json; f >> json;
@@ -185,6 +197,24 @@ void Parse() {
       throw runtime_error("invalid json file");
     object& obj = json.get<object>();
     comment = ReadJson<string>(obj, "comment");
+    calc_type = ReadJson<string>(obj, "calc_type");
+    linear_solver = ReadJsonWithDefault
+      <LinearSolver>(obj, "linear_solver", LinearSolver());
+    ne = ReadJson<int>(obj, "num_ele");
+    if(calc_type == "STEX") {
+      use_stex = true;
+      if(ne != 2)
+	throw runtime_error("calculation under STEX only support 2e system");
+    } else if(calc_type == "one") {
+      use_stex = false;
+      if(ne != 1)
+	throw runtime_error("if calc_type=one, num_ele must be 1");
+    } else {
+      throw runtime_error("calc_type must \"STEX\" or \"one\"");
+    }
+
+    if(calc_type == "STEX")
+      eri_method = ReadJson<ERIMethod>(obj, "eri_method");
     sym     = ReadJson<SymmetryGroup>(obj, "sym");
     out_json = ReadJson<string>(obj, "out_json");
     cs_csv   = ReadJson<string>(obj, "cs_csv");
@@ -201,15 +231,15 @@ void Parse() {
     VectorXi Ms(3); Ms << -1, 0, 1;
     VectorXcd zeta0_p = ReadJson<VectorXcd>(obj, "zeta0_p");
     basis_psi0_L[1] = NewSymGTOs(mole0);
-    basis_psi0_L[1]->AddSub(Sub_SolidSH_Ms(sym, cen0, 1, Ms, zeta0_p));
+    basis_psi0_L[1]->NewSub("CEN0").SolidSH_Ms(1, Ms, zeta0_p);
     VectorXcd zeta0_f = ReadJson<VectorXcd>(obj, "zeta0_f");
     basis_psi0_L[3] = NewSymGTOs(mole0);
-    basis_psi0_L[3]->AddSub(Sub_SolidSH_Ms(sym, cen0, 3, Ms, zeta0_f));
+    basis_psi0_L[3]->NewSub("CEN0").SolidSH_Ms(3, Ms, zeta0_f);
     VectorXcd zeta_chi(1); zeta_chi << ReadJson<dcomplex>(obj, "zeta_chi");
     basis_chi0_L[1] = NewSymGTOs(mole0);
-    basis_chi0_L[1]->AddSub(Sub_SolidSH_Ms(sym, cen0, 1, Ms, zeta_chi));
+    basis_chi0_L[1]->NewSub("CEN0").SolidSH_Ms(1, Ms, zeta_chi);
     basis_chi0_L[3] = NewSymGTOs(mole0);
-    basis_chi0_L[3]->AddSub(Sub_SolidSH_Ms(sym, cen0, 3, Ms, zeta_chi));
+    basis_chi0_L[3]->NewSub("CEN0").SolidSH_Ms(3, Ms, zeta_chi);
 
     VectorXd _ws = ReadJson<VectorXd>(obj, "ws");
     for(int i = 0; i < _ws.size(); i++) {
@@ -255,14 +285,19 @@ void PrintIn() {
   cout << "in_json: " << in_json << endl;
   cout << "cs_csv: "  << cs_csv;
   cout << "out_json: " << out_json << endl;
+  cout << "linear_solver: " << linear_solver.show() << endl;
   cout << "Ne: " << ne << endl;
   cout << "E0: " << E0 << endl;
+  cout << "Z: " << Z << endl;
+  cout << "ERIMethod_use_symmetry: " << eri_method.symmetry << endl;
+  cout << "ERIMethod_use_memo: " << eri_method.coef_R_memo << endl;
+  cout << "ERIMethod_use_perm: " << eri_method.perm << endl;
+  cout << "symmetry: " << sym->name() << endl;
   cout << "molecule:" << endl << mole->show() << endl;
   cout << "basis0:" << endl << basis0->show() << endl;  
   cout << "basis1:" << endl << basis1->show() << endl;
   cout << "basis0_p:" << endl << basis_psi0_L[1]->show() << endl;
-  //  cout << "basis0_f:" << endl << basis_psi0_L[3]->show() << endl;
-  cout << "basis0_f:" << endl << basis_psi0_L[3]->str() << endl;
+  cout << "basis0_f:" << endl << basis_psi0_L[3]->show() << endl;
 }
 void CalcMat() {
 
@@ -308,7 +343,7 @@ void CalcMat() {
   sY0f(y) = Y0fi(y,0) * c0; sDY0f(y) = DY0fi(y,0) * c0;
   sZ0f(z) = Z0fi(z,0) * c0; sDZ0f(z) = DZ0fi(z,0) * c0;
 
-  // -- psi0_p / psi1
+  PrintTimeStamp("psi0_L/psi1", NULL);
   BMat V0p1_full, HV0p1_full, V0p1_0th, HV0p1_0th;
   CalcVMat(basis_psi0_L[1],   mole,  basis1, &V0p1_full);
   CalcVMat(basis_c_psi0_L[1], mole,  basis1, &HV0p1_full);
@@ -338,13 +373,32 @@ void CalcMat() {
   HV0f1(y,y) = HV0f1_full(y,y) - HV0f1_0th(y,y);
   HV0f1(z,z) = HV0f1_full(z,z) - HV0f1_0th(z,z);
 
-  cout << "V0p1(x,x)(1,2) : "  << V0p1(x,x)(1,2) << endl;
-  cout << "V0p1(y,y)(1,2) : "  << V0p1(y,y)(1,2) << endl;
-  cout << "V0p1(z,z)(1,2) : "  << V0p1(z,z)(1,2) << endl;
-  cout << "V0f1(x,x)(1,2) : "  << V0f1(x,x)(1,2) << endl;
-  cout << "V0f1(y,y)(1,2) : "  << V0f1(y,y)(1,2) << endl;
-  cout << "V0f1(z,z)(1,2) : "  << V0f1(z,z)(1,2) << endl;    
+}
+void CalcMatSTEX() {
+  PrintTimeStamp("MatSTEX_1", NULL);
+  ERIMethod method;
+  B2EInt eri_J_11 = CalcERI(basis1, basis1, basis0, basis0, method);
+  B2EInt eri_K_11 = CalcERI(basis1, basis0, basis0, basis1, method);
+  AddJ(eri_J_11, c0, irrep0, 1.0, V1);
+  AddJ(eri_K_11, c0, irrep0, 1.0, V1);
 
+  PrintTimeStamp("MatSTEX_01", NULL);
+  vector<int> Ls; Ls += 1,3;
+  BOOST_FOREACH(int L, Ls) {
+    B2EInt eri_JC = CalcERI(basis_psi0_L[L],   basis1, basis0, basis0, method);
+    B2EInt eri_JH = CalcERI(basis_c_psi0_L[L], basis1, basis0, basis0, method);
+    B2EInt eri_KC = CalcERI(basis_psi0_L[L],   basis0, basis1, basis0, method);
+    B2EInt eri_KH = CalcERI(basis_c_psi0_L[L], basis0, basis1, basis0, method);
+
+    if(L == 1) {
+      AddJ(eri_JC, c0, irrep0, 1.0, V0p1);  AddK(eri_KC, c0, irrep0, 1.0, V0p1);
+      AddJ(eri_JH, c0, irrep0, 1.0, HV0p1); AddK(eri_KH, c0, irrep0, 1.0, HV0p1);
+    }
+    if(L == 3) {
+      AddJ(eri_JC, c0, irrep0, 1.0, V0f1);  AddK(eri_KC, c0, irrep0, 1.0, V0f1);
+      AddJ(eri_JH, c0, irrep0, 1.0, HV0f1); AddK(eri_KH, c0, irrep0, 1.0, HV0f1);
+    }        
+  }
 }
 void CalcDriv(double w) {
   //  PrintTimeStamp("calc_driv", NULL);
@@ -431,8 +485,7 @@ void CalcBraket(double w) {
 			  -TDot(Hc0f(y), HV0f1(y,y)*cY1(y)))/m2;
   impsi0_v_psi1(3,  0) = (+TDot(c0f(z),   V0f1(z,z)*cZ1(z))
 			  -TDot(Hc0f(z), HV0f1(z,z)*cZ1(z)))/m2;
-  cout << "v ratio 1 : " << impsi0_v_psi1(1,  0)/impsi0_v_psi1(1,  1) << endl;
-  cout << "v ratio 3 : " << impsi0_v_psi1(3,  0)/impsi0_v_psi1(3,  1) << endl;
+  
   // -- <ImPsi0 | Chi> --  
   impsi0_chi.SetRange(1,3, -1,1);
   impsi0_chi(1, +1) = TDot(c0p(x), s0p_chi(x)).imag();
@@ -446,22 +499,28 @@ void CalcBraket(double w) {
 void CalcMain_alpha(double w) {
   
   //  PrintTimeStamp("calc_alpha", NULL);
-  dcomplex alpha(0);
   Irrep x = sym->irrep_x();
   Irrep y = sym->irrep_y();
   Irrep z = sym->irrep_z();   
-  alpha += TDot(cX1(x), sX1(x));
-  alpha += TDot(cY1(y), sY1(y));
-  alpha += TDot(cZ1(z), sZ1(z));
-  alpha = alpha/3.0;
+  dcomplex alpha_x = TDot(cX1(x), sX1(x))/3.0*(1.0*ne);
+  dcomplex alpha_y = TDot(cY1(y), sY1(y))/3.0*(1.0*ne);
+  dcomplex alpha_z = TDot(cZ1(z), sZ1(z))/3.0*(1.0*ne);
+  dcomplex alpha = (alpha_x+alpha_y+alpha_z);
   double cs = 4.0*M_PI*w/ c_light * alpha.imag()* au2mb;
+  double cs_sigu = 4.0*M_PI*w/ c_light * alpha_z.imag()* au2mb;
+  double cs_piu  = 4.0*M_PI*w/ c_light * (alpha_x+alpha_y).imag()* au2mb;
   cs_alpha_list.push_back(cs);
+  cs_piu_alpha_list.push_back(cs_piu);
+  cs_sigu_alpha_list.push_back(cs_sigu);
   cout << "cs_alpha: " << cs << endl;
+  cout << "cs_piu_alpha: " << cs_piu << endl;
+  cout << "cs_sigu_alpha: " << cs_sigu << endl;
 }
 void CalcMain(dcomplex w) {
   // -- element of dl_ss is solid spherical, but
   // -- in the special case, it is equivalent to spherical haromonics
-  //  PrintTimeStamp("calc_main", NULL);
+
+  // -- total --
   vector<int> Ls; Ls += 1,3;
   vector<int> Ms; Ms += -1,0,+1;
   dcomplex k = sqrt(2.0*(w + E0));
@@ -480,17 +539,8 @@ void CalcMain(dcomplex w) {
       dcomplex etal = exp(ii*CoulombShift(-Z/k, L));
       dcomplex coef_L = w * ii * sqrt(2.0/3.0) * pow(ii, -L) * etal; 
       Alm(L, M) = coef_L * dl_ss;
-      cout << "Alm: " << L << M << " " << Alm(L, M) << endl;
-      //      cout << "matele"<< L << M << ": " << sqrt(k/2.0) * sign * (impsi0_muphi(L,M) + impsi0_v_psi1(L,M))/ sqrt(sign * impsi0_chi(L,M)) << endl;
-	
-    }    
+    }
   }
-
-  //  sign = im_psi0_chi / abs(im_psi0_chi)    
-  //    c0_npsi =  sign * np.sqrt(k/2.0) / np.sqrt(sign * im_psi0_chi) * c0_psi0
-  //    dl = np.sqrt(1.0*self.ne) * 2j/np.sqrt(k) * impsi0_other
-  //    dl_ss[m, mppc] = np.sqrt(3.0/(4.0*np.pi)) * dl
-  
   dcomplex A00 = CoefAzeta0(w, Alm, 0, Ls, Ms);
   dcomplex A20 = CoefAzeta0(w, Alm, 2, Ls, Ms);
 
@@ -500,18 +550,40 @@ void CalcMain(dcomplex w) {
   beta_list.push_back(beta);
   cout << "cs: " << cs << endl;
   cout << "beta: " << beta << endl;
+
+  // -- sigu --
+  vector<int> Ms_sigu; Ms_sigu += 0;
+  dcomplex A00_sigu = CoefAzeta0(w, Alm, 0, Ls, Ms_sigu);
+  double cs_sigu = (4.0 * M_PI * A00_sigu * au2mb).real();
+  cs_sigu_list.push_back(cs_sigu);
+  cout << "cs_sigu: " << cs_sigu << endl;
+
+  // -- piu --
+  vector<int> Ms_piu; Ms_piu += 1,-1;
+  dcomplex A00_piu = CoefAzeta0(w, Alm, 0, Ls, Ms_piu);
+  double cs_piu = (4.0 * M_PI * A00_piu * au2mb).real();
+  cs_piu_list.push_back(cs_piu);
+  cout << "cs_piu: "  << cs_piu << endl;
 }
 void PrintOut() {
 
   int num(w_list.size());
-  cout << "w cs(alpha) cs(A) beta" << endl;
+
+  ofstream f(cs_csv.c_str(), ios::out);
+  f << "w,ene,cs_alpha,cs_sigu_alpha,cs_piu_alpha,cs,cs_sigu,cs_piu,beta" << endl;
   for(int i = 0; i < num; i++) {
-    cout << " " << w_list[i]
-	 << " " << cs_alpha_list[i]
-	 << " " << cs_list[i]
-	 << " " << beta_list[i]
-	 << endl;
+    f << w_list[i]
+      << "," << w_list[i] + E0.real()
+      << "," << cs_alpha_list[i]
+      << "," << cs_sigu_alpha_list[i]
+      << "," << cs_piu_alpha_list[i]
+      << "," << cs_list[i]
+      << "," << cs_sigu_list[i]
+      << "," << cs_piu_list[i]
+      << "," << beta_list[i]
+      << endl;
   }
+  f.close();
 }
 int main(int argc, char *argv[]) {
   cout << ">>>> two_pot >>>>" << endl;
@@ -523,11 +595,14 @@ int main(int argc, char *argv[]) {
   Parse();
   PrintIn();
   CalcMat();
+  if(use_stex) 
+    CalcMatSTEX();
   PrintTimeStamp("Calc", NULL);
   BOOST_FOREACH(double w, w_list) {
-    cout << "w: " << w << endl;
-    cout << "E: " << w + E0 << endl;
-    cout << "k: " << sqrt(2.0*(w + E0)) << endl;
+    cout << "w_eV: " << w * au2ev << endl;
+    cout << "w_au: " << w << endl;
+    cout << "E_au: " << w + E0 << endl;
+    cout << "k_au: " << sqrt(2.0*(w + E0)) << endl;
     CalcDriv(w);
     CalcBraket(w);
     CalcMain_alpha(w);

@@ -27,19 +27,22 @@ ${BINDIR}/%.o: %.cpp
 	${CXX} -c -o $@ -MMD ${CPPFLAGS} ${CXXFLAGS} $<
 
 ## ==== MAIN ====
-## -- one_eig --
-OBJS=two_pot.o read_json.o symmolint.o molecule.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o timestamp.o
-${BINDIR}/two_driv: $(foreach o, ${OBJS}, ${BINDIR}/$o)
+OBJS=two_pot.o read_json.o symmolint.o molecule.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o timestamp.o two_int.o mo.o
+${BINDIR}/two_pot: $(foreach o, ${OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${LIBS} -lgsl -lgslcblas
-check: ${BINDIR}/two_driv
+check: ${BINDIR}/two_pot
 	../one_eig/bin/fast/one_eig h2plus0.json
 	./$^ h2plus.json
 	@echo "ref : E=0.1,  piu=0.690953, sigu=0.007387, beta=1.34948"
-#	cat cs.csv
+	cat cs.csv
 
-check_hatom: ${BINDIR}/two_driv
+check_hatom: ${BINDIR}/two_pot
 	../one_eig/bin/fast/one_eig hatom0.json
 	./$^ hatom.json
+
+check_h2: ${BINDIR}/two_pot
+	../rhf/bin/fast/rhf h2_rhf.json
+	./$^ h2.json 
 
 ## ==== Basic command ====
 clean:

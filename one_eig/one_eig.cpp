@@ -1,21 +1,25 @@
 #include <fstream>
+#include <boost/format.hpp>
+#include "../external/picojson/picojson.h"
 #include "../utils/eigen_plus.hpp"
 #include "../utils/timestamp.hpp"
 #include "../src_cpp/symmolint.hpp"
 #include "../src_cpp/one_int.hpp"
 #include "../src_cpp/read_json.hpp"
-#include "../external/picojson/picojson.h"
+
 
 using namespace std;
+using boost::format;
 using namespace Eigen;
-using namespace cbasis;
 using namespace picojson;
+using namespace cbasis;
 
 void PrintHelp() {
   cout << "one_eig" << endl;
 }
 int main (int argc, char *argv[]) {
-
+  cout << ">>>> one_eig >>>>" << endl;
+  
   if(argc == 1) {
     PrintHelp();
     exit(1);
@@ -23,14 +27,20 @@ int main (int argc, char *argv[]) {
   
   ifstream f;
   f.open(argv[1], ios::in);
-  picojson::value json;  
-  cout << ">>>> one_eig >>>>" << endl;
+  if(f.fail()) {
+    cerr << "failed to open input file" << endl;
+    cerr << "in_file: " << argv[1] << endl;
+    exit(1);
+  }
+  
+  picojson::value json;    
   // ==== parse json ====
   PrintTimeStamp("Parse", NULL);
   SymmetryGroup sym;
   SymGTOs gtos;
   Molecule mole;
   string comment, out_json, out_eigvecs, out_eigvals;
+  int reduce_canonical_num;
 
   try {
     f >> json;
@@ -46,14 +56,18 @@ int main (int argc, char *argv[]) {
     ReadJson_Molecule(obj, "molecule", mole);
     
     gtos = NewSymGTOs(mole);
-    ReadJson_SymGTOs_Subs(obj, "basis", gtos);    
+    ReadJson_SymGTOs_Subs(obj, "basis", gtos);
+    if(obj.find("reduce_canonical_num") == obj.end())
+      reduce_canonical_num =0;
+    else
+      reduce_canonical_num = ReadJson<int>(obj, "reduce_canonical_num");
 
     // -- out --
     out_json = ReadJson<string>(obj, "out_json");
     out_eigvecs =ReadJson<string>(obj, "out_eigvecs");
     out_eigvals =ReadJson<string>(obj, "out_eigvals");    
     
-  } catch(exception& e) {
+  } catch(std::exception& e) {
     string msg = "error on parsing json\n";
     msg += e.what();
     cerr << msg << endl;
@@ -75,6 +89,7 @@ int main (int argc, char *argv[]) {
   cout << "out_json: " << out_json << endl;
   cout << "out_eigvecs: " << out_eigvecs << endl;
   cout << "out_eigvals: " << out_eigvals << endl;
+  cout << "reduce_canonical_num: " << reduce_canonical_num << endl;
   cout << "symmetry: " << sym->name() << endl;
   cout << "molecule: " << endl << mole->show() << endl;
   cout << "gtos: " << endl << gtos->show() << endl;
@@ -86,23 +101,49 @@ int main (int argc, char *argv[]) {
   
   CalcSTVMat(gtos, gtos, &S, &T, &V);
 
+  cout << "Eigensystem of overlap" << endl;
+  for(int irrep = 0; irrep < sym->order(); irrep++) {    
+    if(gtos->size_basis_isym(irrep) != 0) {
+      MatrixXcd& s = S(irrep, irrep);
+      ComplexEigenSolver<MatrixXcd> s_solver(s);
+      const MatrixXcd& SVecs = s_solver.eigenvectors();
+      const VectorXcd& SVals = s_solver.eigenvalues();
+
+      int num = s.rows(); int numcol = 5;
+
+      string irrep_name = sym->GetIrrepName(irrep);
+      cout << "Irrep = " << irrep_name << endl;
+      for(int nblock = 0; nblock < num/numcol; nblock++) {
+	cout << "Eigvals | ";
+	for(int n = nblock*numcol; n < (nblock+1)*numcol; n++) {
+	  cout << format("%10.5e ") % abs(SVals[n]);
+	}
+	cout << endl;
+	for(int m = 0; m < num; m++) {
+	  cout << format("%7d | ") % m;
+	  for(int n = nblock*numcol; n < (nblock+1)*numcol; n++) {
+	    cout << format("%10.5f ") % abs(SVecs(m, n));
+	  }
+	  cout << endl;
+	}
+	cout << endl;
+      }
+    }
+  }
   for(int irrep = 0; irrep < sym->order(); irrep++) {
     if(gtos->size_basis_isym(irrep) != 0) {
       MatrixXcd h = T(irrep, irrep) + V(irrep, irrep);
       MatrixXcd s = S(irrep, irrep);
-      SymGenComplexEigenSolver solver(h, s);
+      SymGenComplexEigenSolver solver(h, s, h.rows()-reduce_canonical_num);
       E(irrep) = solver.eigenvalues();
       C(irrep, irrep) = solver.eigenvectors();
-      /*
-      MatrixXcd Ctmp;
-      VectorXcd Etmp;
-      generalizedComplexEigenSolve(h, s, &Ctmp, &Etmp);
-      cout << Etmp << endl;
-      */
 
-      ComplexEigenSolver<MatrixXcd> s_solver(s);
-      cout << "eig_of_s: " << s_solver.eigenvalues()[0] << endl;
-    }
+      //      cout << "diff:" 
+      //	   << (h * C(irrep, irrep).col(0) - E(irrep)(0)*s*C(irrep, irrep).col(0)).array().abs().maxCoeff()
+      //	   << endl;
+
+      }
+      //      cout << "eig_of_s: " << s_solver.eigenvalues()[0] << endl;  
   }
   
   // ==== output ====

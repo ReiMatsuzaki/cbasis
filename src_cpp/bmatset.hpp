@@ -67,10 +67,11 @@ namespace cbasis {
     const_iterator find(const Key& k) const { return map_.find(k); }
     void set_name(std::string _name) { name_ = _name; }
     std::string get_name() const { return name_; }
-    bool has_block(Key ijrrep) {
-      return map_.find(ijrrep) != map_.end();
+    bool has_block(Key ijrrep) const {
+      return (map_.find(ijrrep) != map_.end()) &&
+	(map_.find(ijrrep)->second.rows() != 0);
     }    
-    bool has_block(int irrep, int jrrep) {
+    bool has_block(int irrep, int jrrep) const {
       return this->has_block(std::make_pair(irrep, jrrep));
     }
     int size() const { return map_.size(); }

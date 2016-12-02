@@ -83,6 +83,19 @@ namespace cbasis {
       data_num_ = _num0;
       num_ = _num0;
     }
+    MultArray(const MultArray<F, 2>& o) {
+      this->data_ = new F[o.data_num_];
+      for(int i = 0; i < o.num_; i++) {
+	this->data_[i] = o.data_[i];
+      }
+      this->data_num = o.data_num_;
+      this->num_ = o.num_;
+      for(int n = 0; n < N; n++) {
+	int n0_[n] = o.n0_[n];
+	int n1_[n] = o.n1_[n];
+      }
+      this->name_ = o.name_;
+    }
     ~MultArray() {
       delete[] data_;
     }
@@ -130,7 +143,7 @@ namespace cbasis {
 	      << std::endl;
 	}
       return oss.str();
-    } 
+    }    
   };
 
   template<class F>

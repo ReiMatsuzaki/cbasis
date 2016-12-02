@@ -7,6 +7,7 @@
 #include "../math/erfc.hpp"
 #include "../math/int_exp.hpp"
 #include "../utils/eigen_plus.hpp"
+#include "../src_cpp/angmoment.hpp"
 #include "r1_lc.hpp"
 #include "r1basis.hpp"
 #include "opt_green.hpp"
@@ -21,6 +22,7 @@ void BindMath() {
   def("tdot", &TDot);
   def("erfc", &erfc<dcomplex>);
   def("erfcx", &erfcx<dcomplex>);
+  def("cg_coef", &cg_coef);
 }
 void BindR1LC() {
   

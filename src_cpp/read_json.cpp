@@ -1,6 +1,9 @@
 #include <fstream>
+#include <boost/foreach.hpp>
 #include "../utils/macros.hpp"
+#include "../utils/eigen_plus.hpp"
 #include "read_json.hpp"
+
 
 using namespace std;
 using namespace picojson;
@@ -346,6 +349,28 @@ namespace cbasis {
     
     return mat;
   }
+  template<> ERIMethod ReadJson<ERIMethod>(value& json, int _n, int _m) {
+    ERIMethod method;
+    CheckValue<object>(json);
+    object& obj = json.get<object>();
+    if(obj.find("symmetry") != obj.end()) {
+      method.set_symmetry(ReadJson<int>(obj, "symmetry"));
+    }
+    if(obj.find("memo") != obj.end()) {
+      method.set_coef_R_memo(ReadJson<int>(obj, "memo"));
+    }
+    if(obj.find("perm") != obj.end()) {
+      method.set_perm(ReadJson<int>(obj, "perm"));
+    }
+    return method;
+  }
+  template<> LinearSolver ReadJson<LinearSolver>(value& json, int n, int m) {
+    CheckValue<object>(json);
+    object& obj = json.get<object>();
+
+    string type = ReadJson<string>(obj, "type");
+    return LinearSolver(type);
+  }
   
   template<class T>
   T ReadJson(object& json, string key, int n, int m) {
@@ -365,6 +390,20 @@ namespace cbasis {
   }
   template int ReadJson<int>(object& o, string k, int n, int m);
   template VectorXd ReadJson<VectorXd>(object& o, string k, int n, int m);
+  template double ReadJson<double>(object& o, string k, int n, int m);
+  template ERIMethod ReadJson<ERIMethod>(object& o, string k, int n, int m);
+  template LinearSolver ReadJson<LinearSolver>(object& o, string k, int n, int m);
+
+  template<class T>
+  T ReadJsonWithDefault(object& json, string key, T t, int n, int m) {
+    if(json.find(key) == json.end()) {
+      return t;
+    } else {
+      return ReadJson<T>(json[key], n, m);
+    }
+  }
+  template LinearSolver
+  ReadJsonWithDefault<LinearSolver>(object&, string, LinearSolver, int, int);
   
   template<>
   value ToJson<dcomplex>(dcomplex& x) {
@@ -495,15 +534,13 @@ namespace cbasis {
       if(not mole->exist_atom(atom_name))  {
 	throw runtime_error("atom name \"" + atom_name + "\" not found");
       }
-      Atom atom = mole->atom(atom_name);
 
       // -- zeta --
       VectorXcd zeta =  ReadJson<VectorXcd>(basis, "zeta");
 
       // -- build --
       SymmetryGroup sym = gtos->sym_group();
-      SubSymGTOs sub(gtos->sym_group(), atom);
-      gtos->AddSub(Sub_Mono(sym, atom, 0, ns, zeta));
+      gtos->NewSub(atom_name).Mono(0, ns, zeta);
 
     } catch(exception& e) {
       string msg = "error on parsing SymGTOs_Subs_cart.\n";
@@ -540,13 +577,13 @@ namespace cbasis {
       }
 
       // -- zeta --
-      VectorXcd zeta = ReadJson<VectorXcd>(basis["zeta"]);
+      VectorXcd zeta = ReadJson<VectorXcd>(basis, "zeta");
       sub.AddZeta(zeta);
 
       gtos->AddSub(sub);
       
     } catch(exception& e) {
-      string msg = "error on parsing SymGTOs_Subs_cart.\n";
+      string msg = "error on parsing SymGTOs_Subs_full.\n";
       msg += e.what();
       throw(runtime_error(msg));      
     }    
@@ -561,7 +598,6 @@ namespace cbasis {
       if(not mole->exist_atom(atom_name))  {
 	throw runtime_error("atom name \"" + atom_name + "\" not found");
       }
-      Atom atom = mole->atom(atom_name);
 
       // -- L --
       int L = ReadJson<int>(basis, "L");
@@ -573,9 +609,7 @@ namespace cbasis {
       VectorXcd zeta =  ReadJson<VectorXcd>(basis, "zeta");
 
       // -- build --
-      SymmetryGroup sym = gtos->sym_group();
-      SubSymGTOs sub(Sub_SolidSH_Ms(sym, atom, L, Ms, zeta));
-      gtos->AddSub(sub);
+      gtos->NewSub(atom_name).SolidSH_Ms(L, Ms, zeta);
 
     } catch(exception& e) {
       string msg = "error on parsing SymGTOs_Subs_SolidSH.\n";

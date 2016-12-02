@@ -37,7 +37,7 @@ namespace cbasis {
     for(BVec::const_iterator it = eigs.begin(); it != eigs.end(); ++it) {
 
       Irrep irrep = it->first;
-      VectorXcd eig = it->second;
+      const VectorXcd& eig = it->second;
 
       for(int index = 0; index < eig.size(); index++) {
 	IrrepComplex ic(irrep, eig[index]);
@@ -55,17 +55,48 @@ namespace cbasis {
     }
     return res;
   }
+  vector<Irrep> CalcIrrepList(const BMat& bmat) {
+    vector<Irrep> irrep_list;
+    int num_block(bmat.size());
+    for(Irrep irrep = 0; irrep < num_block; irrep++) {
+      if(bmat.has_block(irrep, irrep))
+	irrep_list.push_back(irrep);
+    }
+    return irrep_list;
+  }
   vector<Irrep> CalcIrrepList(BMatSet mat_set) {
+    //    cout << "T: " << endl;
+    //    cout << mat_set->GetBlockMatrix("t");
+    vector<Irrep> res= CalcIrrepList(mat_set->GetBlockMatrix("t"));
+    //    cout << "size of res = " << res.size() << endl;
+    return res;
+    /*
     vector<Irrep> irrep_list;
     int num_block(mat_set->block_num());
     for(Irrep irrep = 0; irrep < num_block; irrep++) {
       if(mat_set->Exist("t", irrep, irrep)) {
 	irrep_list.push_back(irrep);
       }
-    }    
+    } 
+
     return irrep_list;
+    */   
+
   }
-  MO CalcOneEle(pSymmetryGroup sym, BMatSet mat_set, int) {
+  MO NewMO(SymmetryGroup sym, BMat& _H, BMat& _C, BVec& _eigs, int num_ele) {
+
+    MO mo;
+    int nocc = num_ele/2;
+    mo->sym = sym;
+    mo->H = _H;
+    mo->C = _C;
+    mo->eigs = _eigs;
+    mo->num_occ_irrep = CalcOccNum(mo->eigs, sym->num_class(), nocc);      
+    mo->irrep_list = CalcIrrepList(_C);
+    return mo;
+    
+  }
+  MO CalcOneEle(SymmetryGroup sym, BMatSet mat_set, int) {
 
     MO mo(new _MO);
 
@@ -208,11 +239,11 @@ namespace cbasis {
     BMatSet mat_set = CalcMat_Complex(gtos, true);
     B2EInt eri      = CalcERI_Complex(gtos, method);
 
-    return CalcRHF(gtos->sym_group, mat_set, eri, nele, max_iter,
+    return CalcRHF(gtos->sym_group(), mat_set, eri, nele, max_iter,
 		   eps, is_conv, debug_lvl);
 
   }
-  MO CalcRHF(pSymmetryGroup sym, BMatSet mat_set, B2EInt eri,
+  MO CalcRHF(SymmetryGroup sym, BMatSet mat_set, B2EInt eri,
 	     int nele, int max_iter, double eps, bool *is_conv, int debug_lvl) {
     
     if(nele == 1) {
@@ -422,7 +453,7 @@ namespace cbasis {
       }  
     } else if(method == 1) {
       vector<int> num_isym;
-      pSymmetryGroup sym = mo->sym;
+      SymmetryGroup sym = mo->sym;
       BMat J0, K0;
       for(int ib = 0; ib < sym->num_class(); ib++) {
 	int num = mo->H[make_pair(ib, ib)].rows();
