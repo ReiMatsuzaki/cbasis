@@ -57,6 +57,7 @@ VectorXcd c0;
 SymGTOs basis1;
 
 // -- psi0/chi0 --
+vector<int> Ls;
 map<int, SymGTOs> basis_psi0_L;
 map<int, SymGTOs> basis_c_psi0_L;
 map<int, SymGTOs> basis_chi0_L;
@@ -227,6 +228,15 @@ void Parse() {
     cs_csv   = ReadJson<string>(obj, "cs_csv");
     mole = NewMolecule(sym); ReadJson_Molecule(obj, "molecule", mole);
     Z = ReadJson<dcomplex>(obj, "Z");
+    int lmax = ReadJsonWithDefault<int>(obj, "lmax", 3);
+    for(int L = 1; L <= lmax; L += 2) {
+      Ls.push_back(L);
+    }
+    cout << "Ls: ";
+    BOOST_FOREACH(int L, Ls) {
+      cout << L << " " ;
+    }
+    cout << endl;
     mole0 = NewMolecule(sym);
     Atom cen0 = NewAtom("CEN0", Z); cen0->Add(0, 0, 0);
     mole0->Add(cen0);
@@ -236,17 +246,25 @@ void Parse() {
     ReadJson_Orbital(obj, "orbital0", sym, &E0, &c0, &irrep0, &i0);
 
     VectorXi Ms(3); Ms << -1, 0, 1;
-    VectorXcd zeta0_p = ReadJson<VectorXcd>(obj, "zeta0_p");
-    basis_psi0_L[1] = NewSymGTOs(mole0);
-    basis_psi0_L[1]->NewSub("CEN0").SolidSH_Ms(1, Ms, zeta0_p);
-    VectorXcd zeta0_f = ReadJson<VectorXcd>(obj, "zeta0_f");
-    basis_psi0_L[3] = NewSymGTOs(mole0);
-    basis_psi0_L[3]->NewSub("CEN0").SolidSH_Ms(3, Ms, zeta0_f);
     VectorXcd zeta_chi(1); zeta_chi << ReadJson<dcomplex>(obj, "zeta_chi");
-    basis_chi0_L[1] = NewSymGTOs(mole0);
-    basis_chi0_L[1]->NewSub("CEN0").SolidSH_Ms(1, Ms, zeta_chi);
-    basis_chi0_L[3] = NewSymGTOs(mole0);
-    basis_chi0_L[3]->NewSub("CEN0").SolidSH_Ms(3, Ms, zeta_chi);
+    BOOST_FOREACH(int L, Ls) {
+      string name;
+      if(L == 1) 
+	name = "p";
+      else if(L == 3)
+	name = "f";
+      else if(L == 5)
+	name = "h";
+      else
+	throw runtime_error("unsupported L");
+      cout << "start raeding psi0 for " << name << endl;
+      VectorXcd zeta0 = ReadJson<VectorXcd>(obj, "zeta0_" + name);
+      basis_psi0_L[L] = NewSymGTOs(mole0);
+      basis_psi0_L[L]->NewSub("CEN0").SolidSH_Ms(L, Ms, zeta0);
+      basis_chi0_L[L] = NewSymGTOs(mole0);
+      basis_chi0_L[L]->NewSub("CEN0").SolidSH_Ms(L, Ms, zeta_chi);
+      cout << "end raeding psi0 for " << name << endl;
+    }
 
     VectorXd _ws = ReadJson<VectorXd>(obj, "ws");
     for(int i = 0; i < _ws.size(); i++) {
@@ -285,8 +303,10 @@ void Parse() {
     cerr << e.what() << endl;
     exit(1);
   }
-  basis_c_psi0_L[1] = basis_psi0_L[1]->Conj();
-  basis_c_psi0_L[3] = basis_psi0_L[3]->Conj();
+
+  BOOST_FOREACH(int L, Ls) {
+    basis_c_psi0_L[L] = basis_psi0_L[L]->Conj();
+  }
   
 }
 void PrintIn() {

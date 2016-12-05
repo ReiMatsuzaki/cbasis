@@ -405,6 +405,7 @@ namespace cbasis {
   template LinearSolver
   ReadJsonWithDefault<LinearSolver>(object&, string, LinearSolver, int, int);
   template string ReadJsonWithDefault<string>(object&, string, string, int, int);
+  template int ReadJsonWithDefault<int>(object&, string, int, int, int);
   
   template<>
   value ToJson<dcomplex>(dcomplex& x) {
