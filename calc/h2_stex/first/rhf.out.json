@@ -1,6 +1,6 @@
 >>>> rhf >>>>
-[     Parse] Fri Dec  2 10:35:19 2016
-[   PrintIn] Fri Dec  2 10:35:19 2016
+[     Parse] Sat Dec  3 09:13:24 2016
+[   PrintIn] Sat Dec  3 09:13:24 2016
 comment: RHF calculation of  H2
 in_json: rhf.in.json
 out_eigvecs: eigvecs.bin
@@ -45,7 +45,7 @@ gtos:
  |      |      |       |  15 |          (9.02913,0) | 
 -|------|------|-------|-----|----------------------|-
 
-[      Calc] Fri Dec  2 10:35:19 2016
+[      Calc] Sat Dec  3 09:13:24 2016
 0: 1(-1.28415,3.57992e-12), 
 
 0: 1(-0.528272,-3.30962e-10), 
@@ -64,7 +64,7 @@ gtos:
 
 0: 1(-0.59467,-1.38892e-10), 
 
-[  PrintOut] Fri Dec  2 10:35:20 2016
+[  PrintOut] Sat Dec  3 09:13:25 2016
 convergence: Yes
 orbital_energy: (-0.59467,-1.38892e-10)
 ele_energy: (-1.84782,6.12824e-10)
