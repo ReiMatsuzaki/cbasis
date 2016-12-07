@@ -1,6 +1,11 @@
 >>>> two_pot >>>>
-[     Parse] Sat Dec  3 09:13:25 2016
-[   PrintIn] Sat Dec  3 09:13:25 2016
+[     Parse] Mon Dec  5 13:39:04 2016
+Ls: 1 3 
+start raeding psi0 for p
+end raeding psi0 for p
+start raeding psi0 for f
+end raeding psi0 for f
+[   PrintIn] Mon Dec  5 13:39:04 2016
 comment: calculation of H2 photoionization under STEX calculation
 in_json: two_pot.in.json
 cs_csv: cs.csvout_json: out.json
@@ -322,16 +327,16 @@ basis0_f:
  |      |      |       |  19 |          (29.9999,0) | 
 -|------|------|-------|-----|----------------------|-
 
-[      psi1] Sat Dec  3 09:13:25 2016
-[ psi1/init] Sat Dec  3 09:13:25 2016
-[    psi0_p] Sat Dec  3 09:13:25 2016
-[    psi0_f] Sat Dec  3 09:13:25 2016
-[psi_0_L/chi] Sat Dec  3 09:13:25 2016
-[psi0_L/init] Sat Dec  3 09:13:25 2016
-[psi0_L/psi1] Sat Dec  3 09:13:25 2016
-[ MatSTEX_1] Sat Dec  3 09:13:26 2016
-[MatSTEX_01] Sat Dec  3 09:16:23 2016
-[      Calc] Sat Dec  3 09:22:11 2016
+[      psi1] Mon Dec  5 13:39:04 2016
+[ psi1/init] Mon Dec  5 13:39:04 2016
+[ psi0,chi0] Mon Dec  5 13:39:04 2016
+L = 1
+L = 3
+[ MatSTEX_1] Mon Dec  5 13:39:05 2016
+[MatSTEX_01] Mon Dec  5 13:42:04 2016
+L = 1
+L = 3
+[      Calc] Mon Dec  5 13:47:55 2016
 w_eV: 18.2316
 w_au: 0.67
 E_au: (0.0753304,-1.38892e-10)

@@ -66,21 +66,17 @@ map<int, SymGTOs> basis_chi0_L;
 LinearSolver linear_solver;
 
 // -- intermediate --
+// ---- for psi1 ----
 BMat S1, T1, V1, L1;
 BVec sX1, sY1, sZ1, sDX1, sDY1, sDZ1;
 BVec cX1, cY1, cZ1, cDX1, cDY1, cDZ1;
 
-BMat S0p, T0p, V0p, L0p;
-BMat V0p1, HV0p1;
-BVec sX0p, sY0p, sZ0p, sDX0p, sDY0p, sDZ0p;
-BVec c0p, Hc0p;     // coef for psi0_p
-BVec s0p_chi; // driven term for psi_p
-
-BMat S0f, T0f, V0f, L0f;
-BMat V0f1, HV0f1;
-BVec sX0f, sY0f, sZ0f, sDX0f, sDY0f, sDZ0f;  // <g_i | mu | PhiInit>
-BVec c0f, Hc0f;      // coef for psi0_f
-BVec s0f_chi;  // driven term for psi0_f
+// ---- for psi0_L --
+map<int, BMat> S0L, T0L, V0L, L0L;
+map<int, BMat> V0L1, HV0L1;
+map<int, BVec> sX0L, sY0L, sZ0L, sDX0L, sDY0L, sDZ0L;
+map<int, BVec> c0L, Hc0L;     // coef for psi0_p
+map<int, BVec> s0L_chi; // driven term for psi_p
 
 MultArray<dcomplex, 2> impsi0_muphi(100),  impsi0_muphi_v(100);
 MultArray<dcomplex, 2> impsi0_v_psi1(100), impsi0_v_psi1_v(100);
@@ -162,7 +158,7 @@ double CoulombShift(dcomplex eta, int L) {
 }
 dcomplex CoefAzeta0(dcomplex w, MultArray<dcomplex, 2>& Alm,
 		    int zeta,
-		    vector<int>& Ls, vector<int>& Ms) {
+		    vector<int>& L_list, vector<int>& Ms) {
   /**
      see
      J. C. Tully, R. S. Berry, and B. J. Dalton, 
@@ -171,8 +167,8 @@ dcomplex CoefAzeta0(dcomplex w, MultArray<dcomplex, 2>& Alm,
   
   dcomplex c0 = 4.0 * M_PI * M_PI / (c_light*w);
   dcomplex cumsum(0);
-  BOOST_FOREACH(int L1, Ls) {
-    BOOST_FOREACH(int L2, Ls) {
+  BOOST_FOREACH(int L1, L_list) {
+    BOOST_FOREACH(int L2, L_list) {
       dcomplex c1 = sqrt(1.0 * (2*L1+1)*(2*L2+1)) / (4*M_PI*(2*zeta+1));
 	
       BOOST_FOREACH(int M1, Ms) {
@@ -237,6 +233,16 @@ void Parse() {
       cout << L << " " ;
     }
     cout << endl;
+    cout << "Ls0 = " << Ls[0] << endl;
+    cout << "Ls1 = " << Ls[Ls.size()-1] << endl;
+    impsi0_muphi.SetRange( Ls[0], Ls[Ls.size()-1], -1,1);
+    impsi0_muphi_v.SetRange( Ls[0], Ls[Ls.size()-1], -1,1);
+
+    impsi0_v_psi1.SetRange(Ls[0], Ls[Ls.size()-1], -1,1);
+    impsi0_v_psi1_v.SetRange(Ls[0], Ls[Ls.size()-1], -1,1);
+    impsi0_chi.SetRange(   Ls[0], Ls[Ls.size()-1], -1,1);
+
+    cout << "mole" << endl;
     mole0 = NewMolecule(sym);
     Atom cen0 = NewAtom("CEN0", Z); cen0->Add(0, 0, 0);
     mole0->Add(cen0);
@@ -277,6 +283,7 @@ void Parse() {
     cerr << e.what() << endl;
     exit(1);
   }
+  cout << "basis0 and basis1 setup" << endl;
   try {
     basis0->SetUp();    
     basis1->SetUp();
@@ -285,9 +292,11 @@ void Parse() {
     cerr << e.what() << endl;
     exit(1);
   }
+  cout << "basis_psi0_L setup" << endl;
   try {
-    basis_psi0_L[1]->SetUp();
-    basis_psi0_L[3]->SetUp();
+    BOOST_FOREACH(int L, Ls) {
+      basis_psi0_L[L]->SetUp();
+    }
   } catch(exception& e) {
     cerr << "error on SetUp basis: " << endl;
     cerr << e.what() << endl;
@@ -295,15 +304,17 @@ void Parse() {
     cerr << basis_psi0_L[3]->str() << endl;
     exit(1);
   }
+  cout << "basis_chi setup" << endl;
   try {
-    basis_chi0_L[1]->SetUp();
-    basis_chi0_L[3]->SetUp();
+    BOOST_FOREACH(int L, Ls) {
+      basis_chi0_L[L]->SetUp();
+    }
   } catch(exception& e) {
     cerr << "error on SetUp basis_chi0_L" << endl;
     cerr << e.what() << endl;
     exit(1);
   }
-
+  cout << "basis_c_psi0 conj" << endl;
   BOOST_FOREACH(int L, Ls) {
     basis_c_psi0_L[L] = basis_psi0_L[L]->Conj();
   }
@@ -328,8 +339,9 @@ void PrintIn() {
   cout << "molecule:" << endl << mole->show() << endl;
   cout << "basis0:" << endl << basis0->show() << endl;  
   cout << "basis1:" << endl << basis1->show() << endl;
-  cout << "basis0_p:" << endl << basis_psi0_L[1]->show() << endl;
-  cout << "basis0_f:" << endl << basis_psi0_L[3]->show() << endl;
+  BOOST_FOREACH(int L, Ls) {
+    cout << "basis0_p:" << endl << basis_psi0_L[L]->show() << endl;
+  }
 }
 void CalcMat() {
 
@@ -345,66 +357,39 @@ void CalcMat() {
   sY1(y) = Y1i(y, 0) * c0; sDY1(y) = DY1i(y, 0) * c0; 
   sZ1(z) = Z1i(z, 0) * c0; sDZ1(z) = DZ1i(z, 0) * c0;  
 
-  PrintTimeStamp("psi0_p", NULL);
-  SymGTOs p = basis_psi0_L[1];
-  CalcSTVMat(p, p, &S0p, &T0p, &V0p);
+  PrintTimeStamp("psi0,chi0", NULL);
+  BOOST_FOREACH(int L, Ls) {
+    cout << "L = " << L << endl;
+    SymGTOs psi0   = basis_psi0_L[L];
+    SymGTOs c_psi0 = basis_c_psi0_L[L];
+    SymGTOs chi0 = basis_chi0_L[L];
+    CalcSTVMat(psi0, psi0, &S0L[L], &T0L[L], &V0L[L]);
 
-  PrintTimeStamp("psi0_f", NULL);
-  SymGTOs f = basis_psi0_L[3];
-  CalcSTVMat(f, f, &S0f, &T0f, &V0f);
+    BMat S0L_chi; CalcSMat(psi0, chi0, &S0L_chi);
+    s0L_chi[L](x) = S0L_chi(x, x).col(0);
+    s0L_chi[L](y) = S0L_chi(y, y).col(0);
+    s0L_chi[L](z) = S0L_chi(z, z).col(0);
 
-  PrintTimeStamp("psi_0_L/chi", NULL);  
-  BMat S0p_chi; CalcSMat(p, basis_chi0_L[1], &S0p_chi);
-  s0p_chi(x) = S0p_chi(x, x).col(0);
-  s0p_chi(y) = S0p_chi(y, y).col(0);
-  s0p_chi(z) = S0p_chi(z, z).col(0);
-  BMat S0f_chi; CalcSMat(f, basis_chi0_L[3], &S0f_chi);
-  s0f_chi(x) = S0f_chi(x, x).col(0);
-  s0f_chi(y) = S0f_chi(y, y).col(0);
-  s0f_chi(z) = S0f_chi(z, z).col(0);
-  
-  PrintTimeStamp("psi0_L/init", NULL);
-  BMat X0pi, DX0pi, Y0pi, DY0pi, Z0pi, DZ0pi;
-  CalcDipMat(p, basis0, &X0pi, &Y0pi, &Z0pi, &DX0pi, &DY0pi, &DZ0pi);
-  sX0p(x) = X0pi(x,0) * c0; sDX0p(x) = DX0pi(x,0) * c0;
-  sY0p(y) = Y0pi(y,0) * c0; sDY0p(y) = DY0pi(y,0) * c0;
-  sZ0p(z) = Z0pi(z,0) * c0; sDZ0p(z) = DZ0pi(z,0) * c0;
-  BMat X0fi, DX0fi, Y0fi, DY0fi, Z0fi, DZ0fi;
-  CalcDipMat(f, basis0, &X0fi, &Y0fi, &Z0fi, &DX0fi, &DY0fi, &DZ0fi);
-  sX0f(x) = X0fi(x,0) * c0; sDX0f(x) = DX0fi(x,0) * c0;
-  sY0f(y) = Y0fi(y,0) * c0; sDY0f(y) = DY0fi(y,0) * c0;
-  sZ0f(z) = Z0fi(z,0) * c0; sDZ0f(z) = DZ0fi(z,0) * c0;
+    BMat X0i, DX0i, Y0i, DY0i, Z0i, DZ0i;
+    CalcDipMat(psi0, basis0, &X0i, &Y0i, &Z0i, &DX0i, &DY0i, &DZ0i);
+    sX0L[L](x) = X0i(x,0) * c0; sDX0L[L](x) = DX0i(x,0) * c0;
+    sY0L[L](y) = Y0i(y,0) * c0; sDY0L[L](y) = DY0i(y,0) * c0;
+    sZ0L[L](z) = Z0i(z,0) * c0; sDZ0L[L](z) = DZ0i(z,0) * c0;
 
-  PrintTimeStamp("psi0_L/psi1", NULL);
-  BMat V0p1_full, HV0p1_full, V0p1_0th, HV0p1_0th;
-  CalcVMat(basis_psi0_L[1],   mole,  basis1, &V0p1_full);
-  CalcVMat(basis_c_psi0_L[1], mole,  basis1, &HV0p1_full);
-  CalcVMat(basis_psi0_L[1],   mole0, basis1, &V0p1_0th);
-  CalcVMat(basis_c_psi0_L[1], mole0, basis1, &HV0p1_0th);
+    BMat V01_full, HV01_full, V01_0th, HV01_0th;
+    CalcVMat(psi0,   mole,  basis1, &V01_full);
+    CalcVMat(c_psi0, mole,  basis1, &HV01_full);
+    CalcVMat(psi0,   mole0, basis1, &V01_0th);
+    CalcVMat(c_psi0, mole0, basis1, &HV01_0th);
 
-  V0p1(x,x) = V0p1_full(x,x) - V0p1_0th(x,x);
-  V0p1(y,y) = V0p1_full(y,y) - V0p1_0th(y,y);
-  V0p1(z,z) = V0p1_full(z,z) - V0p1_0th(z,z);
-
-  HV0p1(x,x) = HV0p1_full(x,x) - HV0p1_0th(x,x);
-  HV0p1(y,y) = HV0p1_full(y,y) - HV0p1_0th(y,y);
-  HV0p1(z,z) = HV0p1_full(z,z) - HV0p1_0th(z,z);
-
-  // --psi0_f / psi1
-  BMat V0f1_full, HV0f1_full, V0f1_0th, HV0f1_0th;
-  CalcVMat(basis_psi0_L[3],   mole,  basis1, &V0f1_full);
-  CalcVMat(basis_c_psi0_L[3], mole,  basis1, &HV0f1_full);  
-  CalcVMat(basis_psi0_L[3],   mole0, basis1, &V0f1_0th);
-  CalcVMat(basis_c_psi0_L[3], mole0, basis1, &HV0f1_0th);
-
-  V0f1(x,x) = V0f1_full(x,x) - V0f1_0th(x,x);
-  V0f1(y,y) = V0f1_full(y,y) - V0f1_0th(y,y);
-  V0f1(z,z) = V0f1_full(z,z) - V0f1_0th(z,z);  
-  
-  HV0f1(x,x) = HV0f1_full(x,x) - HV0f1_0th(x,x);
-  HV0f1(y,y) = HV0f1_full(y,y) - HV0f1_0th(y,y);
-  HV0f1(z,z) = HV0f1_full(z,z) - HV0f1_0th(z,z);
-
+    V0L1[L](x,x) = V01_full(x,x) - V01_0th(x,x);
+    V0L1[L](y,y) = V01_full(y,y) - V01_0th(y,y);
+    V0L1[L](z,z) = V01_full(z,z) - V01_0th(z,z);
+    
+    HV0L1[L](x,x) = HV01_full(x,x) - HV01_0th(x,x);
+    HV0L1[L](y,y) = HV01_full(y,y) - HV01_0th(y,y);
+    HV0L1[L](z,z) = HV01_full(z,z) - HV01_0th(z,z);
+  }
 }
 void CalcMatSTEX() {
   PrintTimeStamp("MatSTEX_1", NULL);
@@ -416,19 +401,15 @@ void CalcMatSTEX() {
   PrintTimeStamp("MatSTEX_01", NULL);
   vector<int> Ls; Ls += 1,3;
   BOOST_FOREACH(int L, Ls) {
-    B2EInt eri_JC = CalcERI(basis_psi0_L[L],   basis1, basis0, basis0, method);
-    B2EInt eri_JH = CalcERI(basis_c_psi0_L[L], basis1, basis0, basis0, method);
-    B2EInt eri_KC = CalcERI(basis_psi0_L[L],   basis0, basis0, basis1, method);
-    B2EInt eri_KH = CalcERI(basis_c_psi0_L[L], basis0, basis0, basis1, method);
-
-    if(L == 1) {
-      AddJ(eri_JC, c0, irrep0, 1.0, V0p1);  AddK(eri_KC, c0, irrep0, 1.0, V0p1);
-      AddJ(eri_JH, c0, irrep0, 1.0, HV0p1); AddK(eri_KH, c0, irrep0, 1.0, HV0p1);
-    }
-    if(L == 3) {
-      AddJ(eri_JC, c0, irrep0, 1.0, V0f1);  AddK(eri_KC, c0, irrep0, 1.0, V0f1);
-      AddJ(eri_JH, c0, irrep0, 1.0, HV0f1); AddK(eri_KH, c0, irrep0, 1.0, HV0f1);
-    }        
+    cout << "L = " << L << endl;
+    SymGTOs psi0   = basis_psi0_L[L];
+    SymGTOs c_psi0 = basis_c_psi0_L[L];
+    B2EInt eri_JC = CalcERI(psi0,   basis1, basis0, basis0, method);
+    B2EInt eri_JH = CalcERI(c_psi0, basis1, basis0, basis0, method);
+    B2EInt eri_KC = CalcERI(psi0,   basis0, basis0, basis1, method);
+    B2EInt eri_KH = CalcERI(c_psi0, basis0, basis0, basis1, method);
+    AddJ(eri_JC, c0, irrep0, 1.0, V0L1[L]);  AddK(eri_KC, c0, irrep0, 1.0, V0L1[L]);
+    AddJ(eri_JH, c0, irrep0, 1.0, HV0L1[L]); AddK(eri_KH, c0, irrep0, 1.0, HV0L1[L]);
   }
 }
 void CalcDriv(int iw) {
@@ -457,26 +438,19 @@ void CalcDriv(int iw) {
   cDZ1(z) = pivz.solve(sDZ1(z));
 
   // -- Compute psi0_p --
-  L0p(x,x) = S0p(x,x) * ene - T0p(x,x) - V0p(x,x);
-  c0p(x) = L0p(x,x).colPivHouseholderQr().solve(s0p_chi(x));
-  Hc0p(x) = c0p(x).conjugate();
-  L0p(y,y) = S0p(y,y) * ene - T0p(y,y) - V0p(y,y);
-  c0p(y) = L0p(y,y).colPivHouseholderQr().solve(s0p_chi(y));
-  Hc0p(y) = c0p(y).conjugate();
-  L0p(z,z) = S0p(z,z) * ene - T0p(z,z) - V0p(z,z);
-  c0p(z) = L0p(z,z).colPivHouseholderQr().solve(s0p_chi(z));
-  Hc0p(z) = c0p(z).conjugate();
-  
-  // -- Compute psi0_f --
-  L0f(x,x) = S0f(x,x) * ene - T0f(x,x) - V0f(x,x);
-  c0f(x) = L0f(x,x).colPivHouseholderQr().solve(s0f_chi(x));
-  Hc0f(x) = c0f(x).conjugate();
-  L0f(y,y) = S0f(y,y) * ene - T0f(y,y) - V0f(y,y);
-  c0f(y) = L0f(y,y).colPivHouseholderQr().solve(s0f_chi(y));
-  Hc0f(y) = c0f(y).conjugate();
-  L0f(z,z) = S0f(z,z) * ene - T0f(z,z) - V0f(z,z);
-  c0f(z) = L0f(z,z).colPivHouseholderQr().solve(s0f_chi(z));
-  Hc0f(z) = c0f(z).conjugate();  
+  BOOST_FOREACH(int L, Ls) {
+    L0L[L](x,x) = S0L[L](x,x) * ene - T0L[L](x,x) - V0L[L](x,x);
+    c0L[L](x) = L0L[L](x,x).colPivHouseholderQr().solve(s0L_chi[L](x));
+    Hc0L[L](x) = c0L[L](x).conjugate();
+
+    L0L[L](y,y) = S0L[L](y,y) * ene - T0L[L](y,y) - V0L[L](y,y);
+    c0L[L](y)   = L0L[L](y,y).colPivHouseholderQr().solve(s0L_chi[L](y));
+    Hc0L[L](y)  = c0L[L](y).conjugate();
+
+    L0L[L](z,z) = S0L[L](z,z) * ene - T0L[L](z,z) - V0L[L](z,z);
+    c0L[L](z)   = L0L[L](z,z).colPivHouseholderQr().solve(s0L_chi[L](z));
+    Hc0L[L](z)  = c0L[L](z).conjugate();
+  }
 }
 void CalcBraket() {
 
@@ -489,62 +463,43 @@ void CalcBraket() {
   Irrep x = sym->irrep_x();
   Irrep y = sym->irrep_y();
   Irrep z = sym->irrep_z();
-
-  // -- <ImPsi0 | mu | PhiInit> --  
-  impsi0_muphi.SetRange(1,3, -1,1);
-  impsi0_muphi(1, +1) = TDot(c0p(x), sX0p(x)).imag();
-  impsi0_muphi(1, -1) = TDot(c0p(y), sY0p(y)).imag();
-  impsi0_muphi(1,  0) = TDot(c0p(z), sZ0p(z)).imag();
-  impsi0_muphi(3, +1) = TDot(c0f(x), sX0f(x)).imag();
-  impsi0_muphi(3, -1) = TDot(c0f(y), sY0f(y)).imag();
-  impsi0_muphi(3,  0) = TDot(c0f(z), sZ0f(z)).imag();
-
-  impsi0_muphi_v.SetRange(1,3,  -1,1);
-  impsi0_muphi_v(1, +1) = TDot(c0p(x), sDX0p(x)).imag();
-  impsi0_muphi_v(1, -1) = TDot(c0p(y), sDY0p(y)).imag();
-  impsi0_muphi_v(1,  0) = TDot(c0p(z), sDZ0p(z)).imag();
-  impsi0_muphi_v(3, +1) = TDot(c0f(x), sDX0f(x)).imag();
-  impsi0_muphi_v(3, -1) = TDot(c0f(y), sDY0f(y)).imag();
-  impsi0_muphi_v(3,  0) = TDot(c0f(z), sDZ0f(z)).imag();
-
-  // -- <ImPsi0 | V | Psi1> --
   dcomplex m2(0, 2);
-  impsi0_v_psi1.SetRange(1,3, -1,1);
-  impsi0_v_psi1(1, +1) = (TDot(c0p(x),   V0p1(x,x)*cX1(x))
-			  -TDot(Hc0p(x), HV0p1(x,x)*cX1(x)))/m2;
-  impsi0_v_psi1(1, -1) = (TDot(c0p(y),   V0p1(y,y)*cY1(y))
-			  -TDot(Hc0p(y), HV0p1(y,y)*cY1(y)))/m2;
-  impsi0_v_psi1(1,  0) = (TDot(c0p(z),   V0p1(z,z)*cZ1(z))
-			  -TDot(Hc0p(z), HV0p1(z,z)*cZ1(z)))/m2;
-  impsi0_v_psi1(3, +1) = (+TDot(c0f(x),   V0f1(x,x)*cX1(x))
-			  -TDot(Hc0f(x), HV0f1(x,x)*cX1(x)))/m2;
-  impsi0_v_psi1(3, -1) = (+TDot(c0f(y),   V0f1(y,y)*cY1(y))
-			  -TDot(Hc0f(y), HV0f1(y,y)*cY1(y)))/m2;
-  impsi0_v_psi1(3,  0) = (+TDot(c0f(z),   V0f1(z,z)*cZ1(z))
-			  -TDot(Hc0f(z), HV0f1(z,z)*cZ1(z)))/m2;
-
-  impsi0_v_psi1_v.SetRange(1,3, -1,1);
-  impsi0_v_psi1_v(1, +1) = (TDot(c0p(x),   V0p1(x,x)*cDX1(x))
-			  -TDot(Hc0p(x), HV0p1(x,x)*cDX1(x)))/m2;
-  impsi0_v_psi1_v(1, -1) = (TDot(c0p(y),   V0p1(y,y)*cDY1(y))
-			  -TDot(Hc0p(y), HV0p1(y,y)*cDY1(y)))/m2;
-  impsi0_v_psi1_v(1,  0) = (TDot(c0p(z),   V0p1(z,z)*cDZ1(z))
-			  -TDot(Hc0p(z), HV0p1(z,z)*cDZ1(z)))/m2;
-  impsi0_v_psi1_v(3, +1) = (+TDot(c0f(x),   V0f1(x,x)*cDX1(x))
-			  -TDot(Hc0f(x), HV0f1(x,x)*cDX1(x)))/m2;
-  impsi0_v_psi1_v(3, -1) = (+TDot(c0f(y),   V0f1(y,y)*cDY1(y))
-			  -TDot(Hc0f(y), HV0f1(y,y)*cDY1(y)))/m2;
-  impsi0_v_psi1_v(3,  0) = (+TDot(c0f(z),   V0f1(z,z)*cDZ1(z))
-			  -TDot(Hc0f(z), HV0f1(z,z)*cDZ1(z)))/m2;
   
-  // -- <ImPsi0 | Chi> --  
-  impsi0_chi.SetRange(1,3, -1,1);
-  impsi0_chi(1, +1) = TDot(c0p(x), s0p_chi(x)).imag();
-  impsi0_chi(1, -1) = TDot(c0p(y), s0p_chi(y)).imag();
-  impsi0_chi(1,  0) = TDot(c0p(z), s0p_chi(z)).imag();
-  impsi0_chi(3, +1) = TDot(c0f(x), s0f_chi(x)).imag();
-  impsi0_chi(3, -1) = TDot(c0f(y), s0f_chi(y)).imag();
-  impsi0_chi(3,  0) = TDot(c0f(z), s0f_chi(z)).imag();
+  BOOST_FOREACH(int L, Ls) {
+    BVec& c0 = c0L[L];
+    BVec& Hc0 = Hc0L[L];
+
+    // -- <ImPsi0 | mu | PhiInit> --  
+    impsi0_muphi(L, +1) = TDot(c0(x), sX0L[L](x)).imag();
+    impsi0_muphi(L, -1) = TDot(c0(y), sY0L[L](y)).imag();
+    impsi0_muphi(L,  0) = TDot(c0(z), sZ0L[L](z)).imag();
+    
+    impsi0_muphi_v(L, +1) = TDot(c0(x), sDX0L[L](x)).imag();
+    impsi0_muphi_v(L, -1) = TDot(c0(y), sDY0L[L](y)).imag();
+    impsi0_muphi_v(L,  0) = TDot(c0(z), sDZ0L[L](z)).imag();
+
+    BMat& V  = V0L1[L];
+    BMat& HV = HV0L1[L];
+    impsi0_v_psi1(L, +1) = (TDot(c0(x),   V( x,x)*cX1(x))
+			    -TDot(Hc0(x), HV(x,x)*cX1(x)))/m2;
+    impsi0_v_psi1(L, -1) = (TDot(c0(y),   V( y,y)*cY1(y))
+			    -TDot(Hc0(y), HV(y,y)*cY1(y)))/m2;
+    impsi0_v_psi1(L,  0) = (TDot(c0(z),   V( z,z)*cZ1(z))
+			    -TDot(Hc0(z), HV(z,z)*cZ1(z)))/m2;
+
+    impsi0_v_psi1_v(L, +1) = (TDot(c0(x),   V( x,x)*cDX1(x))
+			      -TDot(Hc0(x), HV(x,x)*cDX1(x)))/m2;
+    impsi0_v_psi1_v(L, -1) = (TDot(c0(y),   V( y,y)*cDY1(y))
+			      -TDot(Hc0(y), HV(y,y)*cDY1(y)))/m2;
+    impsi0_v_psi1_v(L,  0) = (TDot(c0(z),   V( z,z)*cDZ1(z))
+			      -TDot(Hc0(z), HV(z,z)*cDZ1(z)))/m2;
+
+    
+    impsi0_chi(L, +1) = TDot(c0(x), s0L_chi[L](x)).imag();
+    impsi0_chi(L, -1) = TDot(c0(y), s0L_chi[L](y)).imag();
+    impsi0_chi(L,  0) = TDot(c0(z), s0L_chi[L](z)).imag();    
+    
+  }
 
 }
 void CalcMain_alpha(int iw) {
@@ -589,7 +544,6 @@ void CalcMain(int iw) {
   // -- total --
   vector<int> Ms_sigu; Ms_sigu += 0;
   vector<int> Ms_piu; Ms_piu += 1,-1;
-  vector<int> Ls; Ls += 1,3;
   vector<int> Ms; Ms += -1,0,+1;
   
   double w = w_list[iw];

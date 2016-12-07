@@ -9,3 +9,10 @@ local.mk
 *.bin
 *.csv
 *.png
+*.sh.o*
+*.sh.e*
+*out.*
+*.eps
+*.png
+*-checkpoint.ipynb
+external/

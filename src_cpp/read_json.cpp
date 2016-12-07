@@ -259,19 +259,62 @@ namespace cbasis {
   }
   template<> VectorXd ReadJson<VectorXd>(value& json, int n, int m) {
 
-    try {
-      CheckValue<array>(json, n);
+    if(json.is<array>()) {
+
       array& ary = json.get<array>();
       VectorXd vec = VectorXd::Zero(ary.size());
       for(int i = 0; i <(int) ary.size(); i++) {
 	vec.coeffRef(i) = ReadJson<double>(ary[i]);
       }
       return vec;
-    } catch(exception& e) {
-      throw runtime_error("error on parsing VectorXd");
+      
+    } else if(json.is<object>()) {
+
+      object& obj = json.get<object>();
+      string type = ReadJson<string>(obj, "type");
+      double x0, dx;
+      int N;
+      VectorXd vec;
+      if(type == "lin") {
+	if(obj.find("x0") != obj.end() &&
+	   obj.find("dx") != obj.end() &&
+	   obj.find("N") != obj.end() ) {
+	  x0 = ReadJson<double>(obj, "x0");
+	  dx = ReadJson<double>(obj, "dx");
+	  N = ReadJson<int>(obj, "N");
+	  
+	} else if(obj.find("x0") != obj.end() &&
+		  obj.find("x1") != obj.end() &&
+		  obj.find("N") != obj.end() ) {
+	  x0 = ReadJson<double>(obj, "x0");
+	  double x1 = ReadJson<double>(obj, "x1");
+	  N = ReadJson<int>(obj, "N");
+	  dx = (x1-x0) / (N-1);	  
+	} else {
+	  throw runtime_error("set of options (x0,dx,N) or (x0,x1,N) is necessary");
+	}
+	vec = VectorXd::Zero(N);
+	for(int i =0; i<N; i++) {
+	  vec(i) = x0 + dx * i;
+	}
+	return vec;
+	
+      } else if(type == "geo") {
+	double x0 = ReadJson<double>(obj, "x0");
+	double r  = ReadJson<double>(obj, "r");
+	int N = ReadJson<int>(obj, "N");
+	VectorXd vec(N);
+	for(int i =0; i<N; i++) {
+	  vec(i) = x0 * pow(r, i);
+	}
+	return vec;
+      
+      } else {
+	throw runtime_error("value must be array or object for VectorXd");
+      }
     }
-    
-  }  
+    throw runtime_error("un resolved error");
+  }
   template<> MatrixXcd ReadJson<MatrixXcd>(value& json, int _n, int _m) {
     CheckValue<MatrixXcd>(json, _n, _m);
     array& ary = json.get<array>();
