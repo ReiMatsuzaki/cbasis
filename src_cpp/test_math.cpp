@@ -244,6 +244,24 @@ TEST(MultArray, MultArray4) {
 	}
 
 }
+TEST(MultArray, Double) {
+
+  MultArray<MultArray<int, 2>, 2> xss;
+  xss.SetRange(0, 3, 0, 2);
+  for(int i = 0; i <= 3; i++) {
+    for(int j = 0; j <= 2; j++) {
+      xss(i, j).SetRange(0, 10,  0, 10);
+    }}
+
+  xss(0, 0)(0, 0) = 2;
+  xss(1, 0)(0, 1) = 3;
+  xss(2, 1)(2, 1) = 4;
+
+  EXPECT_EQ(xss(0, 0)(0, 0), 2);
+  EXPECT_EQ(xss(1, 0)(0, 1), 3);
+  EXPECT_EQ(xss(2, 1)(2, 1), 4);
+  
+}
 TEST(MultArray, TDot) {
 
   MultArray<int, 2> xs(1000), ys(1000);

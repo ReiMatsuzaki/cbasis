@@ -13,7 +13,7 @@ using namespace Eigen;
 
 namespace cbasis {
 
-  // ==== BVec ====  
+  // ==== BVec ====
   void BVec::Write(string filename) const {
 
     ofstream f;
@@ -74,7 +74,7 @@ namespace cbasis {
       }
     }
 
-  }
+  }  
   ostream& operator << (ostream& os, const BVec& a) {
     os << "==== BVec ====" << endl;
     os << "Block vector object" << endl;
@@ -317,6 +317,9 @@ namespace cbasis {
     return mat_map_[name][make_pair(i, j)];
   }
   const BMat& _BMatSet::GetBlockMatrix(std::string name) {
+    return mat_map_[name];
+  }
+  BMat& _BMatSet::RefBlockMatrix(std::string name) {
     return mat_map_[name];
   }
   void _BMatSet::SelfAdd(string name, int i, int j, int a, int b, dcomplex v) {

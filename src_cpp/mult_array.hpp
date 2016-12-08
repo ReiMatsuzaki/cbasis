@@ -5,11 +5,14 @@
 #include <ostream>
 #include <iostream>
 #include <stdexcept>
+#include <boost/format.hpp>
 #include "../utils/macros.hpp"
 
 /**
    MultArray gives multi indexed array. This file is header library for inline optimization.
 */
+
+using boost::format;
 
 namespace cbasis {
 
@@ -78,11 +81,22 @@ namespace cbasis {
     int n1_[N];
     std::string name_;
   public:
+    MultArray() {
+      data_ = new F[10];
+      data_num_ = 10;
+      num_ = 10;
+    }
     MultArray(int _num0) {
       data_ = new F[_num0];
       data_num_ = _num0;
       num_ = _num0;
     }
+    MultArray(int _num0, std::string _name) {
+      data_ = new F[_num0];
+      data_num_ = _num0;
+      num_ = _num0;
+      name_ = _name;
+    }    
     MultArray(const MultArray<F, 2>& o) {
       this->data_ = new F[o.data_num_];
       for(int i = 0; i < o.num_; i++) {
@@ -101,14 +115,14 @@ namespace cbasis {
     }
     void set_name(std::string _name) { name_ = _name; }
     std::string get_name() { return name_; }    
-    int size() const { return num_; }
+    int size() const { return num_; }    
     void SetRange(int nx0, int nx1, int ny0, int ny1) {
       n0_[0] = nx0; n0_[1] = ny0;
       n1_[0] = nx1; n1_[1] = ny1;
-      int num_ = (nx1-nx0+1)*(ny1-ny0+1);
-      if(data_num_ < num_) {
+      this->num_ = (nx1-nx0+1)*(ny1-ny0+1);
+      if(data_num_ < this->num_) {
 	delete[] data_;
-	data_num_ = num_;
+	this->data_num_ = num_;
 	data_ = new F[num_];
       }
     }
@@ -120,29 +134,30 @@ namespace cbasis {
       if(index < 0   || num_-1 < index ||
 	 nx < n0_[0] || n1_[0] < nx ||
 	 ny < n0_[1] || n1_[1] < ny) { 
-	std::string msg;
 	std::stringstream ss;
-	SUB_LOCATION(msg);
-	ss << "index: (" << nx << ", " << ny << ") "
-	   << index << std::endl;
-	msg += ss.str();
-	throw std::runtime_error(msg);
+	ss << "index error.\n"
+	   << format("name : %s\n") % this->get_name()  
+	   << format("index = %d\n") % index
+	   << format("(nx, ny) = (%d, %d)\n") % nx % ny
+	   << format("nx_range: (%d, %d)\n") % n0_[0] % n1_[0]
+	   << format("ny_range: (%d, %d)\n") % n0_[1] % n1_[1] ;
+	THROW_ERROR(ss.str());
       }
 #endif
       return data_[index];
     }
     std::string str() {
-      std::ostringstream oss;
-      oss << "MultArray<2> object:" << std::endl;
-      oss << "  name: " << this->get_name() << std::endl;
-      oss << "  size: " << this->size() << std::endl;
+      std::stringstream ss;
+      ss << "MultArray<2> object:" << std::endl;
+      ss << "  name: " << this->get_name() << std::endl;
+      ss << "  size: " << this->size() << std::endl;
       for(int n0 = n0_[0]; n0 < n1_[0]+1; n0++)
 	for(int n1 = n0_[1]; n1 < n1_[1]+1; n1++){
-	  oss << n0 << n1 << " : "
+	  ss << n0 << n1 << " : "
 	      << (*this)(n0, n1)
 	      << std::endl;
 	}
-      return oss.str();
+      return ss.str();
     }    
   };
 

@@ -19,6 +19,8 @@ namespace cbasis {
   typedef vector<Reduction>::iterator RdsIt;
   typedef vector<SubSymGTOs>::const_iterator cSubIt;
   typedef vector<Reduction>::const_iterator cRdsIt;
+  typedef pair<dcomplex, dcomplex> CC;
+  typedef vector<CC> CCs;
   typedef MultArray<dcomplex, 1> A1dc;
   typedef MultArray<dcomplex, 2> A2dc;
   typedef MultArray<dcomplex, 3> A3dc;
@@ -44,9 +46,9 @@ namespace cbasis {
     oss << "irrep : " << irrep << endl;
     oss << "coef_iat_ipn: " << endl;
     oss << coef_iat_ipn << endl;
-    oss << "coef_iz: ";
-    for(int iz = 0; iz < coef_iz.size(); iz++)
-      oss << coef_iz[iz] << " ";
+    oss << "coef_icont: ";
+    for(int i = 0; i < coef_icont.size(); i++)
+      oss << coef_icont[i] << " ";
     oss << endl;
     oss << "offset:  " << offset << endl;
     oss << "===================" << endl;
@@ -60,7 +62,7 @@ namespace cbasis {
   SubSymGTOs::SubSymGTOs(SymmetryGroup _sym, Atom _atom) {
     sym_group_ = _sym;
     atom_ = _atom;
-    zeta_iz = VectorXcd::Zero(0);
+    //    zeta_iz = VectorXcd::Zero(0);
     setupq = false;
   }
   void SubSymGTOs::SetUp() {
@@ -82,9 +84,15 @@ namespace cbasis {
       msg += ": size_pn==0";
       throw runtime_error(msg);
     }
-    if(this->zeta_iz.size() == 0) {
+    typedef pair<dcomplex, dcomplex> CC;
+    typedef vector<CC> CCList;
+    int acc(0);
+    BOOST_FOREACH(CCList& cz_list, cz_icont_icz) {
+      acc += cz_list.size();
+    }
+    if(acc == 0) {
       string msg; SUB_LOCATION(msg);
-      msg += ": zeta is not set.";
+      msg += ": cont is not set.";
       throw runtime_error(msg);
     }
     if(this->rds.size() == 0) {
@@ -125,7 +133,7 @@ namespace cbasis {
 	maxn = nx(ipn) + ny(ipn) + nz(ipn);
     }
     for(RdsIt it = rds.begin(); it != rds.end(); ++it) {
-      it->set_zs_size(zeta_iz.size());
+      it->set_cont_size(this->cz_icont_icz.size());
     }
 
     // -- build PrimGTO set.
@@ -162,7 +170,20 @@ namespace cbasis {
     return *this;
     
   }
-  SubSymGTOs& SubSymGTOs::AddZeta(const VectorXcd& zs) {
+  SubSymGTOs& SubSymGTOs::AddCont(const vector<pair<dcomplex, dcomplex> >& czs) {
+    setupq = false;
+    cz_icont_icz.push_back(czs);
+    return *this;
+  }
+  SubSymGTOs& SubSymGTOs::AddConts_Mono(const VectorXcd& zs) {
+    
+    for(int i = 0; i < zs.size(); i++) {
+      vector<pair<dcomplex, dcomplex> > cz_icont;
+      cz_icont.push_back(make_pair(1.0, zs[i]));
+      this->AddCont(cz_icont);
+    }
+    return *this;
+    /*
     setupq = false;
     VectorXcd res(zeta_iz.size() + zs.size());
     for(int i = 0; i < zeta_iz.size(); i++)
@@ -171,6 +192,11 @@ namespace cbasis {
       res(i+zeta_iz.size()) = zs(i);
     zeta_iz.swap(res);
     return *this;
+    */
+  }
+  SubSymGTOs& SubSymGTOs::AddCont_Mono(dcomplex z) {
+    VectorXcd zs(1); zs << z;
+    return this->AddConts_Mono(zs);
   }
   SubSymGTOs& SubSymGTOs::AddRds(const Reduction& _rds) {
     setupq = false;
@@ -186,7 +212,7 @@ namespace cbasis {
     }
 
     this->AddNs(ns);
-    this->AddZeta(zs);
+    this->AddConts_Mono(zs);
     this->AddRds(Reduction(irrep, MatrixXcd::Ones(1, 1)));
 
   }
@@ -210,7 +236,7 @@ namespace cbasis {
       throw runtime_error(msg);
     }
     
-    this->AddZeta(zs);
+    this->AddConts_Mono(zs);
     SymmetryGroup sym = this->sym_group();
     
     vector<int> Ms;
@@ -307,9 +333,15 @@ namespace cbasis {
       oss << "xyz" << iat << ": " << x(iat) << y(iat) << z(iat) << endl;
     for(int ipn = 0; ipn < size_pn(); ipn++) 
       oss << "ns" << ipn << ": " << nx(ipn) << ny(ipn) << nz(ipn) << endl;
-    oss << "zeta: ";
-    for(int iz = 0; iz < zeta_iz.size(); iz++)
-      oss << zeta_iz[iz] << " ";
+    oss << "contraction: ";
+    
+    BOOST_FOREACH(const CCs& czs, cz_icont_icz) {
+      BOOST_FOREACH(CC cz, czs) {
+	oss << "{" << cz.first << " :  " << cz.second << "} ";
+      }
+      oss << endl;
+    }
+    
     oss << endl;
     oss << "maxn: " << maxn << endl;
     oss << "ip_iat_ipn: " << endl << ip_iat_ipn << endl;
@@ -330,7 +362,7 @@ namespace cbasis {
   int _SymGTOs::size_basis() const {
     int cumsum(0);
     for(cSubIt isub = subs_.begin(); isub != subs_.end(); ++isub) {
-      cumsum += isub->size_zeta() * isub->rds.size();
+      cumsum += isub->size_cont() * isub->rds.size();
     }
     return cumsum;
   }
@@ -343,7 +375,7 @@ namespace cbasis {
 	  ++irds) {
 
 	if(irds->irrep == isym) 
-	  cumsum += isub->size_zeta();
+	  cumsum += isub->size_cont();
       }
     }
     return cumsum;
@@ -387,6 +419,7 @@ namespace cbasis {
 	  << line << setw(5) << right << ""
 	  << line << setw(3) << right << ""
 	  << line << setw(20) << right << ""
+	  << line << setw(20) << right << ""
 	  << line << endl;
     oss << lines.str();
     
@@ -395,13 +428,13 @@ namespace cbasis {
 	<< sep << setw(4) << right << "pn"
 	<< sep << setw(5) << right << "irrep"
 	<< sep << setw(3) << right << "idx"
+	<< sep << setw(20)<< right << "coef"
 	<< sep << setw(20)<< right << "zeta"
 	<< sep << endl;
     oss << lines.str();
     
     BOOST_FOREACH(SubSymGTOs& sub, this->subs_) {
       
-
       for(RdsIt irds = sub.rds.begin(); irds != sub.rds.end(); ++irds) {
 
 	ostringstream pn_oss;
@@ -415,15 +448,19 @@ namespace cbasis {
 	    << sep << setw(5) << right << sym_group_->GetIrrepName(irds->irrep)
 	    << sep << setw(3) << right << ""
 	    << sep << setw(20) << right << ""
+	    << sep << setw(20) << right << ""
 	    << sep << endl;
 
-	for(int iz = 0; iz < sub.size_zeta(); iz++) {
-	  oss << sep << setw(4) << right << ""
-	      << sep << setw(4) << right << ""
-	      << sep << setw(5) << right << ""
-	      << sep << setw(3) << right << irds->offset+iz
-	      << sep << setw(20) << right <<  sub.zeta(iz)
-	      << sep << endl;
+	for(int icont = 0; icont < (int)sub.cz_icont_icz.size(); icont++) {
+	  BOOST_FOREACH(const CC& cz, sub.cz_icont_icz[icont]) {
+	    oss << sep << setw(4) << right << ""
+		<< sep << setw(4) << right << ""
+		<< sep << setw(5) << right << ""
+		<< sep << setw(3) << right << irds->offset+icont
+		<< sep << setw(20) << right << cz.first
+		<< sep << setw(20) << right << cz.second
+		<< sep << endl;
+	  }
 	}
       }
     }
@@ -445,12 +482,20 @@ namespace cbasis {
     SymGTOs gtos = this->Clone();
     
     for(SubIt isub = gtos->subs_.begin(); isub != gtos->subs_.end(); ++isub) {
-      isub->zeta_iz = isub->zeta_iz.conjugate();
+
+      BOOST_FOREACH(CCs& czs, isub->cz_icont_icz) {
+	BOOST_FOREACH(CC& cz, czs) {
+	  cz.first = conj(cz.first);
+	  cz.second = conj(cz.second);
+	}
+      }
       for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
 	irds->coef_iat_ipn = irds->coef_iat_ipn.conjugate();
-	irds->coef_iz = irds->coef_iz.conjugate();
+	irds->coef_sh = conj(irds->coef_sh);
+	irds->coef_icont = irds->coef_icont.conjugate();
       }
     }
+    
     gtos->SetUp();
     return gtos;
   }
@@ -528,111 +573,88 @@ namespace cbasis {
       for(RdsIt irds = isub->rds.begin(), end = isub->rds.end();
 	  irds != end; ++irds) {
 	irds->offset = num_irrep[irds->irrep];
-	num_irrep[irds->irrep] += isub->size_zeta();
+	num_irrep[irds->irrep] += isub->size_cont();
       }
     }
 
   }
   void _SymGTOs::Normalize() {
 
-    /*
-  A3dc dxmap(100), dymap(100), dzmap(100);
-    for(SubIt isub = subs.begin(), end = subs.end(); isub != end; ++isub) {
-      for(int iz = 0; iz < isub->size_zeta(); iz++) {
-
-	dcomplex zetai = isub->zeta_iz[iz];
-	dcomplex zetaP = zetai + zetai;
-
-	int mi = isub->maxn;
-	calc_d_coef(mi,mi,0, zetaP, 0.0, 0.0, 0.0, dxmap);
-	calc_d_coef(mi,mi,0, zetaP, 0.0, 0.0, 0.0, dymap);
-	calc_d_coef(mi,mi,0, zetaP, 0.0, 0.0, 0.0, dzmap);
-
-	int nipn(isub->size_pn());
-	for(int ipn = 0; ipn < nipn; ipn++) {
-	  int nxi, nyi, nzi;
-	  nxi = isub->nx(ipn);
-	  nyi = isub->ny(ipn);
-	  nzi = isub->nz(ipn);
-	  dcomplex dx00, dy00, dz00;
-	  dx00 = dxmap(nxi, nxi ,0);
-	  dy00 = dymap(nyi, nyi ,0);
-	  dz00 = dzmap(nzi, nzi ,0);
-	  dcomplex s_ele = dx00 * dy00 * dz00;
-	  dcomplex ce = pow(M_PI/zetaP, 1.5);	  
-	  for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
-	    irds->coef_iz(iz) = 1.0/sqrt(ce*s_ele);
-	  }
-	}
-      }
-    }
-    */
-
     A3dc dxmap(100), dymap(100), dzmap(100);
     // >>> Irrep Adapted GTOs >>>
     for(SubIt isub = subs_.begin(), end = subs_.end(); isub != end; ++isub) {
-      for(int iz = 0; iz < isub->size_zeta(); iz++) {
+      for(int icont = 0; icont < isub->size_cont(); icont++) {
+	CCs& cz_icz(isub->cz_icont_icz[icont]);
 	vector<Reduction>& rds(isub->rds);
 	for(RdsIt irds = rds.begin(); irds != rds.end(); ++irds) {
-	  dcomplex zetai = isub->zeta_iz[iz];
-	  dcomplex zetaP = zetai + zetai;
 	  int niat(isub->size_at()); int nipn(isub->size_pn());
-	  dcomplex norm2(0.0);
 	  
-
+	  dcomplex norm2(0.0);
 	  // >>> Primitive GTOs >>>
-	  for(int iat = 0; iat < niat; iat++) {
-	    for(int jat = 0; jat < niat; jat++) {
-	      dcomplex xi, xj, yi, yj, zi, zj, wPx, wPy, wPz;
-	      xi = isub->x(iat); xj = isub->x(jat);
-	      yi = isub->y(iat); yj = isub->y(jat);
-	      zi = isub->z(iat); zj = isub->z(jat);
-	      wPx = (zetai*xi+zetai*xj)/zetaP;
-	      wPy = (zetai*yi+zetai*yj)/zetaP;
-	      wPz = (zetai*zi+zetai*zj)/zetaP;
-	      dcomplex d2 = pow(xi-xj,2) + pow(yi-yj,2) + pow(zi-zj,2);	
-	      dcomplex eAB = exp(-zetai*zetai/zetaP*d2);
-	      dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
-	      int mi = isub->maxn;
-	      calc_d_coef(mi,mi,0, zetaP,wPx,xi,xj,dxmap);
-	      calc_d_coef(mi,mi,0, zetaP,wPy,yi,yj,dymap);
-	      calc_d_coef(mi,mi,0, zetaP,wPz,zi,zj,dzmap);
+	  BOOST_FOREACH(CC& czi, cz_icz) {
+	    dcomplex& ci(czi.first);
+	    dcomplex& zetai = czi.second;
+	    BOOST_FOREACH(CC& czj, cz_icz) {
+	      dcomplex& cj = czj.first;
+	      dcomplex& zetaj = czj.second;
+	      dcomplex zetaP = zetai + zetaj;
+	      for(int iat = 0; iat < niat; iat++) {
+		for(int jat = 0; jat < niat; jat++) {
+		  dcomplex xi, xj, yi, yj, zi, zj, wPx, wPy, wPz;
+		  xi = isub->x(iat); xj = isub->x(jat);
+		  yi = isub->y(iat); yj = isub->y(jat);
+		  zi = isub->z(iat); zj = isub->z(jat);
+		  wPx = (zetai*xi+zetaj*xj)/zetaP;
+		  wPy = (zetai*yi+zetaj*yj)/zetaP;
+		  wPz = (zetai*zi+zetaj*zj)/zetaP;
+		  dcomplex d2 = pow(xi-xj,2) + pow(yi-yj,2) + pow(zi-zj,2);	
+		  dcomplex eAB = exp(-zetai*zetaj/zetaP*d2);
+		  dcomplex ce = eAB * pow(M_PI/zetaP, 1.5);
+		  int mi = isub->maxn;
+		  calc_d_coef(mi,mi,0, zetaP,wPx,xi,xj,dxmap);
+		  calc_d_coef(mi,mi,0, zetaP,wPy,yi,yj,dymap);
+		  calc_d_coef(mi,mi,0, zetaP,wPz,zi,zj,dzmap);
+		  
+		  for(int ipn = 0; ipn < nipn; ipn++) {
+		    for(int jpn = 0; jpn < nipn; jpn++) {
+		      int nxi, nxj, nyi, nyj, nzi, nzj;
+		      nxi = isub->nx(ipn); nxj = isub->nx(jpn);
+		      nyi = isub->ny(ipn); nyj = isub->ny(jpn);
+		      nzi = isub->nz(ipn); nzj = isub->nz(jpn); 
+		      dcomplex dx00, dy00, dz00;
+		      dx00 = dxmap(nxi, nxj ,0);
+		      dy00 = dymap(nyi, nyj ,0);
+		      dz00 = dzmap(nzi, nzj ,0);		      
+		      norm2 += ce * dx00 * dy00 * dz00 * ci * cj *
+			irds->coef_iat_ipn(iat, ipn) *
+			irds->coef_iat_ipn(jat, jpn);
+		      /*
+		      cout << icont << " " << ci << cj <<
+			irds->coef_iat_ipn(iat, ipn) *
+			irds->coef_iat_ipn(jat, jpn) <<
+			ce * dx00 * dy00 * dz00
+			   << norm2 << endl;
+		      */
+		    }}		  		  
+		}}
 	      
-	      for(int ipn = 0; ipn < nipn; ipn++) {
-		for(int jpn = 0; jpn < nipn; jpn++) {
-		  int nxi, nxj, nyi, nyj, nzi, nzj;
-		  nxi = isub->nx(ipn); nxj = isub->nx(jpn);
-		  nyi = isub->ny(ipn); nyj = isub->ny(jpn);
-		  nzi = isub->nz(ipn); nzj = isub->nz(jpn); 
-		  dcomplex dx00, dy00, dz00;
-		  dx00 = dxmap(nxi, nxj ,0);
-		  dy00 = dymap(nyi, nyj ,0);
-		  dz00 = dzmap(nzi, nzj ,0);
-		  dcomplex s_ele = dx00 * dy00 * dz00;
-		  norm2 += ce * s_ele *
-		    irds->coef_iat_ipn(iat, ipn) *
-		    irds->coef_iat_ipn(jat, jpn);
-		}
-	      }
-	    }
-	  }
-
+		   
+	    }}	  
 	  if(abs(norm2) < pow(10.0, -14.0)) {
 	    string msg; SUB_LOCATION(msg);
 	    ostringstream oss; oss << msg << ": " << endl;
 	    oss << "norm is too small" << endl;
 	    oss << "isub:"  << distance(subs_.begin(), isub) << endl;
-	    oss << "iz  : " << iz << endl;
-	    oss << "zeta: " << zetai << endl;
+	    oss << "icont  : " << icont << endl;
 	    oss << "irds:" << distance(isub->rds.begin(), irds) << endl;
 	    oss << "nipn: " << nipn << endl;
 	    oss << "niat: " << niat << endl;
 	    oss << "norm2: " << norm2 << endl;	    
 	    throw runtime_error(oss.str());
 	  }
-
 	  // <<< Primitive GTOs <<<
-	  irds->coef_iz(iz) = 1.0/sqrt(norm2);
+	  
+	  irds->coef_icont(icont) = 1.0/sqrt(norm2);
 	}
       }
     }
@@ -662,7 +684,8 @@ namespace cbasis {
   
   // ---- CalcMat ---- 
   void _SymGTOs::loop() {
-
+    
+    /*
     for(SubIt isub = subs_.begin(); isub != subs_.end(); ++isub) {
       for(SubIt jsub = subs_.begin(); jsub != subs_.end(); ++jsub) {
 
@@ -689,12 +712,16 @@ namespace cbasis {
 
 	  }}
       }}
+    */
     }
   int _SymGTOs::max_num_prim() const {
     
     int max_num_prim(0);
     for(cSubIt isub = subs_.begin(); isub != subs_.end(); ++isub) {
-      max_num_prim = std::max(max_num_prim, isub->size_prim());
+      max_num_prim = std::max(max_num_prim,
+			      isub->size_at()
+			      * isub->size_pn()
+			      * isub->size_cont());
     }
     return max_num_prim;
 
@@ -737,7 +764,7 @@ namespace cbasis {
     }
     
   }
-  void AtR_Ylm_noncen(SubIt isub, int iz, int iat, int ipn,
+  void AtR_Ylm_noncen(SubIt isub, int icont, int iat, int ipn,
 		      dcomplex r, int L, int M, dcomplex* v, dcomplex *dv) {
 
     dcomplex* il_ipl  = new dcomplex[2*L+2];
@@ -747,41 +774,45 @@ namespace cbasis {
 
     dcomplex res;
 
-    int nn = (isub->nx(ipn) +
-	      isub->ny(ipn) +
-	      isub->nz(ipn));
-    dcomplex zeta = isub->zeta_iz(iz);
+    int nn = (isub->nx(ipn) + isub->ny(ipn) + isub->nz(ipn));
+
     dcomplex x  = isub->x(iat);
     dcomplex y  = isub->y(iat);
     dcomplex z  = isub->z(iat);
     dcomplex xxyy = x*x+y*y;
     dcomplex a2 = xxyy+z*z;
     dcomplex a = sqrt(a2);
-
     if(abs(a) < 0.000001) {
       string msg; SUB_LOCATION(msg);
       msg += ": (x,y,z) is centered on origin."; 
       throw runtime_error(msg);
-    }
-
-    dcomplex expz = exp(-zeta*(r*r+a2));
+    }    
     dcomplex theta = cacos(z / a);
     dcomplex phi   = (abs(xxyy) < 0.00001) ? 0.0 : cacos(x / sqrt(xxyy));
-    ModSphericalBessel(2.0*zeta*a*r, L, il_ipl);
     RealSphericalHarmonics(theta, phi, L, ylm);
-    if(nn == 0) {
-      
-      dcomplex c((4.0*M_PI) * pow(-1.0, M) * ylm[lm_index(L, -M)]);
-      *v = c * r * il[L] * expz;
-      *dv = (c*   il[L]*expz +
-	     c*r*ipl[L]*expz*(+2.0*zeta*a) +
-	     c*r* il[L]*expz*(-2.0*zeta*r));
-    } else {
-      string msg; SUB_LOCATION(msg);
-      msg += ": not implemented yet for p or higher orbital";
-      throw runtime_error(msg);
-    }		  
 
+    dcomplex acc_v = 0.0;
+    dcomplex acc_dv = 0.0;
+    BOOST_FOREACH(CC& cz, isub->cz_icont_icz[icont]) {
+      dcomplex& c(cz.second);
+      dcomplex& zeta(cz.second);
+      dcomplex expz = exp(-zeta*(r*r+a2));
+      ModSphericalBessel(2.0*zeta*a*r, L, il_ipl);
+
+      if(nn == 0) {
+	dcomplex coef(c*(4.0*M_PI) * pow(-1.0, M) * ylm[lm_index(L, -M)]);
+	acc_v  += coef * r * il[L] * expz;
+	acc_dv += coef*( il[L]*expz +
+			 r * ipl[L]*expz*(+2.0*zeta*a) +
+			 r * il[L]*expz*(-2.0*zeta*r));
+      } else {
+	string msg; SUB_LOCATION(msg);
+	msg += ": not implemented yet for p or higher orbital";
+	throw runtime_error(msg);
+      }		  
+    }
+    *v = acc_v;
+    *dv= acc_dv;
     delete[] il_ipl;
     delete[] ylm;
     
@@ -836,15 +867,19 @@ namespace cbasis {
 	if(IsCenter(isub, eps) && irds->is_solid_sh) {
 	  if(irds->L == L && irds->M == M) {
 	    for(int ir = 0; ir < rs.size(); ir++) {
-	      for(int iz = 0; iz < isub->size_zeta(); iz++) {
-		int ibasis = irds->offset + iz;
+	      for(int icont = 0; icont < isub->size_cont(); icont++) {
+		int ibasis = irds->offset + icont;
 		dcomplex r = rs[ir];
-		dcomplex z = isub->zeta_iz(iz);
-		dcomplex expo=exp(-z*r*r);
-		dcomplex v, dv, c;
-		c = cs_ibasis(ibasis) * irds->coef_iz(iz) * irds->coef_sh;
-		vs[ir] += c * pow(r, L+1) * expo;
-		dvs[ir]+= c * ((L+1.0)*pow(r, L) -2.0*z*pow(r,L+2)) * expo;
+		BOOST_FOREACH(CC& cz, isub->cz_icont_icz[icont]) {
+		  dcomplex& ci(cz.first);
+		  dcomplex& zi(cz.second);
+		  dcomplex expo=exp(-zi*r*r);
+		  dcomplex v, dv, c;
+		  c = ci * cs_ibasis(ibasis) * irds->coef_icont(icont) * irds->coef_sh;
+		  vs[ir] += c * pow(r, L+1) * expo;
+		  dvs[ir]+= c * ((L+1.0)*pow(r, L) -2.0*zi*pow(r,L+2)) * expo;
+		}
+		
 	      }
 	    }
 	  }
@@ -852,13 +887,13 @@ namespace cbasis {
 	  for(int iat = 0; iat < isub->size_at(); iat++) {
 	    for(int ipn = 0; ipn < isub->size_pn(); ipn++) {
 	      for(int ir = 0; ir < rs.size(); ir++) {
-		for(int iz = 0; iz < isub->size_zeta(); iz++) {
-		  int ibasis = irds->offset + iz;
+		for(int icont = 0; icont < isub->size_cont(); icont++) {
+		  int ibasis = irds->offset + icont;
 		  dcomplex c = (cs_ibasis(ibasis) *
 				irds->coef_iat_ipn(iat, ipn) *
-				irds->coef_iz(iz));
+				irds->coef_icont(icont));
 		  dcomplex v, dv;
-		  AtR_Ylm_noncen(isub, iz, iat, ipn, rs[ir], L, M, &v, &dv);
+		  AtR_Ylm_noncen(isub, icont, iat, ipn, rs[ir], L, M, &v, &dv);
 		  vs[ir] += c * v;
 		  dvs[ir]+= c * dv;
 		}

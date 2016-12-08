@@ -2,6 +2,7 @@
 #define MACROS_HPP
 
 #include <stdio.h>
+#include <stdexcept>
 
 #define SUB_LOCATION(msg) msg=__FILE__;\
                           msg+=":";\
@@ -11,6 +12,11 @@
                           msg+=": error : in ";\
                           msg+=__FUNCTION__;\
 			  msg+="\n";
+
+#define THROW_ERROR(msg) std::string loc;\
+  SUB_LOCATION(loc);			 \
+  loc = loc + msg + "\n";\
+  throw std::runtime_error(loc);
 
 /*
 #define SUB_LOCATION(msg) msg=__FILE__;\

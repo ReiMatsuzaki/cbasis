@@ -33,7 +33,7 @@ namespace cbasis {
     bool has_block(int irrep) { return map_.find(irrep) != map_.end(); }
     int size() const { return map_.size(); }
     Eigen::VectorXcd& at(int irrep) {return map_[irrep];}
-    const Eigen::VectorXcd& at(int irrep) const {return map_.find(irrep)->second;}    
+    const Eigen::VectorXcd& at(int irrep) const {return map_.find(irrep)->second;}
     Eigen::VectorXcd& operator()(int irrep) {return at(irrep); }
     const Eigen::VectorXcd& operator()(int irrep) const {return at(irrep); }
     Eigen::VectorXcd& operator[] (int irrep) { return at(irrep); }
@@ -106,6 +106,7 @@ namespace cbasis {
     bool Exist(std::string, int i, int j);
     const Eigen::MatrixXcd& GetMatrix(std::string name, int i, int j);
     const BMat& GetBlockMatrix(std::string name);
+    BMat& RefBlockMatrix(std::string name);
     void SelfAdd(std::string name, int ib, int jb, int i, int j, dcomplex v);
     dcomplex GetValue(std::string name, int ib, int jb, int i, int j);
     void swap(_BMatSet& o);

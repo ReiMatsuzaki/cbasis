@@ -35,7 +35,7 @@ namespace cbasis {
     int M;
     
     // ---- for calculation  ----
-    Eigen::VectorXcd coef_iz; // normalization constant for each iz
+    Eigen::VectorXcd coef_icont; // normalization constant for each contraction
     int offset;
 
     // ---- constructor ----
@@ -50,8 +50,8 @@ namespace cbasis {
     const Eigen::MatrixXcd& get_coef_iat_ipn() const { return coef_iat_ipn; }
     inline int size_at() const { return coef_iat_ipn.rows(); }
     inline int size_pn() const { return coef_iat_ipn.cols(); }
-    void set_zs_size(int num_zs) {
-      coef_iz = Eigen::VectorXcd::Zero(num_zs);
+    void set_cont_size(int num) {
+      coef_icont = Eigen::VectorXcd::Zero(num);
     }
   };
 
@@ -67,7 +67,8 @@ namespace cbasis {
     std::vector<int> nx_ipn;
     std::vector<int> ny_ipn;
     std::vector<int> nz_ipn;
-    Eigen::VectorXcd zeta_iz;
+    //Eigen::VectorXcd zeta_iz;
+    std::vector<std::vector<std::pair<dcomplex, dcomplex> > > cz_icont_icz;
     std::vector<Reduction> rds;
 
     // ---- for calculation  ----
@@ -92,7 +93,9 @@ namespace cbasis {
     inline dcomplex x(int iat) const { return atom_->xyz_list()[iat][0]; }
     inline dcomplex y(int iat) const { return atom_->xyz_list()[iat][1]; }
     inline dcomplex z(int iat) const { return atom_->xyz_list()[iat][2]; }    
-    inline dcomplex zeta(int iz) const { return zeta_iz[iz]; }
+    //    inline dcomplex zeta(int iz) const { return zeta_iz[iz]; }
+    inline dcomplex zeta(int icont, int icz) const {
+      return cz_icont_icz[icont][icz].second; }
     inline cRdsIt begin_rds() const { return rds.begin(); }
     inline cRdsIt end_rds() const { return rds.end(); }
     inline RdsIt begin_rds() { return rds.begin(); }
@@ -103,7 +106,9 @@ namespace cbasis {
    
     SubSymGTOs& AddNs(int nx, int ny, int nz);
     SubSymGTOs& AddNs(Eigen::Vector3i ns);
-    SubSymGTOs& AddZeta(const Eigen::VectorXcd& zs);
+    SubSymGTOs& AddCont(const std::vector<std::pair<dcomplex, dcomplex> >& czs);
+    SubSymGTOs& AddCont_Mono(dcomplex z);
+    SubSymGTOs& AddConts_Mono(const Eigen::VectorXcd& zs);
     SubSymGTOs& AddRds(const Reduction& rds);
 
     void Mono(Irrep irrep, Eigen::Vector3i ns, Eigen::VectorXcd zs);
@@ -113,8 +118,9 @@ namespace cbasis {
     inline int size_at() const { return this->atom_->size(); }
     inline int size_pn() const { return nx_ipn.size(); }
     inline int size_rds() const { return rds.size(); }
-    inline int size_prim() const { return this->size_at() * this->size_pn(); }
-    inline int size_zeta() const { return zeta_iz.rows(); }
+    //    inline int size_prim() const { return this->size_at() * this->size_pn(); }
+    inline int size_cont() const { return this->cz_icont_icz.size(); }
+    //inline int size_zeta() const { return zeta_iz.rows(); }
 
     // ---- SetUp ----   
     // -- calculate inner information and check values.
