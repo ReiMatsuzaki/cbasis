@@ -29,8 +29,12 @@ OBJS=one_eig.o read_json.o symmolint.o molecule.o one_int.o two_int.o symgroup.o
 ${BINDIR}/one_eig: $(foreach o, ${OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${LIBS} -lgsl -lgslcblas
 check: ${BINDIR}/one_eig
+	./$^ h2plus_ortho.json; echo "reference is -1.1026342144949"
+#	./$^ h2plus_aug-cc-pVQZ.json; echo "reference is -1.1026342144949";
+#	./$^ h2plus_aug-cc-pVTZ.json; echo "reference is -1.1026342144949";
 #	./$^ hatom.json
-	./$^ h2plus.json; echo "reference is -1.1026342144949"; cat out.json
+#	./$^ h2plus.json; echo "reference is -1.1026342144949";
+
 
 check_small: ${BINDIR}/one_eig
 	./$^ h2plus_small.json; echo "reference is -1.1026342144949"; cat out.json

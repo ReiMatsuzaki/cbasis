@@ -148,7 +148,9 @@ int main (int argc, char *argv[]) {
   
   // ==== output ====
   PrintTimeStamp("Out", NULL);
-  cout << "E0 = " << E(0)(0) << endl;
+  //  cout << "E0 = " << E(0)(0) << endl;
+  double ene_real = E(0)(0).real();
+  cout << format("E0 = (%15.10f, %15.10f)\n") % ene_real  % E(0)(0).imag();
 
   cout << "writing E" << endl;
   E.Write(out_eigvals);

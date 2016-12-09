@@ -170,19 +170,29 @@ namespace cbasis {
     return *this;
     
   }
-  SubSymGTOs& SubSymGTOs::AddCont(const vector<pair<dcomplex, dcomplex> >& czs) {
+  SubSymGTOs& SubSymGTOs::AddCont(const CCs& czs) {
     setupq = false;
     cz_icont_icz.push_back(czs);
     return *this;
   }
+  SubSymGTOs& SubSymGTOs::AddCont_Mono(dcomplex z) {
+    CCs czs;
+    czs.push_back(CC(1, z));
+    return this->AddCont(czs);
+  }  
   SubSymGTOs& SubSymGTOs::AddConts_Mono(const VectorXcd& zs) {
-    
+    for(int i = 0; i < zs.size(); i++) {
+      this->AddCont_Mono(zs[i]);
+    }
+    return *this;
+    /*    
     for(int i = 0; i < zs.size(); i++) {
       vector<pair<dcomplex, dcomplex> > cz_icont;
       cz_icont.push_back(make_pair(1.0, zs[i]));
       this->AddCont(cz_icont);
     }
     return *this;
+    */
     /*
     setupq = false;
     VectorXcd res(zeta_iz.size() + zs.size());
@@ -194,16 +204,12 @@ namespace cbasis {
     return *this;
     */
   }
-  SubSymGTOs& SubSymGTOs::AddCont_Mono(dcomplex z) {
-    VectorXcd zs(1); zs << z;
-    return this->AddConts_Mono(zs);
-  }
   SubSymGTOs& SubSymGTOs::AddRds(const Reduction& _rds) {
     setupq = false;
     rds.push_back(_rds);
     return *this;
   }
-  void SubSymGTOs::Mono(Irrep irrep, Vector3i ns, VectorXcd zs) {
+  SubSymGTOs& SubSymGTOs::Mono(Irrep irrep, Vector3i ns) {
 
     if(this->atom_->size() != 1) {
       string msg; SUB_LOCATION(msg);
@@ -212,11 +218,11 @@ namespace cbasis {
     }
 
     this->AddNs(ns);
-    this->AddConts_Mono(zs);
     this->AddRds(Reduction(irrep, MatrixXcd::Ones(1, 1)));
 
+    return *this;
   }
-  void SubSymGTOs::SolidSH_Ms(int L, VectorXi _Ms, VectorXcd zs) {
+  SubSymGTOs& SubSymGTOs::SolidSH_Ms(int L, VectorXi _Ms) {
     // -- memo --
     // from wiki
     // real form and complex form:
@@ -231,21 +237,15 @@ namespace cbasis {
     // ud_zx(r) = N zx exp[-ar^2] = ...sqrt(4pi/15)
 
     if(this->atom_->size() != 1) {
-      string msg; SUB_LOCATION(msg);
-      msg = "\n" + msg + ": atom have to have only one xyz";
-      throw runtime_error(msg);
-    }
-    
-    this->AddConts_Mono(zs);
+      THROW_ERROR("atom have to have only one xyz"); }
+
     SymmetryGroup sym = this->sym_group();
     
     vector<int> Ms;
     for(int i = 0; i < _Ms.size(); i++) {
       int m = _Ms[i];
       if(abs(m) > 1) {
-	string msg; SUB_LOCATION(msg); msg += ": now |m| > 1 is not implemented";
-	throw runtime_error(msg);
-      }
+	THROW_ERROR("now |m| > 1 is not implemented"); }
       Ms.push_back(m);
     }
 
@@ -319,11 +319,14 @@ namespace cbasis {
 	rds.SetLM(3, -1, sqrt(32.0*M_PI/21.0)); this->AddRds(rds);
       }
     }
+
+    return *this;
   }    
-  void SubSymGTOs::SolidSH_M(int L, int M, Eigen::VectorXcd zs) {
+  SubSymGTOs& SubSymGTOs::SolidSH_M(int L, int M) {
     VectorXi Ms(1);
     Ms(0) = M;
-    this->SolidSH_Ms(L, Ms, zs);
+    this->SolidSH_Ms(L, Ms);
+    return *this;
   }
   string SubSymGTOs::str() const {
     ostringstream oss;

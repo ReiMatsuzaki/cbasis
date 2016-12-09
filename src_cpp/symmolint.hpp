@@ -12,6 +12,10 @@
 #include "b2eint.hpp"
 
 namespace cbasis {
+
+  // ==== typedef ====
+  typedef std::pair<dcomplex, dcomplex> CC;
+  typedef std::vector<CC> CCs;  
   
   // ==== ERI method ====
   class ERIMethod {
@@ -67,8 +71,7 @@ namespace cbasis {
     std::vector<int> nx_ipn;
     std::vector<int> ny_ipn;
     std::vector<int> nz_ipn;
-    //Eigen::VectorXcd zeta_iz;
-    std::vector<std::vector<std::pair<dcomplex, dcomplex> > > cz_icont_icz;
+    std::vector<CCs> cz_icont_icz;
     std::vector<Reduction> rds;
 
     // ---- for calculation  ----
@@ -106,20 +109,24 @@ namespace cbasis {
    
     SubSymGTOs& AddNs(int nx, int ny, int nz);
     SubSymGTOs& AddNs(Eigen::Vector3i ns);
-    SubSymGTOs& AddCont(const std::vector<std::pair<dcomplex, dcomplex> >& czs);
+    SubSymGTOs& AddCont(const CCs& czs);
     SubSymGTOs& AddCont_Mono(dcomplex z);
     SubSymGTOs& AddConts_Mono(const Eigen::VectorXcd& zs);
     SubSymGTOs& AddRds(const Reduction& rds);
 
-    void Mono(Irrep irrep, Eigen::Vector3i ns, Eigen::VectorXcd zs);
-    void SolidSH_Ms(int L, Eigen::VectorXi _Ms, Eigen::VectorXcd zs);
-    void SolidSH_M(int L, int M, Eigen::VectorXcd zs);
+    SubSymGTOs& Mono(Irrep irrep, Eigen::Vector3i ns);
+    //    SubSymGTOs& Mono(Irrep irrep, Eigen::Vector3i ns, VectorXcd zs);
+    SubSymGTOs& SolidSH_Ms(int L, Eigen::VectorXi _Ms);
+    //    SubSymGTOs& SolidSH_Ms(int L, Eigen::VectorXi _Ms, VectorXcd zs);
+    SubSymGTOs& SolidSH_M(int L, int M);
+    //    SubSymGTOs& SolidSH_M(int L, int M, VectorXcd zs);
     
     inline int size_at() const { return this->atom_->size(); }
     inline int size_pn() const { return nx_ipn.size(); }
     inline int size_rds() const { return rds.size(); }
     //    inline int size_prim() const { return this->size_at() * this->size_pn(); }
     inline int size_cont() const { return this->cz_icont_icz.size(); }
+    inline int size_cz(int icont) const { return this->cz_icont_icz[icont].size(); }
     //inline int size_zeta() const { return zeta_iz.rows(); }
 
     // ---- SetUp ----   

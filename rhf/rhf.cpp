@@ -116,10 +116,30 @@ void CalcMat() {
 void CalcMain() {
   
   PrintTimeStamp("Calc", NULL);
-  BMatSet mat_set = CalcMat_Complex(gtos, true);
-  B2EInt  eri     = CalcERI_Complex(gtos, eri_method);
-  
-  mo = CalcRHF(sym, mat_set, eri, num_ele, max_iter, tol, &conv, 1);
+  BMatSet mat_set;
+
+  try {
+    mat_set = CalcMat_Complex(gtos, true);
+  } catch(exception& e) {
+    cerr << "error on calculating mat" << endl;
+    cerr << e.what() << endl;
+    exit(1);
+  }
+  B2EInt  eri;
+  try {
+    eri = CalcERI_Complex(gtos, eri_method);
+  } catch(exception& e) {
+    cerr << "error on calculating eri" << endl;
+    cerr << e.what() << endl;
+    exit(1);
+  } 
+
+  try {
+    mo = CalcRHF(sym, mat_set, eri, num_ele, max_iter, tol, &conv, 1);
+  } catch(exception& e) {
+    cerr << "error on RHF" << endl;
+    cerr << e.what() << endl;
+  }
   //  for(Irrep irrep = 0; irrep < sym->order(); irrep++) {
   //  }
 }

@@ -259,6 +259,15 @@ namespace cbasis {
     int n1_[N];
     std::string name_;
   public:
+    MultArray() {
+      data_ = new F[10];
+      data_num_ = 10;
+      num_ = 10;
+      for(int i = 1; i < N; i++) {
+	n0_[i] = 0; n0_[i] = 9;
+      }
+      name_ = "";
+    }
     MultArray(int _num0, std::string _name="") {
       data_ = new F[_num0];
       data_num_ = _num0;
@@ -350,9 +359,15 @@ namespace cbasis {
   F MultArrayTDot(MultArray<F, N>& a, MultArray<F, N>& b) {
     for(int n = 0; n < N; n++) {
       if(a.n0_[n] != b.n0_[n] || a.n1_[n] != b.n1_[n]) {
-	std::string msg; SUB_LOCATION(msg);
-	msg = "\n" + msg + " : size mismatch";
-	throw std::runtime_error(msg);	
+	std::stringstream ss;
+	ss << format("size mismatch\n");
+	ss << format("a.name = %s\n") % a.get_name();
+	ss << format("b.name = %s\n") % b.get_name();
+	ss << format("N = %d\n") % N;
+	ss << format("n = %d\n") % n;
+	ss << format("n0_[n] = (%d, %d)\n") % a.n0_[n] % b.n0_[n];
+	ss << format("n1_[n] = (%d, %d)\n") % a.n1_[n] % b.n1_[n];
+	THROW_ERROR(ss.str());
       }
     }      
     int n(a.size());

@@ -414,6 +414,33 @@ namespace cbasis {
     string type = ReadJson<string>(obj, "type");
     return LinearSolver(type);
   }
+  template<> vector<CCs> ReadJson<vector<CCs> >(value& json, int n, int m) {
+
+    CheckValue<array>(json);
+    array& ary = json.get<array>();
+
+    vector<CCs> czs_list;
+    BOOST_FOREACH(value& val, ary) {
+      CCs czs;
+      if(val.is<double>()) {
+	czs.push_back(CC(1, val.get<double>()));
+      } else if(val.is<array>()) {
+	czs.push_back(CC(1, ReadJson<dcomplex>(val)));
+      } else if(val.is<object>()) {
+	object& obj = val.get<object>();
+	VectorXcd cs = ReadJson<VectorXcd>(obj, "coef");
+	VectorXcd zs = ReadJson<VectorXcd>(obj, "zeta", cs.size());
+	for(int i = 0; i < cs.size(); i++) {
+	  czs.push_back(CC(cs[i], zs[i]));
+	}
+      } else {
+	throw runtime_error("not supported type");
+      }
+      czs_list.push_back(czs);
+    }
+    
+    return czs_list;
+  }
   
   template<class T>
   T ReadJson(object& json, string key, int n, int m) {
@@ -581,11 +608,15 @@ namespace cbasis {
       }
 
       // -- zeta --
-      VectorXcd zeta =  ReadJson<VectorXcd>(basis, "zeta");
+      vector<CCs> czs_list =  ReadJson<vector<CCs> >(basis, "zeta");
+      
+      SubSymGTOs& sub = gtos->NewSub(atom_name).Mono(0, ns);
+      BOOST_FOREACH(CCs& czs, czs_list) {
+	sub.AddCont(czs);
+      }
 
       // -- build --
-      SymmetryGroup sym = gtos->sym_group();
-      gtos->NewSub(atom_name).Mono(0, ns, zeta);
+      gtos->AddSub(sub);
 
     } catch(exception& e) {
       string msg = "error on parsing SymGTOs_Subs_cart.\n";
@@ -622,8 +653,10 @@ namespace cbasis {
       }
 
       // -- zeta --
-      VectorXcd zeta = ReadJson<VectorXcd>(basis, "zeta");
-      sub.AddZeta(zeta);
+      vector<CCs> czs_list =  ReadJson<vector<CCs> >(basis, "zeta");
+      BOOST_FOREACH(CCs& czs, czs_list) {
+	sub.AddCont(czs);
+      }
 
       gtos->AddSub(sub);
       
@@ -637,24 +670,26 @@ namespace cbasis {
 
     try {
 
-      // -- atom --
+      // -- sym/atom --
+      SymmetryGroup sym = gtos->sym_group();
       string atom_name = ReadJson<string>(basis, "atom");
       Molecule mole = gtos->molecule();
-      if(not mole->exist_atom(atom_name))  {
-	throw runtime_error("atom name \"" + atom_name + "\" not found");
-      }
+      Atom atom = mole->atom(atom_name);
 
-      // -- L --
+      // -- L/M --
       int L = ReadJson<int>(basis, "L");
-
-      // -- M --
       VectorXi Ms = ReadJson<VectorXi>(basis, "Ms");
       
       // -- zeta --
-      VectorXcd zeta =  ReadJson<VectorXcd>(basis, "zeta");
+      vector<CCs> czs_list =  ReadJson<vector<CCs> >(basis, "zeta");
 
       // -- build --
-      gtos->NewSub(atom_name).SolidSH_Ms(L, Ms, zeta);
+      SubSymGTOs sub(sym, atom);
+      sub.SolidSH_Ms(L, Ms);
+      BOOST_FOREACH(CCs& czs, czs_list) {
+	sub.AddCont(czs);
+      }
+      gtos->AddSub(sub);
 
     } catch(exception& e) {
       string msg = "error on parsing SymGTOs_Subs_SolidSH.\n";

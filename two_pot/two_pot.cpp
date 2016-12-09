@@ -252,7 +252,7 @@ void Parse() {
     ReadJson_Orbital(obj, "orbital0", sym, &E0, &c0, &irrep0, &i0);
 
     VectorXi Ms(3); Ms << -1, 0, 1;
-    VectorXcd zeta_chi(1); zeta_chi << ReadJson<dcomplex>(obj, "zeta_chi");
+    dcomplex zeta_chi = ReadJson<dcomplex>(obj, "zeta_chi");
     BOOST_FOREACH(int L, Ls) {
       string name;
       if(L == 1) 
@@ -264,11 +264,14 @@ void Parse() {
       else
 	throw runtime_error("unsupported L");
       cout << "start raeding psi0 for " << name << endl;
-      VectorXcd zeta0 = ReadJson<VectorXcd>(obj, "zeta0_" + name);
+      vector<CCs> czs_list = ReadJson<vector<CCs> >(obj, "zeta0_" + name);
       basis_psi0_L[L] = NewSymGTOs(mole0);
-      basis_psi0_L[L]->NewSub("CEN0").SolidSH_Ms(L, Ms, zeta0);
+      SubSymGTOs& sub = basis_psi0_L[L]->NewSub("CEN0").SolidSH_Ms(L, Ms);
+      BOOST_FOREACH(CCs& czs, czs_list) {
+	sub.AddCont(czs);
+      }
       basis_chi0_L[L] = NewSymGTOs(mole0);
-      basis_chi0_L[L]->NewSub("CEN0").SolidSH_Ms(L, Ms, zeta_chi);
+      basis_chi0_L[L]->NewSub("CEN0").SolidSH_Ms(L, Ms).AddCont_Mono(zeta_chi);
       cout << "end raeding psi0 for " << name << endl;
     }
 
