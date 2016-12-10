@@ -392,13 +392,15 @@ void CalcMat() {
     HV0L1[L](x,x) = HV01_full(x,x) - HV01_0th(x,x);
     HV0L1[L](y,y) = HV01_full(y,y) - HV01_0th(y,y);
     HV0L1[L](z,z) = HV01_full(z,z) - HV01_0th(z,z);
+    cout << "end L = " << L << endl;
   }
+  PrintTimeStamp("MatEnd", NULL);
 }
 void CalcMatSTEX() {
   PrintTimeStamp("MatSTEX_1", NULL);
-  ERIMethod method;
-  B2EInt eri_J_11 = CalcERI(basis1, basis1, basis0, basis0, method);
-  B2EInt eri_K_11 = CalcERI(basis1, basis0, basis0, basis1, method);
+  //  ERIMethod method;
+  B2EInt eri_J_11 = CalcERI(basis1, basis1, basis0, basis0, eri_method);
+  B2EInt eri_K_11 = CalcERI(basis1, basis0, basis0, basis1, eri_method);
   AddJ(eri_J_11, c0, irrep0, 1.0, V1); AddK(eri_K_11, c0, irrep0, 1.0, V1);
 
   PrintTimeStamp("MatSTEX_01", NULL);
@@ -407,10 +409,10 @@ void CalcMatSTEX() {
     cout << "L = " << L << endl;
     SymGTOs psi0   = basis_psi0_L[L];
     SymGTOs c_psi0 = basis_c_psi0_L[L];
-    B2EInt eri_JC = CalcERI(psi0,   basis1, basis0, basis0, method);
-    B2EInt eri_JH = CalcERI(c_psi0, basis1, basis0, basis0, method);
-    B2EInt eri_KC = CalcERI(psi0,   basis0, basis0, basis1, method);
-    B2EInt eri_KH = CalcERI(c_psi0, basis0, basis0, basis1, method);
+    B2EInt eri_JC = CalcERI(psi0,   basis1, basis0, basis0, eri_method);
+    B2EInt eri_JH = CalcERI(c_psi0, basis1, basis0, basis0, eri_method);
+    B2EInt eri_KC = CalcERI(psi0,   basis0, basis0, basis1, eri_method);
+    B2EInt eri_KH = CalcERI(c_psi0, basis0, basis0, basis1, eri_method);
     AddJ(eri_JC, c0, irrep0, 1.0, V0L1[L]);  AddK(eri_KC, c0, irrep0, 1.0, V0L1[L]);
     AddJ(eri_JH, c0, irrep0, 1.0, HV0L1[L]); AddK(eri_KH, c0, irrep0, 1.0, HV0L1[L]);
   }

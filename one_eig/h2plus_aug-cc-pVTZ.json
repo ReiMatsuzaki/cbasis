@@ -1,0 +1,31 @@
+{
+    "comment" : "calculation of H2+ bound state using aug-cc-pVTZ",
+    "out_json": "out.json",
+    "out_eigvals": "eigvals.bin",
+    "out_eigvecs": "eigvecs.bin",
+    "sym": "D2h",
+    "molecule": [
+	{"atom": "H",   "q": 1.0, "xyz": [[0,0,1.0]]}],
+    "basis": [
+	{"type": "full",
+	 "ns":   [[0,0,0]],
+	 "atom":  "H",
+	 "rds":  [{"irrep": "Ag", "coef": [[1], [1]]}],
+	 "zeta": [
+	     {"coef": [0.00608, 0.0453080, 0.2028220],
+	      "zeta": [33.87,   5.095,     1.159]},
+	     0.3258,
+	     0.1027,
+	     0.02526]}
+	{"type": "full",
+	 "ns":   [[0,0,1]],
+	 "atom":  "H",
+	 "rds":  [{"irrep": "Ag", "coef": [[1], [-1]]}],
+	 "zeta": [ 1.407, 0.388, 0.102]},
+	{"type": "full",
+	 "ns":   [[0,0,2]],
+	 "atom": "H",
+	 "rds":  [{"irrep": "Ag", "coef": [[1], [1]]}],
+	 "zeta": [ 1.057, 0.247] }
+    ]
+}

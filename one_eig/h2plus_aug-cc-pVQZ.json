@@ -1,0 +1,50 @@
+{
+    "comment" : "calculation of H2+ bound state using aug-cc-pVTZ",
+    "out_json": "out.json",
+    "out_eigvals": "eigvals.bin",
+    "out_eigvecs": "eigvecs.bin",
+    "sym": "D2h",
+    "molecule": [
+	{"atom": "H",   "q": 1.0, "xyz": [[0,0,1.0]]}],
+    "basis": [
+	{"type": "full",
+	 "ns":   [[0,0,0]],
+	 "atom":  "H",
+	 "rds":  [{"irrep": "Ag", "coef": [[1], [1]]}],
+	 "zeta": [
+	     {"coef": [0.002060, 0.0153430, 0.075579],
+	      "zeta": [82.64,   12.41,      2.824]},
+	     0.7977,
+	     0.2581,
+	     0.08989,
+	     0.023630]},
+	{"type": "full",
+	 "ns":   [[0,0,1]],
+	 "atom":  "H",
+	 "rds":  [{"irrep": "Ag", "coef": [[1], [-1]]}],
+	 "zeta": [ 2.2920000,
+		   0.8380000,
+		   0.2920000,
+		   0.0848000]},
+	{"type": "full",
+	 "ns":   [[2,0,0], [0,2,0], [0,0,2]],
+	 "atom": "H",
+	 "_rds":  [{"irrep": "Ag", "coef": [[0,0,1], [0,0,1]]}],
+	 "rds":  [{"irrep": "Ag", "coef": [[-1,-1,2], [-1,-1,2]]}],
+	 "zeta": [2.0620000,
+		  0.6620000,
+		  0.1900000] },
+	{"type": "full",
+	 "ns":   [[0,0,3]],
+	 "atom": "H",
+	 "rds":  [{"irrep": "Ag", "coef": [[1], [-1]]}],
+	 "zeta": [1.3970000
+		  0.3600000]}
+    ]
+}
+
+
+
+
+
+

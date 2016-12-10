@@ -16,7 +16,6 @@ namespace cbasis {
   typedef MultArray<dcomplex, 2> A2dc;
   typedef MultArray<dcomplex, 3> A3dc;
   typedef MultArray<dcomplex, 4> A4dc;
-  typedef MultArray<MultArray<dcomplex, 4>, 4> A44dc;
 
   // ==== Slow routines ====
   dcomplex ERIEle(CartGTO& i, CartGTO& j, CartGTO& k, CartGTO& l) {
@@ -95,9 +94,9 @@ namespace cbasis {
 	for(int nz = 0; nz <= max_n; nz++) {
 	  if(nx + ny + nz <= max_n) {
 	    dcomplex v = coef_R(zarg,
-				wPx, wPy, wPz,
-				wPpx, wPpy, wPpz,
-				nx, ny, nz, 0, Fjs);
+			      wPx, wPy, wPz,
+			      wPpx, wPpy, wPpz,
+			      nx, ny, nz, 0, Fjs);
 	    res(nx, ny, nz) = mult_coef * v;
 	  }
 	}
@@ -421,7 +420,7 @@ namespace cbasis {
     npni = isub->size_pn(); npnj = jsub->size_pn();
     npnk = ksub->size_pn(); npnl = lsub->size_pn();
 
-    prim.SetRange(0, nati*npni-1, 0, natj*npnj-1, 0, natk*npnk-1, 0, natl*npnl-1);
+    prim.SetRange(0, nati*npni, 0, natj*npnj, 0, natk*npnk, 0, natl*npnl);
 
     int mi, mj, mk, ml;
     mi = isub->maxn; mj = jsub->maxn; mk = ksub->maxn; ml = lsub->maxn;
@@ -461,12 +460,16 @@ namespace cbasis {
 
     static ERI_buf buf(1000);
     dcomplex zetaP = zetai + zetaj; dcomplex zetaPp = zetak + zetal;
-    int nati(isub->size_at()), npni(isub->size_pn());
-    int natj(jsub->size_at()), npnj(jsub->size_pn());
-    int natk(ksub->size_at()), npnk(ksub->size_pn());
-    int natl(lsub->size_at()), npnl(lsub->size_pn());
 
-    prim.SetRange(0, nati*npni-1, 0, natj*npnj-1, 0, natk*npnk-1, 0, natl*npnl-1);
+    int nati, natj, natk, natl;
+    nati = isub->size_at(); natj = jsub->size_at();
+    natk = ksub->size_at(); natl = lsub->size_at();
+
+    int npni, npnj, npnk, npnl;
+    npni = isub->size_pn(); npnj = jsub->size_pn();
+    npnk = ksub->size_pn(); npnl = lsub->size_pn();
+
+    prim.SetRange(0, nati*npni, 0, natj*npnj, 0, natk*npnk, 0, natl*npnl);
 
     int mi, mj, mk, ml;
     mi = isub->maxn; mj = jsub->maxn; mk = ksub->maxn; ml = lsub->maxn;
@@ -634,146 +637,210 @@ namespace cbasis {
 	}
       }
     }}}
-  }
+  }  
+  
+  // ==== Transform ====
+  void CalcTransERI(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
+		   int iz, int jz, int kz, int lz,
+		    A4dc& prim, B2EInt eri,
+		    bool use_perm=false, bool perm_0=false, bool perm_1=false) {
 
-  // -- interface --
-  void CalcPrimERI(SymmetryGroup sym, SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
-		    dcomplex zetai, dcomplex zetaj, dcomplex zetak, dcomplex zetal,
-		    A4dc& prim, ERIMethod method) {
-    
-    if(method.symmetry == 0) {
-      CalcPrimERI0(isub, jsub, ksub, lsub, zetai, zetaj, zetak, zetal,
-		   prim, method);
-    } else {
-      CalcPrimERI1(sym, isub, jsub, ksub, lsub, zetai, zetaj, zetak, zetal,
-		   prim, method);
-    }
-  }
+    int nati, natj, natk, natl;
+    nati = isub->size_at(); natj = jsub->size_at();
+    natk = ksub->size_at(); natl = lsub->size_at();
 
-  // -- translation coefficient --
-  void TransCoef_rds(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
-		     Reduction& irds, Reduction& jrds, Reduction& krds, Reduction& lrds,
-		     A4dc& coef_rds) {
-		       
-    int niat(isub->size_at());
-    int njat(jsub->size_at());
-    int nkat(ksub->size_at());
-    int nlat(lsub->size_at());
+    int npni, npnj, npnk, npnl;
+    npni = isub->size_pn(); npnj = jsub->size_pn();
+    npnk = ksub->size_pn(); npnl = lsub->size_pn();
 
-    int nipn(isub->size_pn());
-    int njpn(jsub->size_pn());
-    int nkpn(ksub->size_pn());
-    int nlpn(lsub->size_pn());
-
-    coef_rds.SetRange(0, niat*nipn-1,
-		      0, njat*njpn-1,
-		      0, nkat*nkpn-1,
-		      0, nlat*nlpn-1);
-    for(int iat = 0; iat < niat; iat++) 
-    for(int ipn = 0; ipn < nipn; ipn++) 
-    for(int jat = 0; jat < njat; jat++) 
-    for(int jpn = 0; jpn < njpn; jpn++)
-    for(int kat = 0; kat < nkat; kat++) 
-    for(int kpn = 0; kpn < nkpn; kpn++) 
-    for(int lat = 0; lat < nlat; lat++) 
-    for(int lpn = 0; lpn < nlpn; lpn++) {
-      int ip = isub->ip_iat_ipn(iat, ipn);
-      int jp = jsub->ip_iat_ipn(jat, jpn);
-      int kp = ksub->ip_iat_ipn(kat, kpn);
-      int lp = lsub->ip_iat_ipn(lat, lpn);
-      coef_rds(ip, jp, kp, lp) = (irds.coef_iat_ipn(iat, ipn) *
-				  jrds.coef_iat_ipn(jat, jpn) *
-				  krds.coef_iat_ipn(kat, kpn) *
-				  lrds.coef_iat_ipn(lat, lpn));
+    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds)
+    for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds)
+    for(RdsIt krds = ksub->rds.begin(); krds != ksub->rds.end(); ++krds)
+    for(RdsIt lrds = lsub->rds.begin(); lrds != lsub->rds.end(); ++lrds) {
       
+      
+
+      if(isub->sym_group()->Non0_4(irds->irrep, jrds->irrep, krds->irrep, lrds->irrep)) {
+	dcomplex cz(irds->coef_iz(iz) * 
+		    jrds->coef_iz(jz) * 
+		    krds->coef_iz(kz) * 
+		    lrds->coef_iz(lz));
+	dcomplex cumsum(0);
+	for(int iat = 0; iat < nati; iat++) {
+	for(int ipn = 0; ipn < npni; ipn++) {
+        for(int jat = 0; jat < natj; jat++) {
+	for(int jpn = 0; jpn < npnj; jpn++) {
+        for(int kat = 0; kat < natk; kat++) {
+	for(int kpn = 0; kpn < npnk; kpn++) {
+        for(int lat = 0; lat < natl; lat++) {
+        for(int lpn = 0; lpn < npnl; lpn++) {
+	  int ip = isub->ip_iat_ipn(iat, ipn);
+	  dcomplex ci(irds->coef_iat_ipn(iat, ipn));
+	  int jp = jsub->ip_iat_ipn(jat, jpn);
+	  dcomplex cj(jrds->coef_iat_ipn(jat, jpn));
+	  int kp = ksub->ip_iat_ipn(kat, kpn);
+	  dcomplex ck(krds->coef_iat_ipn(kat, kpn));
+	  int lp = lsub->ip_iat_ipn(lat, lpn);
+	  dcomplex cc = ci * cj * ck * lrds->coef_iat_ipn(lat, lpn) * cz;
+	  cumsum += cc * prim(ip, jp, kp, lp);
+	}}}}}}}}
+	
+	Irrep ir(irds->irrep), jr(jrds->irrep), kr(krds->irrep), lr(lrds->irrep);
+	int idx(irds->offset+iz), jdx(jrds->offset+jz), kdx(krds->offset+kz);
+	int ldx(lrds->offset+lz);
+	
+	eri->Set(  ir, jr, kr, lr, idx, jdx, kdx, ldx, cumsum);
+	if(use_perm)
+	  eri->Set(kr, lr, ir, jr, kdx, ldx, idx, jdx, cumsum);
+	if(perm_0)
+	  eri->Set(jr, ir, kr, lr, jdx, idx, kdx, ldx, cumsum);
+	if(perm_1)
+	  eri->Set(ir, jr, lr, kr, idx, jdx, ldx, kdx, cumsum);
+      }
     }
 
+  }
+  void CalcTransERI0(SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
+		     int iz, int jz, int kz, int lz,
+		     A4dc& prim, B2EInt eri) {
+
+    int nati, natj, natk, natl;
+    nati = isub->size_at(); natj = jsub->size_at();
+    natk = ksub->size_at(); natl = lsub->size_at();
+
+    int npni, npnj, npnk, npnl;
+    npni = isub->size_pn(); npnj = jsub->size_pn();
+    npnk = ksub->size_pn(); npnl = lsub->size_pn();
+    
+
+    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds)
+    for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds)
+    for(RdsIt krds = ksub->rds.begin(); krds != ksub->rds.end(); ++krds)
+    for(RdsIt lrds = lsub->rds.begin(); lrds != lsub->rds.end(); ++lrds) {
+      
+      dcomplex cz(irds->coef_iz(iz) * 
+		  jrds->coef_iz(jz) * 
+		  krds->coef_iz(kz) * 
+		  lrds->coef_iz(lz));
+      dcomplex cumsum(0);
+      int idx(0);
+      for(int iat = 0; iat < nati; iat++) {
+      for(int ipn = 0; ipn < npni; ipn++) {
+      for(int jat = 0; jat < natj; jat++) {
+      for(int jpn = 0; jpn < npnj; jpn++) {
+      for(int kat = 0; kat < natk; kat++) {
+      for(int kpn = 0; kpn < npnk; kpn++) {
+      for(int lat = 0; lat < natl; lat++) {
+      for(int lpn = 0; lpn < npnl; lpn++) {
+	int ip = isub->ip_iat_ipn(iat, ipn);
+	dcomplex ci(irds->coef_iat_ipn(iat, ipn));
+	int jp = jsub->ip_iat_ipn(jat, jpn);
+	dcomplex cj(jrds->coef_iat_ipn(jat, jpn));
+	int kp = ksub->ip_iat_ipn(kat, kpn);
+	dcomplex ck(krds->coef_iat_ipn(kat, kpn));
+	int lp = lsub->ip_iat_ipn(lat, lpn);
+	dcomplex cc = ci * cj * ck * lrds->coef_iat_ipn(lat, lpn) * cz;
+	cumsum += cc * prim(ip, jp, kp, lp); ++idx;
+      }}}}}}}}
+      eri->Set(irds->irrep, jrds->irrep, krds->irrep, lrds->irrep,
+	       irds->offset+iz, jrds->offset+jz, krds->offset+kz, lrds->offset+lz,
+	       cumsum);
+    }
   }
 
   // ==== calc for Sub  ====
   void CalcERI0(SymmetryGroup sym, SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
 		A4dc& prim, ERIMethod method, B2EInt eri) {
-
-    if(not ExistNon0(isub, jsub, ksub, lsub))
-      return;
-    
-    int nir(isub->rds.size()), njr(jsub->rds.size());
-    int nkr(ksub->rds.size()), nlr(lsub->rds.size());
-    int nicont(isub->size_cont()), njcont(jsub->size_cont());
-    int nkcont(ksub->size_cont()), nlcont(lsub->size_cont());
-    static A4dc coef_rds(1000, "coef_rds");
-    static A4dc coef_cont(1000, "coef_cont");
-    static A44dc eri_rds(1000, "eri_rds");
-    eri_rds.SetRange(0, isub->size_at() * isub->size_pn()-1,
-		     0, jsub->size_at() * jsub->size_pn()-1,
-		     0, ksub->size_at() * ksub->size_pn()-1,
-		     0, lsub->size_at() * lsub->size_pn()-1);
-    
-    for(int icont = 0; icont < nicont; icont++)
-    for(int jcont = 0; jcont < njcont; jcont++)
-    for(int kcont = 0; kcont < nkcont; kcont++)
-    for(int lcont = 0; lcont < nlcont; lcont++)  {
-      int nczi(isub->size_cz(icont)), nczj(jsub->size_cz(jcont));
-      int nczk(ksub->size_cz(kcont)), nczl(lsub->size_cz(lcont));
-
-      for(int ir = 0; ir < nir; ++ir)
-      for(int jr = 0; jr < njr; ++jr)
-      for(int kr = 0; kr < nkr; ++kr)
-      for(int lr = 0; lr < nlr; ++lr) {
-	eri_rds(ir, jr, kr, lr).SetRange(0,nczi-1, 0,nczj-1, 0,nczk-1, 0,nczl-1);
-	TransCoef_rds(isub, jsub, ksub, lsub, isub->rds[ir], jsub->rds[jr],
-		      ksub->rds[kr], lsub->rds[lr], coef_rds);
-      }
-      coef_cont.SetRange(0,nczi-1, 0,nczj-1, 0,nczk-1, 0,nczl-1);
-      
-      for(int icz = 0; icz < nczi; icz++)
-      for(int jcz = 0; jcz < nczi; jcz++)
-      for(int kcz = 0; kcz < nczi; kcz++)
-      for(int lcz = 0; lcz < nczi; lcz++) {
-	pair<dcomplex, dcomplex>& czi(isub->cz_icont_icz[icont][icz]);
-	pair<dcomplex, dcomplex>& czj(jsub->cz_icont_icz[jcont][jcz]);
-	pair<dcomplex, dcomplex>& czk(ksub->cz_icont_icz[kcont][kcz]);
-	pair<dcomplex, dcomplex>& czl(lsub->cz_icont_icz[lcont][lcz]);
-	coef_cont(icz, jcz, kcz, lcz) = czi.first * czj.first * czk.first * czl.first;
-	CalcPrimERI(sym, isub, jsub, ksub, lsub, czi.second, czj.second, 
-		    czk.second, czl.second, prim, method);
-	for(int ir = 0; ir < nir; ++ir)
-	for(int jr = 0; jr < njr; ++jr)
-	for(int kr = 0; kr < nkr; ++kr)
-	for(int lr = 0; lr < nlr; ++lr) {	
-	  eri_rds(ir,jr,kr,lr)(icz,jcz,kcz,lcz) = MultArrayTDot(prim, coef_rds);
-	}
-      }
-
-      for(int ir = 0; ir < nir; ++ir)
-      for(int jr = 0; jr < njr; ++jr)
-      for(int kr = 0; kr < nkr; ++kr)
-      for(int lr = 0; lr < nlr; ++lr) {
-	Reduction& irds(isub->rds[ir]), jrds(jsub->rds[jr]);
-	Reduction& krds(ksub->rds[kr]), lrds(lsub->rds[lr]);
-	int i = irds.offset + icont; int irr = irds.irrep;
-	int j = jrds.offset + jcont; int jrr = jrds.irrep;
-	int k = krds.offset + kcont; int krr = krds.irrep;
-	int l = lrds.offset + lcont; int lrr = lrds.irrep;
-	eri->Set(irr,jrr,krr,lrr, i,j,k,l, 
-		 irds.coef_icont(icont) *
-		 jrds.coef_icont(jcont) *
-		 krds.coef_icont(kcont) *
-		 lrds.coef_icont(lcont) *
-		 MultArrayTDot(coef_cont, eri_rds(ir,jr,kr,lr)));
+    for(int iz = 0; iz < isub->size_zeta(); ++iz)
+    for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+    for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+    for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+      if(method.symmetry == 0) {
+	CalcPrimERI0(isub, jsub, ksub, lsub,
+		     isub->zeta_iz[iz], jsub->zeta_iz[jz],
+		     ksub->zeta_iz[kz], lsub->zeta_iz[lz], prim, method);
+	CalcTransERI0(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
+      } else {
+	CalcPrimERI1(sym, isub, jsub, ksub, lsub,
+		     isub->zeta_iz[iz], jsub->zeta_iz[jz],
+		     ksub->zeta_iz[kz], lsub->zeta_iz[lz],
+		     prim, method);
+	CalcTransERI0(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri);
       }
     }
+    
   }
   // -- permutation symmetry --
   void CalcERI1(SymGTOs& gi, SymGTOs& gj,SymGTOs& gk,SymGTOs& gl,
 		SubIt isub, SubIt jsub, SubIt ksub, SubIt lsub,
 		A4dc& prim, ERIMethod method, B2EInt eri) {
-    THROW_ERROR("not impl");
+    if(!ExistNon0(isub, jsub, ksub, lsub))
+      return;
+
+    int n_ij = (distance(gi->subs().begin(), isub) +
+		distance(gj->subs().begin(), jsub) * gi->subs().size());
+    int n_kl = (distance(gk->subs().begin(), ksub) +
+		distance(gl->subs().begin(), lsub) * gk->subs().size());    
+
+    if(isub == ksub && jsub == lsub) {
+      for(int iz = 0; iz < isub->size_zeta(); ++iz)
+      for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+      for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+      for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+	int nnnij = iz + isub->size_zeta() * jz;
+	int nnnkl = kz + ksub->size_zeta() * lz;
+	if(nnnij >= nnnkl) {
+	  CalcPrimERI1(gi->sym_group(), isub, jsub, ksub, lsub,
+		       isub->zeta_iz[iz], jsub->zeta_iz[jz],
+		       ksub->zeta_iz[kz], lsub->zeta_iz[lz],
+		       prim, method);
+	  if(nnnij == nnnkl)
+	    CalcTransERI(isub, jsub, ksub, lsub, kz, lz, iz, jz, prim, eri, false);
+	  else
+	    CalcTransERI(isub, jsub, ksub, lsub, kz, lz, iz, jz, prim, eri, true);
+	}
+      }
+    } else if(n_ij > n_kl){
+      for(int iz = 0; iz < isub->size_zeta(); ++iz)
+      for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+      for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+      for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+	CalcPrimERI1(gi->sym_group(), isub, jsub, ksub, lsub,
+		     isub->zeta_iz[iz], jsub->zeta_iz[jz],
+		     ksub->zeta_iz[kz], lsub->zeta_iz[lz],
+		     prim, method);
+	CalcTransERI(isub, jsub, ksub, lsub, iz, jz, kz, lz, prim, eri, true);
+      }      
+    }
+
   }
   void CalcERI_ijkk(SymGTOs& g0, SymGTOs& g1,SymGTOs& g2,
 		    SubIt isub, SubIt jsub, SubIt ksub,
 		    A4dc& prim, ERIMethod method, B2EInt eri) {
-    throw runtime_error("not impl");
+    if(!ExistNon0(isub, jsub, ksub, ksub))
+      return;
+    SubIt lsub = ksub;
+    for(int iz = 0; iz < isub->size_zeta(); ++iz)
+    for(int jz = 0; jz < jsub->size_zeta(); ++jz)
+    for(int kz = 0; kz < ksub->size_zeta(); ++kz)
+    for(int lz = 0; lz < lsub->size_zeta(); ++lz) {
+      if(kz > lz) {
+	CalcPrimERI1(g0->sym_group(), isub, jsub, ksub, lsub,
+		     isub->zeta_iz[iz], jsub->zeta_iz[jz],
+		     ksub->zeta_iz[kz], lsub->zeta_iz[lz],
+		     prim, method);
+	CalcTransERI(isub, jsub, ksub, lsub, kz, lz, iz, jz, prim, eri,
+		     false, false, true);
+
+      } else if(kz == lz) {
+	CalcPrimERI1(g0->sym_group(), isub, jsub, ksub, lsub,
+		     isub->zeta_iz[iz], jsub->zeta_iz[jz],
+		     ksub->zeta_iz[kz], lsub->zeta_iz[lz],
+		     prim, method);
+	CalcTransERI(isub, jsub, ksub, lsub, kz, lz, iz, jz, prim, eri,
+		     false, false, false);
+      }
+    }
   }
 
 
@@ -785,7 +852,8 @@ namespace cbasis {
     SymGTOs ci = i->Conj();
     return CalcERI(ci, i, ci, i, method);
   }
-  B2EInt CalcERI(SymGTOs gi, SymGTOs gj, SymGTOs gk, SymGTOs gl, ERIMethod method) {
+  B2EInt CalcERI(SymGTOs gi, SymGTOs gj, SymGTOs gk, SymGTOs gl,
+		 ERIMethod method) {
 
     if(not gi->setupq)
       gi->SetUp();
@@ -802,7 +870,7 @@ namespace cbasis {
     B2EInt eri(new B2EIntMem);
     eri->Init(gi->size_basis() * gj->size_basis() * gk->size_basis() * gl->size_basis());
     A4dc prim(gi->max_num_prim() * gj->max_num_prim() *
-	      gk->max_num_prim() * gl->max_num_prim(), "prim");
+	      gk->max_num_prim() * gl->max_num_prim());
     
     for(SubIt isub = gi->subs().begin(); isub != gi->subs().end(); ++isub) 
       for(SubIt jsub = gj->subs().begin(); jsub != gj->subs().end(); ++jsub)
