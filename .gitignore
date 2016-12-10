@@ -12,6 +12,7 @@ local.mk
 *.sh.o*
 *.sh.e*
 *out.*
+*/out.json
 *.eps
 *.png
 *-checkpoint.ipynb
