@@ -243,14 +243,13 @@ namespace cbasis {
 		   eps, is_conv, debug_lvl);
 
   }
-  MO CalcRHF(SymmetryGroup sym, BMatSet mat_set, B2EInt eri,
-	     int nele, int max_iter, double eps, bool *is_conv, int debug_lvl) {
+  MO CalcRHF(SymmetryGroup sym, BMatSet mat_set, B2EInt eri, int nele, 
+	     int max_iter, double eps, BMat& C0, bool *is_conv, int debug_lvl) {
     
     if(nele == 1) {
       *is_conv = true;
       return CalcOneEle(sym, mat_set, debug_lvl);
     }
-
     if(nele % 2 == 1) {
       string msg; SUB_LOCATION(msg); msg += "nele must be even integer.";
       throw runtime_error(msg);

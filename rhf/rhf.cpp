@@ -15,7 +15,7 @@ using namespace std;
 using namespace cbasis;
 
 // -- Input --
-string comment, in_json, out_eigvecs, out_eigvals;
+string comment, in_json, in_eigvecs, out_eigvecs, out_eigvals;
 SymmetryGroup sym;
 Molecule mole;
 SymGTOs gtos;
@@ -57,7 +57,7 @@ void Parse() {
     max_iter  = ReadJson<int>(obj, "max_iter");
     tol       = ReadJson<double>(obj, "tol");
     eri_method = ReadJson<ERIMethod>(obj, "eri_method");
-    //    in_eigvecs = ReadJson<string>(obj, "in_eigvecs");
+    in_eigvecs = ReadJson<string>(obj, "in_eigvecs");
     out_eigvecs = ReadJson<string>(obj, "out_eigvecs");
     out_eigvals = ReadJson<string>(obj, "out_eigvals");
     
