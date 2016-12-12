@@ -1,1 +1,1 @@
-{"E0":[-1.1026327633494171,5.3572709229514044e-12],"comment":"calculation of H2+ bound state using Rescigno and McCurdy basis (RPA *31*, 624 (1985))","in_json":"h2plus0.json","irrep0":0,"out_eigvals":"eigvals.bin","out_eigvecs":"eigvecs.bin"}
+{"E0":[-1.1026327633494406,5.3572709233773144e-12],"comment":"calculation of H2+ bound state using Rescigno and McCurdy basis (RPA *31*, 624 (1985))","in_json":"h2plus0.json","irrep0":0,"out_eigvals":"eigvals.bin","out_eigvecs":"eigvecs.bin"}

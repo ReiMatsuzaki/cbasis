@@ -10,6 +10,15 @@
 
 namespace cbasis {
 
+  struct SCFOptions {
+    bool use_real;
+    int max_iter;
+    double tol;
+    int debug_lvl;
+    SCFOptions():
+      use_real(false), max_iter(50), tol(0.0000001), debug_lvl(0) {}
+  };
+  
   class _MO {
   public:
     _MO();
@@ -36,15 +45,15 @@ namespace cbasis {
   vector<int> CalcOccNum(const BVec& eigs, int num_sym, int num_orb);
   MO CalcOneEle(SymmetryGroup sym, BMatSet mat_set, int debug_lvl = 0);
   void AddJK(B2EInt eri,  BMat& C, int I0, int i0,
-	     dcomplex coef_J, dcomplex coef_K, BMat& JK);
+	     dcomplex coef_J, dcomplex coef_K, BMat& JK, bool use_real=false);
   void AddJK_Slow(B2EInt eri, BMat& C, int I0, int i0,
 		  dcomplex coef_J, dcomplex coef_K, BMat& H);
-  void AddJ(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& J);
-  void AddK(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K);
-  MO CalcRHF(SymGTOs gtos, int nele, int max_iter, double eps, bool *is_conv,
-	     int debug_lvl = 0);
+  void AddJ(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& J, bool use_real=false);
+  void AddK(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K, bool use_real=false);
+  MO CalcRHF(SymGTOs gtos, int nele, ERIMethod method, const SCFOptions& opts, 
+	     bool *is_conv);
   MO CalcRHF(SymmetryGroup sym, BMatSet mat_set, B2EInt eri, int nele, 
-	     int max_iter, double eps, BMat& C0, bool *is_conv, int debug_lvl=0);
+	     const BVec& E0, const BMat& C0,const SCFOptions& opts,  bool *is_conv);
   void CalcSEHamiltonian(MO mo, B2EInt eri, Irrep I0, int i0, BMat* hmat,
 			 int method = 0);
   dcomplex CalcAlpha(MO mo, BMatSet mat_set, Irrep I0, int i0, BMat& h_stex, double w, Coord coord, int method=0);

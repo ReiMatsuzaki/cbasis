@@ -31,6 +31,7 @@ OBJS=rhf.o read_json.o mo.o symmolint.o molecule.o one_int.o two_int.o symgroup.
 ${BINDIR}/rhf: $(foreach o, ${OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${LIBS} -lgsl -lgslcblas
 check: ${BINDIR}/rhf
+	../one_eig/bin/fast/one_eig he_one.json
 	./$^ he.json
 	@echo "reference of HF energy is -2.8617"
 	@echo "past calculation is -2.86144"

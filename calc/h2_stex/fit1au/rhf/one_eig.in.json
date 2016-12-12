@@ -1,16 +1,11 @@
 {
-    "comment" : "RHF calculation of  H2",
-    "out_json": "rhf.out.json",
-    "in_eigvals": "one_eigvals.bin",
-    "in_eigvecs": "one_eigvecs.bin",    
-    "out_eigvals": "eigvals.bin",
-    "out_eigvecs": "eigvecs.bin",
-    "eri_method" : {"symmetry": 1, "memo": 1, "perm": 0},
-    "scf_opts": {"max_iter": 50, "tol": 0.00000001, "use_real": true, "debug_lvl": 2},
-    "num_ele": 2,
+    "comment" : "one electron calculation for initial guess of RHF",
+    "out_json": "one_eig.out.json",
+    "out_eigvals": "one_eigvals.bin",
+    "out_eigvecs": "one_eigvecs.bin",
     "sym": "D2h",
     "molecule": [
-	{"atom": "H",   "q": 1.0, "xyz": [[0,0,0.7]]},
+	{"atom": "H",   "q": 0.5, "xyz": [[0,0,0.7]]},
 	{"atom": "Cen", "q": 0.0, "xyz": [[0,0,0]]}],
     "basis": [
 	{"type": "full",

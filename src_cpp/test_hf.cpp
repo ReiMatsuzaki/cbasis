@@ -432,8 +432,10 @@ TEST(HF, He) {
     30.17990, 108.7723, 488.8941, 3293.694;  
   gtos->NewSub("He").SolidSH_M(0,0,zeta_s);
 
+  SCFOptions opts; opts.max_iter = 10; opts.tol = 0.000001; opts.use_real = true;
+  ERIMethod method; method.set_symmetry(1); method.set_coef_R_memo(1);
   bool conv;
-  MO mo = CalcRHF(gtos, 2, 10, 0.0000001, &conv);
+  MO mo = CalcRHF(gtos, 2, method, opts, &conv);
   EXPECT_TRUE(conv);
   EXPECT_C_NEAR(dcomplex(-2.8617,0.0), mo->energy,
 		0.0001);
@@ -486,16 +488,20 @@ TEST(HF, H2) {
   
   gtos->SetUp();
 
+  ERIMethod method; method.set_symmetry(1); method.set_coef_R_memo(1);
   bool conv;
-  double eps(pow(10.0, -5.0));
+  SCFOptions opts; opts.tol = pow(10.0, -7.0); opts.use_real = true;
   BMatSet mat_set = CalcMat_Complex(gtos, true);
-  ERIMethod method; method.symmetry = 1;
   B2EInt eri = CalcERI_Complex(gtos, method);
-
-  MO mo = CalcRHF(sym, mat_set, eri, 2, 50, eps, &conv, 0);
+  MO mo0 = CalcOneEle(sym, mat_set, 0);
+  BVec E0 = mo0->eigs;
+  BMat C0 = mo0->C;
+  MO mo = CalcRHF(sym, mat_set, eri, 2,E0, C0, opts, &conv);
   EXPECT_TRUE(conv);
   EXPECT_C_NEAR(mo->energy + 1.0/R0, -1.11881323240, 0.00001);
-  EXPECT_C_NEAR(mo->eigs[0](0), -0.59012, 0.00002);
+  EXPECT_C_NEAR(mo->eigs[0](0),
+		-0.59012,
+		+0.00005);
   EXPECT_C_NEAR(mo->eigs[0](1), +0.02339, 0.00002);
 }
 TEST(HF, H2O) {
@@ -683,9 +689,13 @@ TEST(STEX, He) {
     fclose(fp);
   }
 
-  // RHF
+  // RHF  
+  MO mo0 = CalcOneEle(sym, mat_set, 0);
+  BVec E0 = mo0->eigs;
+  BMat C0 = mo0->C;
+  SCFOptions opts; //opts.max_iter = 50; opts.tol = 0.00001; opts.debug_lvl = 1;
   bool conv;
-  MO mo = CalcRHF(sym, mat_set, eri, 2, 10, 0.0000001, &conv);
+  MO mo = CalcRHF(sym, mat_set, eri, 2, E0, C0, opts, &conv);
   EXPECT_TRUE(conv);
 
   // build Static Exchange Hamiltonian
@@ -757,9 +767,15 @@ TEST(STEX, He_one_gto) {
   ERIMethod method; method.symmetry = 1;
   B2EInt eri = CalcERI_Complex(gtos, method);
 
+  // SCF options
+  SCFOptions opts;
+
   // RHF
+  MO mo0 = CalcOneEle(sym, mat_set, 0);
+  BVec E0 = mo0->eigs;
+  BMat C0 = mo0->C;
   bool conv;
-  MO mo = CalcRHF(sym, mat_set, eri, 2, 20, 0.0000001, &conv);
+  MO mo = CalcRHF(sym, mat_set, eri, 2, E0, C0, opts, &conv);
   EXPECT_TRUE(conv);
   
   // coef check
@@ -862,7 +878,6 @@ TEST(STEX, H2) {
   double R0 = 1.4;
 
   bool conv;
-  double eps(pow(10.0, -5.0));
   BMatSet mat_set = CalcMat_Complex(gtos, true);
   ERIMethod method; method.symmetry = 1;
   B2EInt eri;
@@ -871,10 +886,14 @@ TEST(STEX, H2) {
   eri = CalcERI_Complex(gtos, method);
   timer.End("ERI");
 
+  SCFOptions opts;
   SymmetryGroup sym = gtos->sym_group();
+  MO mo0 = CalcOneEle(sym, mat_set, 0);
+  BVec E0 = mo0->eigs;
+  BMat C0 = mo0->C;
   MO mo;
-  timer.Start("HF");
-  mo = CalcRHF(sym, mat_set, eri, 2, 50, eps, &conv, 0);
+  timer.Start("HF");  
+  mo = CalcRHF(sym, mat_set, eri, 2, E0, C0, opts, &conv);
   timer.End("HF");
 
   EXPECT_TRUE(conv);

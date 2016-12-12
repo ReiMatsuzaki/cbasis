@@ -2,6 +2,7 @@
 #include <boost/foreach.hpp>
 #include "../utils/macros.hpp"
 #include "../utils/eigen_plus.hpp"
+#include "mo.hpp"
 #include "read_json.hpp"
 
 
@@ -200,6 +201,12 @@ namespace cbasis {
   template<> int ReadJson<int>(value& json, int n, int m) {
     CheckValue<int>(json, n, m);
     return (int)json.get<double>();;
+  }
+  template<> bool ReadJson<bool>(value& json, int n, int m) {    
+    if(not json.is<bool>()) {
+      throw runtime_error("value is not bool");
+    }
+    return json.get<bool>();
   }  
   template<> dcomplex ReadJson<dcomplex>(value& json, int n, int m) {
     CheckValue<dcomplex>(json);
@@ -434,6 +441,7 @@ namespace cbasis {
   template int ReadJson<int>(object& o, string k, int n, int m);
   template VectorXd ReadJson<VectorXd>(object& o, string k, int n, int m);
   template double ReadJson<double>(object& o, string k, int n, int m);
+  template bool ReadJson<bool>(object& o, string k, int n, int m);
   template ERIMethod ReadJson<ERIMethod>(object& o, string k, int n, int m);
   template LinearSolver ReadJson<LinearSolver>(object& o, string k, int n, int m);
 

@@ -340,7 +340,7 @@ void PrintIn() {
   cout << "basis0:" << endl << basis0->show() << endl;  
   cout << "basis1:" << endl << basis1->show() << endl;
   BOOST_FOREACH(int L, Ls) {
-    cout << "basis0_p:" << endl << basis_psi0_L[L]->show() << endl;
+    cout << "basis0_:" << L << endl << basis_psi0_L[L]->show() << endl;
   }
 }
 void CalcMat() {
@@ -399,7 +399,6 @@ void CalcMatSTEX() {
   AddJ(eri_J_11, c0, irrep0, 1.0, V1); AddK(eri_K_11, c0, irrep0, 1.0, V1);
 
   PrintTimeStamp("MatSTEX_01", NULL);
-  vector<int> Ls; Ls += 1,3;
   BOOST_FOREACH(int L, Ls) {
     cout << "L = " << L << endl;
     SymGTOs psi0   = basis_psi0_L[L];

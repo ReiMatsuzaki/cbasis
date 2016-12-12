@@ -127,7 +127,7 @@ namespace cbasis {
     return mo;
   }
   void AddJK(B2EInt eri, BMat& C, int I0, int i0,
-	     dcomplex coef_J, dcomplex coef_K, BMat& H) {
+	     dcomplex coef_J, dcomplex coef_K, BMat& H, bool use_real) {
 
     /*
       Add coef_J J + coef_K K to matrix H.
@@ -139,20 +139,40 @@ namespace cbasis {
     dcomplex v;
     eri->Reset();
     const MatrixXcd& CC = C[make_pair(I0, I0)];
-    while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+
+    if(use_real) {
+      while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
       
-      if(ib == jb && kb == I0 && lb == I0) {
-	// Add J
-	pair<Irrep, Irrep> ij(ib, jb);
-	H[ij](i, j) += coef_J * CC(k, i0) * CC(l, i0) * v;
-      }
+	if(ib == jb && kb == I0 && lb == I0) {
+	  // Add J
+	  pair<Irrep, Irrep> ij(ib, jb);
+	  H[ij](i, j) += (coef_J * CC(k, i0) * CC(l, i0) * v).real();
+	}
 	
-      if(ib == lb && jb == I0 && kb == I0) {
-	// Add K
-	pair<Irrep, Irrep> il(ib, lb);
-	H[il](i, l) += coef_K * CC(j, i0) * CC(k, i0) * v;
+	if(ib == lb && jb == I0 && kb == I0) {
+	  // Add K
+	  pair<Irrep, Irrep> il(ib, lb);
+	  H[il](i, l) += (coef_K * CC(j, i0) * CC(k, i0) * v).real();
+	}
       }
-    }      
+    } else {
+
+      while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+      
+	if(ib == jb && kb == I0 && lb == I0) {
+	  // Add J
+	  pair<Irrep, Irrep> ij(ib, jb);
+	  H[ij](i, j) += coef_J * CC(k, i0) * CC(l, i0) * v;
+	}
+	
+	if(ib == lb && jb == I0 && kb == I0) {
+	  // Add K
+	  pair<Irrep, Irrep> il(ib, lb);
+	  H[il](i, l) += coef_K * CC(j, i0) * CC(k, i0) * v;
+	}
+      }
+      
+    }
 
   }
   void AddJK_Slow(B2EInt eri, BMat& C, int I0, int i0,
@@ -185,7 +205,7 @@ namespace cbasis {
       }
     }
   }
-  void AddJ(B2EInt eri,VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& J) {
+  void AddJ(B2EInt eri,VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& J, bool use_real) {
 
     /**
        Add 
@@ -206,12 +226,15 @@ namespace cbasis {
     while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
       if(ib == jb && kb == ir_a && lb == ir_a) {
 	pair<Irrep, Irrep> ij(ib, jb);
-	J[ij](i, j) += v * Ca(k) * Ca(l) * coef;
+	if(use_real)
+	  J[ij](i, j) += (v * Ca(k) * Ca(l) * coef).real();
+	else
+	  J[ij](i, j) += v * Ca(k) * Ca(l) * coef;
       }
     }
 
   }
-  void AddK(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K) {
+  void AddK(B2EInt eri,VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K, bool use_real) {
     
     /**
        Add
@@ -227,33 +250,46 @@ namespace cbasis {
 
       if(ib == lb && jb == ir_a && kb == ir_a) {
 	pair<Irrep, Irrep> il(ib, lb);
-	K[il](i, l) += v * Ca(j) * Ca(k) * coef;
+	if(use_real)
+	  K[il](i, l) += (v * Ca(j) * Ca(k) * coef).real();
+	else
+	  K[il](i, l) += v * Ca(j) * Ca(k) * coef;
       }
     }    
 
   }
-  MO CalcRHF(SymGTOs gtos, int nele, int max_iter, double eps, bool *is_conv,
-	     int debug_lvl) {
+  MO CalcRHF(SymGTOs gtos, int nele, ERIMethod method, const SCFOptions& opts,
+	     bool *is_conv) {
 
-    ERIMethod method; method.symmetry = 1;
     BMatSet mat_set = CalcMat_Complex(gtos, true);
     B2EInt eri      = CalcERI_Complex(gtos, method);
+    SymmetryGroup sym = gtos->sym_group();
 
-    return CalcRHF(gtos->sym_group(), mat_set, eri, nele, max_iter,
-		   eps, is_conv, debug_lvl);
+    MO mo0 = CalcOneEle(sym, mat_set, 0);
+    BVec E0 = mo0->eigs;
+    BMat C0 = mo0->C;    
+
+    return CalcRHF(gtos->sym_group(), mat_set, eri, nele, E0, C0,
+		   opts, is_conv);
 
   }
   MO CalcRHF(SymmetryGroup sym, BMatSet mat_set, B2EInt eri, int nele, 
-	     int max_iter, double eps, BMat& C0, bool *is_conv, int debug_lvl) {
+	     const BVec& E0, const BMat& C0, const SCFOptions& opts,
+	     bool *is_conv) {
     
     if(nele == 1) {
       *is_conv = true;
-      return CalcOneEle(sym, mat_set, debug_lvl);
+      return CalcOneEle(sym, mat_set, opts.debug_lvl);
     }
     if(nele % 2 == 1) {
       string msg; SUB_LOCATION(msg); msg += "nele must be even integer.";
       throw runtime_error(msg);
     }
+
+    bool use_real = opts.use_real;
+    int max_iter = opts.max_iter;
+    double eps = opts.tol;
+    int debug_lvl = opts.debug_lvl;
     
     int nocc = nele/2;
     *is_conv = false;
@@ -276,22 +312,17 @@ namespace cbasis {
       mo->F[ii] = mo->H[ii];
       int n(mo->H[ii].rows());
       num_irrep[irrep] = n;
-      mo->C[ii] = MatrixXcd::Zero(n, n);
+      //      mo->C[ii] = MatrixXcd::Zero(n, n);
+      mo->C[ii] = C0[ii];
       mo->P[ii] = MatrixXcd::Zero(n, n);
       FOld[ii] = MatrixXcd::Zero( n, n);
-      mo->eigs[*it] = VectorXcd::Zero(n);
+      //      mo->eigs[*it] = VectorXcd::Zero(n);
+      mo->eigs[*it] = E0[*it];
     }
 
     // ---- SCF calculation ----
     for(int iter = 0; iter < max_iter; iter++) {
       
-      // -- solve --
-      for(It it = mo->irrep_list.begin(); it != mo->irrep_list.end(); ++it) {
-	pair<Irrep, Irrep> ii(make_pair(*it, *it));
-	generalizedComplexEigenSolve(mo->F[ii], mo->S[ii],
-				     &mo->C[ii], &mo->eigs[*it]);
-      }
-
       // -- number of occupied orbitals --
       mo->num_occ_irrep = CalcOccNum(mo->eigs, sym->num_class(), nocc);      
 
@@ -301,11 +332,18 @@ namespace cbasis {
 	int n_irrep(num_irrep[*it]);
 	MatrixXcd& P_ii = mo->P[ii];
 	MatrixXcd& C_ii = mo->C[ii];
-	for(int i = 0; i < mo->num_occ_irrep[*it]; i++) {
-	  for(int k = 0; k < n_irrep; k++)
-	    for(int l = 0; l < n_irrep; l++)
-	      P_ii(k, l) = 2.0 * C_ii(k, i) * C_ii(l, i);
+	if(use_real) {
+	  for(int i = 0; i < mo->num_occ_irrep[*it]; i++) 
+	    for(int k = 0; k < n_irrep; k++)
+	      for(int l = 0; l < n_irrep; l++)
+		P_ii(k, l) = 2.0 * C_ii(k, i).real() * C_ii(l, i).real();
+	} else {
+	  for(int i = 0; i < mo->num_occ_irrep[*it]; i++) 
+	    for(int k = 0; k < n_irrep; k++)
+	      for(int l = 0; l < n_irrep; l++)
+		P_ii(k, l) = 2.0 * C_ii(k, i) * C_ii(l, i);
 	}
+	
       }
       
       // -- update Fock matrix --
@@ -313,29 +351,43 @@ namespace cbasis {
 	Irrep irrep(*it);
 	pair<Irrep, Irrep> ii(make_pair(irrep, irrep));
 	FOld[ii].swap(mo->F[ii]);
-	mo->F[ii] = mo->H[ii];
+	mo->F[ii] = mo->H[ii].real().cast<dcomplex>();
       }
       VectorXcd ca = mo->C[make_pair(0,0)].col(0);
-      AddJ(eri, ca, 0, 2.0,  mo->F);
-      AddK(eri, ca, 0, -1.0, mo->F);
-      /*
-      int ib,jb,kb,lb,i,j,k,l,t;
-      dcomplex v;
-      eri->Reset();
-      while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
-	if(ib == jb && kb == lb) {
-	  pair<Irrep, Irrep> ii(make_pair(ib, jb));
-	  pair<Irrep, Irrep> kk(make_pair(kb, lb));
-	  mo->F[ii](i, j) += mo->P[kk](k, l) * v;
-	}
-	if(ib == lb && kb == jb) {
-	  pair<Irrep, Irrep> il(make_pair(ib, lb));
-	  pair<Irrep, Irrep> jk(make_pair(jb, kb));
-	  mo->F[il](i, l) -= 0.5 * mo->P[jk](k, j) * v;
-	}
-      }
-      */
+      AddJ(eri, ca, 0, 2.0,  mo->F, use_real);
+      AddK(eri, ca, 0, -1.0, mo->F, use_real);
 
+      // -- diag F matrix --
+      for(It it = mo->irrep_list.begin(); it != mo->irrep_list.end(); ++it) {
+	pair<Irrep, Irrep> ii(make_pair(*it, *it));
+	if(debug_lvl > 1) {
+	  cout << "(irrep, im[F], im[S], im[H]) = " << *it
+	       << " " << (mo->F[ii]-mo->F[ii].conjugate()).norm()
+	       << " " << (mo->S[ii]-mo->S[ii].conjugate()).norm()
+	       << " " << (mo->H[ii]-mo->H[ii].conjugate()).norm()
+	       << endl;
+	}
+	generalizedComplexEigenSolve(mo->F[ii], mo->S[ii],
+				     &mo->C[ii], &mo->eigs[*it]);
+      }
+
+      // -- print current status --
+      if(debug_lvl > 0) {
+	for(It it = mo->irrep_list.begin(); it != mo->irrep_list.end(); ++it) {
+	  Irrep irrep = *it;
+	  cout << irrep << ": " << mo->num_occ_irrep[irrep];
+	  for(int i = 0; i < mo->num_occ_irrep[irrep]; i++) {
+	    cout << mo->eigs[irrep][i] << ", ";
+	  }
+	  cout << endl;	
+	}
+	cout << endl;       
+      }
+
+      // -- continue if first
+      if(iter == 0)
+	continue;
+      
       // -- Convergence check --
       bool conv(true);
       for(It it = mo->irrep_list.begin(); it != mo->irrep_list.end(); ++it) {
@@ -359,19 +411,6 @@ namespace cbasis {
 	    mo->energy += 0.5 * P(i, j) * (H(i, j) + F(i, j));
       }
       
-      // -- print current status --
-      if(debug_lvl > 0) {
-	for(It it = mo->irrep_list.begin(); it != mo->irrep_list.end(); ++it) {
-	  Irrep irrep = *it;
-	  cout << irrep << ": " << mo->num_occ_irrep[irrep];
-	  for(int i = 0; i < mo->num_occ_irrep[irrep]; i++) {
-	    cout << mo->eigs[irrep][i] << ", ";
-	  }
-	  cout << endl;	
-	}
-	cout << endl;       
-      }
-
       // -- if convergence, break loop. --
       if(conv) {
 	*is_conv = true;
