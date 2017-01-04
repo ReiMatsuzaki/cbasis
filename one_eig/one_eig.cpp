@@ -3,9 +3,10 @@
 #include "../external/picojson/picojson.h"
 #include "../utils/eigen_plus.hpp"
 #include "../utils/timestamp.hpp"
+#include "../utils/read_json.hpp"
 #include "../src_cpp/symmolint.hpp"
 #include "../src_cpp/one_int.hpp"
-#include "../src_cpp/read_json.hpp"
+#include "../src_cpp/symmol_read_json.hpp"
 
 
 using namespace std;
@@ -47,7 +48,9 @@ int main (int argc, char *argv[]) {
     picojson::object& obj = json.get<picojson::object>();
 
     // -- Comment --
-    comment = ReadJson<string>(obj, "comment");
+    //comment = ReadJson<string>(obj, "comment");
+    string key = "comment";
+    comment = ReadJson<string>(obj, key);
 
     // -- Basis --
     sym = ReadJson<SymmetryGroup>(obj, "sym");

@@ -15,17 +15,20 @@ def zs_et_from_num(num, z0=0.01, z1=30.0):
 
 def calc():
     ## optimized basis set
-    basis_dir = os.path.expanduser('~/src/git/opt_cbf/lstsq_fit/calc/win_irr_coulomb_atan2/p_ene05/out/')
-    base = "5_30"
-    
-    cgto_csv = pd.read_csv(basis_dir+base + ".res.csv")
-    pns_c= cgto_csv["pn"].as_matrix()
-    zs_c = (cgto_csv["re_z"].as_matrix()
-            + 1.0j * cgto_csv["im_z"].as_matrix())
+    #basis_dir = os.path.expanduser('~/src/git/opt_cbf/lstsq_fit/calc/win_irr_coulomb_atan2/p_ene05/out/')
+    #base = "5_30"    
+    #cgto_csv = pd.read_csv(basis_dir+base + ".res.csv")
+    #pns_c= cgto_csv["pn"].as_matrix()
+    #zs_c = (cgto_csv["re_z"].as_matrix()
+    #+ 1.0j * cgto_csv["im_z"].as_matrix())
+    zs_c = [0.0812755955262-0.0613237786222j,
+	    0.00497147387796-0.0113737972763j,
+	    0.0323712622673-0.0451300037076j,
+	    0.00317417887792-0.022582254987j,
+	    0.0118391719646-0.0327847352576j]
 
     ## build basis functions
-    zs = (zs_et_from_num(15, 0.01, 30.0) +
-          get_opt_zeta())
+    zs = list(zs_et_from_num(15, 0.01, 30.0)) + list(zs_c)
     b = GTOs()
     b.add(2, zs)
     b.setup()

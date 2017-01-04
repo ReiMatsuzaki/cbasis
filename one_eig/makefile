@@ -25,7 +25,7 @@ ${BINDIR}/%.o: %.cpp
 
 ## ==== MAIN ====
 ## -- one_eig --
-OBJS=one_eig.o read_json.o symmolint.o molecule.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o timestamp.o
+OBJS=one_eig.o symmol_read_json.o read_json.o symmolint.o molecule.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o timestamp.o
 ${BINDIR}/one_eig: $(foreach o, ${OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${LIBS} -lgsl -lgslcblas
 check: ${BINDIR}/one_eig

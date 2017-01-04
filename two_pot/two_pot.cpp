@@ -10,12 +10,13 @@
 #include <gsl/gsl_sf_result.h>
 #include "../utils/eigen_plus.hpp"
 #include "../utils/timestamp.hpp"
+#include "../utils/read_json.hpp"
 #include "../src_cpp/symmolint.hpp"
 #include "../src_cpp/angmoment.hpp"
 #include "../src_cpp/mo.hpp"
 #include "../src_cpp/one_int.hpp"
 #include "../src_cpp/two_int.hpp"
-#include "../src_cpp/read_json.hpp"
+#include "../src_cpp/symmol_read_json.hpp"
 
 using namespace std;
 using namespace Eigen;
@@ -64,6 +65,11 @@ map<int, SymGTOs> basis_chi0_L;
 
 // -- solver --
 LinearSolver linear_solver;
+
+// -- write_psi --
+string write_psi_filename;
+VectorXd write_psi_rs;
+int   write_psi_lmax;
 
 // -- intermediate --
 // ---- for psi1 ----
@@ -198,6 +204,14 @@ void Parse() {
     object& obj = json.get<object>();
     comment = ReadJson<string>(obj, "comment");
     calc_type = ReadJson<string>(obj, "calc_type");
+    
+    // -- write wave function --
+    CheckObject<object>(obj, "write_psi");
+    object& write_psi_obj = obj["write_psi"].get<object>();
+    write_psi_filename = ReadJson<string>(write_psi_obj, "file");
+    write_psi_rs = ReadJson<VectorXd>(write_psi_obj, "rs");
+    write_psi_lmax = ReadJson<int>(write_psi_obj, "lmax");
+    
     string str_calc_term = ReadJsonWithDefault<string>(obj, "calc_term", "full");
     if(str_calc_term == "one") {
       calc_term = ECalcTerm_One;
@@ -277,6 +291,7 @@ void Parse() {
       w_list.push_back(_ws(i));
     }
     result = MatrixXd::Zero(w_list.size(), num_header);
+
     
   } catch(exception& e) {
     cerr << "error on parsing json" << endl;
@@ -324,6 +339,10 @@ void PrintIn() {
   PrintTimeStamp("PrintIn", NULL);
   cout << "comment: " << comment << endl;
   cout << "in_json: " << in_json << endl;
+  cout << "write_psi_filename: " << write_psi_filename << endl;
+  VectorXd& rs = write_psi_rs;
+  cout << format("write_psi_rs: [%5.3f, %5.3f, ..., %5.3f]\n") % rs[0] % rs[1] % rs[rs.size()-1];
+  cout << "write_psi_lmax: " << write_psi_lmax << endl;
   cout << "cs_csv: "  << cs_csv;
   cout << "out_json: " << out_json << endl;
   cout << "calc_type: " << (use_stex ? "STEX" : "one") << endl;
@@ -623,6 +642,32 @@ void PrintOut() {
     f << endl;
   }
   f.close();
+
+  
+  if(write_psi_filename != "") {
+    VectorXd& rs = write_psi_rs;
+    int irr = sym->irrep_z();
+    ofstream f(write_psi_filename.c_str(), ios::out);
+    f << "r";
+    for(int L = 0; L <= write_psi_lmax; L++) {
+      f << format(",re_%d,im_%d") % L % L;
+    }
+    f << endl;
+    
+    vector<VectorXcd> ys(write_psi_lmax+1), dys(write_psi_lmax+1);
+    for(int L = 0; L <= write_psi_lmax; L++) {
+      basis1->AtR_Ylm(L, 0, irr, cZ1(irr), rs.cast<dcomplex>(), &ys[L], &dys[L]);
+    }
+    
+    for(int i = 0; i < rs.size(); i++) {
+      f << format("%f") % rs[i];
+      for(int L = 0; L <= write_psi_lmax; L++) {
+	dcomplex y = ys[L][i];
+	f << format(",%f,%f") % y.real() % y.imag();
+      }
+      f << endl;
+    }
+  }
 }
 int main(int argc, char *argv[]) {
   cout << ">>>> two_pot >>>>" << endl;

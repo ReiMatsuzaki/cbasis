@@ -2,7 +2,6 @@
 #include <boost/foreach.hpp>
 #include "../utils/macros.hpp"
 #include "../utils/eigen_plus.hpp"
-#include "mo.hpp"
 #include "read_json.hpp"
 
 
@@ -172,22 +171,7 @@ namespace cbasis {
       }
     }  
   }
-  template<class T>
-  void CheckObject(picojson::object& obj, std::string k, int n, int m) {
-    
-    string key = "key \"" + k + "\"";
-    if(obj.find(k) == obj.end()) {
-      throw(runtime_error(key + " not found."));
-    }
-    
-    try {
-      CheckValue<T>(obj[k], n, m);
-    } catch(exception& e) {
-      string msg = "error on parsing value of " + key + "\n";
-      msg += e.what();
-      throw(runtime_error(msg));
-    }
-  }
+
   template void CheckObject<object>(object&, string, int , int);
 
   template<> string ReadJson<string>(value& json, int n, int m) {
@@ -221,9 +205,8 @@ namespace cbasis {
   }  
   template<> VectorXcd ReadJson<VectorXcd>(value& json, int n, int m) {
 
-    CheckValue<VectorXcd>(json, n);
-
     if(json.is<array>()) {
+      //      CheckValue<VectorXcd>(json, n);
       array& ary = json.get<array>();
       VectorXcd vec = VectorXcd::Zero(ary.size());
       
@@ -237,12 +220,21 @@ namespace cbasis {
       object& obj = json.get<object>();
       string type = ReadJson<string>(obj, "type");
       if(type == "lin") {
-	dcomplex x0 = ReadJson<dcomplex>(obj, "x0");
-	dcomplex dx = ReadJson<dcomplex>(obj, "dx");
+	dcomplex x0, dx;
+	x0 = ReadJson<dcomplex>(obj, "x0");
 	int N = ReadJson<int>(obj, "N");
-	VectorXcd vec(N);
+	if(obj.find("dx") != obj.end()) {
+	  dx = ReadJson<dcomplex>(obj, "dx");
+	} else if(obj.find("x1") != obj.end()) {
+	  dcomplex xN = ReadJson<dcomplex>(obj, "xN");
+	  dx = (xN-x0)/dcomplex(N);
+	} else {
+	  throw runtime_error("dx or xN is necessary in ReadJson<VectorXcd>");
+	}
+	
+	VectorXcd vec(N+1);
 	//	dcomplex dx = (xN-x0)/(N-1);
-	for(int i =0; i<N; i++) {
+	for(int i =0; i<=N; i++) {
 	  vec(i) = x0 + dx * dcomplex(i);
 	}
 	return vec;
@@ -399,21 +391,6 @@ namespace cbasis {
     
     return mat;
   }
-  template<> ERIMethod ReadJson<ERIMethod>(value& json, int _n, int _m) {
-    ERIMethod method;
-    CheckValue<object>(json);
-    object& obj = json.get<object>();
-    if(obj.find("symmetry") != obj.end()) {
-      method.set_symmetry(ReadJson<int>(obj, "symmetry"));
-    }
-    if(obj.find("memo") != obj.end()) {
-      method.set_coef_R_memo(ReadJson<int>(obj, "memo"));
-    }
-    if(obj.find("perm") != obj.end()) {
-      method.set_perm(ReadJson<int>(obj, "perm"));
-    }
-    return method;
-  }
   template<> LinearSolver ReadJson<LinearSolver>(value& json, int n, int m) {
     CheckValue<object>(json);
     object& obj = json.get<object>();
@@ -422,27 +399,10 @@ namespace cbasis {
     return LinearSolver(type);
   }
   
-  template<class T>
-  T ReadJson(object& json, string key, int n, int m) {
-    if(json.find(key) == json.end()) {
-      throw runtime_error("key \"" + key + "\" not found");
-    }
-    T t;
-    try {
-      t = ReadJson<T>(json[key], n, m);
-    } catch(exception& e) {
-      ostringstream oss;
-      oss << "error on parsing value of key \"" << key << "\"" << endl;
-      oss << e.what() << endl;
-      throw runtime_error(oss.str());
-    }
-    return t;
-  }
   template int ReadJson<int>(object& o, string k, int n, int m);
   template VectorXd ReadJson<VectorXd>(object& o, string k, int n, int m);
   template double ReadJson<double>(object& o, string k, int n, int m);
   template bool ReadJson<bool>(object& o, string k, int n, int m);
-  template ERIMethod ReadJson<ERIMethod>(object& o, string k, int n, int m);
   template LinearSolver ReadJson<LinearSolver>(object& o, string k, int n, int m);
 
   template<class T>
@@ -454,7 +414,8 @@ namespace cbasis {
     }
   }
   template LinearSolver
-  ReadJsonWithDefault<LinearSolver>(object&, string, LinearSolver, int, int);
+  ReadJsonWithDefault<LinearSolver>(object&, string, LinearSolver, int, int);  
+
   template string ReadJsonWithDefault<string>(object&, string, string, int, int);
   template int ReadJsonWithDefault<int>(object&, string, int, int, int);
   
@@ -476,307 +437,5 @@ namespace cbasis {
     double y(x);
     return value(y);
   }  
-  
-  template<> SymmetryGroup ReadJson<SymmetryGroup>( value& v, int n, int m) {
-    string sym;
-    try {
-      sym = ReadJson<string>(v);
-    } catch(exception& e) {
-      string msg = "error on parsing SymmetryGroup.\n";
-      msg += e.what();
-      throw(runtime_error(msg));
-    }
-    
-    if(sym == "C1")
-      return SymmetryGroup_C1();
-    else if(sym == "Cs")
-      return SymmetryGroup_Cs();
-    else if(sym == "C2h")
-      return SymmetryGroup_Cs();
-    else if(sym == "D2h")
-      return SymmetryGroup_D2h();
-    else
-      throw(runtime_error("error on parsing SymmetryGroup.\nsym must be C1,Cs,C2h or D2h"));
-  }
-  template<> SymmetryGroup ReadJson<SymmetryGroup>(object& o, string k, int n, int m){
-    
-    if(o.find(k) == o.end()) {
-      string msg = "key \"" + k + "\" not found in parsing SymmetryGroup";
-      throw runtime_error(msg);
-    }
-    return ReadJson<SymmetryGroup>(o[k]);
-  }
-  void ReadJson_Molecule(value& v, Molecule mole) {
-
-    try {
-      CheckValue<array>(v);
-    }catch(exception& e) {
-      string msg = "error on parsing Molecule\n";
-      msg += e.what();
-      throw(runtime_error(msg));
-    }
-
-    string key;
-    array& atoms = v.get<array>();
-    for(array::iterator it = atoms.begin(); it != atoms.end(); ++it) {
-
-      try {
-	// -- build --
-	CheckValue<object>(*it);
-	object& obj_atom = it->get<object>();
-	key = "atom"; string name = ReadJson<string>(obj_atom, "atom");
-	key = "q";    dcomplex q = ReadJson<dcomplex>(obj_atom, "q");
-	key = "xyz";  MatrixXcd xyz_mat = ReadJson<MatrixXcd>(obj_atom, "xyz", -1, 3);
-
-	Atom atom = NewAtom(name, q);
-	for(int i = 0 ; i < xyz_mat.rows(); i++) {
-	  atom->Add(Vector3cd(xyz_mat(i, 0), xyz_mat(i, 1), xyz_mat(i, 2)));
-	}
-	mole->Add(atom);
-      } catch(exception& e) {
-	int i = distance(atoms.begin(), it);
-	ostringstream oss;
-	oss << "error on parsing value of "
-	    << i << "th element of molecule" << endl;
-	oss << e.what();
-	throw(runtime_error(oss.str()));
-      }
-    }
-    mole->SetSymPos();
-
-  }
-  void ReadJson_Molecule(picojson::object& obj, std::string k, Molecule mole) {
-    try {
-      CheckObject<array>(obj, k);
-      ReadJson_Molecule(obj[k], mole);
-    } catch(exception& e) {
-      string msg = "error on parsing Molecule\n";
-      msg += e.what();
-      throw runtime_error(msg);
-    }
-    
-  }
-  Reduction ReadJson_Reduction(value& json, SymmetryGroup sym){
-
-    try {
-      CheckValue<object>(json);
-      object& obj = json.get<object>();
-      string str_irrep = ReadJson<string>(obj, "irrep");
-      MatrixXcd coef = ReadJson<MatrixXcd>(obj, "coef");
-      int irrep = sym->GetIrrep(str_irrep);
-      Reduction rds(irrep, coef);
-      return rds;
-
-    } catch(exception& e) {
-      string msg = "error on parsing Reduction.\n";
-      msg += e.what();
-      throw(runtime_error(msg));      
-    }
-    
-  }
-  void ReadJson_SymGTOs_Subs_cart( object& basis, SymGTOs gtos) {
-
-    try {
-      
-      // -- pn --
-      Vector3i ns(ReadJson<VectorXi>(basis, "ns", -1, 3));
-
-      // -- atom --
-      string atom_name = ReadJson<string>(basis["atom"]);
-      Molecule mole = gtos->molecule();
-      if(not mole->exist_atom(atom_name))  {
-	throw runtime_error("atom name \"" + atom_name + "\" not found");
-      }
-
-      // -- zeta --
-      VectorXcd zeta =  ReadJson<VectorXcd>(basis, "zeta");
-
-      // -- build --
-      SymmetryGroup sym = gtos->sym_group();
-      gtos->NewSub(atom_name).Mono(0, ns, zeta);
-
-    } catch(exception& e) {
-      string msg = "error on parsing SymGTOs_Subs_cart.\n";
-      msg += e.what();
-      throw(runtime_error(msg));      
-    }    
-
-  }
-  void ReadJson_SymGTOs_Subs_full( object& basis, SymGTOs gtos) {
-    
-    try {
-
-      // -- atom --
-      string atom_name = ReadJson<string>(basis, "atom");
-      Molecule mole = gtos->molecule();
-      Atom atom = mole->atom(atom_name);
-
-      // -- sub --
-      SymmetryGroup sym = gtos->sym_group();
-      SubSymGTOs sub(sym, atom);
-
-      // -- ns --
-      MatrixXi ns = ReadJson<MatrixXi>(basis, "ns", -1, 3);
-      for(int i = 0; i < ns.rows(); i++) {
-	sub.AddNs(ns(i, 0), ns(i, 1), ns(i, 2));
-      }
-      
-      // -- reduction --
-      CheckObject<array>(basis, "rds");
-      array& rds_list = basis["rds"].get<array>();
-      for(array::iterator it = rds_list.begin(); it != rds_list.end(); ++it) {
-	Reduction rds = ReadJson_Reduction(*it, sym);
-	sub.AddRds(rds);
-      }
-
-      // -- zeta --
-      VectorXcd zeta = ReadJson<VectorXcd>(basis, "zeta");
-      sub.AddZeta(zeta);
-
-      gtos->AddSub(sub);
-      
-    } catch(exception& e) {
-      string msg = "error on parsing SymGTOs_Subs_full.\n";
-      msg += e.what();
-      throw(runtime_error(msg));      
-    }    
-  }
-  void ReadJson_SymGTOs_Subs_SolidSH( object& basis, SymGTOs gtos) {
-
-    try {
-
-      // -- atom --
-      string atom_name = ReadJson<string>(basis, "atom");
-      Molecule mole = gtos->molecule();
-      if(not mole->exist_atom(atom_name))  {
-	throw runtime_error("atom name \"" + atom_name + "\" not found");
-      }
-
-      // -- L --
-      int L = ReadJson<int>(basis, "L");
-
-      // -- M --
-      VectorXi Ms = ReadJson<VectorXi>(basis, "Ms");
-      
-      // -- zeta --
-      VectorXcd zeta =  ReadJson<VectorXcd>(basis, "zeta");
-
-      // -- build --
-      gtos->NewSub(atom_name).SolidSH_Ms(L, Ms, zeta);
-
-    } catch(exception& e) {
-      string msg = "error on parsing SymGTOs_Subs_SolidSH.\n";
-      msg += e.what();
-      throw(runtime_error(msg));      
-    }    
-
-  }
-  void ReadJson_SymGTOs_Subs(picojson::value& json, SymGTOs gtos) {
-
-    try {
-      /*
-      if(json.is<string>()) {
-	string path = ReadJson<string>(json);
-	fstream f; f.open(path.c_str(), ios::in);
-	value new_json; f >> new_json;
-	cout << "new_json: " << new_json.to_str() << endl;
-	ReadJson_SymGTOs_Subs(new_json, gtos);
-	return;
-      } 
-      */
-      CheckValue<array>(json);
-      array& ary = json.get<array>();
-      
-      for(array::iterator it = ary.begin(); it != ary.end(); ++it) {
-	
-	CheckValue<object>(*it);
-	object& basis = it->get<object>();
-	
-	CheckObject<string>(basis, "type");
-	string type = ReadJson<string>(basis, "type");
-	if(type == "cart")
-	  ReadJson_SymGTOs_Subs_cart(basis, gtos);
-	else if(type == "full")
-	  ReadJson_SymGTOs_Subs_full(basis, gtos);
-	else if(type == "solid_sh")
-	  ReadJson_SymGTOs_Subs_SolidSH(basis, gtos);
-	else 
-	  throw(runtime_error("unsupported type: " + type));
-      }
-    } catch(exception& e) {
-      string msg = "error on parsing SymGTOs_Subs\n";
-      msg += e.what();
-      throw runtime_error(msg);
-    }
-  }
-  void ReadJson_SymGTOs_Subs(picojson::object& obj, std::string k, SymGTOs gtos) {
-    if(obj.find(k) == obj.end()) {
-      throw runtime_error("key \"" + k + "\" not found.");
-    }
-    try {
-      ReadJson_SymGTOs_Subs(obj[k], gtos);
-    } catch(exception& e) {
-      string msg = "error on parsing SymGTOs_Subs. keys = \"" + k + "\"\n";
-      msg += e.what();
-      throw runtime_error(msg);
-    }
-  }
-
-  void ReadJson_Orbital_file(object& initstate, SymmetryGroup _sym, dcomplex *_E0,
-			     VectorXcd *_c0, Irrep *_irrep0, int *_i0) {
-
-  try {
-    string irrep_str = ReadJson<string>(initstate, "irrep");
-    *_irrep0 = _sym->GetIrrep(irrep_str);
-    *_i0 = ReadJson<int>(initstate, "i0");
-  } catch(exception& e) {
-    string msg = "error on parsing Orbital_file.\n";
-    msg += e.what();
-    throw runtime_error(msg);
-  }
-
-  try {
-    string eigvecs_file = ReadJson<string>(initstate, "eigvecs");
-    BMat eigvecs;
-    eigvecs.Read(eigvecs_file);
-    *_c0 = eigvecs(*_irrep0, *_irrep0).col(*_i0);    
-  } catch(exception& e) {
-    string msg = "error on reading Orbital_file.\n";
-    msg += e.what();
-    throw runtime_error(msg);
-  }
-
-  try {
-    string eigvals_file = ReadJson<string>(initstate, "eigvals");
-    BVec eigvals;
-    eigvals.Read(eigvals_file);
-    *_E0 = eigvals(*_irrep0)(*_i0);
-  } catch(exception& e) {
-    string msg = "error on parsing Orbital_file.\n";
-    msg += e.what();
-    throw runtime_error(msg);
-  }
-
-}
-  void ReadJson_Orbital(object& obj, string k, SymmetryGroup _sym,
-			dcomplex *_E0, VectorXcd *_c0, Irrep *_irrep0, int *_i0) {
-  
-  try {
-    CheckObject<object>(obj, k);
-    object& initstate = obj[k].get<object>();
-    string type = ReadJson<string>(initstate, "type");
-
-    if(type == "file")
-      ReadJson_Orbital_file(initstate, _sym, _E0, _c0, _irrep0, _i0);
-    else
-      throw runtime_error("type <- [file]");
-    
-
-  } catch(exception& e) {
-    string msg = "error on parsing Orbital. key = \"" + k + "\"\n";
-    msg += e.what();
-    throw runtime_error(msg);
-  }
-}
 
 }
