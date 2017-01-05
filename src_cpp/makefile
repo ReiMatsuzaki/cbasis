@@ -77,6 +77,15 @@ ${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
 check_symmolint: ${BINDIR}/test_symmolint
 	${RUN} ./$<
 
+# -- test ccol --
+CCOL_OBJS = test_ccol.o
+${BINDIR}/test_ccol: $(foreach o, ${CCOL_OBJS}, ${BINDIR}/$o)
+	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
+.PHONY: check_ccol
+check_ccol: ${BINDIR}/test_ccol
+	${RUN} ./$<
+
+
 # -- test 2e int --
 TWOINT_OBJS = test_2eint.o b2eint.o symmolint.o symgroup.o one_int.o two_int.o bmatset.o angmoment.o  \
 	eigen_plus.o molecule.o erfc.o int_exp.o fact.o cfunc.o mol_func.o timer.o gtest.a
