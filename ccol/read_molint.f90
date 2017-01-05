@@ -64,29 +64,28 @@ subroutine aoints_read_mat_structure(ifile, num_isym)
   end do
   
 end subroutine aoints_read_mat_structure
-subroutine aoints_read_mat_value_block(ifile, v, i, j, isym, num, is_end_block)
+subroutine aoints_read_mat_value_block(ifile, num, is_end_block, v, i, j, isym)
   integer ifile
   complex*16 v(1080)
   integer    i(1080)
   integer    j(1080)
   integer    isym(1080)
   integer    num
-  logical    is_end_block
+  logical*1  is_end_block
   
-  integer iblk, ibuf
+  integer iblk
   integer int
   integer lbli(1080)
   integer, parameter ::  mask1 = "000007FF"X
   
   iblk = 0
   
-  read(ifile) iblk, ibuf, lbli, v
-  do int = 1, ibuf
+  read(ifile) iblk, num, lbli, v
+  do int = 1, num
      j(int)    = iand(lbli(int), mask1)
      i(int)    = iand(ishft(lbli(int), -15), mask1)
      isym(int) = ishft(lbli(int), -26)
   end do
-  num = ibuf
   is_end_block = (iblk .ne. 0)
   
 end subroutine aoints_read_mat_value_block
@@ -94,23 +93,18 @@ end subroutine aoints_read_mat_value_block
 subroutine open_file_binary_read(ifile, succ, filename)
   character*(*) filename
   integer ifile
-  logical succ
+  logical*1 succ
   
   succ = .true.
   ifile = 15
-!  write(*, *) "in fort, ifile = ", ifile
   
   open(unit=ifile, file=filename, status='old', form='unformatted', err=100)
-  write(*, *) "in fort, ifile = ", ifile
-  write(*, *) "filename  = ", filename
   return
   
 100 succ = .false.  
   return
   
 end subroutine open_file_binary_read
-
-
 subroutine read_header(ifile, blabel, repfunc, nst, nd)
   integer ifile  
   character*80 blabel
@@ -121,7 +115,6 @@ subroutine read_header(ifile, blabel, repfunc, nst, nd)
   read(ifile) blabel, repfunc, nst, (nd(ist), ist=1, nst)
   !write(*, *) "zscale: ", zscale
 end subroutine read_header
-
 subroutine close_file(ifile)
   integer ifile
   close(ifile)

@@ -59,7 +59,7 @@ ${BINDIR}/%.o: %.f90
 #	read_molint.o test_ccol.o cfunc.o lgamma.o fact.o mol_func.o \
 #	angmoment.o eigen_plus.o bmatset.o  gtest.a
 OBJS = \
-	read_molint.o test_ccol.o  gtest.a
+	test_ccol.o  read_molint.o read_aoint_wrapper.o  gtest.a
 ${BINDIR}/test: $(foreach o, ${OBJS}, ${BINDIR}/$o) 
 	${CXX} -o $@ $^  ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas -lifport -lifcore
 
