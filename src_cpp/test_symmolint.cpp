@@ -8,7 +8,7 @@
 #include "one_int.hpp"
 #include "two_int.hpp"
 #include "symmolint.hpp"
-#include "read_json.hpp"
+#include "symmol_read_json.hpp"
 
 using namespace std;
 using namespace cbasis;
@@ -1318,6 +1318,7 @@ TEST(CompareCColumbus, small_he) {
 	   
 }
 TEST(CompareCColumbus, small_h2_2) {
+  
   /*
   // set symmetry
   SymmetryGroup sym = SymmetryGroup_D2h();

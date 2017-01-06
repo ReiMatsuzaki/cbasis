@@ -50,8 +50,13 @@ public:
   BasisEXPs basis;
   DrivLC_EXPs driv;
 
+  bool write_psi;
   string write_psi_filename;
   VectorXd write_psi_rs;
+  
+  bool write_basis;
+  string write_basis_filename;
+  VectorXd write_basis_rs;
 
   R1Driv(object& _obj): obj(_obj), basis(new _EXPs<MB>()), driv(new _LC_EXPs<MD>()) {}
   void Parse() {
@@ -69,16 +74,38 @@ public:
       exit(1);
     }
     
-    // -- wave func --
-    try {
-      CheckObject<object>(obj, "write_psi");
-      object& wavefunc_obj = obj["write_psi"].get<object>();
-      this->write_psi_filename = ReadJson<string>(wavefunc_obj, "file");
-      this->write_psi_rs = ReadJson<VectorXd>(wavefunc_obj, "rs");
-    } catch(std::exception& e) {
-      cerr << "error on parsing wavefunc\n";
-      cerr << e.what() << endl;
-      exit(1);
+    // -- write wave func --
+    this->write_psi = (obj.find("write_psi") != obj.end());
+    if(this->write_psi) {
+      try {
+	CheckObject<object>(obj, "write_psi");
+	object& wavefunc_obj = obj["write_psi"].get<object>();
+	this->write_psi_filename = ReadJson<string>(wavefunc_obj, "file");
+	cout << format("write_psi_file: %s\n") % this->write_psi_filename;
+	this->write_psi_rs = ReadJson<VectorXd>(wavefunc_obj, "rs");
+	cout << format("write_psi_rs\n");
+      } catch(std::exception& e) {
+	cerr << "error on parsing write_psi\n";
+	cerr << e.what() << endl;
+	exit(1);
+      }
+    }
+    
+    // -- write basis --
+    this->write_basis = (obj.find("write_basis") != obj.end());
+    if(this->write_basis) {
+      try {
+	CheckObject<object>(obj, "write_basis");
+	object& write_basis_obj = obj["write_basis"].get<object>();
+	this->write_basis_filename = ReadJson<string>(write_basis_obj, "file");
+	cout << format("write_basis_file: %s\n") % this->write_basis_filename;
+	this->write_basis_rs = ReadJson<VectorXd>(write_basis_obj, "rs");
+	cout << format("write_basis_rs: \n");
+      } catch(std::exception& e) {
+	cerr << "error on pasing write_basis\n";
+	cerr << e.what() << endl;
+	exit(1);
+      }
     }
     
     // -- parse target --
@@ -135,7 +162,13 @@ public:
       CheckObject<picojson::array>(basis_obj, "value");
       picojson::array& basis_vals = basis_obj["value"].get<picojson::array>();
       BOOST_FOREACH(value& val, basis_vals) {
-	CheckValue<object>(val);
+	try {
+	  CheckValue<object>(val);
+	} catch(std::exception& e) {
+	  string msg; msg = "error on element of basis/value\n";
+	  msg += e.what();
+	  throw runtime_error(msg);
+	}
 	object& obj0 = val.get<object>();
 	int n = ReadJson<int>(obj0, "n");
 	cout << "n: " << n << endl;
@@ -145,12 +178,12 @@ public:
 	  cout << "z: " << z << endl;
 	} else if(obj0.find("czs") != obj0.end()) {
 	  MatrixXcd czs = ReadJson<MatrixXcd>(obj0, "czs");
+	  cout << "czs: " << endl << czs << endl;
 	  typename _EXPs<MB>::LC_EXPs lc(new _LC_EXPs<MB>());
 	  for(int i = 0; i < czs.rows(); i++) {
 	    lc->Add(czs(i, 0), n, czs(i, 1));
 	  }
 	  this->basis->AddLC(lc);
-	  cout << "czs: " << endl << czs << endl;
 	} else {
 	  throw runtime_error("key \"z\" or \"czs\" are necessary in value in basis");
 	}
@@ -166,9 +199,21 @@ public:
   void PrintIn() {
     PrintTimeStamp("PrintIn", NULL);
     cout << "linear_solver: " << linear_solver.show() << endl;
-    cout << "write_psi_filename: " << this->write_psi_filename << endl;
-    VectorXd& rs = this->write_psi_rs;
-    cout << format("write_psi_rs: [%5.3f, %5.3f, ..., %5.3f]\n")% rs[0] % rs[1] % rs[rs.size()-1];    
+    if(this->write_psi) {
+      cout << "write_psi_filename: " << this->write_psi_filename << endl;
+      VectorXd& rs = this->write_psi_rs;
+      cout << format("write_psi_rs: [%5.3f, %5.3f, ..., %5.3f]\n")% rs[0] % rs[1] % rs[rs.size()-1];
+    } else {
+      cout << "write_psi: no" << endl;
+    }
+    if(this->write_basis) {
+      VectorXd& rs = this->write_basis_rs;
+      cout << format("write_basis_file: %s\n") % this->write_basis_filename;
+      cout << format("write_basis_rs: [%5.3f, %5.3f, ..., %5.3f]\n")
+	% rs[0] % rs[1] % rs[rs.size()-1];
+    } else {
+      cout << "write_basis: no\n";
+    }
     cout << "Z: " << Z << endl;
     cout << "L: " << L << endl;
     cout << "E: " << E << endl;
@@ -211,14 +256,42 @@ public:
     dcomplex alpha = TDot(m, c);
     cout << format("alpha: %20.15f, %20.15f\n") % alpha.real() % alpha.imag();    
 
+    // -- basis --
+    if(this->write_basis) {
+      ofstream f(this->write_basis_filename.c_str());
+      int num_basis = this->basis->size();
+      f << "r";
+      for(int i = 0; i < num_basis; i++) {
+	f << format(",re_%d,im_%d") % i % i;
+      }
+      f << endl;
+      VectorXd& rs = this->write_basis_rs;
+      vector<VectorXcd> yss;
+      for(int i = 0; i < num_basis; i++) {
+	VectorXcd c0 = VectorXcd::Zero(num_basis);
+	c0[i] = 1.0;
+	yss.push_back(this->basis->AtR(rs.cast<dcomplex>(), c0));
+      }
+      for(int j = 0; j < rs.size(); j++) {
+	f << rs[j];
+	for(int i = 0; i < num_basis; i++) {
+	  dcomplex& y(yss[i][j]);
+	  f << format(",%f,%f") % y.real() % y.imag();
+	}
+	f << endl;
+      }
+    }
+    
     // -- wave function --
-    VectorXd& rs = this->write_psi_rs;
-    VectorXcd ys = this->basis->AtR(rs.cast<dcomplex>(), c);
-    int num = ys.size();
-    ofstream f(this->write_psi_filename.c_str(), ios::out);
-    f << "r,re_y,im_y\n";
-    for(int i = 0; i < num; i++) {
-      f << format("%f,%f,%f\n") % rs[i] % ys[i].real() % ys[i].imag();
+    if(this->write_psi) {
+      VectorXd& rs = this->write_psi_rs;
+      VectorXcd ys = this->basis->AtR(rs.cast<dcomplex>(), c);
+      int num = ys.size();
+      ofstream f(this->write_psi_filename.c_str(), ios::out);
+      f << "r,re_y,im_y\n";
+      for(int i = 0; i < num; i++) {
+	f << format("%f,%f,%f\n") % rs[i] % ys[i].real() % ys[i].imag();
+      }
     }
   }  
   void Run() {
@@ -285,6 +358,12 @@ int main(int argc, char *argv[]) {
     if(MB == 1 && MS == 1) {
       R1Driv<1,1> r1driv(obj);
       r1driv.Run();
+    } else if(MB == 2 && MS == 1) {
+      R1Driv<2,1> r1driv(obj);
+      r1driv.Run();
+    } else {
+      cerr << "not supported combination of basis and driv type.\n";
+      exit(1);
     }
   } catch(std::exception& e) {
     cerr << "error on calculation\n";

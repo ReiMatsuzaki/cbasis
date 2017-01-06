@@ -1,5 +1,6 @@
 #include <fstream>
 #include <boost/foreach.hpp>
+#include <boost/format.hpp>
 #include "../utils/macros.hpp"
 #include "../utils/eigen_plus.hpp"
 #include "read_json.hpp"
@@ -8,6 +9,7 @@
 using namespace std;
 using namespace picojson;
 using namespace Eigen;
+using boost::format;
 
 namespace cbasis {
 
@@ -154,7 +156,12 @@ namespace cbasis {
       try {
 	CheckValue<array>(*it, n);
       } catch(...) {
-	throw(runtime_error("element of value is not array for MatrixXcd."));
+	string msg = (
+		      format("%d th element is not array")
+		      % distance(ary.begin(), it)
+		      ).str();
+	throw runtime_error(msg);
+	//throw(runtime_error("element of value is not array for MatrixXcd."));
       }
       array& aryary = it->get<array>();
       if(n > 0) {
@@ -165,8 +172,14 @@ namespace cbasis {
       for(array::iterator jt = aryary.begin(); jt != aryary.end(); ++jt) {
 	try {
 	  CheckValue<dcomplex>(*jt);
-	} catch(...) {
-	  throw(runtime_error("element of element of value is not dcomplex for MatrixXcd"));
+	} catch(exception& e) {
+	  string msg = (
+			format("element (%d, %d) cannot convert to complex\n")
+			% distance(ary.begin(), it)
+			% distance(aryary.begin(), jt)
+			).str();
+	  msg += e.what();
+	  throw runtime_error(msg);
 	}
       }
     }  

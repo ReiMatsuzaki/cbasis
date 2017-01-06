@@ -1,5 +1,5 @@
-#ifndef SYMMOLINT_H
-#define SYMMOLINT_H
+#ifndef READ_AOINT_WRAPPER_H
+#define READ_AOINT_WRAPPER_H
 
 #include <string>
 #include "../src_cpp/bmatset.hpp"

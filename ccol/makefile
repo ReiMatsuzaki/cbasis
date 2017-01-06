@@ -55,11 +55,17 @@ ${BINDIR}/%.o: %.f90
 	${F90} -c -o $@ $<
 
 # -- test --
-#OBJS = \
-#	read_molint.o test_ccol.o cfunc.o lgamma.o fact.o mol_func.o \
-#	angmoment.o eigen_plus.o bmatset.o  gtest.a
 OBJS = \
-	test_ccol.o  read_molint.o read_aoint_wrapper.o  gtest.a
+	read_molint.o test_ccol.o cfunc.o lgamma.o fact.o mol_func.o \
+	read_aoint_wrapper.o\
+	angmoment.o eigen_plus.o bmatset.o  molecule.o symgroup.o symmolint.o gtest.a
+#OBJS = \
+#	test_ccol.o  read_molint.o read_aoint_wrapper.o  symmolint.o gtest.a
+#${BINDIR}/symmolint.a:
+#	echo "compile symmolint.a"
+#	cd ../src_cpp; make ARCH=${ARCH} BINDIR=${BINDIR}
+#symmolint.a: ${BINDIR}/symmolint.a
+
 ${BINDIR}/test: $(foreach o, ${OBJS}, ${BINDIR}/$o) 
 	${CXX} -o $@ $^  ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas -lifport -lifcore
 

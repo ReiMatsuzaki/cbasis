@@ -50,6 +50,12 @@ ${BINDIR}/gtest.a : ${BINDIR}/gtest-all.o
 ${BINDIR}/%.o: %.cpp
 	${CXX} -c -o $@ -MMD ${CPPFLAGS} ${CXXFLAGS} $<
 
+# -- symmolint --
+OBJS=symmolint.o molecule.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o
+${BINDIR}/symmolint.a: $(foreach o, ${OBJS}, ${BINDIR}/$o)
+	ar rcs $@ $^ 
+symmolint.a: ${BINDIR}/symmolint.a
+
 # -- test math --
 MATH_OBJS = \
 	test_math.o cfunc.o lgamma.o fact.o mol_func.o \
@@ -71,18 +77,12 @@ check_symgroup: ${BINDIR}/test_symgroup
 # -- test symmolint --
 SYMMOLINT_OBJS = \
 	test_symmolint.o symmolint.o molecule.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o gtest.a 
-${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
+#${BINDIR}/test_symmolint: $(foreach o, ${SYMMOLINT_OBJS}, ${BINDIR}/$o)
+#	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
+${BINDIR}/test_symmolint: ${BINDIR}/test_symmolint.o ${BINDIR}/symmolint.a ${BINDIR}/gtest.a 
 	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
 .PHONY: check_symmolint
 check_symmolint: ${BINDIR}/test_symmolint
-	${RUN} ./$<
-
-# -- test ccol --
-CCOL_OBJS = test_ccol.o
-${BINDIR}/test_ccol: $(foreach o, ${CCOL_OBJS}, ${BINDIR}/$o)
-	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} ${LIBS} -lgsl -lgslcblas
-.PHONY: check_ccol
-check_ccol: ${BINDIR}/test_ccol
 	${RUN} ./$<
 
 

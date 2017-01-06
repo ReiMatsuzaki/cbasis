@@ -1,8 +1,11 @@
 #include <iostream>
 #include <fstream>
 #include <boost/format.hpp>
+#include <boost/foreach.hpp>
 #include <gtest/gtest.h>
 #include "../src_cpp/bmatset.hpp"
+#include "../src_cpp/symmolint.hpp"
+#include "../src_cpp/symgroup.hpp"
 #include "read_aoint_wrapper.hpp"
 
 using namespace std;
@@ -10,8 +13,104 @@ using boost::format;
 using namespace cbasis;
 using namespace Eigen;
 
+void WriteMolint(SymGTOs gtos, string label, string filename) {
+  ofstream f(filename.c_str(), ios::out);
+  f << label << endl;
+  f << "1.0000000000000 0.0000000000 0 0\n";
 
-TEST(TestFirst, First) {
+  int num_atoms = 2;
+  int num_basis = 20;
+  int num_sub = 5;
+  f << format("  1  %d  %d %d  %d 65 65\n") % num_atoms % num_sub % num_basis %num_sub;
+
+  SymmetryGroup sym = gtos->sym_group();
+  int num_irrep = sym->order();
+  f << format(" %d") % num_irrep;
+  for(int i = 0; i < num_irrep; i++) {
+    f << format("%5s") % sym->irrep_name_[i];
+  }
+  f << endl;
+
+  int num_prod_table(0);
+  for(int i = 0; i < num_irrep; i++)
+    for(int j = 0; j < num_irrep; j++)
+      for(int k = 0; k < num_irrep; k++)
+	if(sym->prod_table_(i, j, k) && i < j)
+	  num_prod_table++;
+  f << format(" %d\n") % num_prod_table;
+  for(int i = 0; i < num_irrep; i++)
+    for(int j = 0; j < num_irrep; j++)
+      for(int k = 0; k < num_irrep; k++)
+	if(sym->prod_table_(i, j, k) && i<j && j<k && i!=0 && j!=0)
+	  f << format(" %d  %d  %d\n") % (i+1) % (j+1) % (k+1);
+
+  vector<int> sub_types;
+  BOOST_FOREACH(SubSymGTOs& sub, gtos->subs()) {
+    if(sub.rds[0].is_solid_sh) {
+      if(rds.L == 0)
+	sub_types.push_back(0);
+      else if(rds.L == 1)
+	sub_types.push_back(1);
+      else if(rds.L == 2)
+	sub_types.push_back(2);
+      else if(rds.L == 3)
+	sub_types.push_back(3);
+      else
+	THROW_ERROR("unsupported solid_sh");
+    } else {
+      if(sub.rds.size() == 1) {
+	if(sub.maxn == 0 && sub.rds[0].irrep == sym->irrep_s()) 
+	  sub_types.push_back(4);
+	else if(sub.maxn == 0 && sub.rds[0].irrep == sym->irrep_z())
+	  sub_types.push_back(5);
+	else if(sub.maxn == 1 && sub.rds[0].irrep == sym->irrep_s())
+	  sub_types.push_back(6);
+	else if(sub.maxn == 2 && sub.rds[0].irrep == sym->irrep_s())
+	  sub_types.push_back(7);
+	else
+	  THROW_ERROR("unsupported type");
+      } else
+	THROW_ERROR("unsupported type");
+    }
+  }
+
+  BOOST_FOREACH(int sub_type, sub_types) {
+
+  }
+  
+}
+TEST(WriteMolint, First) {
+
+  SymmetryGroup sym = SymmetryGroup_D2h();
+
+  Molecule mole = NewMolecule(sym);
+  mole->Add(NewAtom("H", 1.0)->Add(0,0,+1.0)->Add(0,0,-1.0));
+  mole->Add(NewAtom("Cen", 0.0)->Add(0,0,0));
+
+  int num_zeta(10);
+  VectorXcd zeta(num_zeta);
+  for(int n = 0; n < num_zeta; n++)
+    zeta(n) = pow(2.0, n-5);
+
+  VectorXcd zetap(3);
+  zetap[0] = dcomplex(1.1, -0.3);
+  zetap[1] = dcomplex(0.3, -0.1);
+  zetap[2] = dcomplex(0.1, -0.05);
+  
+  SymGTOs gtos = NewSymGTOs(mole);
+  gtos->NewSub("H")
+    .AddNs(  Vector3i(0, 0, 0))
+    .AddZeta(zeta)
+    .AddRds( Reduction(sym->irrep_s(), MatrixXcd::Ones(2, 1)));
+  gtos->NewSub("Cen")
+    .SolidSH_M(1, 0, zetap);
+  gtos->SetUp();
+
+  WriteMolint(gtos, "produced by cpp", "molint_h2plus_cpp.in");
+  
+}
+
+TEST(ReadAOINTS, First) {
   /*
   int aoint_ifile;
   char aoint_filename[20] = "out/AOINTS";
@@ -37,7 +136,7 @@ TEST(TestFirst, First) {
   EXPECT_EQ(2, 1+1);
   */
 }
-TEST(TestFirst, third) {
+TEST(ReadAOINTS, third) {
 
   AoIntsHeader ao;
   BMat s, t, v;
@@ -47,7 +146,8 @@ TEST(TestFirst, third) {
   cout << s(0, 0)(0, 1) << endl;
   cout << s(0, 0)(1, 0) << endl;
 }
-TEST(TestFirst, Second) {
+TEST(ReadAOINTS, Second) {
+  /*
   int aoint_ifile;
   char aoint_filename[20] = "out/AOINTS";
   //long aoint_filename_length = 20;
@@ -113,7 +213,12 @@ TEST(TestFirst, Second) {
     }
   }    
   close_file_(&aoint_ifile);
+  */
+
+  
 }
+
+
 
 int main(int argc, char **args) {
   ::testing::InitGoogleTest(&argc, args);

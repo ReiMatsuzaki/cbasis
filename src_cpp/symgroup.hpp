@@ -143,7 +143,7 @@ namespace cbasis {
   public:
     // ---- typedef ----
     typedef std::vector<SymOp>::const_iterator ItSymOp;
-
+    
     // ---- Constructors ----
     _SymmetryGroup(int num_class, std::string name, int id_num);
 
