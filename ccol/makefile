@@ -71,8 +71,9 @@ ${BINDIR}/test: $(foreach o, ${OBJS}, ${BINDIR}/$o)
 
 .PHONY: check
 check: ${BINDIR}/test
-	cd out/; ~/src/prog/cCOLUMBUS/molint<../molint_h2plus.in > molint_h2plus.out
+	cd out/; ~/src/prog/cCOLUMBUS/molint<../molint_h2plus.in #> molint_h2plus.out
 	${RUN} ./$<
+#	cat molint_h2plus_cpp.in
 
 .PHONY: clean
 clean:

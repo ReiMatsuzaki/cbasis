@@ -10,7 +10,8 @@ namespace cbasis {
   dcomplex STOInt_Rplus(int n, dcomplex a);
   dcomplex GTOInt_Rplus(int n, dcomplex a);  
   dcomplex STO_GTOInt_Rplus(int n, dcomplex a, dcomplex b);
-
+  dcomplex STO_GTOInt_Rplus_2(int n, dcomplex a, dcomplex b);
+  
   dcomplex GTOInt_R(int n, dcomplex a);
   dcomplex STO_GTOInt_R(int n, dcomplex a, dcomplex b);  
 

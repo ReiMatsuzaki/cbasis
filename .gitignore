@@ -16,4 +16,5 @@ local.mk
 *.eps
 *.png
 *-checkpoint.ipynb
+*.pdf
 external/

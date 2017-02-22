@@ -50,6 +50,8 @@ public:
   BasisEXPs basis;
   DrivLC_EXPs driv;
 
+  bool write_matrix;
+
   bool write_psi;
   string write_psi_filename;
   VectorXd write_psi_rs;
@@ -58,12 +60,17 @@ public:
   string write_basis_filename;
   VectorXd write_basis_rs;
 
-  R1Driv(object& _obj): obj(_obj), basis(new _EXPs<MB>()), driv(new _LC_EXPs<MD>()) {}
+  R1Driv(object& _obj): obj(_obj), basis(new _EXPs<MB>()), driv(new _LC_EXPs<MD>()) {
+    write_matrix = false;
+    write_psi = false;
+    write_basis = false;
+  }
   void Parse() {
     PrintTimeStamp("Parse", NULL);
 
     // -- parse simple --            
     try {
+      
       this->comment = ReadJson<string>(obj, "comment");
       this->linear_solver = ReadJsonWithDefault
 	<LinearSolver>(obj, "linear_solver", LinearSolver());
@@ -73,10 +80,20 @@ public:
       cerr << e.what() << endl;
       exit(1);
     }
+
+    // -- parse options --
+    bool find_opt = (obj.find("opts") != obj.end());
+    if(find_opt) {
+      CheckObject<object>(obj, "opts");
+      object& opt_obj = obj["opts"].get<object>();
+      write_matrix = ReadJsonWithDefault<bool>(opt_obj, "write_matrix", false);
+      cout << format("write_matrix: %s\n") % (write_matrix ? "yes" : "no");
+    }
     
     // -- write wave func --
     this->write_psi = (obj.find("write_psi") != obj.end());
     if(this->write_psi) {
+      
       try {
 	CheckObject<object>(obj, "write_psi");
 	object& wavefunc_obj = obj["write_psi"].get<object>();
@@ -94,6 +111,7 @@ public:
     // -- write basis --
     this->write_basis = (obj.find("write_basis") != obj.end());
     if(this->write_basis) {
+      
       try {
 	CheckObject<object>(obj, "write_basis");
 	object& write_basis_obj = obj["write_basis"].get<object>();
@@ -157,8 +175,19 @@ public:
 
     // -- parse basis --
     try {
+      string normalization_const = "none";
       CheckObject<object>(obj, "basis");
       object& basis_obj = obj["basis"].get<object>();
+      if(basis_obj.find("opts") != basis_obj.end()) {
+	CheckObject<object>(basis_obj, "opts");
+	object& opt_obj = basis_obj["opts"].get<object>();
+	normalization_const = ReadJson<string>(opt_obj, "normalization_const");
+	if(normalization_const != "none" &&
+	   normalization_const != "continue" &&
+	   normalization_const != "sqrt" ) {
+	  throw runtime_error("normalization_const <- {none, continue, sqrt}" );
+	}
+      }
       CheckObject<picojson::array>(basis_obj, "value");
       picojson::array& basis_vals = basis_obj["value"].get<picojson::array>();
       BOOST_FOREACH(value& val, basis_vals) {
@@ -178,10 +207,20 @@ public:
 	  cout << "z: " << z << endl;
 	} else if(obj0.find("czs") != obj0.end()) {
 	  MatrixXcd czs = ReadJson<MatrixXcd>(obj0, "czs");
+	  cout << format("normalization_const: %s\n") % normalization_const;
 	  cout << "czs: " << endl << czs << endl;
+	  
 	  typename _EXPs<MB>::LC_EXPs lc(new _LC_EXPs<MB>());
 	  for(int i = 0; i < czs.rows(); i++) {
-	    lc->Add(czs(i, 0), n, czs(i, 1));
+	    dcomplex c(czs(i, 0));
+	    dcomplex z(czs(i, 1));
+	    dcomplex nterm(1);
+	    if(normalization_const == "continue") {
+	      nterm = NormalizationTermContinue<MB>(n, z);
+	    } else if(normalization_const == "sqrt") {
+	      nterm = 1.0/sqrt(EXPInt<MB, MB>(2*n, z, z));
+	    } 
+	    lc->Add(c*nterm, n, z);
 	  }
 	  this->basis->AddLC(lc);
 	} else {
@@ -214,6 +253,7 @@ public:
     } else {
       cout << "write_basis: no\n";
     }
+    cout << format("write_matrix: %s\n") % (write_matrix ? "yes" : "no");
     cout << "Z: " << Z << endl;
     cout << "L: " << L << endl;
     cout << "E: " << E << endl;
@@ -229,20 +269,38 @@ public:
 
     // -- build matrix --
     // D = E - T = E + 1/2 D2 - L(L+1)/2r2 +Z/r 
-    MatrixXcd D, R2, R1, S;
+    MatrixXcd D, R2, R1, H, S;
+    this->basis->InitMat(H);
+    this->basis->InitMat(S);
     this->basis->InitMat(D);
     this->basis->InitMat(R2);
     this->basis->InitMat(R1);
-    this->basis->InitMat(S);
     
-    this->basis->CalcD2Mat(D);
-    D *= 0.5;
+    
+    this->basis->CalcD2Mat(H);
+    H *= -0.5;
     this->basis->CalcRmMat(-2, R2);
-    D += -0.5*(L*(L+1))  * R2;
+    H += 0.5*(L*(L+1))  * R2;
     this->basis->CalcRmMat(-1, R1);
-    D += Z * R1;
+    H += -Z * R1;
     this->basis->CalcRmMat(0, S);
-    D += E *S;
+    D = E *S - H;
+
+    // -- print matrix --
+    if(write_matrix) {
+      cout << "H matrix: " << endl;
+      for(int i = 0; i < H.rows(); i++)
+	for(int j = 0; j < H.cols(); j++) {
+	  dcomplex v(H(i,j));
+	  cout << format("(%d,%d) = (%f, %f)\n") %i%j% v.real() % v.imag();
+	}
+      cout << "S matrix: " << endl;
+      for(int i = 0; i < H.rows(); i++)
+	for(int j = 0; j < H.cols(); j++) {
+	  dcomplex v(S(i,j));
+	  cout << format("(%d,%d) = (%f, %f)\n") %i%j% v.real() % v.imag();
+	}      
+    }
 
     // -- build vector --
     VectorXcd m; this->basis->InitVec(m);
@@ -254,7 +312,13 @@ public:
 
     // -- alpha --
     dcomplex alpha = TDot(m, c);
-    cout << format("alpha: %20.15f, %20.15f\n") % alpha.real() % alpha.imag();    
+    cout << format("alpha: %20.15f, %20.15f\n") % alpha.real() % alpha.imag();
+
+    // -- radial dipole --
+    dcomplex k = sqrt(2.0*E);
+    double rdm = sqrt(abs(alpha.imag()*k/2.0));
+    
+    cout << format("rad_dipole_moment: %20.15f\n") % rdm;
 
     // -- basis --
     if(this->write_basis) {

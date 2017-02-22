@@ -1,7 +1,9 @@
+#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
+#include <boost/assign.hpp>
 #include <gtest/gtest.h>
 #include "../src_cpp/bmatset.hpp"
 #include "../src_cpp/symmolint.hpp"
@@ -10,8 +12,10 @@
 
 using namespace std;
 using boost::format;
+using namespace boost::assign;
 using namespace cbasis;
 using namespace Eigen;
+
 
 void WriteMolint(SymGTOs gtos, string label, string filename) {
   ofstream f(filename.c_str(), ios::out);
@@ -25,9 +29,9 @@ void WriteMolint(SymGTOs gtos, string label, string filename) {
 
   SymmetryGroup sym = gtos->sym_group();
   int num_irrep = sym->order();
-  f << format(" %d") % num_irrep;
+  f << format("  %d") % num_irrep;
   for(int i = 0; i < num_irrep; i++) {
-    f << format("%5s") % sym->irrep_name_[i];
+    f << format("%6s") % sym->irrep_name_[i];
   }
   f << endl;
 
@@ -43,41 +47,72 @@ void WriteMolint(SymGTOs gtos, string label, string filename) {
       for(int k = 0; k < num_irrep; k++)
 	if(sym->prod_table_(i, j, k) && i<j && j<k && i!=0 && j!=0)
 	  f << format(" %d  %d  %d\n") % (i+1) % (j+1) % (k+1);
-
-  vector<int> sub_types;
+  
   BOOST_FOREACH(SubSymGTOs& sub, gtos->subs()) {
-    if(sub.rds[0].is_solid_sh) {
-      if(rds.L == 0)
-	sub_types.push_back(0);
-      else if(rds.L == 1)
-	sub_types.push_back(1);
-      else if(rds.L == 2)
-	sub_types.push_back(2);
-      else if(rds.L == 3)
-	sub_types.push_back(3);
-      else
-	THROW_ERROR("unsupported solid_sh");
-    } else {
-      if(sub.rds.size() == 1) {
-	if(sub.maxn == 0 && sub.rds[0].irrep == sym->irrep_s()) 
-	  sub_types.push_back(4);
-	else if(sub.maxn == 0 && sub.rds[0].irrep == sym->irrep_z())
-	  sub_types.push_back(5);
-	else if(sub.maxn == 1 && sub.rds[0].irrep == sym->irrep_s())
-	  sub_types.push_back(6);
-	else if(sub.maxn == 2 && sub.rds[0].irrep == sym->irrep_s())
-	  sub_types.push_back(7);
-	else
-	  THROW_ERROR("unsupported type");
-      } else
-	THROW_ERROR("unsupported type");
+    f << format(" %d") % sub.rds.size();
+    BOOST_FOREACH(Reduction& rds, sub.rds) {
+      f << format("  %d") % (rds.irrep + 1);
+    }
+    f << endl;
+  }
+
+  int idx(1);
+  BOOST_FOREACH(SubSymGTOs& sub, gtos->subs()) {
+    f << format(" %d  %d  %d\n") % (sub.rds.size())  % (sub.maxn*2+1) % idx;
+    BOOST_FOREACH(Reduction& rds, sub.rds) {
+      for(int ipn = 0; ipn < rds.size_pn(); ipn++) {
+	for(int iat = 0; iat < rds.size_at(); iat++) {
+	  dcomplex x = rds.coef_iat_ipn(iat, ipn);
+	  f << format(" %d ") % (x.real() * abs(x));
+	}
+      }
+      f << endl;
     }
   }
 
-  BOOST_FOREACH(int sub_type, sub_types) {
+  BOOST_FOREACH(SubSymGTOs& sub, gtos->subs()) {
+    for(int iz = 0; iz < sub.size_zeta(); iz++) {
+      f << format("1, %d\n") % (sub.maxn+1);
+      f << format("%10.6f, %10.6f, 1.000000, 1.000000\n")
+	% sub.zeta(iz).real() % sub.zeta(iz).imag();
+    } 
+  }
 
+  map<Atom, int> atom_num;
+  BOOST_FOREACH(SubSymGTOs& sub, gtos->subs()) {
+    Atom atom = sub.atom();
+    if(atom_num.find(atom) == atom_num.end()) {
+      atom_num[atom] = 0;
+    }
+    atom_num[atom] += sub.size_zeta();
   }
   
+  Molecule mole = gtos->molecule();
+  typedef pair<string, Atom> StrAtom;
+  BOOST_FOREACH(StrAtom str_atom, mole->atom_map_) {
+    string name = str_atom.first;
+    Atom atom = str_atom.second;
+    f << format("%s %d  %d  %2.1f\n")
+      % name % (atom_num[atom]) % atom->size() % atom->q().real();
+    for(int i = 0; i < atom->size(); i++) {
+      Vector3cd xyz = atom->xyz_list()[i];
+      f << format("%f   %f   %f\n") % xyz[0].real() % xyz[1].real() % xyz[2].real();
+    }
+    if(atom->size() != 1) {
+      f << "  2  1\n";
+    }
+    int idx(1), idx_sub(0);
+    BOOST_FOREACH(SubSymGTOs& sub, gtos->subs()) {
+      idx_sub++;
+      if(sub.atom() == atom) {
+	for(int i = 0; i < sub.size_zeta(); i++) {
+	  f << format("%d %d\n") % idx % idx_sub;
+	  idx++;
+	}
+      }
+    }
+  }
+
 }
 TEST(WriteMolint, First) {
 
@@ -96,18 +131,22 @@ TEST(WriteMolint, First) {
   zetap[0] = dcomplex(1.1, -0.3);
   zetap[1] = dcomplex(0.3, -0.1);
   zetap[2] = dcomplex(0.1, -0.05);
-  
+
+  VectorXi Ms(3); Ms << -1,0,+1;
   SymGTOs gtos = NewSymGTOs(mole);
   gtos->NewSub("H")
     .AddNs(  Vector3i(0, 0, 0))
     .AddZeta(zeta)
     .AddRds( Reduction(sym->irrep_s(), MatrixXcd::Ones(2, 1)));
   gtos->NewSub("Cen")
-    .SolidSH_M(1, 0, zetap);
+    .SolidSH_Ms(1, Ms, zetap);
+  gtos->NewSub("Cen")
+    .SolidSH_Ms(3, Ms, zetap);
   gtos->SetUp();
-
-  WriteMolint(gtos, "produced by cpp", "molint_h2plus_cpp.in");
   
+  WriteMolint(gtos, "produced by cpp", "out/molint_h2plus_cpp.in");
+  system("cd out/; ~/src/prog/cCOLUMBUS/molint< molint_h2plus_cpp.in");
+  //system("cd out/; ~/src/prog/cCOLUMBUS/molint< molint_h2plus_cpp.in > molint_h2plus_cpp.out");
 }
 
 TEST(ReadAOINTS, First) {

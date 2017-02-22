@@ -4,12 +4,40 @@
 
 #include "../utils/gtest_plus.hpp"
 #include "../utils/eigen_plus.hpp"
+#include "nderiv.hpp"
 #include "erfc.hpp"
 #include "int_exp.hpp"
 
 using namespace std;
 using namespace Eigen;
 using namespace cbasis;
+dcomplex Func1(dcomplex x) {
+  return sin(x);
+}
+TEST(NDeriv, OneTwo) {
+  dcomplex h(0.0001);
+  dcomplex x(0.2, 0.1);
+  EXPECT_C_NEAR(cos(x),
+		NDerivOne_R1(Func1, x, h),
+		pow(10.0, -8.0));
+  EXPECT_C_NEAR(cos(x),
+		NDerivOne_C1(Func1, x, h),
+		pow(10.0, -12.0));
+  EXPECT_C_NEAR(cos(x),
+		NDerivOne_R3(Func1, x, h),
+		pow(10.0, -12.0));
+
+  EXPECT_C_NEAR(-sin(x),
+		NDerivTwo_R1(Func1, x, h),
+		pow(10.0, -8.0));
+  EXPECT_C_NEAR(-sin(x),
+		NDerivTwo_C1(Func1, x, h),
+		pow(10.0, -8.0));
+  EXPECT_C_NEAR(-sin(x),
+		NDerivTwo_R3(Func1, x, h),
+		pow(10.0, -8.0));  
+  
+}
 
 TEST(Erfc, real_erfc) {
 
@@ -94,7 +122,7 @@ TEST(ExpInt, STO_Int_Rplus) {
   EXPECT_C_EQ(0.0873211906359305 + 0.0197914200245872j,
 	      STO_GTOInt_Rplus(3, 1.1, 1.3-0.2j));
   EXPECT_C_EQ(0.599365436693823j,
-	      STO_GTOInt_R(3, dcomplex(0, 1.1), 1.2));
+	      STO_GTOInt_R(3, dcomplex(0, 1.1), 1.2));  
   
   // -- see support/int_exp.py --
   //  dcomplex calc = 2.2*2.2*STOInt_Rplus(3+3+2, 1.1+1.1);

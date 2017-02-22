@@ -2,15 +2,23 @@
 #include <gtest/gtest.h>
 #include <Eigen/Core>
 
-#include "../src_cpp/gtest_plus.hpp"
-#include "../src_cpp/eigen_plus.hpp"
-#include "erfc.hpp"
+#include "../utils/gtest_plus.hpp"
+#include "../utils/eigen_plus.hpp"
+#include "../utils/fact.hpp"
+#include "../math/erfc.hpp"
 #include "r1_lc.hpp"
 #include "r1basis.hpp"
 
 using namespace std;
+//using namespace boost::lambda;
 using namespace Eigen;
 using namespace cbasis;
+
+dcomplex NormalizationTermContinue_2(int n, dcomplex z) {
+  // int(0,oo) r^(2n) exp(-2z r^2) dr = (2n-1)!! /(2^(n+1)(2z)^(n+1/2)) (pi)^(1/2)
+  dcomplex a = DDoubleFactorial(2*n-1) / pow(2.0, n+1) * sqrt(M_PI);
+  return pow(2.0*z, 0.5*(n+0.5))/sqrt(a);
+}  
 
 TEST(Erfc, real_erfc) {
 
@@ -106,6 +114,64 @@ TEST(TestR1Basis, TestSTO) {
   cout << s->str() << endl;
 
 }
+TEST(TestR1Basis, NormalTerm) {
+
+  dcomplex a(0.000552739, -0.0077609);
+  cout <<EXPInt<2,2>(4, a, a) << endl;
+  cout << 1.0/sqrt(EXPInt<2,2>(4, a, a)) << endl;
+  
+  int n(4);
+  dcomplex z(1.1);
+  dcomplex ref  = 1.0/sqrt(EXPInt<1,1>(2*n, z, z));
+  dcomplex calc = NormalizationTermContinue<1>(n, z);
+  EXPECT_C_EQ(ref, calc);
+
+  ref  = 1.0/sqrt(EXPInt<2,2>(2*n, z, z));
+  calc = NormalizationTermContinue<2>(n, z);
+  EXPECT_C_EQ(ref, calc);
+  
+}
+TEST(TestSTO, TestOneDeriv) {
+
+  dcomplex eps(0.00001);
+  dcomplex zeta1(1.1, 0.3);
+  dcomplex zeta2(0.6, 0.1);
+  
+  STOs s = Create_STOs();
+  s->AddPrim(2, zeta1);
+  s->AddPrim(3, zeta2);
+  s->SetUp();
+
+  STOs sp = Create_STOs();
+  sp->AddPrim(2, zeta1+eps);
+  sp->AddPrim(3, zeta2+eps);
+  sp->SetUp();
+
+  STOs sm = Create_STOs();
+  sm->AddPrim(2, zeta1-eps);
+  sm->AddPrim(3, zeta2-eps);
+  sm->SetUp();
+  
+  STOs s1 = Create_STOs();
+  s->DerivOneZeta(s1);  
+
+  STOs s2 = Create_STOs();
+  s->DerivTwoZeta(s2);
+
+  LC_STOs lc = Create_LC_STOs();
+  lc->Add(1.1, 2, 0.8);
+
+  VectorXcd a0(2), ap(2), am(2), da(2), d2a(2);
+  CalcVec<1,1>(s, lc,  a0);
+  CalcVec<1,1>(s1, lc, da);
+  CalcVec<1,1>(s2, lc, d2a);
+  CalcVec<1,1>(sp, lc, ap);
+  CalcVec<1,1>(sm, lc, am);
+
+  EXPECT_C_EQ(da(0), (ap(0)-am(0))/(2.0*eps));
+  EXPECT_C_NEAR(d2a(0), (ap(0)+am(0)-2.0*a0(0))/(eps*eps), abs(eps)*10);
+  
+}
 TEST(TestGTO, TestSTO) {
 
   GTOs g = Create_GTOs();
@@ -144,8 +210,8 @@ TEST(TestGTO, H_atom) {
 
   double eps = pow(10.0, -2);
   SymGenComplexEigenSolver solver(h, s);
-  EXPECT_C_NEAR(-0.5, solver.eigenvalues()[0], eps);
-
+  EXPECT_C_NEAR(-0.5, solver.eigenvalues()[0], eps);  
+  
 }
 
 

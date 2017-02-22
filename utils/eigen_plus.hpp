@@ -95,13 +95,17 @@ private:
   static const int method_fullPivHouseholderQr = 2;
   int method_;
   //  Eigen::MatrixXcd *ptr_mat_;
-  //  Eigen::HouseholderQR householder;
-  //  Eigen::ColPivHouseholderQr col_piv;
-  //  Eigen::fullPivHouseholderQr full_piv;
+  //  bool set_matrix;
+  //  Eigen::HouseholderQR<Eigen::MatrixXcd> householder;
+  //  Eigen::ColPivHouseholderQR<Eigen::MatrixXcd> col_piv;
+  //  Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> full_piv;
 public:
   LinearSolver(): method_(0) {}
   LinearSolver(std::string method);
+  //  void SetMatrix(Eigen::MatrixXcd& _mat);
+  //  void Solve(Eigen::VectorXcd& x, Eigen::VectorXcd *y);
   void Solve(Eigen::MatrixXcd& mat, Eigen::VectorXcd& vec, Eigen::VectorXcd *sol);
+  void Inv(Eigen::MatrixXcd& m, Eigen::MatrixXcd *sol);
   std::string show();
 };
 

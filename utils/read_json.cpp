@@ -427,7 +427,9 @@ namespace cbasis {
     }
   }
   template LinearSolver
-  ReadJsonWithDefault<LinearSolver>(object&, string, LinearSolver, int, int);  
+  ReadJsonWithDefault<LinearSolver>(object&, string, LinearSolver, int, int);
+  template bool
+  ReadJsonWithDefault<bool>(object&, string, bool, int, int);    
 
   template string ReadJsonWithDefault<string>(object&, string, string, int, int);
   template int ReadJsonWithDefault<int>(object&, string, int, int, int);

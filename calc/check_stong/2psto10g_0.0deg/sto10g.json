@@ -11,6 +11,7 @@
 	       "L": 1
 	      },
     "basis": {"type": "GTO",
+	      "opts": {"normalization_const": "continue"},
 	      "value": [
 		  {"n": 2, "czs":
 		   [		  

@@ -33,9 +33,7 @@ namespace cbasis {
     
   }
 
-  // ==== Calculation ====
-  template<int m1, int m2>
-  dcomplex EXPInt(int n, dcomplex a, dcomplex b);
+  // ==== Calculation ====  
   template<>
   dcomplex EXPInt<1,1>(int n, dcomplex a, dcomplex b) {
     return STOInt_Rplus(n, a+b);
@@ -118,6 +116,16 @@ namespace cbasis {
     
   }
 
+  template<>
+  dcomplex NormalizationTermContinue<1>(int n, dcomplex a) {   
+   return pow(2.0*a, 0.5*(2*n+1))/sqrt(DFactorial(2*n));
+  }
+  template<> dcomplex NormalizationTermContinue<2>(int n, dcomplex z) {
+    // int(0,oo) r^(2n) exp(-2z r^2) dr = (2n-1)!! /(2^(n+1)(2z)^(n+1/2)) (pi)^(1/2)
+    dcomplex a = DDoubleFactorial(2*n-1) / pow(2.0, n+1) * sqrt(M_PI);
+    return pow(2.0*z, 0.5*(n+0.5))/sqrt(a);
+  }  
+  
   // ==== calculation for LC ====
   template<int m1, int m2>
   dcomplex EXPIntLC(typename _EXPs<m1>::LC_EXPs a,
@@ -556,6 +564,34 @@ namespace cbasis {
     return this;
     
   }
+
+  template<int m>
+  _EXPs<m>* _EXPs<m>::SetStructure(int num, int n) {
+
+    bool correct_structure;
+    if(this->size() == num) {
+      for(int i = 0; i < num; i++) {
+	if(this->basis(i)->size() != n) {
+	  correct_structure = false;
+	}
+      }
+      correct_structure = true;
+    } else {
+      correct_structure = false;
+    }    
+
+    if(not correct_structure) {
+      this->Clear();
+      for(int i = 0; i < num; i++) {
+	LC_EXPs lc(new _LC_EXPs<m>());
+	for(int j = 0; j < n; j++) {
+	  lc->Add(1.0, 1, 1.0);
+	}
+	this->AddNotNormalLC(lc);
+      }
+    }
+    return this;
+  }
   
   template<int m>
   _EXPs<m>* _EXPs<m>::SetUp() {
@@ -658,6 +694,124 @@ namespace cbasis {
   void _EXPs<m>::CalcD2Mat(       MatrixXcd& mat) {
     cbasis::CalcD2Mat<m, m>(this->self(), this->self(), mat);
   }
+
+  // ---- transform ----  
+  template<>
+  void _EXPs<1>::DerivOneZeta(EXPs other) const {
+    
+    if(!this->IsPrimAll()) {
+      THROW_ERROR("all basis must be primitive");
+    }
+    if(!this->IsNormalAll()) {
+      THROW_ERROR("all basis is not normalized");
+    }
+    
+    other->SetStructure(this->size(), 2);
+
+    for(int i = 0; i < this->size(); i++) {
+      LC_EXPs a = this->basis(i);
+      LC_EXPs b = other->basis(i);
+      dcomplex N(a->c(0));
+      dcomplex z(a->z(0));
+      int      n(a->n(0));
+      dcomplex N1((n+0.5)/z);
+      b->c(0) = N1*N;
+      b->n(0) = n;
+      b->z(0) = z;
+      b->c(1) = -N;
+      b->n(1) = n+1;
+      b->z(1) = z;
+    }
+  } 
+  template<>
+  void _EXPs<1>::DerivTwoZeta(EXPs other) const {
+    
+    if(!this->IsPrimAll()) {
+      THROW_ERROR("all basis must be primitive");
+    }
+    if(!this->IsNormalAll()) {
+      THROW_ERROR("all basis is not normalized");
+    }
+    
+    other->SetStructure(this->size(), 3);
+
+    for(int i = 0; i < this->size(); i++) {
+      LC_EXPs a = this->basis(i);
+      LC_EXPs b = other->basis(i);
+      dcomplex N(a->c(0));
+      dcomplex z(a->z(0));
+      int      n(a->n(0));
+      dcomplex N1((n+0.5)/z);
+      dcomplex N2((n*n-1.0/4.0)/(z*z));
+      b->c(0) = N2*N;
+      b->n(0) = n;
+      b->z(0) = z;
+      b->c(1) = -2.0*N1*N;
+      b->n(1) = n+1;
+      b->z(1) = z;
+      b->c(2) = N;
+      b->n(2) = n+2;
+      b->z(2) = z;      
+    }
+  }
+  template<>
+  void _EXPs<2>::DerivOneZeta(EXPs other) const {
+    if(!this->IsPrimAll()) {
+      THROW_ERROR("all basis must be primitive");
+    }
+    if(!this->IsNormalAll()) {
+      THROW_ERROR("all basis is not normalized");
+    }
+    
+    other->SetStructure(this->size(), 2);
+
+    for(int i = 0; i < this->size(); i++) {
+      LC_EXPs a = this->basis(i);
+      LC_EXPs b = other->basis(i);
+      dcomplex N(a->c(0));
+      dcomplex z(a->z(0));
+      int      n(a->n(0));
+      dcomplex N1((2*n+1.0)/(4.0*z));
+      b->c(0) = N1*N;
+      b->n(0) = n;
+      b->z(0) = z;
+      b->c(1) = -N;
+      b->n(1) = n+2;
+      b->z(1) = z;
+    }    
+  }  
+  template<>
+  void _EXPs<2>::DerivTwoZeta(EXPs other) const {
+    
+    if(!this->IsPrimAll()) {
+      THROW_ERROR("all basis must be primitive");
+    }
+    if(!this->IsNormalAll()) {
+      THROW_ERROR("all basis is not normalized");
+    }
+    
+    other->SetStructure(this->size(), 3);
+
+    for(int i = 0; i < this->size(); i++) {
+      LC_EXPs a = this->basis(i);
+      LC_EXPs b = other->basis(i);
+      dcomplex N(a->c(0));
+      dcomplex z(a->z(0));
+      int      n(a->n(0));
+      dcomplex N1((n+0.5)/z);
+      dcomplex N2((n*n-1.0/4.0)/(z*z));
+      b->c(0) = N2*N;
+      b->n(0) = n;
+      b->z(0) = z;
+      b->c(1) = -2.0*N1*N;
+      b->n(1) = n+1;
+      b->z(1) = z;
+      b->c(2) = N;
+      b->n(2) = n+2;
+      b->z(2) = z;      
+    }
+    
+  }  
   
   // ==== realize ====
   template class _EXPs<1>;

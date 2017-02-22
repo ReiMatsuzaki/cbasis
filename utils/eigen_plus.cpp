@@ -351,19 +351,19 @@ LinearSolver::LinearSolver(string _method) {
   }
   
 }
-/*
-void LinearSolver::SetMatrix(Eigen::MatrixXcd& _mat) {
-  if(method_ == method_householderQr) {
-    householder = _mat.householderQr();
-  }
-  if(method_ == method_colPivHouseholderQr) {
-    col_piv = _mat.colPivHouseholderQr();
-  }
-  if(method_ == method_fullPivHouseholderQr) {
-    full_piv = _mat.fullPivHouseholderQr();
-  }
-}
-*/
+
+//void LinearSolver::SetMatrix(Eigen::MatrixXcd& _mat) {
+//  if(method_ == method_householderQr) {
+//    householder = _mat.householderQr();
+//  }
+//  if(method_ == method_colPivHouseholderQr) {
+//    col_piv = _mat.colPivHouseholderQr();
+//  }
+//  if(method_ == method_fullPivHouseholderQr) {
+//    full_piv = _mat.fullPivHouseholderQr();
+//  }
+  //}
+
 void LinearSolver::Solve(MatrixXcd& mat, VectorXcd& vec, VectorXcd *sol) {
   if(method_ == method_householderQr) {
     *sol = mat.householderQr().solve(vec);
@@ -374,6 +374,42 @@ void LinearSolver::Solve(MatrixXcd& mat, VectorXcd& vec, VectorXcd *sol) {
   if(method_ == method_fullPivHouseholderQr) {
     *sol = mat.fullPivHouseholderQr().solve(vec);
   }
+}
+void LinearSolver::Inv(MatrixXcd& m, MatrixXcd *sol) {
+  int n(m.rows());
+  if(m.cols() != n) {
+    THROW_ERROR("m must be square");
+  }
+
+  if(sol == NULL) {
+    THROW_ERROR("sol must be allocated");
+  }
+
+  if(sol->rows() != n && sol->rows() != n) {
+    THROW_ERROR("sol must be same form with m");
+  }
+
+  VectorXcd id(n);
+  VectorXcd sol_vec(n);
+
+  for(int i = 0; i < n; i++) {
+    for(int j = 0; j < n; j++)
+      id(j) = 0.0;
+    id(i) = 1.0;
+    
+    if(method_ == method_householderQr) {
+      sol_vec = m.householderQr().solve(id);
+    }
+    if(method_ == method_colPivHouseholderQr) {
+      sol_vec = m.colPivHouseholderQr().solve(id);
+    }
+    if(method_ == method_fullPivHouseholderQr) {
+      sol_vec = m.fullPivHouseholderQr().solve(id);
+    }
+    for(int j = 0; j < n; j++)
+      (*sol)(j, i) = sol_vec(j);
+  }
+  
 }
 string LinearSolver::show() {
   if(method_ == method_householderQr) {

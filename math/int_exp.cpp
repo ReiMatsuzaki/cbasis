@@ -54,14 +54,14 @@ namespace cbasis {
       return sqrt(M_PI) * erfcx(a/(2.0*sqrt(b))) /(2.0*sqrt(b));
     }
     if(n == 1) {
-      return (-sqrt(M_PI)*a*erfcx(a/(2.0*sqrt(b)))
-	      +2.0*sqrt(b)) / (4.0*pow(b,1.5));
+      return (-sqrt(M_PI)*a*erfcx(a/(2.0*sqrt(b)))+2.0*sqrt(b)) / (4.0*pow(b,1.5));
+	      
     }
 
-    return (n-1.0)/(2.0*b) * STO_GTOInt_Rplus(n-2,a,b)
-      - a/(2.0*b) * STO_GTOInt_Rplus(n-1,a,b);
+    return ( (n-1.0)/(2.0*b) * STO_GTOInt_Rplus(n-2,a,b)
+	     - a/(2.0*b) * STO_GTOInt_Rplus(n-1,a,b)
+	     );	     
   }
-
   dcomplex GTOInt_R(int n, dcomplex a) {
 
     if(n % 2 == 1) {

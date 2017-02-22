@@ -19,6 +19,12 @@
 //
 
 namespace cbasis {
+
+  template<int m1, int m2>
+  dcomplex EXPInt(int n, dcomplex a, dcomplex b);
+
+  template<int m>
+  dcomplex NormalizationTermContinue(int n, dcomplex a);
   
   template<int m>
   class _EXPs : public boost::enable_shared_from_this<_EXPs<m> > {
@@ -61,12 +67,15 @@ namespace cbasis {
     _EXPs<m>* AddNotNormalPrim(dcomplex c, int n, dcomplex z);    
     _EXPs<m>* AddNotNormalLC(LC_EXPs lc);
     _EXPs<m>* SetUp();
-
     _EXPs<m>* ReplaceLC(int i, LC_EXPs lc);
     
+    _EXPs<m>* SetStructure(int num, int n);
+    _EXPs<m>* Clear() {this->basis_.clear(); this->coef_type_.clear(); return this;}
     // ---- Create ----
     EXPs Conj() const;
     EXPs Clone() const;
+    void DerivOneZeta(EXPs other) const;
+    void DerivTwoZeta(EXPs other) const;
   
     // ---- Calculate ----
     Eigen::MatrixXcd CalcRmMat(int M) const;
@@ -80,6 +89,7 @@ namespace cbasis {
     void CalcVec(LC_GTOs gtos, Eigen::VectorXcd&);    
     void CalcRmMat(int M        , Eigen::MatrixXcd&);
     void CalcD2Mat(               Eigen::MatrixXcd&);
+
     
   };
 
@@ -115,13 +125,13 @@ namespace cbasis {
   void initMat(typename _EXPs<m1>::EXPs a,
 	       typename _EXPs<m2>::EXPs b, Eigen::MatrixXcd& mat);
   template<int m1, int m2>
-  void calcRmMat(typename _EXPs<m1>::EXPs a,
+  void CalcRmMat(typename _EXPs<m1>::EXPs a,
 		 int M,
 		 typename _EXPs<m2>::EXPs b,
 		 Eigen::MatrixXcd& mat);
 			     
   template<int m1, int m2>
-  void calcD2Mat(typename _EXPs<m1>::EXPs a,
+  void CalcD2Mat(typename _EXPs<m1>::EXPs a,
 		 typename _EXPs<m2>::EXPs b,
 		 Eigen::MatrixXcd& mat);
 

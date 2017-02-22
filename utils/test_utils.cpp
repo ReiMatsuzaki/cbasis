@@ -136,6 +136,28 @@ TEST(EigenPlus, lin_solve) {
   solver.Solve(A, a, &x);
   EXPECT_C_EQ(0.0, (A*x-a).array().sum());
 }
+TEST(EigenPlus, inv) {
+
+  int n(4);
+  MatrixXcd A(n, n);
+  for(int i = 0; i < n; i++) {
+    for(int j = 0; j < n; j++) {
+      A(0, 0) = i + j + 0.5;
+    }
+  }
+
+  MatrixXcd AInv(n, n);
+  LinearSolver solver;
+  solver.Inv(A, &AInv);
+
+  MatrixXcd AAInv(n, n);
+  AAInv = A * AInv;
+  for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++) {
+      EXPECT_C_EQ(i==j ? 1.0 : 0.0, AAInv(i, j));
+    }
+  
+}
 
 TEST(Fact, iabs) {
 
