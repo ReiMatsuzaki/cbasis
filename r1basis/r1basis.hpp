@@ -17,21 +17,24 @@
 // represent set of linear combination of STO/GTO
 // you can use normalized basis set or not normalized basis set
 //
-
 namespace cbasis {
 
+  // ====== Basic calculation ====
   template<int m1, int m2>
   dcomplex EXPInt(int n, dcomplex a, dcomplex b);
 
-  template<int m>
-  dcomplex NormalizationTermContinue(int n, dcomplex a);
+  template<int m1, int m2>
+  dcomplex EXPIntD2(int na, dcomplex a, int nb, dcomplex b);
   
+  // ===== Main ====
   template<int m>
   class _EXPs : public boost::enable_shared_from_this<_EXPs<m> > {
   public:
     // ---- typedef ----
     typedef typename _LC_EXPs<m>::LC_EXPs LC_EXPs;
     typedef boost::shared_ptr<_EXPs<m> > EXPs;
+    typedef Eigen::VectorXcd Vec;
+    typedef Eigen::MatrixXcd Mat;
     
   private:
     // ---- Member field ----
@@ -52,13 +55,10 @@ namespace cbasis {
     bool HasCoef(int i) const;
     bool HasCoefAll() const;
     int exp_power() const { return m; }
-    Eigen::VectorXcd AtR(const Eigen::VectorXcd& rs, 
-			 const Eigen::VectorXcd& cs) const;
-    Eigen::VectorXcd DAtR(const Eigen::VectorXcd& rs,
-			  const Eigen::VectorXcd& cs) const;
-    dcomplex AtR_One(dcomplex r, const Eigen::VectorXcd& cs) const;
+    Vec AtR(const Vec& rs, const Vec& cs) const;	    
+    Vec DAtR(const Vec& rs, const Vec& cs) const;
+    dcomplex AtR_One(dcomplex r, const Vec& cs) const;
     std::string str() const;
-    EXPs self();
     
     // ---- Setter ----
     _EXPs<m>* AddPrim(int n, dcomplex z);
@@ -67,77 +67,90 @@ namespace cbasis {
     _EXPs<m>* AddNotNormalPrim(dcomplex c, int n, dcomplex z);    
     _EXPs<m>* AddNotNormalLC(LC_EXPs lc);
     _EXPs<m>* SetUp();
-    _EXPs<m>* ReplaceLC(int i, LC_EXPs lc);
-    
-    _EXPs<m>* SetStructure(int num, int n);
+    _EXPs<m>* ReplaceLC(int i, LC_EXPs lc);        
     _EXPs<m>* Clear() {this->basis_.clear(); this->coef_type_.clear(); return this;}
+    
+    
     // ---- Create ----
-    EXPs Conj() const;
+    void Simple_Symbolic(int num, int n, EXPs other);
+    void Clone_Symbolic(EXPs *o) const;
+    void Clone(int reuse, EXPs *other) const;
+    void Conj(int reuse, EXPs *other) const;
+    void DerivOneZeta(int reuse, EXPs *other) const;
+    void DerivTwoZeta(int reuse, EXPs *other) const;
+
+    EXPs self();    
+    EXPs Conj() const;    
     EXPs Clone() const;
-    void DerivOneZeta(EXPs other) const;
-    void DerivTwoZeta(EXPs other) const;
+    
   
-    // ---- Calculate ----
+    // ---- Vec/Mat ----
+    void CalcVec(LC_STOs stos, int scall, Eigen::VectorXcd*);
+    void CalcVec(LC_GTOs gtos, int scall, Eigen::VectorXcd*);    
+    void CalcRmMat(int M     , int scall, Eigen::MatrixXcd*);
+    void CalcD2Mat(            int scall, Eigen::MatrixXcd*);
+
+    // ---- for compatible ----
     Eigen::MatrixXcd CalcRmMat(int M) const;
     Eigen::MatrixXcd CalcD2Mat()      const;
     Eigen::VectorXcd CalcVecSTO(LC_STOs stos) const;
     Eigen::VectorXcd CalcVecGTO(LC_GTOs gtos) const;
 
-    void InitVec(Eigen::VectorXcd&);
-    void InitMat(Eigen::MatrixXcd&);
-    void CalcVec(LC_STOs stos, Eigen::VectorXcd&);
-    void CalcVec(LC_GTOs gtos, Eigen::VectorXcd&);    
-    void CalcRmMat(int M        , Eigen::MatrixXcd&);
-    void CalcD2Mat(               Eigen::MatrixXcd&);
-
-    
   };
 
+  // ==== external etc ====
   typedef boost::shared_ptr<_EXPs<1> > STOs;
   typedef boost::shared_ptr<_EXPs<2> > GTOs;
-  template<int m>
-  boost::shared_ptr<_EXPs<m> > Create_EXPs();
+  template<int m> typename _EXPs<m>::EXPs Create_EXPs();
+  template<int m> typename _EXPs<m>::EXPs Create_EXPs(int nbasis, int nprim, int coef_type);
   STOs Create_STOs();
   GTOs Create_GTOs();
-  
+
+  // ==== Vector ====
+  template<int m1, int m2>
+  void CalcVec_Symbolic(typename _EXPs<m1>::EXPs a, Eigen::VectorXcd *vec);
+  template<int m1, int m2>
+  void CalcVec_Numeric(typename _EXPs<m1>::EXPs a,
+		       typename _EXPs<m2>::LC_EXPs b,
+		       Eigen::VectorXcd& vec);  
+  template<int m1, int m2>
+  void CalcVec(typename _EXPs<m1>::EXPs a, typename _EXPs<m2>::LC_EXPs b,
+	       int reuse, Eigen::VectorXcd *vec);
+
+  // ==== Matrix ====
+  template<int m1, int m2>
+  void CalcMat_Symbolic(typename _EXPs<m1>::EXPs a,
+			typename _EXPs<m2>::EXPs b,
+			Eigen::MatrixXcd *mat);
+  template<int m1, int m2>
+  void CalcRmMat_Numeric(typename _EXPs<m1>::EXPs a, int M,
+			 typename _EXPs<m2>::EXPs b, Eigen::MatrixXcd& mat);
+  template<int m1, int m2>
+  void CalcD2Mat_Numeric(typename _EXPs<m1>::EXPs a, typename _EXPs<m2>::EXPs b,
+			 Eigen::MatrixXcd& mat);
+  template<int m1, int m2>
+  void CalcRmMat(typename _EXPs<m1>::EXPs a, int M,
+		 typename _EXPs<m2>::EXPs b, int reuse,
+		 Eigen::MatrixXcd *mat);
+  template<int m1, int m2>
+  void CalcD2Mat(typename _EXPs<m1>::EXPs a, typename _EXPs<m2>::EXPs b, 
+		 int reuse, Eigen::MatrixXcd *mat);
+  //template<int m>
+  //  void CalcSTVMat(typename _EXPs<m>::EXPs us, std::vector<dcomplex>& buf,
+  //		  Eigen::MatrixXcd *S, Eigen::MatrixXcd *T, Eigen::MatrixXcd *V);
+
+
+  // ==== for compatible ====
   template<int m1, int m2>
   Eigen::VectorXcd CalcVec(typename _EXPs<m1>::EXPs a,
 			   typename _EXPs<m2>::LC_EXPs b);
-
   template<int m1, int m2>
   Eigen::MatrixXcd CalcRmMat(typename _EXPs<m1>::EXPs a,
 			     int M,
 			     typename _EXPs<m2>::EXPs b);
-			     
   template<int m1, int m2>
   Eigen::MatrixXcd CalcD2Mat(typename _EXPs<m1>::EXPs a,
-			     typename _EXPs<m2>::EXPs b);
-
-  // ==== Calculation of matrix/vector (speed) ====
-  template<int m1>
-  void InitVec(typename _EXPs<m1>::EXPs a, Eigen::VectorXcd& m);
-  template<int m1, int m2>
-  void CalcVec(typename _EXPs<m1>::EXPs a,
-	       typename _EXPs<m2>::LC_EXPs b,
-	       Eigen::VectorXcd& vec);
-
-  template<int m1, int m2>
-  void initMat(typename _EXPs<m1>::EXPs a,
-	       typename _EXPs<m2>::EXPs b, Eigen::MatrixXcd& mat);
-  template<int m1, int m2>
-  void CalcRmMat(typename _EXPs<m1>::EXPs a,
-		 int M,
-		 typename _EXPs<m2>::EXPs b,
-		 Eigen::MatrixXcd& mat);
-			     
-  template<int m1, int m2>
-  void CalcD2Mat(typename _EXPs<m1>::EXPs a,
-		 typename _EXPs<m2>::EXPs b,
-		 Eigen::MatrixXcd& mat);
-
-  template<int m>
-  void CalcSTVMat(typename _EXPs<m>::EXPs us, std::vector<dcomplex>& buf,
-		  Eigen::MatrixXcd *S, Eigen::MatrixXcd *T, Eigen::MatrixXcd *V);  
+			     typename _EXPs<m2>::EXPs b);  
 }
 
 #endif

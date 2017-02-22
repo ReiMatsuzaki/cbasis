@@ -1,5 +1,6 @@
 #include <sstream>
 #include <boost/shared_ptr.hpp>
+#include "../utils/macros.hpp"
 #include "r1_lc.hpp"
 
 
@@ -11,8 +12,8 @@ namespace cbasis {
   
   // ==== Create ====
   template<int M>
-  boost::shared_ptr<_LC_EXPs<M> > Create_LC_EXPs() {
-    boost::shared_ptr<_LC_EXPs<M> > ptr(new _LC_EXPs<M>());
+  shared_ptr<_LC_EXPs<M> > Create_LC_EXPs() {
+    shared_ptr<_LC_EXPs<M> > ptr(new _LC_EXPs<M>());
     return ptr;
   }
   LC_STOs Create_LC_STOs() {
@@ -21,7 +22,15 @@ namespace cbasis {
   LC_GTOs Create_LC_GTOs() {
     return Create_LC_EXPs<2>();
   }
-
+  template<int M>
+  shared_ptr<_LC_EXPs<M> > Create_LC_EXPs(int n) {
+    shared_ptr<_LC_EXPs<M> > ptr(new _LC_EXPs<M>());
+    for(int i = 0; i < n; i++) {
+      ptr->Add(1.0, 1, 1.0);
+    }
+    return ptr;
+  }
+  
   // ==== Member functions ====
   template<int M>
   int _LC_EXPs<M>::max_n() const {
@@ -106,30 +115,56 @@ namespace cbasis {
   }
 
   template<int M>
-  boost::shared_ptr<_LC_EXPs<M> > _LC_EXPs<M>::Clone() const {
-    LC_EXPs ptr = Create_LC_EXPs<M>();
-    for(int i = 0; i < this->size(); i++) {
-      dcomplex c(this->cs[i]);
-      int      n(this->ns[i]);
-      dcomplex z(this->zs[i]);
-      ptr->Add(c, n, z);
-    }
+  shared_ptr<_LC_EXPs<M> > _LC_EXPs<M>::Clone() const {
+    LC_EXPs ptr;
+    this->Clone(INITIAL, &ptr);
     return ptr;
   }
   template<int M>
-  boost::shared_ptr<_LC_EXPs<M> > _LC_EXPs<M>::Conj() const {
-    LC_EXPs ptr = Create_LC_EXPs<M>();
-
-    for(int i = 0; i < this->size(); i++) {
-      dcomplex c(this->cs[i]);
-      int      n(this->ns[i]);
-      dcomplex z(this->zs[i]);
-      ptr->Add(conj(c), n, conj(z));
-    }
-
+  shared_ptr<_LC_EXPs<M> > _LC_EXPs<M>::Conj() const {
+    LC_EXPs ptr;
+    this->Conj(INITIAL, &ptr);
     return ptr;
   }
   template<int M>
+  void _LC_EXPs<M>::Clone_Symbolic(shared_ptr<_LC_EXPs<M> > *o) const{
+    *o = Create_LC_EXPs<M>(this->size());
+  }
+  template<int M>
+  void _LC_EXPs<M>::Clone_Numeric(shared_ptr<_LC_EXPs<M> > o) const{
+    for(int i = 0; i < this->size(); i++) {
+      o->c(i) = this->cs[i];
+      o->n(i) = this->ns[i];
+      o->z(i) = this->zs[i];
+    }
+  }  
+  template<int M>
+  void _LC_EXPs<M>::Clone(int reuse, shared_ptr<_LC_EXPs<M> > *o) const{
+    if(reuse == INITIAL) {
+      this->Clone_Symbolic(o);
+    } else if (reuse != REUSE) {
+      THROW_ERROR("reuse <- {INITIAL, REUSE}");
+    }
+    this->Clone_Numeric(*o);
+  }
+  template<int M>
+  void _LC_EXPs<M>::Conj_Numeric(shared_ptr<_LC_EXPs<M> > o) const{
+    for(int i = 0; i < this->size(); i++) {
+      o->c(i) = conj(this->cs[i]);
+      o->n(i) = this->ns[i];
+      o->z(i) = conj(this->zs[i]);
+    }
+  }  
+  template<int M>
+  void _LC_EXPs<M>::Conj(int reuse, shared_ptr<_LC_EXPs<M> > *o) const{
+    if(reuse == INITIAL) {
+      this->Clone_Symbolic(o);
+    } else if (reuse != REUSE) {
+      THROW_ERROR("reuse <- {INITIAL, REUSE}");
+    }
+    this->Conj_Numeric(*o);
+  }  
+  template<int M>  
   string _LC_EXPs<M>::str() const {
     ostringstream oss;
     string basis_name = (M==1 ? "STO" : "GTO");

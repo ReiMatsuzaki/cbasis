@@ -52,16 +52,23 @@ namespace cbasis {
 
     // ---- Generate other ----
     LC_EXPs Clone() const;
-    LC_EXPs Conj() const;            
+    LC_EXPs Conj() const;
+    void Clone_Symbolic(LC_EXPs *a) const;
+    void Clone_Numeric(LC_EXPs a) const;
+    void Clone(int reuse, LC_EXPs *a) const;
+    void Conj_Numeric(LC_EXPs a) const;
+    void Conj(int reuse, LC_EXPs *a) const;
     
   };
 
   typedef boost::shared_ptr<_LC_EXPs<1> > LC_STOs;
   typedef boost::shared_ptr<_LC_EXPs<2> > LC_GTOs;
-  template<int m>
-  boost::shared_ptr<_LC_EXPs<m> > Create_LC_EXPs();
+  template<int m> boost::shared_ptr<_LC_EXPs<m> > Create_LC_EXPs();  
+  template<int m> boost::shared_ptr<_LC_EXPs<m> > Create_LC_EXPs(int n);  
   LC_STOs Create_LC_STOs();
   LC_GTOs Create_LC_GTOs();
+  LC_STOs Create_LC_STOs(int);
+  LC_GTOs Create_LC_GTOs(int);
 }
 
 

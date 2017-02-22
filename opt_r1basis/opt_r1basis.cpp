@@ -18,7 +18,7 @@ using namespace Eigen;
 using namespace picojson;
 using namespace cbasis;
 
-
+/*
 dcomplex CalcFDP1(dcomplex z) {
   int n(1);
   
@@ -79,7 +79,7 @@ dcomplex CalcFDP1_dzeta(dcomplex z) {
 
   return TDot(c, D10*c);
 }
-
+*/
 void ZeroVector(VectorXcd &a) {
   int n(a.size());
   for(int i = 0; i < n; i++)
@@ -257,9 +257,8 @@ template<int MB, int MD> void OptR1Driv<MB, MD>::Parse() {
       object& opt_obj = basis_obj["opts"].get<object>();
       normalization_const = ReadJson<string>(opt_obj, "normalization_const");
       if(normalization_const != "none" &&
-	 normalization_const != "continue" &&
 	 normalization_const != "sqrt" ) {
-	throw runtime_error("normalization_const <- {none, continue, sqrt}" );
+	throw runtime_error("normalization_const <- {none, sqrt}" );
       }
     }
     CheckObject<picojson::array>(basis_obj, "value");
@@ -289,9 +288,7 @@ template<int MB, int MD> void OptR1Driv<MB, MD>::Parse() {
 	  dcomplex c(czs(i, 0));
 	  dcomplex z(czs(i, 1));
 	  dcomplex nterm(1);
-	  if(normalization_const == "continue") {
-	    nterm = NormalizationTermContinue<MB>(n, z);
-	  } else if(normalization_const == "sqrt") {
+	  if(normalization_const == "sqrt") {
 	    nterm = 1.0/sqrt(EXPInt<MB, MB>(2*n, z, z));
 	  } 
 	  lc->Add(c*nterm, n, z);
@@ -310,8 +307,8 @@ template<int MB, int MD> void OptR1Driv<MB, MD>::Parse() {
   // -- Set Up --
   try {
     this->basis->SetUp();
-    this->basis->DerivOneZeta(this->d_basis);
-    this->basis->DerivTwoZeta(this->d2_basis);    
+    this->basis->DerivOneZeta(INITIAL, &this->d_basis);
+    this->basis->DerivTwoZeta(INITIAL, &this->d2_basis);    
   } catch(std::exception& e) {
     cerr << "error on SetUp\n";
     cerr << e.what() << endl;
@@ -413,35 +410,35 @@ template<int MB, int MD> void OptR1Driv<MB, MD>::Calc_Mat() {
   try {
 
     this->basis->SetUp();
-    this->basis->DerivOneZeta(this->d_basis);
-    this->basis->DerivTwoZeta(this->d2_basis);        
+    this->basis->DerivOneZeta(REUSE, &this->d_basis);
+    this->basis->DerivTwoZeta(REUSE, &this->d2_basis);        
     
-    basis->CalcD2Mat(M00);     D00 = 0.5 * M00;
-    basis->CalcRmMat(-2, M00); D00 += (-L*(L+1)*0.5) * M00;
-    basis->CalcRmMat(-1, M00); D00 += (+Z * M00);
-    basis->CalcRmMat(0, M00);  D00 += (+E * M00);
+    CalcD2Mat_Numeric<MB,MB>(basis,     basis, M00); D00 = 0.5 * M00;
+    CalcRmMat_Numeric<MB,MB>(basis, -2, basis, M00); D00 += (-L*(L+1)*0.5) * M00;
+    CalcRmMat_Numeric<MB,MB>(basis, -1, basis, M00); D00 += (+Z * M00);
+    CalcRmMat_Numeric<MB,MB>(basis,  0, basis, M00); D00 += (+E * M00);
     
-    CalcD2Mat<MB,MB>(d_basis, basis, M10);     D10 = 0.5 * M10;
-    CalcRmMat<MB,MB>(d_basis, -2, basis, M10); D10 += (-L*(L+1)*0.5) * M10;
-    CalcRmMat<MB,MB>(d_basis, -1, basis, M10); D10 += (+Z* M10);
-    CalcRmMat<MB,MB>(d_basis, +0, basis, M10); D10 += (+E* M10);
+    CalcD2Mat_Numeric<MB,MB>(d_basis, basis, M10);     D10 = 0.5 * M10;
+    CalcRmMat_Numeric<MB,MB>(d_basis, -2, basis, M10); D10 += (-L*(L+1)*0.5) * M10;
+    CalcRmMat_Numeric<MB,MB>(d_basis, -1, basis, M10); D10 += (+Z* M10);
+    CalcRmMat_Numeric<MB,MB>(d_basis, +0, basis, M10); D10 += (+E* M10);
 
-    CalcD2Mat<MB,MB>(d_basis,   d_basis, M11); D11 = 0.5 * M11;
-    CalcRmMat<MB,MB>(d_basis,-2,d_basis, M11); D11 += (-L*(L+1)*0.5) * M11;
-    CalcRmMat<MB,MB>(d_basis,-1,d_basis, M11); D11 += (+Z* M11);
-    CalcRmMat<MB,MB>(d_basis,+0,d_basis, M11); D11 += (+E* M11);    
+    CalcD2Mat_Numeric<MB,MB>(d_basis,   d_basis, M11); D11 = 0.5 * M11;
+    CalcRmMat_Numeric<MB,MB>(d_basis,-2,d_basis, M11); D11 += (-L*(L+1)*0.5) * M11;
+    CalcRmMat_Numeric<MB,MB>(d_basis,-1,d_basis, M11); D11 += (+Z* M11);
+    CalcRmMat_Numeric<MB,MB>(d_basis,+0,d_basis, M11); D11 += (+E* M11);    
 
-    CalcD2Mat<MB,MB>(d2_basis,     basis, M10); D20 = 0.5 * M10;
-    CalcRmMat<MB,MB>(d2_basis, -2, basis, M10); D20 += (-L*(L+1)*0.5) * M10;
-    CalcRmMat<MB,MB>(d2_basis, -1, basis, M10); D20 += (+Z* M10);
-    CalcRmMat<MB,MB>(d2_basis, +0, basis, M10); D20 += (+E* M10);
+    CalcD2Mat_Numeric<MB,MB>(d2_basis,     basis, M10); D20 = 0.5 * M10;
+    CalcRmMat_Numeric<MB,MB>(d2_basis, -2, basis, M10); D20 += (-L*(L+1)*0.5) * M10;
+    CalcRmMat_Numeric<MB,MB>(d2_basis, -1, basis, M10); D20 += (+Z* M10);
+    CalcRmMat_Numeric<MB,MB>(d2_basis, +0, basis, M10); D20 += (+E* M10);
     
-    basis->CalcVec(driv, S0);
-    d_basis->CalcVec(driv, S1);
-    d2_basis->CalcVec(driv, S2);
-    basis->CalcVec(driv, R0);
-    d_basis->CalcVec(driv, R1);
-    d2_basis->CalcVec(driv, R2);
+    CalcVec_Numeric<MB,MD>(basis,   driv, S0);
+    CalcVec_Numeric<MB,MD>(d_basis, driv, S1);
+    CalcVec_Numeric<MB,MD>(d2_basis,driv, S2);
+    CalcVec_Numeric<MB,MD>(basis,   driv, R0);
+    CalcVec_Numeric<MB,MD>(d_basis, driv, R1);
+    CalcVec_Numeric<MB,MD>(d2_basis,driv, R2);
 
     this->linear_solver.Inv(D00, &G);
     C0 = G * S0;
@@ -554,10 +551,6 @@ template<int MB, int MD> void OptR1Driv<MB, MD>::Check() {
 }
 
 int main(int argc, char *argv[]) {
-  dcomplex z0(1.1, 0.3);
-  cout << CalcFDP1(z0) << endl;
-  cout << CalcFDP1_dzeta(z0) << endl;
-  cout << NDerivOne_R1(CalcFDP1, z0, 0.0001) << endl;
   
   cout << ">>>> opt_r1basis >>>>\n";
 

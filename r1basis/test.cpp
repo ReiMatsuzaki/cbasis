@@ -104,6 +104,19 @@ TEST(TestR1LC, TestSTO) {
   cout << s->str() << endl;
 
 }
+TEST(TestR1LC, Clone) {
+  LC_STOs s = Create_LC_STOs();
+  s->Add(1.1, 2, 1.3);
+  s->Add(1.2, 3, 1.6);
+
+  LC_STOs ss;
+  s->Clone(INITIAL, &ss);
+  for(int i = 0; i < 2; i++) {
+    EXPECT_C_EQ(s->z(0), ss->z(0));
+    EXPECT_C_EQ(s->n(0), ss->n(0));
+    EXPECT_C_EQ(s->c(0), ss->c(0));
+  }
+}
 TEST(TestR1Basis, TestSTO) {
 
   STOs s = Create_STOs();
@@ -113,23 +126,6 @@ TEST(TestR1Basis, TestSTO) {
   
   cout << s->str() << endl;
 
-}
-TEST(TestR1Basis, NormalTerm) {
-
-  dcomplex a(0.000552739, -0.0077609);
-  cout <<EXPInt<2,2>(4, a, a) << endl;
-  cout << 1.0/sqrt(EXPInt<2,2>(4, a, a)) << endl;
-  
-  int n(4);
-  dcomplex z(1.1);
-  dcomplex ref  = 1.0/sqrt(EXPInt<1,1>(2*n, z, z));
-  dcomplex calc = NormalizationTermContinue<1>(n, z);
-  EXPECT_C_EQ(ref, calc);
-
-  ref  = 1.0/sqrt(EXPInt<2,2>(2*n, z, z));
-  calc = NormalizationTermContinue<2>(n, z);
-  EXPECT_C_EQ(ref, calc);
-  
 }
 TEST(TestSTO, TestOneDeriv) {
 
@@ -153,20 +149,20 @@ TEST(TestSTO, TestOneDeriv) {
   sm->SetUp();
   
   STOs s1 = Create_STOs();
-  s->DerivOneZeta(s1);  
+  s->DerivOneZeta(INITIAL, &s1);  
 
   STOs s2 = Create_STOs();
-  s->DerivTwoZeta(s2);
+  s->DerivTwoZeta(INITIAL, &s2);
 
   LC_STOs lc = Create_LC_STOs();
   lc->Add(1.1, 2, 0.8);
 
   VectorXcd a0(2), ap(2), am(2), da(2), d2a(2);
-  CalcVec<1,1>(s, lc,  a0);
-  CalcVec<1,1>(s1, lc, da);
-  CalcVec<1,1>(s2, lc, d2a);
-  CalcVec<1,1>(sp, lc, ap);
-  CalcVec<1,1>(sm, lc, am);
+  CalcVec<1,1>(s, lc,  INITIAL, &a0);
+  CalcVec<1,1>(s1, lc, INITIAL, &da);
+  CalcVec<1,1>(s2, lc, INITIAL, &d2a);
+  CalcVec<1,1>(sp, lc, INITIAL, &ap);
+  CalcVec<1,1>(sm, lc, INITIAL, &am);
 
   EXPECT_C_EQ(da(0), (ap(0)-am(0))/(2.0*eps));
   EXPECT_C_NEAR(d2a(0), (ap(0)+am(0)-2.0*a0(0))/(eps*eps), abs(eps)*10);
@@ -184,8 +180,7 @@ TEST(TestGTO, TestSTO) {
   s->Add(0.1, 2, 1.5);
   
   VectorXcd x;
-  g->InitVec(x);
-  g->CalcVec(s, x);
+  g->CalcVec(s, INITIAL, &x);
   EXPECT_EQ(10, x.size());
   cout << x << endl;
 }
@@ -197,14 +192,9 @@ TEST(TestGTO, H_atom) {
   g->SetUp();
   
   MatrixXcd s, d2, v, h;
-  g->InitMat(s);
-  g->InitMat(h);
-  g->InitMat(d2);
-  g->InitMat(v);
-
-  g->CalcRmMat(0, s);
-  g->CalcD2Mat(d2);
-  g->CalcRmMat(-1, v);
+  g->CalcRmMat(0, INITIAL, &s);
+  g->CalcD2Mat(INITIAL, &d2);
+  g->CalcRmMat(-1, INITIAL, &v);
 
   h = -0.5 * d2 - v;
 
