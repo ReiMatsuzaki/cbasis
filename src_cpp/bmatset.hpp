@@ -56,9 +56,10 @@ namespace cbasis {
   private:
     std::string name_;
     Map map_;
+    bool simple_print_;
   public:
-    BMat() {}
-    BMat(std::string _name): name_(_name) {}
+    BMat(): simple_print_(false) {}
+    BMat(std::string _name): name_(_name), simple_print_(false) {}
     iterator begin() { return map_.begin(); }
     const_iterator begin() const { return map_.begin(); }
     iterator end() { return map_.end(); }
@@ -66,6 +67,9 @@ namespace cbasis {
     iterator find(Key& k) { return map_.find(k); }
     const_iterator find(const Key& k) const { return map_.find(k); }
     void set_name(std::string _name) { name_ = _name; }
+    BMat& set_simple_print() { simple_print_=true; return *this; }
+    BMat& full_print() { simple_print_=false; return *this; }
+    bool get_simple_print() const { return simple_print_;}
     std::string get_name() const { return name_; }
     bool has_block(Key ijrrep) const {
       return (map_.find(ijrrep) != map_.end()) &&
@@ -74,6 +78,7 @@ namespace cbasis {
     bool has_block(int irrep, int jrrep) const {
       return this->has_block(std::make_pair(irrep, jrrep));
     }
+    bool is_block_diagonal() const;
     int size() const { return map_.size(); }
     Value& operator()(int irrep, int jrrep) {
       return map_[std::make_pair(irrep, jrrep)];
@@ -83,13 +88,20 @@ namespace cbasis {
     }
     Value& operator[] (Key k) { return map_[k]; }
     const Value& operator[](Key k) const {return map_.find(k)->second; }
+    void SetZero();
+    void Add(dcomplex c, const BMat&);
+    void Shift(dcomplex c);    
     void swap(BMat& o);
-    
     void Write(std::string filename) const;
     void Read(std::string filename);
+
+    
   };
   std::ostream& operator << (std::ostream& os, const BMat& a);
-
+  void Copy(const BMat& a, BMat& b);
+  void Multi(const BMat& a, const BMat& b, BMat& c);
+  void BMatSqrt(const BMat& a, BMat& b);
+  void CopyStructure(const BMat& a, BMat b);
   // ==== Old ====
   void BMatRead(BMat::Map& bmat, std::string fn);
   void BMatWrite(BMat::Map& bmat, std::string fn);

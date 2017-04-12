@@ -54,6 +54,7 @@ std::complex<double> cnorm(const CV& v);
 void complex_normalize(CV& v);
 void col_cnormalize(CM& c);
 void matrix_inv_sqrt(const CM& s, CM* s_inv_sqrt);
+void matrix_sqrt(const CM& s, CM& s_sqrt);
 void SortEigs(Eigen::VectorXcd& eigs, Eigen::MatrixXcd& eigvecs,
 	      double (*to_real)(dcomplex), bool reverse=false);
 void generalizedComplexEigenSolve(const CM& f, const CM& s, CM* c, CV* eig);
@@ -106,7 +107,7 @@ public:
   //  void Solve(Eigen::VectorXcd& x, Eigen::VectorXcd *y);
   void Solve(Eigen::MatrixXcd& mat, Eigen::VectorXcd& vec, Eigen::VectorXcd *sol);
   void Inv(Eigen::MatrixXcd& m, Eigen::MatrixXcd *sol);
-  std::string show();
+  std::string str();
 };
 
 

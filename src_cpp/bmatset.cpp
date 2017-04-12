@@ -5,11 +5,14 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <boost/format.hpp>
 #include "../utils/macros.hpp"
+#include "../utils/eigen_plus.hpp"
 #include "bmatset.hpp"
 
 using namespace std;
 using namespace Eigen;
+using boost::format;
 
 namespace cbasis {
 
@@ -94,6 +97,15 @@ namespace cbasis {
     this->name_.swap(o.name_);
     this->map_.swap(o.map_);
   }
+  bool BMat::is_block_diagonal() const {
+    typedef const_iterator It;
+    bool acc(true);
+    for(It it = begin(); it != end(); ++it) {
+      Key k = it->first;
+      acc = acc && (k.first == k.second);
+    }
+    return acc;
+  }
   void BMat::Write(string filename) const {
     
     ofstream f;
@@ -164,6 +176,81 @@ namespace cbasis {
     }
 
   }
+  void BMat::SetZero() {
+    for(iterator it = this->begin(); it != this->end(); ++it) {
+      it->second.setZero();
+    }
+  }
+  void BMat::Add(dcomplex c, const BMat& o) {
+    
+    for(iterator it = this->begin(); it != this->end(); ++it) {	
+      if(not o.has_block(it->first)) {
+	stringstream ss;
+	Key kthis = it->first;
+	ss << "block mismatch\n";
+	ss << format("key(this): (%d, %d)\n") % kthis.first % kthis.second;
+	ss << "this:\n";
+	ss << *this;
+	ss << "other:\n";
+	ss << o;
+	THROW_ERROR(ss.str());
+      }
+      Key k = it->first;
+      if(it->second.rows() != o[k].rows()) {
+	THROW_ERROR("size mismatch");
+      }
+      if(it->second.cols() != o[k].cols()) {
+	THROW_ERROR("size mismatch");
+      }
+      (*this)[k] += c * o[k];
+    }
+  }
+  void BMat::Shift(dcomplex c) {
+    for(iterator it = this->begin(); it != this->end(); ++it) {
+
+      if(it->first.first == it->first.second) {
+	MatrixXcd& M = it->second;
+	if(M.rows() != M.cols()) {
+	  THROW_ERROR("Shift works only square matrix");
+	}
+	int n = M.rows();
+	for(int i = 0; i < n; i++) {
+	  M(i, i) += c;
+	}
+      }                      
+    }
+  }
+  void Multi(const BMat& a, const BMat& b, BMat& c) {
+    typedef BMat::const_iterator It;
+    typedef BMat::Key Key;
+    for(It ia = a.begin(); ia != a.end(); ++ia) {
+      for(It ib = b.begin(); ib != b.end(); ++ib) {	
+	Key irr_a = ia->first;
+	Key irr_b = ib->first;
+	if(irr_a.second != irr_b.first) {
+	  continue;
+	}
+	Key irr_c(irr_a.first, irr_b.second);
+	if(not c.has_block(irr_c)) {
+	  c[irr_c] = MatrixXcd::Zero(ia->second.rows(), ib->second.cols());
+	}
+      }
+    }
+    
+    c.SetZero();
+
+    for(It ia = a.begin(); ia != a.end(); ++ia) {
+      for(It ib = b.begin(); ib != b.end(); ++ib) {
+	Key irr_a = ia->first;
+	Key irr_b = ib->first;
+	if(irr_a.second != irr_b.first) {
+	  continue;
+	}
+	Key irr_c(irr_a.first, irr_b.second);
+	c[irr_c] += a[irr_a] * b[irr_b];
+      }
+    }
+  }
   ostream& operator << (ostream& os, const BMat& a) {
     os << "==== BMat ====" << endl;
     os << "Block matrix object" << endl;
@@ -174,12 +261,41 @@ namespace cbasis {
       int irrep = key.first;
       int jrrep = key.second;
       const MatrixXcd& mat = it->second;
-      os << "(irrep, jrrep) = (" << irrep << ", " << jrrep << ")" << endl;
-      os << mat << endl;
+      os << format("(irrep, jrrep; inum, jnum) = (%d, %d, %d, %d)\n")
+	% irrep % jrrep % mat.rows() % mat.cols();
+      if(not a.get_simple_print())
+	os << mat << endl;
     }
     os << "==============" << endl;
     return os;
+  }
+  void Copy(const BMat& a, BMat& b) {
+    for(BMat::const_iterator it = a.begin(); it != a.end(); ++it) {      
+      b[it->first]  = it->second;
+    }	
   }  
+  void BMatSqrt(const BMat& a, BMat& b) {
+    
+    if(not a.is_block_diagonal()) {
+      THROW_ERROR("a must be block diagonal");
+    }
+
+    typedef BMat::const_iterator It;
+    typedef BMat::Key Key;
+    
+    for(It it = a.begin(); it != a.end(); ++it) {
+      Key k = it->first;
+      if(not b.has_block(k)) {
+	b[k] = a[k];
+      }
+    }
+
+    for(It it = a.begin(); it != a.end(); ++it) {
+      Key k = it->first;
+      matrix_sqrt(a[k], b[k]);
+    }
+    
+  }
   void BMatRead(BMat::Map& bmat, string fn) {
     ifstream f(fn.c_str(), ios::in|ios::binary);
     
@@ -248,7 +364,7 @@ namespace cbasis {
       }
     }
   }
-
+  
   // ==== BlockMatrixSets ====
   _BMatSet::_BMatSet(): block_num_(1) {}
   _BMatSet::_BMatSet(int _block_num): block_num_(_block_num) {}

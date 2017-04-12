@@ -44,6 +44,7 @@ namespace cbasis {
   void InitBVec(SymGTOs a, Irrep irrep, BVec *ptr_bvec);
   void InitBVec(SymGTOs a, const std::vector<Irrep>& irrep_list, BVec *ptr_bvec);
   void InitBMat(SymGTOs a, Irrep krrep, SymGTOs b, BMat *ptr_mat);
+  void CalcSTMat(SymGTOs a, SymGTOs b, BMat *S, BMat *T);
   void CalcSTVMat(SymGTOs a, SymGTOs b, BMat *S, BMat *T, BMat *V);
   void CalcSMat(SymGTOs a, SymGTOs b, BMat *S);
   void CalcVMat(SymGTOs a, Molecule mole, SymGTOs b, BMat *V);

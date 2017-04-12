@@ -1,6 +1,9 @@
 #include <iostream>
+#include <boost/assign.hpp>
 #include <gtest/gtest.h>
 #include <Eigen/Core>
+
+
 
 #include "../utils/gtest_plus.hpp"
 #include "../utils/eigen_plus.hpp"
@@ -10,6 +13,7 @@
 #include "r1basis.hpp"
 
 using namespace std;
+using namespace boost::assign;
 //using namespace boost::lambda;
 using namespace Eigen;
 using namespace cbasis;
@@ -147,12 +151,13 @@ TEST(TestSTO, TestOneDeriv) {
   sm->AddPrim(2, zeta1-eps);
   sm->AddPrim(3, zeta2-eps);
   sm->SetUp();
-  
+
+  vector<int> idx(2); idx += 0, 1;
   STOs s1 = Create_STOs();
-  s->DerivOneZeta(INITIAL, &s1);  
+  s->DerivOneZeta(idx, INITIAL, &s1);  
 
   STOs s2 = Create_STOs();
-  s->DerivTwoZeta(INITIAL, &s2);
+  s->DerivTwoZeta(idx, INITIAL, &s2);
 
   LC_STOs lc = Create_LC_STOs();
   lc->Add(1.1, 2, 0.8);
@@ -187,20 +192,30 @@ TEST(TestGTO, TestSTO) {
 TEST(TestGTO, H_atom) {
 
   GTOs g = Create_GTOs();
-  for(int n = -5; n < 5; n++) 
+  for(int n = -7; n < 7; n++) 
     g->AddPrim(1, pow(2.0, n));
   g->SetUp();
-  
+
+  /*
   MatrixXcd s, d2, v, h;
   g->CalcRmMat(0, INITIAL, &s);
   g->CalcD2Mat(INITIAL, &d2);
   g->CalcRmMat(-1, INITIAL, &v);
-
   h = -0.5 * d2 - v;
+  */
 
-  double eps = pow(10.0, -2);
+  int L = 1;
+  dcomplex Z = 1.0;
+  MatrixXcd h, s;
+  map<int, dcomplex> mcs;
+  mcs[-1] = -Z; mcs[-2] = 0.5*L*(L+1);
+  CalcHAtomMat<2, 2>(g, -0.5, mcs, g, INITIAL, &h);
+  CalcRmMat<2, 2>(g, 0, g, INITIAL, &s);
+
+  double eps = pow(10.0, -4);
   SymGenComplexEigenSolver solver(h, s);
-  EXPECT_C_NEAR(-0.5, solver.eigenvalues()[0], eps);  
+  EXPECT_C_NEAR(-1.0/(2.0*2*2),
+		solver.eigenvalues()[0], eps);  
   
 }
 

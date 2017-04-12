@@ -92,6 +92,31 @@ void matrix_inv_sqrt(const CM& s, CM* s_inv_sqrt) {
   c_tr.transposeInPlace();
   *s_inv_sqrt = c * lambda_mat * c_tr;
 }
+void matrix_sqrt(const CM& s, CM& s_sqrt) {
+
+  // -- structure check
+  if(s.rows() != s.cols()) {
+    THROW_ERROR("only square matrix");
+  }
+
+  // -- compute eigen values
+  Eigen::ComplexEigenSolver<CM> es;
+  es.compute(s, true);
+  CV v = es.eigenvalues();
+  CM c = es.eigenvectors();
+  
+  // -- ensure |c_i| =1
+  col_cnormalize(c);
+
+  // -- lamba_ij = delta_ij * sqrt(v_i)
+  CV tmp = v.array().sqrt();
+  CM lambda_mat = tmp.asDiagonal();
+
+  // -- S^(1/2) = D diag(sqrt(v_i)) D^T
+  CM c_tr = c; c_tr.transposeInPlace();  
+  s_sqrt = c * lambda_mat * c_tr;
+  
+}
 void SortEigs(Eigen::VectorXcd& eigs, Eigen::MatrixXcd& eigvecs,
 	      double (*to_real)(dcomplex), bool reverse) {
   
@@ -365,6 +390,7 @@ LinearSolver::LinearSolver(string _method) {
   //}
 
 void LinearSolver::Solve(MatrixXcd& mat, VectorXcd& vec, VectorXcd *sol) {
+    
   if(method_ == method_householderQr) {
     *sol = mat.householderQr().solve(vec);
   }
@@ -376,6 +402,8 @@ void LinearSolver::Solve(MatrixXcd& mat, VectorXcd& vec, VectorXcd *sol) {
   }
 }
 void LinearSolver::Inv(MatrixXcd& m, MatrixXcd *sol) {
+
+  THROW_ERROR("do not use this");
   int n(m.rows());
   if(m.cols() != n) {
     THROW_ERROR("m must be square");
@@ -411,7 +439,7 @@ void LinearSolver::Inv(MatrixXcd& m, MatrixXcd *sol) {
   }
   
 }
-string LinearSolver::show() {
+string LinearSolver::str() {
   if(method_ == method_householderQr) {
     return "householderQr";
   }

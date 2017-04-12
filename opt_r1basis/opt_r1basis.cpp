@@ -121,6 +121,8 @@ public:
   bool write_matrix;
 
   // -- Intermediate --
+  map<int, dcomplex> coef_op;
+  vector<int> opt_idx;
   BasisEXPs d_basis;
   BasisEXPs d2_basis;
   MatrixXcd D00, D10, D20, D11, M00, M10, M11;
@@ -176,7 +178,7 @@ template<int MB, int MD> void OptR1Driv<MB, MD>::Parse() {
     }
     this->linear_solver = ReadJsonWithDefault
       <LinearSolver>(obj, "linear_solver", LinearSolver());
-    cout << format("linear_solver: %s\n") % this->linear_solver.show();    
+    cout << format("linear_solver: %s\n") % this->linear_solver.str();
   } catch(std::exception& e) {
     cerr << "error on parsing json\n";
     cerr << e.what() << endl;
@@ -306,9 +308,15 @@ template<int MB, int MD> void OptR1Driv<MB, MD>::Parse() {
 
   // -- Set Up --
   try {
+    for(int i = 0; i < this->basis->size(); ++i) {
+      this->opt_idx.push_back(i);
+    }
     this->basis->SetUp();
-    this->basis->DerivOneZeta(INITIAL, &this->d_basis);
-    this->basis->DerivTwoZeta(INITIAL, &this->d2_basis);    
+    this->basis->DerivOneZeta(opt_idx, INITIAL, &this->d_basis);
+    this->basis->DerivTwoZeta(opt_idx, INITIAL, &this->d2_basis);
+    coef_op[0] = this->E;
+    coef_op[-1] = this->Z;
+    coef_op[-2] = -0.5*L*(L+1);
   } catch(std::exception& e) {
     cerr << "error on SetUp\n";
     cerr << e.what() << endl;
@@ -323,7 +331,7 @@ template<int MB, int MD> void OptR1Driv<MB, MD>::PrintIn() {
   cout << format("in_file: %s\n") % this->in_file;
   cout << format("out_file: %s\n") % this->out_file;
   cout << format("linear_solver: %s\n")
-    % this->linear_solver.show();
+    % this->linear_solver.str();
 
   cout << format("Z = (%f, %f)\n")
     % this->Z.real() % this->Z.imag();
@@ -410,9 +418,10 @@ template<int MB, int MD> void OptR1Driv<MB, MD>::Calc_Mat() {
   try {
 
     this->basis->SetUp();
-    this->basis->DerivOneZeta(REUSE, &this->d_basis);
-    this->basis->DerivTwoZeta(REUSE, &this->d2_basis);        
-    
+    this->basis->DerivOneZeta(opt_idx, REUSE, &d_basis);
+    this->basis->DerivTwoZeta(opt_idx, REUSE, &d2_basis);
+
+    /*
     CalcD2Mat_Numeric<MB,MB>(basis,     basis, M00); D00 = 0.5 * M00;
     CalcRmMat_Numeric<MB,MB>(basis, -2, basis, M00); D00 += (-L*(L+1)*0.5) * M00;
     CalcRmMat_Numeric<MB,MB>(basis, -1, basis, M00); D00 += (+Z * M00);
@@ -432,6 +441,12 @@ template<int MB, int MD> void OptR1Driv<MB, MD>::Calc_Mat() {
     CalcRmMat_Numeric<MB,MB>(d2_basis, -2, basis, M10); D20 += (-L*(L+1)*0.5) * M10;
     CalcRmMat_Numeric<MB,MB>(d2_basis, -1, basis, M10); D20 += (+Z* M10);
     CalcRmMat_Numeric<MB,MB>(d2_basis, +0, basis, M10); D20 += (+E* M10);
+    */
+
+    CalcHAtomMat<MB,MB>(basis,   0.5, coef_op, basis,   REUSE, &D00);
+    CalcHAtomMat<MB,MB>(d_basis, 0.5, coef_op, basis,   REUSE, &D10);
+    CalcHAtomMat<MB,MB>(d_basis, 0.5, coef_op, d_basis, REUSE, &D11);
+    CalcHAtomMat<MB,MB>(d2_basis,0.5, coef_op, basis,   REUSE, &D20);
     
     CalcVec_Numeric<MB,MD>(basis,   driv, S0);
     CalcVec_Numeric<MB,MD>(d_basis, driv, S1);

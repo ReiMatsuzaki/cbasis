@@ -76,8 +76,8 @@ namespace cbasis {
     void Clone_Symbolic(EXPs *o) const;
     void Clone(int reuse, EXPs *other) const;
     void Conj(int reuse, EXPs *other) const;
-    void DerivOneZeta(int reuse, EXPs *other) const;
-    void DerivTwoZeta(int reuse, EXPs *other) const;
+    void DerivOneZeta(const std::vector<int>& idx, int reuse, EXPs *other) const;
+    void DerivTwoZeta(const std::vector<int>& idx, int reuse, EXPs *other) const;    
 
     EXPs self();    
     EXPs Conj() const;    
@@ -85,14 +85,14 @@ namespace cbasis {
     
   
     // ---- Vec/Mat ----
-    void CalcVec(LC_STOs stos, int scall, Eigen::VectorXcd*);
-    void CalcVec(LC_GTOs gtos, int scall, Eigen::VectorXcd*);    
-    void CalcRmMat(int M     , int scall, Eigen::MatrixXcd*);
-    void CalcD2Mat(            int scall, Eigen::MatrixXcd*);
+    void CalcVec(LC_STOs stos, int reuse, Eigen::VectorXcd*);
+    void CalcVec(LC_GTOs gtos, int reuse, Eigen::VectorXcd*);    
+    void CalcRmMat(int M     , int reuse, Eigen::MatrixXcd*);
+    void CalcD2Mat(            int reuse, Eigen::MatrixXcd*); 
 
     // ---- for compatible ----
     Eigen::MatrixXcd CalcRmMat(int M) const;
-    Eigen::MatrixXcd CalcD2Mat()      const;
+    Eigen::MatrixXcd CalcD2Mat()      const;    
     Eigen::VectorXcd CalcVecSTO(LC_STOs stos) const;
     Eigen::VectorXcd CalcVecGTO(LC_GTOs gtos) const;
 
@@ -135,6 +135,13 @@ namespace cbasis {
   template<int m1, int m2>
   void CalcD2Mat(typename _EXPs<m1>::EXPs a, typename _EXPs<m2>::EXPs b, 
 		 int reuse, Eigen::MatrixXcd *mat);
+  template<int m1, int m2>
+  void CalcHAtomMat(typename _EXPs<m1>::EXPs a,
+		    dcomplex cd2,
+		    const std::map<int, dcomplex>& mcs,
+		    typename _EXPs<m2>::EXPs b,
+		    int reuse,
+		    Eigen::MatrixXcd*);
   //template<int m>
   //  void CalcSTVMat(typename _EXPs<m>::EXPs us, std::vector<dcomplex>& buf,
   //		  Eigen::MatrixXcd *S, Eigen::MatrixXcd *T, Eigen::MatrixXcd *V);

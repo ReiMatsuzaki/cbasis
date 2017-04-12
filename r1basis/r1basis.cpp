@@ -1,5 +1,7 @@
 #include <stdexcept>
 #include <iostream>
+#include <boost/foreach.hpp>
+#include <boost/format.hpp>
 #include "../math/erfc.hpp"
 #include "../math/int_exp.hpp"
 #include "../utils/fact.hpp"
@@ -8,6 +10,7 @@
 #include "r1_lc.hpp"
 
 using namespace std;
+using namespace boost;
 using namespace Eigen;
 using namespace erfc_mori;
 
@@ -104,6 +107,19 @@ namespace cbasis {
   template dcomplex EXPIntLC<1,2>(_EXPs<1>::LC_EXPs a, int m, _EXPs<2>::LC_EXPs b);
   template dcomplex EXPIntLC<2,1>(_EXPs<2>::LC_EXPs a, int m, _EXPs<1>::LC_EXPs b);
   template dcomplex EXPIntLC<2,2>(_EXPs<2>::LC_EXPs a, int m, _EXPs<2>::LC_EXPs b);
+
+  template<int m1, int m2>
+  dcomplex EXPIntD2LC(typename _EXPs<m1>::LC_EXPs a,
+		      typename _EXPs<m2>::LC_EXPs b) {
+    dcomplex acc(0);
+    for(int i = 0; i < a->size(); i++)
+      for(int j = 0; j < b->size(); j++) {
+	acc +=  a->c(i) * b->c(j) *
+	  EXPIntD2<m1, m2>(a->n(i), a->z(i),
+			   b->n(j), b->z(j));
+      }
+    return acc;
+  }
       
   // ==== member field ====
   template<int m>
@@ -362,54 +378,105 @@ namespace cbasis {
       ptr->coef_type_[i] = this->coef_type_[i];
     }
     
-  }  
-  template<> void _EXPs<1>::DerivOneZeta(int reuse, EXPs *other) const {
-    
-    if(!this->IsPrimAll()) {
-      THROW_ERROR("all basis must be primitive");
-    }
-    if(!this->IsNormalAll()) {
-      THROW_ERROR("all basis is not normalized");
-    }
+  }
+  template<int m> void _EXPs<m>::Conj(int reuse, typename _EXPs<m>::EXPs *o) const {
 
     if(reuse == INITIAL) {
-      *other = Create_EXPs<1>(this->size(), 2, COEF_NOT_NORMAL);
+      this->Clone_Symbolic(o);
+    } else if(reuse != REUSE) {
+      THROW_ERROR("reuse <- {INITIAL, REUSE}");
+    }
+
+    EXPs ptr = *o;
+
+    int num(this->size());
+    for(int i = 0; i < num; i++) {
+      this->basis(i)->Conj_Numeric(ptr->basis(i));
+      ptr->coef_type_[i] = this->coef_type_[i];
+    }        
+  }
+  template<> void _EXPs<1>::DerivOneZeta(const vector<int>& idx, int reuse, EXPs *other) const {
+
+    bool all_normalized = false;
+    bool all_not_normal = false;
+    
+    BOOST_FOREACH(int i, idx) {
+      if(i < 0 || this->size() <= i) {
+	THROW_ERROR("index out of range");
+      }
+      if(!this->IsPrim(i)) {
+	THROW_ERROR("non primitive basis cannot derivative");
+      }
+      if(this->IsNormal(i))
+	all_normalized = all_normalized || true;
+      else
+	all_not_normal = all_not_normal || true;
+    }
+
+    if(not all_normalized && not all_not_normal) {
+      THROW_ERROR("every basis is notmalized or not");
+    }
+    
+    if(reuse == INITIAL) {
+      if(all_normalized)
+	*other = Create_EXPs<1>(idx.size(), 2, COEF_NOT_NORMAL);
+      else if(all_not_normal)
+	*other = Create_EXPs<1>(idx.size(), 1, COEF_NOT_NORMAL);
     } else if (reuse != REUSE) {
       THROW_ERROR("reuse <- {INITIAL, REUSE} ");
     } 
 
-    for(int i = 0; i < this->size(); i++) {
-      LC_EXPs a = this->basis(i);
-      LC_EXPs b = (*other)->basis(i);
-      dcomplex N(a->c(0));
-      dcomplex z(a->z(0));
-      int      n(a->n(0));
-      dcomplex N1((n+0.5)/z);
-      b->c(0) = N1*N;
-      b->n(0) = n;
-      b->z(0) = z;
-      b->c(1) = -N;
-      b->n(1) = n+1;
-      b->z(1) = z;      
+    if(all_normalized) {
+      BOOST_FOREACH(int i, idx) {
+	LC_EXPs a = this->basis(idx[i]);
+	LC_EXPs b = (*other)->basis(i);
+	dcomplex N(a->c(0));
+	dcomplex z(a->z(0));
+	int      n(a->n(0));
+	dcomplex N1((n+0.5)/z);
+	b->c(0) = N1*N;
+	b->n(0) = n;
+	b->z(0) = z;
+	b->c(1) = -N;
+	b->n(1) = n+1;
+	b->z(1) = z;
+      }
+    } else if(all_not_normal) {
+      BOOST_FOREACH(int i, idx) {
+	LC_EXPs a = this->basis(idx[i]);
+	LC_EXPs b = (*other)->basis(i);
+	dcomplex N(a->c(0));
+	dcomplex z(a->z(0));
+	int      n(a->n(0));
+	b->c(0) = -N;
+	b->n(0) = n+1;
+	b->z(0) = z;
+      }
     }
+    
   }   
-  template<> void _EXPs<1>::DerivTwoZeta(int reuse, EXPs *other) const {
-    
-    if(!this->IsPrimAll()) {
-      THROW_ERROR("all basis must be primitive");
-    }
-    if(!this->IsNormalAll()) {
-      THROW_ERROR("all basis is not normalized");
-    }
+  template<> void _EXPs<1>::DerivTwoZeta(const vector<int>& idx, int reuse, EXPs *other) const {
 
+    BOOST_FOREACH(int i, idx) {
+      if(i < 0 || this->size() <= i) {
+	THROW_ERROR("index out of range");
+      }
+      if(!this->IsPrim(i)) {
+	THROW_ERROR("non primitive basis cannot derivative");
+      }
+      if(!this->IsNormal(i)) {
+	THROW_ERROR("only normalized basis can be derivative");
+      }
+    }
+    
     if(reuse == INITIAL) {
-      *other = Create_EXPs<1>(this->size(), 3, COEF_NOT_NORMAL);
+      *other = Create_EXPs<1>(idx.size(), 3, COEF_NOT_NORMAL);
     } else if (reuse != REUSE) {
       THROW_ERROR("reuse <- {INITIAL, REUSE} ");
     } 
 
-    for(int i = 0; i < this->size(); i++) {
-      LC_EXPs a = this->basis(i);
+    BOOST_FOREACH(int i, idx) {
+      LC_EXPs a = this->basis(idx[i]);
       LC_EXPs b = (*other)->basis(i);
       dcomplex N(a->c(0));
       dcomplex z(a->z(0));
@@ -427,53 +494,86 @@ namespace cbasis {
       b->z(2) = z;      
     }
   }  
-  template<> void _EXPs<2>::DerivOneZeta(int reuse, EXPs *other) const {
-    if(!this->IsPrimAll()) {
-      THROW_ERROR("all basis must be primitive");
-    }
-    if(!this->IsNormalAll()) {
-      THROW_ERROR("all basis is not normalized");
-    }
+  template<> void _EXPs<2>::DerivOneZeta(const vector<int>& idx, int reuse, EXPs *other) const {
 
+    bool all_normalized = false;
+    bool all_not_normal = false;
+    
+    BOOST_FOREACH(int i, idx) {
+      if(i < 0 || this->size() <= i) {
+	THROW_ERROR("index out of range");
+      }
+      if(!this->IsPrim(i)) {
+	THROW_ERROR("non primitive basis cannot derivative");
+      }
+      if(this->IsNormal(i))
+	all_normalized = all_normalized || true;
+      else
+	all_not_normal = all_not_normal || true;
+    }
+    
     if(reuse == INITIAL) {
-      EXPs ptr = Create_EXPs<2>(this->size(), 2, COEF_NOT_NORMAL);
-      *other = ptr;
+      if(all_normalized) {
+	EXPs ptr = Create_EXPs<2>(idx.size(), 2, COEF_NOT_NORMAL);
+	*other = ptr;
+      } else if(all_not_normal) {
+	EXPs ptr = Create_EXPs<2>(idx.size(), 1, COEF_NOT_NORMAL);
+	*other = ptr;
+      }
     } else if (reuse != REUSE) {
       THROW_ERROR("reuse <- {INITIAL, REUSE} ");
     }
-    
-    for(int i = 0; i < this->size(); i++) {
-      LC_EXPs a = this->basis(i);
-      LC_EXPs b = (*other)->basis(i);
-      dcomplex N(a->c(0));
-      dcomplex z(a->z(0));
-      int      n(a->n(0));
-      dcomplex N1((2*n+1.0)/(4.0*z));
-      b->c(0) = N1*N;
-      b->n(0) = n;
-      b->z(0) = z;
-      b->c(1) = -N;
-      b->n(1) = n+2;
-      b->z(1) = z;
-    }    
-  }    
-  template<> void _EXPs<2>::DerivTwoZeta(int reuse, EXPs *other) const {
-    
-    if(!this->IsPrimAll()) {
-      THROW_ERROR("all basis must be primitive");
-    }
-    if(!this->IsNormalAll()) {
-      THROW_ERROR("all basis is not normalized");
-    }
 
+    if(all_normalized) {
+      BOOST_FOREACH(int i, idx) {
+	LC_EXPs a = this->basis(idx[i]);
+	LC_EXPs b = (*other)->basis(i);
+	dcomplex N(a->c(0));
+	dcomplex z(a->z(0));
+	int      n(a->n(0));
+	dcomplex N1((2*n+1.0)/(4.0*z));
+	b->c(0) = N1*N;
+	b->n(0) = n;
+	b->z(0) = z;
+	b->c(1) = -N;
+	b->n(1) = n+2;
+	b->z(1) = z;
+      }
+    } else if(all_not_normal)   {
+      BOOST_FOREACH(int i, idx) {
+	LC_EXPs a = this->basis(idx[i]);
+	LC_EXPs b = (*other)->basis(i);
+	dcomplex N(a->c(0));
+	dcomplex z(a->z(0));
+	int      n(a->n(0));
+	b->c(0) = -N;
+	b->n(0) = n+2;
+	b->z(0) = z;
+      }      
+    }
+  }
+  template<> void _EXPs<2>::DerivTwoZeta(const vector<int>& idx, int reuse, EXPs *other) const {
+    
+    BOOST_FOREACH(int i, idx) {
+      if(i < 0 || this->size() <= i) {
+	THROW_ERROR("index out of range");
+      }
+      if(!this->IsPrim(i)) {
+	THROW_ERROR("non primitive basis cannot derivative");
+      }
+      if(!this->IsNormal(i)) {
+	THROW_ERROR("only normalized basis can be derivative");
+      }
+    }
+    
     if(reuse == INITIAL) {
-      *other = Create_EXPs<2>(this->size(), 3, COEF_NOT_NORMAL);
+      *other = Create_EXPs<2>(idx.size(), 3, COEF_NOT_NORMAL);
     } else if (reuse != REUSE) {
       THROW_ERROR("reuse <- {INITIAL, REUSE} ");
     } 
 
-    for(int i = 0; i < this->size(); i++) {
-      LC_EXPs a = this->basis(i);
+    BOOST_FOREACH(int i, idx) {
+      LC_EXPs a = this->basis(idx[i]);
       LC_EXPs b = (*other)->basis(i);
       dcomplex N(a->c(0));
       dcomplex z(a->z(0));
@@ -492,7 +592,7 @@ namespace cbasis {
     }
     
   }
-
+   
   template<int m> typename _EXPs<m>::EXPs _EXPs<m>::Clone() const {
     
     EXPs ptr = Create_EXPs<m>();
@@ -690,21 +790,8 @@ namespace cbasis {
     }
 
     for(int i = 0; i < na; i++) {
-      typename _EXPs<m1>::LC_EXPs bi = a->basis(i);
       for(int j = 0; j < nb; j++) {
-	typename _EXPs<m2>::LC_EXPs bj = b->basis(j);
-	
-	dcomplex acc(0);
-	for(int ii = 0; ii < bi->size(); ii++)
-	  for(int jj = 0; jj < bj->size(); jj++) {
-	    dcomplex c(bi->c(ii) * bj->c(jj));
-	    int      ni(bi->n(ii));
-	    int      nj(bj->n(jj));
-	    dcomplex zi(bi->z(ii));
-	    dcomplex zj(bj->z(jj));
-	    acc += c * EXPIntD2<m1, m2>(ni, zi, nj, zj);
-	  }
-	mat.coeffRef(i, j) = acc;
+	mat.coeffRef(i, j) = EXPIntD2LC<m1, m2>(a->basis(i), b->basis(j));
       }
     }
   }
@@ -738,7 +825,70 @@ namespace cbasis {
   template void CalcD2Mat<1,2>(_EXPs<1>::EXPs a, _EXPs<2>::EXPs b, int, MatrixXcd*);
   template void CalcD2Mat<2,1>(_EXPs<2>::EXPs a, _EXPs<1>::EXPs b, int, MatrixXcd*);
   template void CalcD2Mat<2,2>(_EXPs<2>::EXPs a, _EXPs<2>::EXPs b, int, MatrixXcd*);
+  template<int m1, int m2>
+  void CalcHAtomMat(typename _EXPs<m1>::EXPs a,
+		    dcomplex cd2, const map<int, dcomplex>& mcs,
+		    typename _EXPs<m2>::EXPs b,
+		    int reuse, MatrixXcd* mat) {
+    /**
+       Compute matrix for H atom Hamiltonian.
+       
+       Inputs
+       ------
+       a, b : basis function for bra and ket side
+       cd2  : coefficient for d2/dr2
+       cms  : power and coefficient list
+       reuse: INITIAL=> initialize matrix before calculation
+       
+       Returns
+       -------
+       mat  : matrix
+     */
 
+    
+    if(reuse == INITIAL) {
+      CalcMat_Symbolic<m1, m2>(a, b, mat);
+    }
+    if(reuse != INITIAL && reuse != REUSE) {
+      THROW_ERROR("scall <- {INITIAL, REUSE}");
+    }
+
+    int na(a->size());
+    int nb(b->size());
+    if(mat->rows() != na || mat->cols() != nb) {
+      string msg;
+      msg = format("size mismatch\n").str();
+      msg += (format("mat->size:   (%d, %d)\n") % mat->rows() % mat->cols()).str();
+      msg += (format("basis->size: (%d, %d)\n") % na % nb).str();
+      THROW_ERROR(msg);
+    }
+
+    if(!a->HasCoefAll() || !b->HasCoefAll()) {
+      THROW_ERROR("basis does not have coefficients.");
+    }
+
+    typedef pair<int, dcomplex> IC;
+    for(int i = 0; i < na; i++) {
+      for(int j = 0; j < nb; j++) {
+	typename _EXPs<m1>::LC_EXPs ai = a->basis(i);
+	typename _EXPs<m2>::LC_EXPs bj = b->basis(j);
+	dcomplex acc(0);
+	acc += cd2 * EXPIntD2LC<m1, m2>(ai, bj);
+	for(map<int, dcomplex>::const_iterator it = mcs.begin();
+	    it != mcs.end(); ++it) {
+	  int m = it->first;
+	  dcomplex c = it->second;
+	  acc += c * EXPIntLC<m1, m2>(ai, m, bj);
+	}
+	mat->coeffRef(i, j) = acc;
+      }
+    }
+    
+  }
+  template void CalcHAtomMat<1,1>(_EXPs<1>::EXPs, dcomplex, const map<int, dcomplex>&, _EXPs<1>::EXPs, int, MatrixXcd*);
+  template void CalcHAtomMat<1,2>(_EXPs<1>::EXPs, dcomplex, const map<int, dcomplex>&, _EXPs<2>::EXPs, int, MatrixXcd*);
+  template void CalcHAtomMat<2,1>(_EXPs<2>::EXPs, dcomplex, const map<int, dcomplex>&, _EXPs<1>::EXPs, int, MatrixXcd*);
+  template void CalcHAtomMat<2,2>(_EXPs<2>::EXPs, dcomplex, const map<int, dcomplex>&, _EXPs<2>::EXPs, int, MatrixXcd*);
   
   // ==== for compatible ====
   template<int m1, int m2>

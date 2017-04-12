@@ -686,7 +686,7 @@ namespace cbasis {
 
   }  
 
-  // -- primitive --
+  // -- primitive --  
   void CalcPrimSTV(Molecule mole, SubIt isub, SubIt jsub, int iz, int jz,
 		   A4dc& s, A4dc& t, A4dc& v) {
     dcomplex zetai, zetaj, zetaP;
@@ -852,6 +852,51 @@ namespace cbasis {
       for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end(); ++jrds) 
 	res = res || sym->Non0_3(irds->irrep, krrep, jrds->irrep);
     return res;
+  }
+  void CalcSTMat(SymGTOs a, SymGTOs b, BMat *S, BMat *T) {
+
+    if(not a->setupq || not b->setupq) {
+      THROW_ERROR("not setup");
+    }
+    SymmetryGroup sym = a->sym_group();
+    if(not sym->IsSame(b->sym_group())) {
+      THROW_ERROR("symmetry is different")
+    }
+
+    static A4dc s(1000), t(1000), v(1000);
+    A4dc cc(1000);
+    Molecule mole = a->molecule();    
+
+    InitBMat(a, 0, b, S);
+    InitBMat(a, 0, b, T);
+
+    for(SubIt isub = a->subs().begin(); isub != a->subs().end(); ++isub) {
+      for(SubIt jsub = b->subs().begin(); jsub != b->subs().end(); ++jsub) {
+
+	if(not HasNon0(sym, isub, sym->irrep_s(), jsub))
+	  continue;
+
+	for(int iz = 0; iz < isub->size_zeta(); iz++) {
+	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
+	    CalcPrimSTV(mole, isub, jsub, iz, jz, s, t, v);
+	    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
+	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
+		
+		if(sym->Non0_3(irds->irrep, 0, jrds->irrep)) {
+		  int i(irds->offset + iz);
+		  int j(jrds->offset + jz);	
+		  TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
+		  pair<Irrep, Irrep> ij(irds->irrep, jrds->irrep);		  
+		  (*S)[ij](i, j) = MultArrayTDot(cc, s);
+		  (*T)[ij](i, j) = MultArrayTDot(cc, t);
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }    
+    
   }
   void CalcSTVMat(SymGTOs a, SymGTOs b, BMat *S, BMat *T, BMat *V) {
     

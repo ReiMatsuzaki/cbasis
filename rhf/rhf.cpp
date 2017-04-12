@@ -5,11 +5,12 @@
 #include "../external/picojson/picojson.h"
 #include "../utils/eigen_plus.hpp"
 #include "../utils/timestamp.hpp"
+#include "../utils/read_json.hpp"
 #include "../src_cpp/symmolint.hpp"
 #include "../src_cpp/one_int.hpp"
 #include "../src_cpp/two_int.hpp"
 #include "../src_cpp/mo.hpp"
-#include "../src_cpp/read_json.hpp"
+#include "../src_cpp/symmol_read_json.hpp"
 
 using namespace std;
 using namespace cbasis;
@@ -75,8 +76,7 @@ void Parse() {
     picojson::object& obj = json.get<picojson::object>();
     comment = ReadJson<string>(obj, "comment");
     sym = ReadJson<SymmetryGroup>(obj, "sym");
-    mole = NewMolecule(sym);
-    ReadJson_Molecule(obj, "molecule", mole);
+    mole = NewMolecule(sym); ReadJson_Molecule(obj, "molecule", mole);
     gtos = NewSymGTOs(mole);
     ReadJson_SymGTOs_Subs(obj, "basis", gtos);
     num_ele   = ReadJson<int>(obj, "num_ele");

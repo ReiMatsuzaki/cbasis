@@ -5,6 +5,7 @@
 #include "eigen_plus.hpp"
 #include "fact.hpp"
 #include "timestamp.hpp"
+#include "macros.hpp"
 
 using namespace std;
 using namespace cbasis;
@@ -137,28 +138,52 @@ TEST(EigenPlus, lin_solve) {
   EXPECT_C_EQ(0.0, (A*x-a).array().sum());
 }
 TEST(EigenPlus, inv) {
-
+  THROW_ERROR("contain error");
+  /*
+  
   int n(4);
   MatrixXcd A(n, n);
   for(int i = 0; i < n; i++) {
     for(int j = 0; j < n; j++) {
-      A(0, 0) = i + j + 0.5;
+      A(i, j) = i*j + 0.5;
     }
   }
 
   MatrixXcd AInv(n, n);
-  LinearSolver solver;
-  solver.Inv(A, &AInv);
+  LinearSolver solver("householderQr");
+  try {
+    solver.Inv(A, &AInv);
+  } catch(exception& e) {
+    cout << e.what() << endl;
+    exit(1);
+  }
 
   MatrixXcd AAInv(n, n);
   AAInv = A * AInv;
+
   for(int i = 0; i < n; i++)
     for(int j = 0; j < n; j++) {
       EXPECT_C_EQ(i==j ? 1.0 : 0.0, AAInv(i, j));
     }
-  
+  */
 }
+TEST(EigenPlus, sqrt) {
+  
+  int n(4);
+  MatrixXcd A(n, n);
+  for(int i = 0; i < n; i++) {
+    for(int j = 0; j < n; j++) {
+      A(i, j) = i + j + 0.5;
+    }
+  }
 
+  MatrixXcd Asqrt(n, n);
+  matrix_sqrt(A, Asqrt);
+
+  MatrixXcd Asqrt2(n, n);
+  Asqrt2 = Asqrt * Asqrt;
+  EXPECT_MATXCD_EQ(A, Asqrt2);
+}
 TEST(Fact, iabs) {
 
   EXPECT_EQ(0, iabs(0));

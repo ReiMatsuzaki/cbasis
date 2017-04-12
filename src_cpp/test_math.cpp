@@ -53,7 +53,138 @@ TEST(BMat, ReadWrite) {
   EXPECT_MATXCD_EQ(bmat1(1, 2), bmat2(1, 2));
   
 }
+TEST(BMat, Copy) {
 
+  BMat bmat1;
+  MatrixXcd M10(2, 3); 
+  M10 <<
+    1.0, 1.1, 1.2,
+    2.1, 2.2, 2.3;
+  bmat1[make_pair(1, 0)] = M10;
+
+  MatrixXcd M12(3, 1); 
+  M12 << 3.1, 3.2, 3.3;
+  bmat1[make_pair(1, 2)] = M12;
+
+
+  BMat bmat2;
+  Copy(bmat1, bmat2);
+
+  
+  EXPECT_MATXCD_EQ(bmat1(1,0), bmat2(1,0));
+  EXPECT_MATXCD_EQ(bmat1(1,2), bmat2(1,2));
+		   
+}
+TEST(BMat, SetZero) {
+  BMat bmat1;
+  MatrixXcd M10(2, 3); 
+  M10 <<
+    1.0, 1.1, 1.2,
+    2.1, 2.2, 2.3;
+  bmat1[make_pair(1, 0)] = M10;
+
+  MatrixXcd M12(3, 1); 
+  M12 << 3.1, 3.2, 3.3;
+  bmat1[make_pair(1, 2)] = M12;
+
+  bmat1.SetZero();
+  MatrixXcd M10_0 = MatrixXcd::Zero(2,3);
+  MatrixXcd M12_0 = MatrixXcd::Zero(3,1);
+  EXPECT_MATXCD_EQ(bmat1(1,0), M10_0);
+  EXPECT_MATXCD_EQ(bmat1(1,2), M12_0);
+
+}
+TEST(BMat, Add) {
+  
+  BMat bmat1;
+  MatrixXcd M10(2, 3); 
+  M10 <<
+    1.0, 1.1, 1.2,
+    2.1, 2.2, 2.3;
+  bmat1[make_pair(1, 0)] = M10;
+  MatrixXcd M12(3, 1); 
+  M12 << 3.1, 3.2, 3.3;
+  bmat1[make_pair(1, 2)] = M12;
+
+  BMat bmat2;
+  MatrixXcd M10_a(2, 3); 
+  M10_a <<
+    1.1, 2.1, 1.3,
+    2.2, 2.2, 2.4;
+  bmat2[make_pair(1, 0)] = M10_a;
+  MatrixXcd M12_a(3, 1); 
+  M12_a << 1.1, 3.1, 1.3;
+  bmat2[make_pair(1, 2)] = M12_a;
+
+  bmat1.Add(1.35, bmat2);
+  dcomplex ref = M10(1,2) + 1.35*M10_a(1,2);
+  EXPECT_C_EQ(bmat1(1, 0)(1, 2), ref);
+}
+TEST(BMat, Shift) {
+
+  BMat bmat1;
+  MatrixXcd M10(2, 2); 
+  M10 <<
+    1.0, 1.1,
+    2.1, 2.2;
+  bmat1[make_pair(0, 0)] = M10;
+  MatrixXcd M12(1, 1); 
+  M12 << 3.1;
+  bmat1[make_pair(2, 2)] = M12;
+
+  bmat1.Shift(1.33);
+
+  EXPECT_C_EQ(bmat1(0, 0)(0, 0), 1.0+1.33);
+  EXPECT_C_EQ(bmat1(0, 0)(1, 0), 2.1);
+  EXPECT_C_EQ(bmat1(0, 0)(1, 1), 2.2+1.33);
+  EXPECT_C_EQ(bmat1(2, 2)(0, 0), 3.1+1.33);
+  
+}
+TEST(BMat, Mult) {
+
+  BMat bmat1;
+  MatrixXcd M10(2, 3); 
+  M10 <<
+    1.0, 1.1, 1.2,
+    2.1, 2.2, 2.3;
+  bmat1[make_pair(0, 1)] = M10;
+  MatrixXcd M12(3, 1); 
+  M12 << 3.1, 3.2, 3.3;
+  bmat1[make_pair(1, 2)] = M12;
+
+  BMat bmat2;
+  MatrixXcd M10_a(3, 1); 
+  M10_a << 1.1, 2.1, 1.3;
+  bmat2[make_pair(1, 0)] = M10_a;
+
+  BMat bmat3;
+  Multi(bmat1, bmat2, bmat3);
+
+  MatrixXcd AB = M10 * M10_a;
+  EXPECT_MATXCD_EQ(AB, bmat3(0, 0));
+
+}
+TEST(BMat, Sqrt) {
+
+  BMat bmat("A");
+  MatrixXcd M00(2, 2);
+  M00 <<
+    4.0, 0.0,
+    0.0, 1.0;
+  bmat(0, 0) = M00;  
+  MatrixXcd M11(1, 1); 
+  M11 << 3.1;
+  bmat(1, 1) = M11;
+
+  BMat bmat_sqrt("sqrt(A)");
+  BMatSqrt(bmat, bmat_sqrt);  
+  BMat bmat_sqrt_2("sqrt(A)^2");
+  Multi(bmat_sqrt, bmat_sqrt, bmat_sqrt_2);
+  
+  EXPECT_MATXCD_EQ(bmat(0, 0), bmat_sqrt_2(0, 0));
+  EXPECT_MATXCD_EQ(bmat(1, 1), bmat_sqrt_2(1, 1));
+  
+}
 TEST(BMatSet, SetGet) {
 
   cout << "real,abs:" << endl;

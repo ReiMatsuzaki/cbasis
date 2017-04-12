@@ -40,9 +40,23 @@ check_hatom: ${BINDIR}/two_pot
 	../one_eig/bin/fast/one_eig hatom0.json
 	./$^ hatom.json
 
-check_h2: ${BINDIR}/two_pot
+calc_hf:
+	../one_eig/bin/fast/one_eig h2_oneeig.json
 	../rhf/bin/fast/rhf h2_rhf.json
-	./$^ h2.json 
+
+calc_hf_small:
+	../one_eig/bin/fast/one_eig h2_oneeig.json
+	../rhf/bin/fast/rhf h2_rhf_small.json
+
+check_h2: ${BINDIR}/two_pot
+	./$^ h2.json
+
+check_rpa: ${BINDIR}/two_pot
+	@echo RPA
+	./$^ h2_rpa_small.json > h2_rpa_small.out
+	@echo
+	@echo STEX
+	./$^ h2_stex_small.json > h2_stex_small.out
 
 ## ==== Basic command ====
 clean:

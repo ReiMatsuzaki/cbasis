@@ -2,6 +2,7 @@
     "comment" : "calculation of H2+ bound state using Rescigno and McCurdy basis (RPA *31*, 624 (1985))",
     "out_json": "out.json",
     "cs_csv" : "cs.csv",
+    "para_csv": "para.csv",
     "linear_solver": {"type": "householderQr","_type": "fullPivHouseholderQr"},
     "calc_type": "one",
     "num_ele": 1,

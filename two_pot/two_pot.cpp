@@ -34,6 +34,9 @@ double au2mb = 5.291772 * 5.291772;
 string comment;
 string in_json, out_json, cs_csv;
 
+// -- Output --
+ofstream f_para;
+
 // -- target --
 SymmetryGroup sym;
 Molecule mole;
@@ -42,7 +45,7 @@ Molecule mole0;
 vector<double> w_list;
 int ne;
 string calc_type;
-bool use_stex;
+//bool use_stex;
 enum ECalcTerm {ECalcTerm_One, ECalcTerm_Full };
 ECalcTerm calc_term;
 ERIMethod eri_method;
@@ -193,7 +196,32 @@ dcomplex CoefAzeta0(dcomplex w, MultArray<dcomplex, 2>& Alm,
   
   return cumsum;
 }
+double Coef_FixedMole(dcomplex w, MultArray<dcomplex, 2>& Alm,
+		      vector<int>& L_list, int L, int M ) {
+  /**
+     Gives coefficient of differential cross section for 
+     fixed molecule axis with paralled electronic field.
+     see note @ 2017/3/15
 
+     Inputs
+     ------
+     Alm(L, M) = w i sqrt(2/3) (i^-L) e^{i eta_l} <phi^-, mu phi_i>
+
+     d sigma/d Omega = sum_L C_L P_L
+
+   */
+
+  dcomplex cumsum(0);
+  BOOST_FOREACH(int L1, L_list) {    
+    BOOST_FOREACH(int L2, L_list) {
+      dcomplex c1 = sqrt(1.0*(2*L1+1)*(2*L2+1));
+      dcomplex c2 = cg_coef(L1,L2,0,0, L,0) * cg_coef(L1,L2,M,-M, L,0);
+      dcomplex c3 = Alm(L1, M) * conj(Alm(L2, M));
+      cumsum += c1 * c2 * c3;
+    }
+  }
+  return (cumsum).real();
+}
 void Parse() {
   PrintTimeStamp("Parse", NULL);  
   try {
@@ -204,6 +232,16 @@ void Parse() {
     object& obj = json.get<object>();
     comment = ReadJson<string>(obj, "comment");
     calc_type = ReadJson<string>(obj, "calc_type");
+
+    // -- write coeff for molecule fixed with parallel electronic field --
+    string para_csv = ReadJsonWithDefault<string>(obj, "para_csv", "");
+    cout << "para_csv: " << para_csv << endl;
+    if(para_csv != "") {
+      f_para.open(para_csv.c_str());
+      if(f_para.fail()) {
+	throw runtime_error("failed to open file.");
+      }
+    }
     
     // -- write wave function --
     CheckObject<object>(obj, "write_psi");
@@ -211,7 +249,10 @@ void Parse() {
     write_psi_filename = ReadJson<string>(write_psi_obj, "file");
     write_psi_rs = ReadJson<VectorXd>(write_psi_obj, "rs");
     write_psi_lmax = ReadJson<int>(write_psi_obj, "lmax");
-    
+
+
+
+    // -- number of calculation term --
     string str_calc_term = ReadJsonWithDefault<string>(obj, "calc_term", "full");
     if(str_calc_term == "one") {
       calc_term = ECalcTerm_One;
@@ -223,16 +264,10 @@ void Parse() {
     linear_solver = ReadJsonWithDefault
       <LinearSolver>(obj, "linear_solver", LinearSolver());
     ne = ReadJson<int>(obj, "num_ele");
-    if(calc_type == "STEX") {
-      use_stex = true;
-    } else if(calc_type == "one") {
-      use_stex = false;
-    } else {
-      throw runtime_error("calc_type must \"STEX\" or \"one\"");
-    }
 
-    if(calc_type == "STEX")
+    if(calc_type == "STEX" or calc_type == "RPA") {
       eri_method = ReadJson<ERIMethod>(obj, "eri_method");
+    }
     sym     = ReadJson<SymmetryGroup>(obj, "sym");
     out_json = ReadJson<string>(obj, "out_json");
     cs_csv   = ReadJson<string>(obj, "cs_csv");
@@ -345,9 +380,9 @@ void PrintIn() {
   cout << "write_psi_lmax: " << write_psi_lmax << endl;
   cout << "cs_csv: "  << cs_csv;
   cout << "out_json: " << out_json << endl;
-  cout << "calc_type: " << (use_stex ? "STEX" : "one") << endl;
+  cout << "calc_type: " << calc_type << endl;
   cout << "calc_term: " << (calc_term == ECalcTerm_One ? "one" : "full") << endl;
-  cout << "linear_solver: " << linear_solver.show() << endl;
+  cout << "linear_solver: " << linear_solver.str() << endl;
   cout << "ERIMethod_use_symmetry: " << eri_method.symmetry << endl;
   cout << "ERIMethod_use_memo: " << eri_method.coef_R_memo << endl;
   cout << "ERIMethod_use_perm: " << eri_method.perm << endl;  
@@ -364,6 +399,8 @@ void PrintIn() {
 }
 void CalcMat() {
 
+  S1.set_name("S1"); T1.set_name("T1"); V1.set_name("V1");
+  
   Irrep x = sym->irrep_x(); Irrep y = sym->irrep_y(); Irrep z = sym->irrep_z();
 
   PrintTimeStamp("psi1", NULL);
@@ -412,9 +449,9 @@ void CalcMat() {
 }
 void CalcMatSTEX() {
   PrintTimeStamp("MatSTEX_1", NULL);
-  ERIMethod method;
-  B2EInt eri_J_11 = CalcERI(basis1, basis1, basis0, basis0, method);
-  B2EInt eri_K_11 = CalcERI(basis1, basis0, basis0, basis1, method);
+
+  B2EInt eri_J_11 = CalcERI(basis1, basis1, basis0, basis0, eri_method);
+  B2EInt eri_K_11 = CalcERI(basis1, basis0, basis0, basis1, eri_method);
   AddJ(eri_J_11, c0, irrep0, 1.0, V1); AddK(eri_K_11, c0, irrep0, 1.0, V1);
 
   PrintTimeStamp("MatSTEX_01", NULL);
@@ -422,13 +459,122 @@ void CalcMatSTEX() {
     cout << "L = " << L << endl;
     SymGTOs psi0   = basis_psi0_L[L];
     SymGTOs c_psi0 = basis_c_psi0_L[L];
-    B2EInt eri_JC = CalcERI(psi0,   basis1, basis0, basis0, method);
-    B2EInt eri_JH = CalcERI(c_psi0, basis1, basis0, basis0, method);
-    B2EInt eri_KC = CalcERI(psi0,   basis0, basis0, basis1, method);
-    B2EInt eri_KH = CalcERI(c_psi0, basis0, basis0, basis1, method);
+    B2EInt eri_JC = CalcERI(psi0,   basis1, basis0, basis0, eri_method);
+    B2EInt eri_JH = CalcERI(c_psi0, basis1, basis0, basis0, eri_method);
+    B2EInt eri_KC = CalcERI(psi0,   basis0, basis0, basis1, eri_method);
+    B2EInt eri_KH = CalcERI(c_psi0, basis0, basis0, basis1, eri_method);
     AddJ(eri_JC, c0, irrep0, 1.0, V0L1[L]);  AddK(eri_KC, c0, irrep0, 1.0, V0L1[L]);
     AddJ(eri_JH, c0, irrep0, 1.0, HV0L1[L]); AddK(eri_KH, c0, irrep0, 1.0, HV0L1[L]);
   }
+}
+void CalcMatRPA() {
+  PrintTimeStamp("MatRPA_1", NULL);
+
+  // ==== psi1 ====
+  B2EInt eri_J_11 = CalcERI(basis1, basis1, basis0, basis0, eri_method);
+  B2EInt eri_K_11 = CalcERI(basis1, basis0, basis0, basis1, eri_method);
+  
+  // -- compute A matrix 
+  // -- A = T + V_ne + J + K - epsilon0  
+  CalcSTVMat(basis1, basis1, &S1, &T1, &V1);  
+  BMat A("A"); Copy(T1, A);    
+  try {
+    A.Add(1.0, V1);
+  } catch(exception& e) {
+    cout << "error on A+=V1\n";
+    cout << e.what() << endl;
+    THROW_ERROR("ERROR");
+  } 
+  AddJ(eri_J_11, c0, irrep0, 1.0, A);
+  AddK(eri_K_11, c0, irrep0, 1.0, A);
+  try {
+    A.Add(-E0, S1);
+  } catch(exception& e) {
+    cout << e.what() << endl;
+    THROW_ERROR("error on A+=-E0 S1")
+      }
+
+  // -- compute B matrix --
+  // -- B = K
+  BMat B("B"); Copy(T1, B); B.SetZero();  
+  AddK(eri_K_11, c0, irrep0, 1.0, B);
+
+  // -- compute V0 --
+  BMat V1_0th("V1_0th");
+  CalcVMat(basis1, mole0, basis1, &V1_0th);
+  
+  // -- compute interaction for psi1 --
+  // -- (H-T) = sqrt((A+B)(A-B)) - T + epsilon0
+  BMat ApB("ApB"); Copy(A, ApB); ApB.Add(+1.0, B);  
+  BMat AmB("AmB"); Copy(A, AmB); AmB.Add(-1.0, B);
+  BMat H2("H2");  Multi(ApB, AmB, H2);
+  BMatSqrt(H2, V1);
+  V1.Add(+E0, S1);
+
+  try {
+    V1.Add(-1.0, T1);
+  } catch(exception& e) {
+    cout << e.what() << endl;
+    THROW_ERROR("V1+=-T1");
+  }
+  
+  // ==== psi0/psi1 ====  
+  PrintTimeStamp("MatRPA_2", NULL);
+  BOOST_FOREACH(int L, Ls) {
+    cout << "L = " << L << endl;
+    SymGTOs psi0   = basis_psi0_L[L];
+    SymGTOs c_psi0 = basis_c_psi0_L[L];
+
+    BMat T01, HT01, S01, HS01, V01, HV01;
+    BMat V01_0th, HV01_0th;
+    CalcSTMat(psi0,   basis1, &S01,  &T01);
+    CalcSTMat(c_psi0, basis1, &HS01, &HT01);
+    CalcVMat(psi0,    mole,  basis1, &V01);
+    CalcVMat(c_psi0,  mole,  basis1, &HV01);
+    CalcVMat(psi0,    mole0, basis1, &V01_0th);
+    CalcVMat(c_psi0,  mole0, basis1, &HV01_0th);
+
+    // -- ERI --
+    B2EInt eri_JC = CalcERI(psi0,   basis1, basis0, basis0, eri_method);
+    B2EInt eri_JH = CalcERI(c_psi0, basis1, basis0, basis0, eri_method);
+    B2EInt eri_KC = CalcERI(psi0,   basis0, basis0, basis1, eri_method);
+    B2EInt eri_KH = CalcERI(c_psi0, basis0, basis0, basis1, eri_method);
+
+    // -- A matrix --
+    // -- A = T + V_ne + J + K - epsilon0  
+    BMat CA; Copy(T01,  CA); CA.Add(1.0, V01);
+    BMat HA; Copy(HT01, HA); HA.Add(1.0, HV01);    
+    AddJ(eri_JC, c0, irrep0, 1.0, CA); AddK(eri_KC, c0, irrep0, 1.0, CA);
+    AddJ(eri_JH, c0, irrep0, 1.0, HA); AddK(eri_KH, c0, irrep0, 1.0, HA);
+    CA.Add(-E0, S01);
+    HA.Add(-E0, HS01);
+
+    // -- B matrix --
+    BMat CB; Copy(T1, CB); CB.SetZero();
+    BMat HB; Copy(T1, HB); HB.SetZero();
+    AddK(eri_KC, c0, irrep0, 1.0, CB);
+    AddK(eri_KH, c0, irrep0, 1.0, HB);
+
+    // -- interaction --
+    // V = H-H_0 = sqrt((A+B)(A-B)) + epsilon - T - V0
+    BMat C_ApB; Copy(CA, C_ApB); C_ApB.Add(+1.0, CB);
+    BMat C_AmB; Copy(CA, C_AmB); C_AmB.Add(-1.0, CB);
+    BMat C_H2; Multi(C_ApB, C_AmB, C_H2);
+    BMatSqrt(C_H2, V0L1[L]);
+    V0L1[L].Add(E0, S01);
+    V0L1[L].Add(-1.0, T01);
+    V0L1[L].Add(-1.0, V01_0th);    
+    BMat H_ApB; Copy(HA, H_ApB); H_ApB.Add(+1.0, HB);
+    BMat H_AmB; Copy(HA, H_AmB); H_AmB.Add(-1.0, HB);
+    BMat H_H2; Multi(H_ApB, H_AmB, H_H2);
+    BMatSqrt(H_H2, HV0L1[L]);
+    HV0L1[L].Add(E0,   HS01);
+    HV0L1[L].Add(-1.0, HT01);
+    HV0L1[L].Add(-1.0, HV01_0th);
+    
+
+  }
+  
 }
 void CalcDriv(int iw) {
   //  PrintTimeStamp("calc_driv", NULL);
@@ -498,6 +644,10 @@ void CalcBraket() {
 
     BMat& V  = V0L1[L];
     BMat& HV = HV0L1[L];
+    cout << "L = " << L << endl;
+    cout << "V mat: \n" << V.full_print() << endl;
+    cout << "VH mat: \n" << HV.full_print() << endl;
+    
     impsi0_v_psi1(L, +1) = (TDot(c0(x),   V( x,x)*cX1(x))
 			    -TDot(Hc0(x), HV(x,x)*cX1(x)))/m2;
     impsi0_v_psi1(L, -1) = (TDot(c0(y),   V( y,y)*cY1(y))
@@ -550,9 +700,9 @@ void CalcMain_alpha(int iw) {
   result(iw, idx_cs_sigu_alpha_v) = cs_sigu_v;
   result(iw, idx_cs_piu_alpha_v)  = cs_piu_v;
 
-  cout << format("Cs(total,alpha): %10.5f, %10.5f\n") % cs % cs_v;
-  cout << format("Cs(sigu,alpha):  %10.5f, %10.5f\n") % cs_sigu % cs_sigu_v;
-  cout << format("Cs(piu,alpha):   %10.5f, %10.5f\n") % cs_piu % cs_piu_v;
+  cout << format("Cs(total,alpha): %20.10f, %20.10f\n") % cs % cs_v;
+  cout << format("Cs(sigu,alpha):  %20.10f, %20.10f\n") % cs_sigu % cs_sigu_v;
+  cout << format("Cs(piu,alpha):   %20.10f, %20.10f\n") % cs_piu % cs_piu_v;
   
 }
 void CalcMain(int iw) {
@@ -586,16 +736,10 @@ void CalcMain(int iw) {
       }
       Alm(L, M)   = coef_L * psi0_other   / sqrt(sign * impsi0_chi(L,M));
       Alm_v(L, M) = coef_L * psi0_other_v / sqrt(sign * impsi0_chi(L,M));
-      /*
-      dcomplex dl_ss_v = (sign * 
-			  (impsi0_muphi_v(L,M) + impsi0_v_psi1_v(L,M))
-			  / sqrt(sign * impsi0_chi(L,M)));
-
-			  Alm_v(L, M) = coef_L * dl_ss_v;
-      */
     }
   }
-  
+
+  // Length form, molecular axis averaged
   dcomplex A00 = CoefAzeta0(w, Alm, 0, Ls, Ms);
   dcomplex A20 = CoefAzeta0(w, Alm, 2, Ls, Ms);
   dcomplex A00_sigu = CoefAzeta0(w, Alm, 0, Ls, Ms_sigu);
@@ -608,7 +752,18 @@ void CalcMain(int iw) {
   result(iw, idx_beta) = beta;
   result(iw, idx_cs_sigu) = cs_sigu;
   result(iw, idx_cs_piu) = cs_piu;
-  
+
+  cout << "coefficient A_lm\n";
+  BOOST_FOREACH(int L, Ls) {
+    BOOST_FOREACH(int M, Ms) {
+      if(L==0 && M!=0) 
+	break;
+      cout << format("%d, %d, %20.10f, %20.10f\n") % L % M
+	% Alm(L, M).real() % Alm(L, M).imag();
+    }
+  }
+
+  // Velocity form, molecular axis averaged
   dcomplex A00_v = CoefAzeta0(w, Alm_v, 0, Ls, Ms);
   dcomplex A20_v = CoefAzeta0(w, Alm_v, 2, Ls, Ms);
   dcomplex A00_piu_v  = CoefAzeta0(w, Alm_v, 0, Ls, Ms_piu);
@@ -622,11 +777,44 @@ void CalcMain(int iw) {
   result(iw, idx_cs_sigu_v) = cs_sigu_v;
   result(iw, idx_cs_piu_v)  = cs_piu_v;
   //  cout << "cross sections (length form, velocity form)" << endl;
-  cout << format("Cs(total): %10.5f, %10.5f\n") % cs % cs_v;
-  cout << format("Cs(sig_u): %10.5f, %10.5f\n") % cs_sigu % cs_sigu_v;
-  cout << format("Cs(pi_u) : %10.5f, %10.5f\n") % cs_piu % cs_piu_v;
-  cout << format("beta     : %10.5f, %10.5f\n") % beta % beta_v;
-  
+  cout << format("Cs(total): %20.10f, %20.10f\n") % cs % cs_v;
+  cout << format("Cs(sig_u): %20.10f, %20.10f\n") % cs_sigu % cs_sigu_v;
+  cout << format("Cs(pi_u) : %20.10f, %20.10f\n") % cs_piu % cs_piu_v;
+  cout << format("beta     : %20.10f, %20.10f\n") % beta % beta_v;
+
+  // fixed molecule
+  double coeff =  4.0*M_PI*M_PI / (c_light*w) * 1.0/(4.0*M_PI) * au2mb;
+  cout << format("coef: %20.10f\n") % coeff;
+  int lmax = 2*Ls[Ls.size()-1];
+  if(f_para.is_open()) {
+    f_para << "w";
+    for(int L = 0; L <= lmax; L++) {
+      f_para << format(",%d") % L;
+    }
+    f_para << ",cs_sigu\n";
+  }
+
+  for(int M = 0; M <= 1; M++) {
+    cout << format("Coef(M=%d) = \n") % M;
+    for(int L = 0; L <= lmax; L++) {      
+      double c_l = Coef_FixedMole(w, Alm,   Ls, L, M)      *coeff;
+      double c_v = Coef_FixedMole(w, Alm_v, Ls, L, M)/(w*w)*coeff;
+      cout << format("%d: %20.10f, %20.10f\n") % L % c_l % c_v; 
+      if(f_para.is_open()) {
+	f_para << format(",%20.10f") % c;
+      }
+    }
+    
+    double c0_l = Coef_FixedMole(w, Alm,   Ls, 0, M)       * coeff * 4.0*M_PI/3.0;
+    double c0_v = Coef_FixedMole(w, Alm_v, Ls, 0, M)/(w*w) * coeff * 4.0*M_PI/3.0;
+    if(M==1) {
+      c0_l *= 2.0; c0_v *= 2.0;
+    }
+    cout << format("Cs(M=%d,fixed): %20.10f, %20.10f\n") % M % c0_l % c0_v;
+    if(f_para.is_open()) {
+      f_para << format(",%20.10f\n") % c0;
+    }
+  }
 }
 void PrintOut() {
 
@@ -679,13 +867,23 @@ int main(int argc, char *argv[]) {
   Parse();
   PrintIn();
   CalcMat();
-  if(use_stex) 
+  if(calc_type == "STEX") {
     CalcMatSTEX();
+  } else if(calc_type == "RPA") {
+    try {
+      CalcMatRPA();
+    } catch(exception& e) {      
+      cout << e.what() << endl;
+      cout << "error on CalcMatRPA\n";
+      return 1;
+    }
+  }
   PrintTimeStamp("Calc", NULL);
   for(int iw = 0; iw < (int)w_list.size(); iw++) {
     double w = w_list[iw];
     cout << "w_eV: " << w * au2ev << endl;
     cout << "w_au: " << w << endl;
+    cout << "E_eV: " << (w + E0) * au2ev << endl;
     cout << "E_au: " << w + E0 << endl;
     cout << "k_au: " << sqrt(2.0*(w + E0)) << endl;
     CalcDriv(iw);
