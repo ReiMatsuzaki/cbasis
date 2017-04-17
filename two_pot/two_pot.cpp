@@ -644,9 +644,9 @@ void CalcBraket() {
 
     BMat& V  = V0L1[L];
     BMat& HV = HV0L1[L];
-    cout << "L = " << L << endl;
-    cout << "V mat: \n" << V.full_print() << endl;
-    cout << "VH mat: \n" << HV.full_print() << endl;
+    //cout << "L = " << L << endl;
+    //cout << "V mat: \n" << V.full_print() << endl;
+    //cout << "VH mat: \n" << HV.full_print() << endl;
     
     impsi0_v_psi1(L, +1) = (TDot(c0(x),   V( x,x)*cX1(x))
 			    -TDot(Hc0(x), HV(x,x)*cX1(x)))/m2;

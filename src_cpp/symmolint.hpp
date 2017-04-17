@@ -110,7 +110,7 @@ namespace cbasis {
     void SolidSH_Ms(int L, Eigen::VectorXi _Ms, Eigen::VectorXcd zs);
     void SolidSH_M(int L, int M, Eigen::VectorXcd zs);
     
-    inline int size_at() const { return this->atom_->size(); }
+    int size_at() const;// { return this->atom_->size(); }
     inline int size_pn() const { return nx_ipn.size(); }
     inline int size_rds() const { return rds.size(); }
     inline int size_prim() const { return this->size_at() * this->size_pn(); }

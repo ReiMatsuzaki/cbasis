@@ -1,5 +1,5 @@
 {
-    "comment" : "calculation of H2 photoionization under STEX calculation",
+    "comment" : "calculation of He photoionization under STEX calculation",
     "out_json": "out.json",
     "cs_csv" : "cs.csv",
     "calc_type": "STEX",

@@ -77,21 +77,25 @@ namespace cbasis {
       msg += ": size_at=0";
       throw runtime_error(msg);
     }
+
     if( this->size_pn() == 0) {
       string msg; SUB_LOCATION(msg);
       msg += ": size_pn==0";
       throw runtime_error(msg);
     }
+
     if(this->zeta_iz.size() == 0) {
       string msg; SUB_LOCATION(msg);
       msg += ": zeta is not set.";
       throw runtime_error(msg);
     }
+
     if(this->rds.size() == 0) {
       string msg; SUB_LOCATION(msg);
       msg += ": ReductionSet is not set.";
       throw runtime_error(msg);
     }
+
     for(RdsIt it = rds.begin(); it != rds.end(); ++it) {
       if(it->size_at() != this->size_at() ||
 	 it->size_pn() != this->size_pn()) {
@@ -176,6 +180,12 @@ namespace cbasis {
     setupq = false;
     rds.push_back(_rds);
     return *this;
+  }
+  int SubSymGTOs::size_at() const {
+    if(this->atom_)
+      return this->atom_->size();
+    else
+      return 0;
   }
   void SubSymGTOs::Mono(Irrep irrep, Vector3i ns, VectorXcd zs) {
 
@@ -469,7 +479,6 @@ namespace cbasis {
     return this->NewSub(this->molecule()->atom(atom_name));
   }
   _SymGTOs* _SymGTOs::SetUp() {
-    
     for(SubIt it = subs_.begin(); it != subs_.end(); ++it) {
       
       // -- setup sub --
@@ -496,7 +505,7 @@ namespace cbasis {
 	cout << it->ip_jg_kp << endl;
 	throw runtime_error(msg);
       }
-      
+
       // -- init offset --
       for(RdsIt irds = it->begin_rds(); irds != it->end_rds(); ++irds) {
 	sym_group_->CheckIrrep(irds->irrep);

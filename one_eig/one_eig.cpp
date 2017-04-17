@@ -50,14 +50,14 @@ int main (int argc, char *argv[]) {
     // -- Comment --
     //comment = ReadJson<string>(obj, "comment");
     string key = "comment";
-    comment = ReadJson<string>(obj, key);
+    comment = ReadJson<string>(obj, key);    
 
     // -- Basis --
     sym = ReadJson<SymmetryGroup>(obj, "sym");
     
     mole = NewMolecule(sym);
     ReadJson_Molecule(obj, "molecule", mole);
-    
+
     gtos = NewSymGTOs(mole);
     ReadJson_SymGTOs_Subs(obj, "basis", gtos);
     if(obj.find("reduce_canonical_num") == obj.end())
@@ -76,6 +76,7 @@ int main (int argc, char *argv[]) {
     cerr << msg << endl;
     exit(1);
   }
+
   try {
     gtos->SetUp();
   } catch(exception& e) {
@@ -86,7 +87,7 @@ int main (int argc, char *argv[]) {
     cerr << gtos->str() << endl;
     exit(1);
   }
-  
+
   cout << "comment: " << comment << endl;
   cout << "in_json: " << argv[1] << endl;
   cout << "out_json: " << out_json << endl;
