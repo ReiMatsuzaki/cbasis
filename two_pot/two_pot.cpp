@@ -67,6 +67,7 @@ map<int, SymGTOs> basis_c_psi0_L;
 map<int, SymGTOs> basis_chi0_L;
 
 // -- solver --
+string solve_driv_type;
 LinearSolver linear_solver;
 
 // -- write_psi --
@@ -250,8 +251,6 @@ void Parse() {
     write_psi_rs = ReadJson<VectorXd>(write_psi_obj, "rs");
     write_psi_lmax = ReadJson<int>(write_psi_obj, "lmax");
 
-
-
     // -- number of calculation term --
     string str_calc_term = ReadJsonWithDefault<string>(obj, "calc_term", "full");
     if(str_calc_term == "one") {
@@ -261,8 +260,19 @@ void Parse() {
     } else {
       throw runtime_error("calc_term must be \"one\" or \"full\"");
     }
-    linear_solver = ReadJsonWithDefault
-      <LinearSolver>(obj, "linear_solver", LinearSolver());
+
+    // solver for driven equation
+    solve_driv_type = ReadJsonWithDefault
+      <string>(obj, "solve_driv", "linear_solve");
+
+    if(solve_driv_type == "linear_solve") {
+      linear_solver = ReadJsonWithDefault
+	<LinearSolver>(obj, "linear_solver", LinearSolver());
+    } else if(solve_driv_type == "eigen_value") {
+
+    } else {
+      THROW_ERROR("unsupported solve_driv");
+    }
     ne = ReadJson<int>(obj, "num_ele");
 
     if(calc_type == "STEX" or calc_type == "RPA") {
@@ -577,7 +587,23 @@ void CalcMatRPA() {
   
 }
 void CalcDriv(int iw) {
-  //  PrintTimeStamp("calc_driv", NULL);
+  /**
+     inputs:
+     .  S1, T1, V1,  S0L, T0L, V0L
+
+     outputs:
+     . c[D][XYZ]1, c0L
+   */
+  
+  PrintTimeStamp("CalcDriv", NULL);
+  if(solve_driv_type == "linear_solve") {
+    CalcDriv_linear_solve(iw);
+  } else if(solve_driv_type == "eigen_value") {
+    CalcDriv_eigen_value(iw);
+  }
+}
+void CalcDriv_linear_solve(int iw) {
+  PrintTimeStamp("CalcDriv_linear_solve", NULL);
   double w = w_list[iw];
   Irrep x = sym->irrep_x();
   Irrep y = sym->irrep_y();
@@ -615,6 +641,16 @@ void CalcDriv(int iw) {
     c0L[L](z)   = L0L[L](z,z).colPivHouseholderQr().solve(s0L_chi[L](z));
     Hc0L[L](z)  = c0L[L](z).conjugate();
   }
+}
+void CalcDriv_eigen_value(int iw) {
+  PrintTimeStamp("CalcDriv_linear_solve", NULL);
+  double w = w_list[iw];
+  Irrep x = sym->irrep_x();
+  Irrep y = sym->irrep_y();
+  Irrep z = sym->irrep_z(); 
+
+  dcomplex ene = E0 + w;
+  
 }
 void CalcBraket() {
 
