@@ -616,8 +616,6 @@ void CalcDriv_eigen_value(int iw) {
   double w = w_list[iw];
   dcomplex ene = E0 + w;
   
-  irreps += sym->irrep_x(),sym->irrep_y(),sym->irrep_z();
-  
   BOOST_FOREACH(Irrep i, irreps) {
 
     // -- psi 1 --
@@ -627,9 +625,9 @@ void CalcDriv_eigen_value(int iw) {
     const VectorXcd& eig = solver.eigenvalues();    
     const MatrixXcd& U1 = solver.eigenvectors();
     CtAC(U1, T1(i,i)); CtAC(U1, V1(i,i)); CtAC(U1, S1(i,i));
+    Ctx(U1, s1(i));    Ctx(U1, sD1(i));
     c1(i) =  VectorXcd::Zero(s1(i).size());      
-    cD1(i) = VectorXcd::Zero(s1(i).size());      
-    Ctx(U1, s1(i)); Ctx(U1, sD1(i));
+    cD1(i) = VectorXcd::Zero(s1(i).size());          
     for(int j = 0; j < U1.rows(); j++) {
       c1(i)(j) = s1(i)(j) / (ene - eig(j));
       cD1(i)(j) = sD1(i)(j) / (ene - eig(j));
@@ -715,6 +713,14 @@ void CalcBraket() {
 
 }
 void CalcMain_alpha(int iw) {
+
+  /**
+     Inputs
+     -------
+     iw       : index for ws
+     c1, s1   : for length form
+     cD1, sD1 : for velocity form
+   */
   
   PrintTimeStamp("calc_alpha", NULL);  
   double w = w_list[iw];
@@ -1068,38 +1074,11 @@ int main(int argc, char *argv[]) {
     } else if(solve_driv_type == "eigen_value") {
       CalcDriv_eigen_value(iw);
     }
-    CalcBraket();
     CalcMain_alpha(iw);
+    CalcBraket();    
     CalcMain(iw);
   }
 
-  
-  /*
-  if(calc_type == "one") {
-    Calc_one_lin();
-  } else {
-    if(calc_type == "STEX") {
-      CalcMat();
-      CalcMatSTEX();
-    } else if(calc_type == "RPA") {
-      CalcMat();
-      CalcMatRPA();
-    }
-    PrintTimeStamp("Calc", NULL);
-    for(int iw = 0; iw < (int)w_list.size(); iw++) {
-      double w = w_list[iw];
-      cout << "w_eV: " << w * au2ev << endl;
-      cout << "w_au: " << w << endl;
-      cout << "E_eV: " << (w + E0) * au2ev << endl;
-      cout << "E_au: " << w + E0 << endl;
-      cout << "k_au: " << sqrt(2.0*(w + E0)) << endl;
-      CalcDriv(iw);
-      CalcBraket();
-      CalcMain_alpha(iw);
-      CalcMain(iw);
-    }
-  }
-  */
   PrintOut();
   cout << "<<<< two_pot <<<<" << endl;
   return 0;
