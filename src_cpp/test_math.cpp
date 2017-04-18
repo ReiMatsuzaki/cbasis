@@ -164,6 +164,34 @@ TEST(BMat, Mult) {
   EXPECT_MATXCD_EQ(AB, bmat3(0, 0));
 
 }
+TEST(BMat, Mult3) {
+
+  BMat A;
+  A(0, 0) = MatrixXcd::Random(2, 3);
+  A(1, 1) = MatrixXcd::Random(3, 4);
+
+  BMat B;
+  B(0, 0) = MatrixXcd::Random(3, 4);
+  B(1, 1) = MatrixXcd::Random(4, 5);
+
+  BMat C;
+  C(0, 0) = MatrixXcd::Random(4, 5);
+  C(1, 1) = MatrixXcd::Random(5, 6);
+
+  BMat AB;
+  Multi(A, B, AB);
+
+  BMat ABC_ref;
+  Multi(AB, C, ABC_ref);
+
+  BMat ABC_calc;
+  Multi3(A, B, C, ABC_calc);
+
+  for(int i = 0; i < 2; i++)  {
+    EXPECT_MATXCD_EQ(ABC_ref(0, 0), ABC_calc(0, 0));
+  }
+  
+}
 TEST(BMat, Sqrt) {
 
   BMat bmat("A");

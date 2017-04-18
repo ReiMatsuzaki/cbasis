@@ -226,7 +226,10 @@ double Coef_FixedMole(dcomplex w, MultArray<dcomplex, 2>& Alm,
 void Parse() {
   PrintTimeStamp("Parse", NULL);  
   try {
-    ifstream f(in_json.c_str());  
+    ifstream f(in_json.c_str());
+    if(f.fail()) {
+      throw runtime_error("failed to open input json file");
+    }
     value json; f >> json;
     if(not json.is<object>()) 
       throw runtime_error("invalid json file");
@@ -263,7 +266,7 @@ void Parse() {
 
     // solver for driven equation
     solve_driv_type = ReadJsonWithDefault
-      <string>(obj, "solve_driv", "linear_solve");
+      <string>(obj, "solve_driv_type", "linear_solve");
 
     if(solve_driv_type == "linear_solve") {
       linear_solver = ReadJsonWithDefault
@@ -271,7 +274,7 @@ void Parse() {
     } else if(solve_driv_type == "eigen_value") {
 
     } else {
-      THROW_ERROR("unsupported solve_driv");
+      THROW_ERROR("unsupported solve_driv_type");
     }
     ne = ReadJson<int>(obj, "num_ele");
 
@@ -392,6 +395,7 @@ void PrintIn() {
   cout << "out_json: " << out_json << endl;
   cout << "calc_type: " << calc_type << endl;
   cout << "calc_term: " << (calc_term == ECalcTerm_One ? "one" : "full") << endl;
+  cout << "solve_driv_type: " << solve_driv_type << endl;  
   cout << "linear_solver: " << linear_solver.str() << endl;
   cout << "ERIMethod_use_symmetry: " << eri_method.symmetry << endl;
   cout << "ERIMethod_use_memo: " << eri_method.coef_R_memo << endl;
@@ -491,9 +495,8 @@ void CalcMatRPA() {
   try {
     A.Add(1.0, V1);
   } catch(exception& e) {
-    cout << "error on A+=V1\n";
     cout << e.what() << endl;
-    THROW_ERROR("ERROR");
+    THROW_ERROR("ERROR on A+=V1");
   } 
   AddJ(eri_J_11, c0, irrep0, 1.0, A);
   AddK(eri_K_11, c0, irrep0, 1.0, A);
@@ -501,8 +504,8 @@ void CalcMatRPA() {
     A.Add(-E0, S1);
   } catch(exception& e) {
     cout << e.what() << endl;
-    THROW_ERROR("error on A+=-E0 S1")
-      }
+    THROW_ERROR("error on A+=-E0 S1");
+  }
 
   // -- compute B matrix --
   // -- B = K
@@ -514,19 +517,14 @@ void CalcMatRPA() {
   CalcVMat(basis1, mole0, basis1, &V1_0th);
   
   // -- compute interaction for psi1 --
-  // -- (H-T) = sqrt((A+B)(A-B)) - T + epsilon0
+  // -- V = (H-T) = sqrt(sqrt(A-B)(A+B)sqrt(A-B)) - T + epsilon0
   BMat ApB("ApB"); Copy(A, ApB); ApB.Add(+1.0, B);  
   BMat AmB("AmB"); Copy(A, AmB); AmB.Add(-1.0, B);
-  BMat H2("H2");  Multi(ApB, AmB, H2);
+  BMat sqrt_AmB("sqrt_AmB"); BMatSqrt(AmB, sqrt_AmB);
+  BMat H2("H2");  Multi3(sqrt_AmB, ApB, sqrt_AmB, H2);
   BMatSqrt(H2, V1);
   V1.Add(+E0, S1);
-
-  try {
-    V1.Add(-1.0, T1);
-  } catch(exception& e) {
-    cout << e.what() << endl;
-    THROW_ERROR("V1+=-T1");
-  }
+  V1.Add(-1.0, T1);
   
   // ==== psi0/psi1 ====  
   PrintTimeStamp("MatRPA_2", NULL);
@@ -566,41 +564,26 @@ void CalcMatRPA() {
     AddK(eri_KH, c0, irrep0, 1.0, HB);
 
     // -- interaction --
-    // V = H-H_0 = sqrt((A+B)(A-B)) + epsilon - T - V0
+    // -- V = H-H_0 = sqrt(sqrt(A-B)(A+B)sqrt(A-B)) + epsilon - T - V0
     BMat C_ApB; Copy(CA, C_ApB); C_ApB.Add(+1.0, CB);
     BMat C_AmB; Copy(CA, C_AmB); C_AmB.Add(-1.0, CB);
-    BMat C_H2; Multi(C_ApB, C_AmB, C_H2);
+    BMat C_sqrt; BMatSqrt(C_AmB, C_sqrt);
+    BMat C_H2; Multi3(C_sqrt, C_ApB, C_sqrt, C_H2);
     BMatSqrt(C_H2, V0L1[L]);
     V0L1[L].Add(E0, S01);
     V0L1[L].Add(-1.0, T01);
     V0L1[L].Add(-1.0, V01_0th);    
     BMat H_ApB; Copy(HA, H_ApB); H_ApB.Add(+1.0, HB);
     BMat H_AmB; Copy(HA, H_AmB); H_AmB.Add(-1.0, HB);
-    BMat H_H2; Multi(H_ApB, H_AmB, H_H2);
+    BMat H_sqrt; BMatSqrt(H_AmB, H_sqrt);
+    BMat H_H2; Multi3(H_sqrt, H_ApB, H_sqrt, H_H2);
     BMatSqrt(H_H2, HV0L1[L]);
     HV0L1[L].Add(E0,   HS01);
     HV0L1[L].Add(-1.0, HT01);
     HV0L1[L].Add(-1.0, HV01_0th);
-    
 
   }
   
-}
-void CalcDriv(int iw) {
-  /**
-     inputs:
-     .  S1, T1, V1,  S0L, T0L, V0L
-
-     outputs:
-     . c[D][XYZ]1, c0L
-   */
-  
-  PrintTimeStamp("CalcDriv", NULL);
-  if(solve_driv_type == "linear_solve") {
-    CalcDriv_linear_solve(iw);
-  } else if(solve_driv_type == "eigen_value") {
-    CalcDriv_eigen_value(iw);
-  }
 }
 void CalcDriv_linear_solve(int iw) {
   PrintTimeStamp("CalcDriv_linear_solve", NULL);
@@ -641,16 +624,107 @@ void CalcDriv_linear_solve(int iw) {
     c0L[L](z)   = L0L[L](z,z).colPivHouseholderQr().solve(s0L_chi[L](z));
     Hc0L[L](z)  = c0L[L](z).conjugate();
   }
+  
 }
 void CalcDriv_eigen_value(int iw) {
-  PrintTimeStamp("CalcDriv_linear_solve", NULL);
+  PrintTimeStamp("CalcDriv_eigen_value", NULL);
   double w = w_list[iw];
-  Irrep x = sym->irrep_x();
-  Irrep y = sym->irrep_y();
-  Irrep z = sym->irrep_z(); 
-
   dcomplex ene = E0 + w;
   
+  vector<Irrep> irreps;
+  Irrep x = sym->irrep_x();
+  Irrep y = sym->irrep_y();
+  Irrep z = sym->irrep_z();
+  irreps.push_back(x);
+  irreps.push_back(y);  
+  irreps.push_back(z);
+
+  
+  BOOST_FOREACH(Irrep i, irreps) {
+
+    // -- psi 1 --
+    cout << "calculate psi1" << endl;  
+    MatrixXcd H = T1(i,i)+V1(i,i);
+    SymGenComplexEigenSolver solver(H, S1(i,i));
+    const VectorXcd& eig = solver.eigenvalues();    
+    const MatrixXcd& U1 = solver.eigenvectors();
+    CtAC(U1, T1(i,i)); CtAC(U1, V1(i,i)); CtAC(U1, S1(i,i));
+    if(i == x) {
+      cX1(x) =  VectorXcd::Zero(sX1(x).size());      
+      cDX1(x) = VectorXcd::Zero(sX1(x).size());      
+      Ctx(U1, sX1(x)); Ctx(U1, sDX1(x));
+      for(int j = 0; j < U1.rows(); j++) {
+	cX1(x)(j) = sX1(x)(j) / (ene - eig(j));
+	cDX1(x)(j) = sDX1(x)(j) / (ene - eig(j));
+      }      
+    } else if(i == y) {
+      cY1(y) =  VectorXcd::Zero(sY1(y).size());      
+      cDY1(y) = VectorXcd::Zero(sY1(y).size());      
+      Ctx(U1, sY1(y)); Ctx(U1, sDY1(y));
+      for(int j = 0; j < U1.rows(); j++) {
+	cY1(y)(j) = sY1(y)(j) / (ene - eig(j));
+	cDY1(y)(j) = sDY1(y)(j) / (ene - eig(j));	
+      }      
+    } else if(i == z) {
+      cZ1(z) =  VectorXcd::Zero(sZ1(z).size());      
+      cDZ1(z) = VectorXcd::Zero(sZ1(z).size());      
+      Ctx(U1, sZ1(z)); Ctx(U1, sDZ1(z));
+      for(int j = 0; j < U1.rows(); j++) {
+	cZ1(z)(j) = sZ1(z)(j) / (ene - eig(j));
+	cDZ1(z)(j) = sDZ1(z)(j) / (ene - eig(j));	
+      }      
+    }
+    
+    BOOST_FOREACH(int L, Ls) {
+      // -- psi0 --
+      cout << format("calculate psi0. L = %d\n") % L;
+      MatrixXcd H0 = T0L[L](i,i) + V0L[L](i,i);
+      MatrixXcd S0 = S0L[L](i,i);
+      SymGenComplexEigenSolver solver(H0, S0);
+      const VectorXcd& eig0 = solver.eigenvalues();
+      const MatrixXcd& U0   = solver.eigenvectors();
+      CtAC(U0, T0L[L](i,i)); CtAC(U0, V0L[L](i,i)); CtAC(U0, S0L[L](i,i));
+      Ctx(U0, s0L_chi[L](i));
+      int num_Li = s0L_chi[L](i).size();
+      c0L[L](i) = VectorXcd::Zero(num_Li);
+      for(int j = 0; j < num_Li; j++) {
+	c0L[L](i)(j) = s0L_chi[L](i)(j) / (ene - eig0(j));
+      }
+      Hc0L[L](i) = c0L[L](i).conjugate();
+
+      // -- psi0/psi1 --
+      cout << format("convert V, HV. L = %d\n") % L;
+      CtAD(U0, U1, V0L1[L](i,i));
+      CaAD(U0, U1, HV0L1[L](i,i));
+
+      // -- psi0/phi_I --
+      if(i == x) {	
+	Ctx(U0, sX0L[L](i)); Ctx(U0, sDX0L[L](i));
+      } else if(i == y) {
+	Ctx(U0, sY0L[L](i)); Ctx(U0, sDY0L[L](i));
+      } else if(i == z) {
+	Ctx(U0, sZ0L[L](i)); Ctx(U0, sDZ0L[L](i));
+      }
+
+    }  
+  }
+
+}
+void CalcDriv(int iw) {
+  /**
+     inputs:
+     .  S1, T1, V1,  S0L, T0L, V0L
+
+     outputs:
+     . c[D][XYZ]1, c0L
+   */
+  
+  PrintTimeStamp("CalcDriv", NULL);
+  if(solve_driv_type == "linear_solve") {
+    CalcDriv_linear_solve(iw);
+  } else if(solve_driv_type == "eigen_value") {
+    CalcDriv_eigen_value(iw);
+  }
 }
 void CalcBraket() {
 
@@ -659,7 +733,7 @@ void CalcBraket() {
   //           = -1/2j*((Hy|0)-(y|0))
   //           = -1/2j*((Hy|0)-(y|0))  
   
-  //  PrintTimeStamp("calc_braket", NULL);
+  PrintTimeStamp("calc_braket", NULL);
   Irrep x = sym->irrep_x();
   Irrep y = sym->irrep_y();
   Irrep z = sym->irrep_z();
@@ -708,7 +782,7 @@ void CalcBraket() {
 }
 void CalcMain_alpha(int iw) {
   
-  //  PrintTimeStamp("calc_alpha", NULL);  
+  PrintTimeStamp("calc_alpha", NULL);  
   double w = w_list[iw];
   Irrep x = sym->irrep_x();
   Irrep y = sym->irrep_y();
@@ -854,6 +928,7 @@ void CalcMain(int iw) {
 }
 void PrintOut() {
 
+  PrintTimeStamp("PrintOut", NULL);
   int num(w_list.size());
   
   ofstream f(cs_csv.c_str(), ios::out);

@@ -30,11 +30,17 @@ ${BINDIR}/%.o: %.cpp
 OBJS=two_pot.o read_json.o symmol_read_json.o symmolint.o molecule.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o timestamp.o two_int.o mo.o
 ${BINDIR}/two_pot: $(foreach o, ${OBJS}, ${BINDIR}/$o)
 	${CXX} -o $@ $^ ${CXXFLAGS} ${LIBS} -lgsl -lgslcblas
-check: ${BINDIR}/two_pot
+check_h2plus: ${BINDIR}/two_pot
 	../one_eig/bin/fast/one_eig h2plus0.json
-	./$^ h2plus.json
+	./$^ h2plus_eig.json
 	@echo "ref : E=0.1,  piu=0.690953, sigu=0.007387, beta=1.34948"
 	cat cs.csv
+
+EXAM=
+check: ${BINDIR}/two_pot
+	../one_eig/bin/fast/one_eig ${EXAM}.oneeig.json
+	../rhf/bin/fast/rhf ${EXAM}.rhf.json	
+	./$^ ${EXAM}.twopot.json
 
 check_hatom: ${BINDIR}/two_pot
 	../one_eig/bin/fast/one_eig hatom0.json
@@ -48,7 +54,7 @@ calc_hf_small:
 	../one_eig/bin/fast/one_eig h2_oneeig.json
 	../rhf/bin/fast/rhf h2_rhf_small.json
 
-check_h2: ${BINDIR}/two_pot
+check_stex: ${BINDIR}/two_pot
 	./$^ h2.json
 
 check_rpa: ${BINDIR}/two_pot

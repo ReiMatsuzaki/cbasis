@@ -63,6 +63,17 @@ void CEigenSolveCanonical(const CM& f, const CM& s, double eps, CM* c, CV* eig);
 void CEigenSolveCanonicalNum(const CM& F, const CM& S, int num0,
 			     CM* c, CV* eig);
 
+void CtAD(const CM& C, const CM& D, const CM& A, CM *res);
+void CtAD(const CM& C, const CM& D,CM& A);
+void CaAD(const CM& C, const CM& D, const CM& A, CM *res);
+void CaAD(const CM& C, const CM& D,CM& A);
+
+void CtAC(const CM& C, const CM& A, CM *CtAC);
+void CtAC(const CM& C, CM& A);
+void CaAC(const CM& C, const CM& A, CM *CdAC);
+void CaAC(const CM& C, CM& A);
+void Ctx(const CM& C, const CV& x, CV *v);
+void Ctx(const CM& C, CV& x);
 class SymGenComplexEigenSolver {
 private:
   // -- solution of calculation --

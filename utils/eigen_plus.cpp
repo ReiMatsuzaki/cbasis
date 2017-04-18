@@ -53,8 +53,8 @@ double TakeAbs(dcomplex x) {
   return abs(x);
 }
 std::complex<double> cnorm(const CV& v) {
-  Eigen::ArrayXcd a = v.array();
-  return sqrt((a*a).sum());}
+  return sqrt(TDot(v, v));
+}
 void complex_normalize(CV& v) {
   Eigen::ArrayXcd u = v.array();
   std::complex<double> cnorm = sqrt((u*u).sum());
@@ -147,6 +147,12 @@ void SortEigs(Eigen::VectorXcd& eigs, Eigen::MatrixXcd& eigvecs,
 }
 void generalizedComplexEigenSolve(const CM& f, const CM& s, CM* c, CV* eig){
 
+  SymGenComplexEigenSolver solver(f, s);
+  *c = solver.eigenvectors();
+  *eig = solver.eigenvalues();
+  
+  /*
+  THROW_ERROR("do not call it");
   if(f.rows() != s.rows() || f.rows() == 0) {
     string msg; SUB_LOCATION(msg);
     stringstream oss;
@@ -168,8 +174,8 @@ void generalizedComplexEigenSolve(const CM& f, const CM& s, CM* c, CV* eig){
   es.compute(fp, true);
   *c = s2inv *  es.eigenvectors();
   *eig = es.eigenvalues();
-
   SortEigs(*eig, *c, TakeReal);
+  */
     
 }
 void CanonicalMatrix(const CM& S, double eps, CM* res) {
@@ -273,6 +279,141 @@ void CEigenSolveCanonicalNum(const CM& F, const CM& S, int num0,
   
 }
 
+void CtAD(const CM& C, const CM& D, const CM& A, CM *res) {
+  /**
+     gives C^T A C where T means translate
+     (C^T A D)_{ij} = C_{ki} A_{kl} D(lj)
+  */
+ 
+  int ni = C.rows();
+  int nj = D.cols();
+  int nk = C.cols();
+  int nl = D.rows();
+
+  if(A.rows() != nk) {
+    THROW_ERROR("size of A and C mismatch");
+  }
+  if(A.cols() != nl) {
+    THROW_ERROR("size of A and D miscmatch");
+  }
+
+  if(res->rows() != ni || res->cols() != nj) {
+    *res = MatrixXcd::Zero(ni, nj);
+  }
+
+  for(int i = 0; i < ni; i++)
+    for(int j = 0; j < nj; j++) {
+      dcomplex acc(0);
+      for(int k = 0; k < nk; k++)
+	for(int l = 0; l < nl; l++) {
+	  acc += C(k, i) * A(k, l) * D(l, j);
+	}
+      (*res)(i, j) = acc;
+    }
+}
+void CtAD(const CM& C, const CM& D, CM& A) {
+  int ni = C.rows();
+  int nj = C.cols();
+  static CM res(ni, nj);
+  if(res.cols() != ni || res.rows() != nj) 
+    res = CM::Zero(ni, nj);
+  CtAD(C, D, A, &res);
+  A.swap(res);
+}
+void CaAD(const CM& C, const CM& D, const CM& A, CM *res) {
+ /**
+     gives C^+ A C where T means translate
+     (C^+ A D)_{ij} = C^*_{ki} A_{kl} D(lj)
+  */
+
+  int ni = C.rows();
+  int nj = D.cols();
+  int nk = C.cols();
+  int nl = D.rows();
+
+  if(A.rows() != nk) {
+    THROW_ERROR("size of A and C mismatch");
+  }
+  if(A.cols() != nl) {
+    THROW_ERROR("size of A and D miscmatch");
+  }
+
+  if(res->rows() != ni || res->cols() != nj) {
+    *res = MatrixXcd::Zero(ni, nj);
+  }
+
+  for(int i = 0; i < ni; i++)
+    for(int j = 0; j < nj; j++) {
+      dcomplex acc(0);
+      for(int k = 0; k < nk; k++)
+	for(int l = 0; l < nl; l++) {
+	  acc += conj(C(k, i)) * A(k, l) * D(l, j);
+	}
+      (*res)(i, j) = acc;
+    }  
+ 
+}
+void CaAD(const CM& C, const CM& D,CM& A) {
+  int ni = C.rows();
+  int nj = D.cols();
+  static CM res(ni, nj);
+  if(res.rows() != ni || res.cols() != nj) 
+    res = CM::Zero(ni, nj);
+  CaAD(C, D, A, &res);
+  A.swap(res);
+}
+
+void CtAC(const CM& C, const CM& A, CM *CtAC) {
+  /**
+     gives C^T A C where T means translate
+     (C^T A C)_{ij} = C_{ki} A_{kl} C(lj)
+   */
+  CtAD(C, C, A, CtAC);
+}
+void CtAC(const CM& C, CM& A) {
+  CtAD(C, C, A);
+}
+void CaAC(const CM& C, const CM& A, CM *CdAC) {
+  CaAD(C, C, A, CdAC);
+}
+void CaAC(const CM& C, CM& A) {
+  CaAD(C, C, A);
+}
+
+void Ctx(const CM& C, const CV& x, CV *Ctx) {
+  /**
+     gives C^T x where T means translate
+     (C^T x)_{ij} = sum_k C_{ki}x_i
+   */
+ 
+  int n = C.rows();
+  if(n != C.cols()) {
+    THROW_ERROR("C is not square");
+  }
+  if(n != x.size()) {
+    THROW_ERROR("size of x mismatch to A");
+  }
+  if(Ctx->size() != n) {
+    *Ctx = VectorXcd::Zero(n);
+  }
+
+  for(int i = 0; i < n; i++) {
+    dcomplex acc(0);
+    for(int k = 0; k < n; k++) {
+      acc += C(k, i) * x(k);
+    }
+    (*Ctx)(i) = acc;
+  }    
+}
+void Ctx(const CM& C, CV& x) {
+  int n = x.size();
+  static CV res(n);
+  if(res.size() != n) {
+    res = CV::Zero(n);
+  }
+  Ctx(C, x, &res);
+  res.swap(x);
+}
 SymGenComplexEigenSolver::SymGenComplexEigenSolver() {}
 SymGenComplexEigenSolver::SymGenComplexEigenSolver(int _num0) {
   num0_ = _num0;
@@ -287,8 +428,6 @@ SymGenComplexEigenSolver::SymGenComplexEigenSolver(const CM& f, const CM& s, int
 			  &this->eigenvectors_, &this->eigenvalues_);
 }
 void SymGenComplexEigenSolver::compute(const CM& f, const CM& s) {
-
-  
   
   if(f.rows() != s.rows() || f.rows() != f.cols() || f.rows() == 0) {
     string msg; SUB_LOCATION(msg);
@@ -314,21 +453,28 @@ void SymGenComplexEigenSolver::compute(const CM& f, const CM& s) {
     fp_ = MatrixXcd::Zero(n, n);
   }
 
-  // s2inv means S^(-1/2)
-  compute_inv_sqrt(s);
+  // -- s2inv means S^(-1/2) --
+  this->compute_inv_sqrt(s);
   
-  // fp means F' = S^(-1/2)FS^(-1/2)
+  // -- fp means F' = S^(-1/2)FS^(-1/2) --
   fp_ = s2inv_ * f * s2inv_;
 
-  // solve F'C' = C diag{e_i}
+  // -- solve F'C' = C diag{e_i} --
   es_.compute(fp_, true);
-  eigenvectors_ = s2inv_ *  es_.eigenvectors();
+
+  // -- C = S^{-1/2}C'
+  eigenvectors_ = s2inv_ *  es_.eigenvectors(); 
   eigenvalues_ = es_.eigenvalues();
 
-  SortEigs(eigenvalues_, eigenvectors_, TakeReal);  
-  
-  //  generalizedComplexEigenSolve(A, B, &this->eigenvectors_, &this->eigenvalues_);
+  // -- sort --
+  SortEigs(eigenvalues_, eigenvectors_, TakeReal);
 
+  // -- normalize to unity --
+  for(int i = 0; i < n; i++) {
+    const MatrixXcd& Ci =  eigenvectors_.col(i);
+    dcomplex cSc = TDot(Ci, s*Ci);
+    eigenvectors_.col(i) = Ci / sqrt(cSc);
+  }
 }
 void SymGenComplexEigenSolver::compute_inv_sqrt(const CM& s) {
 
@@ -345,7 +491,7 @@ void SymGenComplexEigenSolver::compute_inv_sqrt(const CM& s) {
   es_.compute(s, true);
   c_ = es_.eigenvectors();
 
-  // -- ensure ||c_i|| = 1 --
+  // -- ensure (c_i, c_i) = 1 --
   col_cnormalize(c_);
 
   // -- lambda_ij = delta_ij / sqrt(v_i) --

@@ -230,13 +230,27 @@ namespace cbasis {
 	if(irr_a.second != irr_b.first) {
 	  continue;
 	}
+
+	const MatrixXcd& am = ia->second;
+	const MatrixXcd& bm = ib->second;
+
+	if(am.cols() != bm.rows()) {
+	    stringstream ss;
+	    ss << "size mismatch.\n";
+	    ss << format("a = (%d, %d)\n") % am.rows() % am.cols();
+	    ss << format("b = (%d, %d)\n") % bm.rows() % bm.cols();
+	    THROW_ERROR(ss.str());
+	}
+	
 	Key irr_c(irr_a.first, irr_b.second);
-	if(not c.has_block(irr_c)) {
-	  c[irr_c] = MatrixXcd::Zero(ia->second.rows(), ib->second.cols());
+	if(not c.has_block(irr_c) ||
+	   c[irr_c].rows() != am.rows() ||
+	   c[irr_c].cols() != bm.cols()) {
+	  c[irr_c] = MatrixXcd::Zero(am.rows(), bm.cols());
 	}
       }
     }
-    
+
     c.SetZero();
 
     for(It ia = a.begin(); ia != a.end(); ++ia) {
@@ -248,6 +262,64 @@ namespace cbasis {
 	}
 	Key irr_c(irr_a.first, irr_b.second);
 	c[irr_c] += a[irr_a] * b[irr_b];
+      }
+    }
+  }
+  void Multi3(const BMat& a, const BMat& b, const BMat& c, BMat& res) {
+    
+    typedef BMat::const_iterator It;
+    typedef BMat::Key Key;
+
+    // -- build block matrix if necessary --
+    for(It ia = a.begin(); ia != a.end(); ++ia) {
+      for(It ib = b.begin(); ib != b.end(); ++ib) {
+	for(It ic = c.begin(); ic != c.end(); ++ic) {	
+	  Key irr_a = ia->first;
+	  Key irr_b = ib->first;
+	  Key irr_c = ic->first;
+	  if(irr_a.second != irr_b.first || irr_b.second != irr_c.first) {	     
+	    continue;
+	  }
+	  const MatrixXcd& am = ia->second;
+	  const MatrixXcd& bm = ib->second;
+	  const MatrixXcd& cm = ic->second;
+
+	  if(am.cols() != bm.rows() ||
+	     bm.cols() != cm.rows() ) {
+	    stringstream ss;
+	    ss << "size mismatch.\n";
+	    ss << format("a = (%d, %d)\n") % am.rows() % am.cols();
+	    ss << format("b = (%d, %d)\n") % bm.rows() % bm.cols();
+	    ss << format("c = (%d, %d)\n") % cm.rows() % cm.cols();
+	    THROW_ERROR(ss.str());
+	  } 
+	  
+	  Key irr_res(irr_a.first, irr_c.second);
+	  if(not res.has_block(irr_res)) {
+	    int n(ia->second.rows());
+	    int m(ic->second.cols());
+	    res[irr_res] = MatrixXcd::Zero(n, m);
+	  }
+	}
+      }
+    }
+
+    // -- set all values to zero --
+    res.SetZero();
+
+    // -- calculation --
+    for(It ia = a.begin(); ia != a.end(); ++ia) {
+      for(It ib = b.begin(); ib != b.end(); ++ib) {
+	for(It ic = c.begin(); ic != c.end(); ++ic) {	
+	  Key irr_a = ia->first;
+	  Key irr_b = ib->first;
+	  Key irr_c = ic->first;
+	  if(irr_a.second != irr_b.first || irr_b.second != irr_c.first) {	     
+	    continue;
+	  }
+	  Key irr_res(irr_a.first, irr_c.second);
+	  res[irr_res] += a[irr_a] * b[irr_b] * c[irr_c];	    
+	}
       }
     }
   }

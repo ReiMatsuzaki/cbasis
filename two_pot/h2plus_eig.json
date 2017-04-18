@@ -3,7 +3,7 @@
     "out_json": "out.json",
     "cs_csv" : "cs.csv",
     "para_csv": "para.csv",
-    "solve_driv_type": "linear_solve",
+    "solve_driv_type": "eigen_value",
     "linear_solver": {"type": "householderQr","_type": "fullPivHouseholderQr"},    
     "calc_type": "one",
     "num_ele": 1,

@@ -100,7 +100,8 @@ namespace cbasis {
   std::ostream& operator << (std::ostream& os, const BMat& a);
   void Copy(const BMat& a, BMat& b);
   void Multi(const BMat& a, const BMat& b, BMat& c);
-  void BMatSqrt(const BMat& a, BMat& b);
+  void Multi3(const BMat& a, const BMat& b, const BMat& c, BMat& res);
+  void BMatSqrt(const BMat& a, BMat& b);  
   void CopyStructure(const BMat& a, BMat b);
   // ==== Old ====
   void BMatRead(BMat::Map& bmat, std::string fn);
