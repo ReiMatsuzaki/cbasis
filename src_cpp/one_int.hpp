@@ -50,6 +50,7 @@ namespace cbasis {
   void CalcVMat(SymGTOs a, Molecule mole, SymGTOs b, BMat *V);
   void CalcDipMat(SymGTOs a, SymGTOs b,
 		  BMat* X, BMat* Y, BMat* Z, BMat* DX, BMat* DY, BMat* DZ);
+  void CalcDipMat(SymGTOs a, SymGTOs b, BMat* L, BMat *V);
   void CalcPWVec(SymGTOs a, const Eigen::Vector3cd& k,
 		 BVec *S, BVec *X, BVec *Y, BVec *Z);
   

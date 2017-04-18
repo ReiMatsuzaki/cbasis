@@ -1104,6 +1104,62 @@ namespace cbasis {
       }
     }    
     
+  }
+  void CalcDipMat(SymGTOs a, SymGTOs b, BMat* L, BMat *V) {
+
+    if(not a->setupq || not b->setupq) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
+      throw runtime_error(msg);
+    }
+    SymmetryGroup sym = a->sym_group();
+    if(not sym->IsSame(b->sym_group())) {
+      string msg; SUB_LOCATION(msg); msg = "\n" + msg + " : not setup";
+      throw runtime_error(msg);
+    }
+    
+    static A4dc x(1000), y(1000), z(1000), dx(1000), dy(1000), dz(1000);
+    A4dc cc(1000);
+
+    for(SubIt isub = a->subs().begin(); isub != a->subs().end(); ++isub) {
+      for(SubIt jsub = b->subs().begin(); jsub != b->subs().end(); ++jsub) {
+
+	// -- scalar --
+	bool calc_x = HasNon0(sym, isub, sym->irrep_x(), jsub);
+	bool calc_y = HasNon0(sym, isub, sym->irrep_y(), jsub);
+	bool calc_z = HasNon0(sym, isub, sym->irrep_z(), jsub);	
+
+	if(not calc_x && not calc_y && not calc_z)
+	  continue;
+
+	for(int iz = 0; iz < isub->size_zeta(); iz++) {
+	  for(int jz = 0; jz < jsub->size_zeta(); jz++) {
+	    CalcPrimDip(isub, jsub, iz, jz, x, y, z, dx, dy, dz);
+	    for(RdsIt irds = isub->rds.begin(); irds != isub->rds.end(); ++irds) {
+	      for(RdsIt jrds = jsub->rds.begin(); jrds != jsub->rds.end();++jrds) {
+		TransCoef(isub, jsub, irds, jrds, iz, jz, cc);
+		pair<Irrep, Irrep> ij(irds->irrep, jrds->irrep);
+		int i(irds->offset + iz);
+		int j(jrds->offset + jz);
+	
+		if(sym->Non0_3(irds->irrep, sym->irrep_x(), jrds->irrep)) {
+		  (*L)[ij](i, j)  = MultArrayTDot(cc, x);
+		  (*V)[ij](i, j) = MultArrayTDot(cc, dx);
+		}
+		if(sym->Non0_3(irds->irrep, sym->irrep_y(), jrds->irrep)) {
+		  (*L)[ij](i, j)  = MultArrayTDot(cc, y);
+		  (*V)[ij](i, j) = MultArrayTDot(cc, dy);
+		}
+		if(sym->Non0_3(irds->irrep, sym->irrep_z(), jrds->irrep)) {  
+		  (*L)[ij](i, j)  = MultArrayTDot(cc, z);
+		  (*V)[ij](i, j) = MultArrayTDot(cc, dz);
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }    
+    
 
   }
   void CalcPWVec( SymGTOs a, const Vector3cd& k,

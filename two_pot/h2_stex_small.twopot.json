@@ -2,7 +2,7 @@
     "comment" : "calculation of H2 photoionization under STEX calculation",
     "out_json": "out.json",
     "cs_csv" : "cs.csv",
-    "solve_driv_type": "eigen_value",
+    "solve_driv_type": "linear_solve",
     "calc_type": "STEX",
     "lmax": 1,
     "write_psi": {"file": "tmppsi.csv",
