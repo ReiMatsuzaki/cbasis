@@ -664,22 +664,6 @@ void CalcDriv_eigen_value(int iw) {
   }
 
 }
-void CalcDriv(int iw) {
-  /**
-     inputs:
-     .  S1, T1, V1,  S0L, T0L, V0L
-
-     outputs:
-     . c[D][XYZ]1, c0L
-   */
-  
-  PrintTimeStamp("CalcDriv", NULL);
-  if(solve_driv_type == "linear_solve") {
-    CalcDriv_linear_solve(iw);
-  } else if(solve_driv_type == "eigen_value") {
-    CalcDriv_eigen_value(iw);
-  }
-}
 void CalcBraket() {
 
   // <ImPsi|0> = <(y-Hy)/2j|0>
@@ -926,20 +910,12 @@ void Calc_one_lin() {
   CalcSTVMat(basis1, basis1, &S1, &T1, &V1);
   
   PrintTimeStamp("psi1/init", NULL); 
-  /*
-  BMat L1i, V1i;
-  CalcDipMat(basis1, basis0, &L1i, &V1i);
-  BOOST_FOREACH(Irrep i, irreps) {
-    cout << L1i(i, 0) << endl;
-    s1(i) = L1i(i, 0) * c0; sD1(i) = V1i(i, 0) * c0;
-    }*/
   Irrep x = sym->irrep_x(); Irrep y = sym->irrep_y(); Irrep z = sym->irrep_z();
   BMat X1i, DX1i, Y1i, DY1i, Z1i, DZ1i;
   CalcDipMat(basis1, basis0, &X1i, &Y1i, &Z1i, &DX1i, &DY1i, &DZ1i);
   s1(x) = X1i(x, 0) * c0; sD1(x) = DX1i(x, 0) * c0; 
   s1(y) = Y1i(y, 0) * c0; sD1(y) = DY1i(y, 0) * c0; 
   s1(z) = Z1i(z, 0) * c0; sD1(z) = DZ1i(z, 0) * c0;  
-
 
   PrintTimeStamp("psi0,chi0", NULL);
   BOOST_FOREACH(int L, Ls) {
@@ -975,7 +951,13 @@ void Calc_one_lin() {
     PrintTimeStamp("CalcDriv(linear_solve)", NULL);
     double w = w_list[iw];    
     dcomplex ene = E0 + w;
-  
+
+    CalcDriv_linear_solve(iw);
+    CalcMain_alpha(iw);    
+    CalcBraket();    
+    CalcMain(iw);
+    
+    /*  
     // -- Compute psi1 --
     BOOST_FOREACH(Irrep i, irreps) {
       L1(i,i) = S1(i,i) * ene - T1(i,i) - V1(i,i);
@@ -984,7 +966,18 @@ void Calc_one_lin() {
       cD1(i) = pivx.solve(sD1(i));
     }
 
+    // -- Compute psi0_p --
+    BOOST_FOREACH(int L, Ls) {
+      BOOST_FOREACH(Irrep i, irreps) {
+	L0L[L](i,i) = S0L[L](i,i) * ene - T0L[L](i,i) - V0L[L](i,i);
+	c0L[L](i)   = L0L[L](i,i).colPivHouseholderQr().solve(s0L_chi[L](i));
+	Hc0L[L](i)  = c0L[L](i).conjugate();
+      }
+    }
+    */
+
     // -- alpha --
+    /*
     dcomplex alpha[3];
     for(int idx = 0; idx < 3; idx++) {
       int i = irreps[idx];
@@ -1013,16 +1006,8 @@ void Calc_one_lin() {
     cout << format("Cs(total,alpha): %20.10f, %20.10f\n") % cs % cs_v;
     cout << format("Cs(sigu,alpha):  %20.10f, %20.10f\n") % cs_sigu % cs_sigu_v;
     cout << format("Cs(piu,alpha):   %20.10f, %20.10f\n") % cs_piu % cs_piu_v;
-
-
-    // -- Compute psi0_p --
-    BOOST_FOREACH(int L, Ls) {
-      BOOST_FOREACH(Irrep i, irreps) {
-	L0L[L](i,i) = S0L[L](i,i) * ene - T0L[L](i,i) - V0L[L](i,i);
-	c0L[L](i)   = L0L[L](i,i).colPivHouseholderQr().solve(s0L_chi[L](i));
-	Hc0L[L](i)  = c0L[L](i).conjugate();
-      }
-    }
+    */
+    
     /*
     // -- braket --
     BOOST_FOREACH(int L, Ls) {
@@ -1046,11 +1031,8 @@ void Calc_one_lin() {
       }
     }
     */
-    CalcBraket();
-    CalcMain(iw);
-    
-  }
 
+  }
   
 }
 
@@ -1063,7 +1045,36 @@ int main(int argc, char *argv[]) {
   in_json = argv[1];
   Parse();
   PrintIn();
+
+  if(calc_type == "one") {
+    CalcMat();
+  } else if(calc_type == "STEX") {
+    CalcMat();
+    CalcMatSTEX();
+  } else if(calc_type == "RPA") {
+    CalcMat();
+    CalcMatRPA();
+  }
+  PrintTimeStamp("Calc", NULL);
+  for(int iw = 0; iw < (int)w_list.size(); iw++) {
+    double w = w_list[iw];
+    cout << "w_eV: " << w * au2ev << endl;
+    cout << "w_au: " << w << endl;
+    cout << "E_eV: " << (w + E0) * au2ev << endl;
+    cout << "E_au: " << w + E0 << endl;
+    cout << "k_au: " << sqrt(2.0*(w + E0)) << endl;
+    if(solve_driv_type == "linear_solve") {
+      CalcDriv_linear_solve(iw);
+    } else if(solve_driv_type == "eigen_value") {
+      CalcDriv_eigen_value(iw);
+    }
+    CalcBraket();
+    CalcMain_alpha(iw);
+    CalcMain(iw);
+  }
+
   
+  /*
   if(calc_type == "one") {
     Calc_one_lin();
   } else {
@@ -1088,6 +1099,7 @@ int main(int argc, char *argv[]) {
       CalcMain(iw);
     }
   }
+  */
   PrintOut();
   cout << "<<<< two_pot <<<<" << endl;
   return 0;
