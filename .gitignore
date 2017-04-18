@@ -1,3 +1,4 @@
+*.mod
 *.o
 *.so
 *.a
@@ -18,3 +19,6 @@ local.mk
 *-checkpoint.ipynb
 *.pdf
 external/
+.DS_Store
+._.DS_Store
+fft
