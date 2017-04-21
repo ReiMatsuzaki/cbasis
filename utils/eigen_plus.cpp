@@ -549,18 +549,18 @@ void LinearSolver::Solve(MatrixXcd& mat, VectorXcd& vec, VectorXcd *sol) {
 }
 void LinearSolver::Inv(MatrixXcd& m, MatrixXcd *sol) {
 
-  THROW_ERROR("do not use this");
+  //  THROW_ERROR("do not use this");
   int n(m.rows());
   if(m.cols() != n) {
     THROW_ERROR("m must be square");
   }
 
   if(sol == NULL) {
-    THROW_ERROR("sol must be allocated");
+    *sol = MatrixXcd::Zero(n, n);
   }
 
   if(sol->rows() != n && sol->rows() != n) {
-    THROW_ERROR("sol must be same form with m");
+    *sol = MatrixXcd::Zero(n, n);
   }
 
   VectorXcd id(n);
@@ -580,8 +580,9 @@ void LinearSolver::Inv(MatrixXcd& m, MatrixXcd *sol) {
     if(method_ == method_fullPivHouseholderQr) {
       sol_vec = m.fullPivHouseholderQr().solve(id);
     }
-    for(int j = 0; j < n; j++)
+    for(int j = 0; j < n; j++) {
       (*sol)(j, i) = sol_vec(j);
+    }
   }
   
 }

@@ -78,6 +78,24 @@ namespace cbasis {
     }
 
   }
+  void BVec::Shift(dcomplex d) {
+    for(BVec::iterator it = this->begin(); it != this->end(); ++it) {	
+      VectorXcd& vec = it->second;
+      for(int i = 0; i < vec.size(); i++) {
+	vec(i) += d;
+      }
+    }
+  }
+  void BVec::Add(dcomplex a, const BVec& o) {
+    for(BVec::iterator it = this->begin(); it != this->end(); ++it) {	
+      int k = it->first;
+      VectorXcd& vec = it->second;
+      const VectorXcd& ovec = o[k];
+      for(int i = 0; i < vec.size(); i++) {
+	vec(i) += a * ovec[i];
+      }
+    }
+  }
   ostream& operator << (ostream& os, const BVec& a) {
     os << "==== BVec ====" << endl;
     os << "Block vector object" << endl;
@@ -91,8 +109,23 @@ namespace cbasis {
     os << "==============" << endl;
     return os;
   }
-
-  // ==== BMat ====  
+  void BVecSqrt(const BVec& a, BVec *b) {
+    for(BVec::const_iterator it = a.begin();
+	it != a.end(); ++it) {
+      int k = it->first;
+      const VectorXcd& vec = it->second;      
+      if(not b->has_block(it->first)) {
+	(*b)(k) = vec;
+      }
+      for(int i = 0; i < vec.size(); i++) {
+	(*b)(k)(i) = sqrt(vec(i));
+      }
+    }
+  }  
+  // ==== BMat ====
+  void BMat::Clear() {
+    this->map_.clear();
+  }
   void BMat::swap(BMat& o) {
     this->name_.swap(o.name_);
     this->map_.swap(o.map_);
@@ -181,6 +214,28 @@ namespace cbasis {
       it->second.setZero();
     }
   }
+  void BMat::SetId() {
+    for(iterator it = this->begin(); it != this->end(); ++it) {
+      Key k = it->first;
+      MatrixXcd& mat = it->second;
+      int n = mat.rows();
+      int m = mat.cols();
+      if(k.first == k.second) {
+	it->second = MatrixXcd::Identity(n, m);
+      } else {
+	it->second = MatrixXcd::Zero(n, m);
+      }
+    }
+    void SetId();
+  }
+  void BMat::Scale(dcomplex c) {
+    
+    for(iterator it = this->begin(); it != this->end(); ++it) {	
+      Key k = it->first;
+      MatrixXcd& m = it->second;
+      m = c * m;
+    }
+  }
   void BMat::Add(dcomplex c, const BMat& o) {
     
     for(iterator it = this->begin(); it != this->end(); ++it) {	
@@ -219,6 +274,41 @@ namespace cbasis {
 	}
       }                      
     }
+  }
+  bool BMat::is_same_structure(const BMat& o) const {
+    
+    for(const_iterator k = this->begin(); k != this->end(); ++k) {
+      if(not o.has_block(k->first))
+	return false;
+    }
+
+    for(const_iterator k = o.begin(); k != o.end(); ++k) {
+      if(not o.has_block(k->first))
+	return false;
+    }
+
+    for(const_iterator k = o.begin(); k != o.end(); ++k) {
+      const MatrixXcd& a = (*this)[k->first];
+      const MatrixXcd& b = k->second;
+      if(a.rows() != b.rows() or a.cols() != b.cols())
+	return false;
+    }
+
+    return true;
+  }
+  void BMatDiag(const BVec& a, BMat *m) {
+
+    for(BVec::const_iterator it_a = a.begin();
+	it_a != a.end(); ++it_a) {
+      int irr = it_a->first;
+      const VectorXcd& vec = it_a->second;
+      int n = vec.size();
+      (*m)(irr, irr) = MatrixXcd::Zero(n, n);
+      for(int i = 0; i < n; ++i) {
+	(*m)(irr, irr)(i, i) = vec(i);
+      }
+    }
+    
   }
   void Multi(const BMat& a, const BMat& b, BMat& c) {
     typedef BMat::const_iterator It;
@@ -342,6 +432,7 @@ namespace cbasis {
     return os;
   }
   void Copy(const BMat& a, BMat& b) {
+    b.Clear();
     for(BMat::const_iterator it = a.begin(); it != a.end(); ++it) {      
       b[it->first]  = it->second;
     }	
@@ -367,6 +458,87 @@ namespace cbasis {
       matrix_sqrt(a[k], b[k]);
     }
     
+  }
+  void BMatInvSqrt(const BMat& a, BMat& b) {
+    
+    if(not a.is_block_diagonal()) {
+      THROW_ERROR("a must be block diagonal");
+    }
+
+    typedef BMat::const_iterator It;
+    typedef BMat::Key Key;
+    
+    for(It it = a.begin(); it != a.end(); ++it) {
+      Key k = it->first;
+      if(not b.has_block(k)) {
+	b[k] = a[k];
+      }
+    }
+
+    for(It it = a.begin(); it != a.end(); ++it) {
+      Key k = it->first;
+      matrix_inv_sqrt(a[k], &b[k]);
+    }
+    
+  }
+  void BMatCtAC(const BMat& C, const BMat& A, BMat *res) {
+    if(not C.is_block_diagonal()) {
+      THROW_ERROR("C must be block diagonal");      
+    }
+    if(not C.is_same_structure(A)) {
+      THROW_ERROR("C and A must be same structure");
+    }
+
+    typedef BMat::const_iterator It;
+    typedef BMat::Key Key;
+    
+    for(It it = A.begin(); it != A.end(); ++it) {
+      Key k = it->first;
+      if(not res->has_block(k)) {
+	(*res)[k] = A[k];
+      }
+    }
+
+    for(It it = A.begin(); it != A.end(); ++it) {
+      Key k = it->first;
+      CtAC(C[k], A[k], &(*res)[k]);
+    }
+    
+  }
+  void BMatCtAD(const BMat& C, const BMat& D, const BMat& A, BMat *res) {
+    
+    if(not C.is_block_diagonal()) {
+      THROW_ERROR("C must be block diagonal");      
+    }
+    if(not D.is_block_diagonal()) {
+      THROW_ERROR("D must be block diagonal");      
+    }
+    
+    typedef BMat::const_iterator It;
+    typedef BMat::Key Key;
+    
+    for(It it = A.begin(); it != A.end(); ++it) {
+      Key k = it->first;
+      if(not res->has_block(k)) {
+	(*res)[k] = MatrixXcd::Zero(C[k].rows(), D[k].rows());
+      }
+    }
+
+    for(It itc = C.begin(); itc != C.end(); ++itc) {
+      for(It ita = A.begin(); ita != A.end(); ++ita) {
+	for(It itd = D.begin(); itd != D.end(); ++itd) {
+	  Key kc = itc->first;
+	  Key ka = ita->first;
+	  Key kd = itb->first;
+	  MatrixXcd& mc = itc->second;
+	  MatrixXcd& ma = ita->second;
+	  MatrixXcd& md = itd->second;
+	  if(kc.first == ka.first and ka.second == kd.first) {
+	    Key kres(kc.second, kd.second);
+	    CtAD(mc, ma, md, &(*res)[kres]);
+	  }
+	  
+    }
   }
   void BMatRead(BMat::Map& bmat, string fn) {
     ifstream f(fn.c_str(), ios::in|ios::binary);
@@ -436,7 +608,29 @@ namespace cbasis {
       }
     }
   }
-  
+  void BMatEigenSolve(const BMat& H, const BMat& S, BMat *C, BVec *E) {
+
+    if(not H.is_block_diagonal()) {
+      THROW_ERROR("H must be block diagonal");
+    }
+    if(not S.is_same_structure(H)) {
+      THROW_ERROR("S must be same structure with H");
+    }
+    
+    for(BMat::const_iterator it = H.begin(); it != H.end(); ++it) {
+      BMat::Key k = it->first;
+      int irr = k.first;
+      SymGenComplexEigenSolver solver(H[k], S[k]);
+      (*E)(irr) = solver.eigenvalues();
+      (*C)[k]   = solver.eigenvectors();
+    }
+  }
+  void BMatEigenSolve(const BMat& H, BMat *C, BVec *E) {
+    BMat S;
+    Copy(H, S);
+    S.SetId();
+    BMatEigenSolve(H, S, C, E);
+  }
   // ==== BlockMatrixSets ====
   _BMatSet::_BMatSet(): block_num_(1) {}
   _BMatSet::_BMatSet(int _block_num): block_num_(_block_num) {}

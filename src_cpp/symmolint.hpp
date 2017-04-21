@@ -131,7 +131,7 @@ namespace cbasis {
     std::vector<SubSymGTOs> subs_;
     Molecule molecule_;
     bool setupq;
-  public:
+  public:  
     // ---- Constructors ----
     _SymGTOs(Molecule mole);
     //_SymGTOs(pSymmetryGroup _sym_group);

@@ -40,9 +40,11 @@ namespace cbasis {
     const Eigen::VectorXcd& operator[](int irrep) const {return at(irrep); }
     void Write(std::string filename) const;
     void Read(std::string filename);
-    
+    void Shift(dcomplex d);
+    void Add(dcomplex a, const BVec& o);
   };
   std::ostream& operator << (std::ostream& os, const BVec& a);
+  void BVecSqrt(const BVec& a, BVec *b);
 
   // ==== Block Matrix ====
   class BMat {
@@ -60,6 +62,7 @@ namespace cbasis {
   public:
     BMat(): simple_print_(false) {}
     BMat(std::string _name): name_(_name), simple_print_(false) {}
+    void Clear();
     iterator begin() { return map_.begin(); }
     const_iterator begin() const { return map_.begin(); }
     iterator end() { return map_.end(); }
@@ -78,6 +81,7 @@ namespace cbasis {
     bool has_block(int irrep, int jrrep) const {
       return this->has_block(std::make_pair(irrep, jrrep));
     }
+    bool is_same_structure(const BMat& o) const;
     bool is_block_diagonal() const;
     int size() const { return map_.size(); }
     Value& operator()(int irrep, int jrrep) {
@@ -89,20 +93,27 @@ namespace cbasis {
     Value& operator[] (Key k) { return map_[k]; }
     const Value& operator[](Key k) const {return map_.find(k)->second; }
     void SetZero();
+    void SetId();
+    void Scale(dcomplex c);
     void Add(dcomplex c, const BMat&);
     void Shift(dcomplex c);    
     void swap(BMat& o);
     void Write(std::string filename) const;
     void Read(std::string filename);
-
+    
     
   };
   std::ostream& operator << (std::ostream& os, const BMat& a);
   void Copy(const BMat& a, BMat& b);
+  void BMatDiag(const BVec& a, BMat *m);
   void Multi(const BMat& a, const BMat& b, BMat& c);
   void Multi3(const BMat& a, const BMat& b, const BMat& c, BMat& res);
-  void BMatSqrt(const BMat& a, BMat& b);  
-  void CopyStructure(const BMat& a, BMat b);
+  void BMatInvSqrt(const BMat& a, BMat& b);
+  void BMatSqrt(const BMat& a, BMat& b);
+  void BMatCtAC(const BMat& C, const BMat& A, BMat *res);
+  void BMatCtAD(const BMat& C, const BMat& D, const BMat& A, BMat *res);
+  void BMatEigenSolve(const BMat& H, const BMat& S, BMat *C, BVec *E);
+  void BMatEigenSolve(const BMat& H, BMat *C, BVec *E);
   // ==== Old ====
   void BMatRead(BMat::Map& bmat, std::string fn);
   void BMatWrite(BMat::Map& bmat, std::string fn);

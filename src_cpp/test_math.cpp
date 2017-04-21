@@ -27,7 +27,44 @@ TEST(cfunc, acos) {
   
 }
 */  
+TEST(BVec, Sqqrt) {
+  BVec x;
+  x(0) = VectorXcd::Random(5);
+  x(2) = VectorXcd::Random(4);
 
+  BVec y;
+  BVecSqrt(x, &y);
+
+  EXPECT_C_EQ(sqrt(x(0)(1)), y(0)(1));
+  
+}
+TEST(BVec, shift) {
+  BVec x, y;
+  VectorXcd m1 = VectorXcd::Random(4);
+  VectorXcd m2 = VectorXcd::Random(3);
+  x(0) = m1;
+  x(2) = m2;
+  y(0) = m1;
+  y(2) = m2;
+  x.Shift(1.1);
+  EXPECT_C_EQ(y(0)(3)+1.1, x(0)(3));
+}
+TEST(BVec, add) {
+  BVec x;
+  x[0] = VectorXcd::Random(3);
+  x[2] = VectorXcd::Random(4);
+
+  BVec y;
+  y[0] = VectorXcd::Random(3);
+  y[2] = VectorXcd::Random(4);
+
+  BVec x0(x);
+
+  x.Add(1.1, y);
+
+  EXPECT_C_EQ(x0(0)(1) + 1.1*y(0)(1), x(0)(1));
+  
+}
 TEST(BMat, ReadWrite) {
 
   BMat bmat1;
@@ -193,25 +230,80 @@ TEST(BMat, Mult3) {
   
 }
 TEST(BMat, Sqrt) {
-
+  int n(4), m(5);
   BMat bmat("A");
-  MatrixXcd M00(2, 2);
-  M00 <<
-    4.0, 0.0,
-    0.0, 1.0;
-  bmat(0, 0) = M00;  
-  MatrixXcd M11(1, 1); 
-  M11 << 3.1;
-  bmat(1, 1) = M11;
-
+  MatrixXcd M = MatrixXcd::Random(n, n);
+  bmat(0, 0) = M + M.transpose();
+  M = MatrixXcd::Random(m, m); 
+  bmat(1, 1) = M + M.transpose(); 
+  
   BMat bmat_sqrt("sqrt(A)");
   BMatSqrt(bmat, bmat_sqrt);  
   BMat bmat_sqrt_2("sqrt(A)^2");
   Multi(bmat_sqrt, bmat_sqrt, bmat_sqrt_2);
+  BMat bmat_inv_sqrt("A^{-1/2}");
+  BMatInvSqrt(bmat, bmat_inv_sqrt);
+  BMat want_one("want_one");
+  Multi(bmat_inv_sqrt, bmat_sqrt, want_one);
   
   EXPECT_MATXCD_EQ(bmat(0, 0), bmat_sqrt_2(0, 0));
   EXPECT_MATXCD_EQ(bmat(1, 1), bmat_sqrt_2(1, 1));
+  MatrixXcd one1 = MatrixXcd::Identity(n,n);
+  EXPECT_MATXCD_EQ(one1, want_one(0, 0));
+  MatrixXcd one2 = MatrixXcd::Identity(m,m);
+  EXPECT_MATXCD_EQ(one2, want_one(1, 1));  
   
+}
+TEST(BMat, DiagMat) {
+  BVec x;
+  x(0) = VectorXcd::Random(3);
+  x(2) = VectorXcd::Random(4);
+  
+  BMat m;
+  BMatDiag(x, &m);
+
+  for(int i = 0; i < 3; i++) {
+    EXPECT_C_EQ(m(0,0)(i, i), x(0)(i));
+  }
+  
+  for(int i = 0; i < 4; i++) {
+    EXPECT_C_EQ(m(2,2)(i, i), x(2)(i));
+  }
+}
+TEST(BMat, same_structure) {
+  BMat x("x");
+  x(0, 0) = MatrixXcd::Random(2, 3);
+  x(1, 2) = MatrixXcd::Random(3, 4);
+
+  BMat y("y");
+  y(0, 0) = MatrixXcd::Random(2, 3);
+  y(1, 2) = MatrixXcd::Random(3, 4);
+
+  BMat z("z");
+  z(0, 0) = MatrixXcd::Random(2, 4);
+  z(1, 2) = MatrixXcd::Random(3, 4);
+
+  BMat w("w");
+  z(0, 0) = MatrixXcd::Random(2, 4);
+  z(2, 2) = MatrixXcd::Random(3, 4);
+
+  EXPECT_TRUE(x.is_same_structure(y));
+  EXPECT_FALSE(x.is_same_structure(z));
+  EXPECT_FALSE(x.is_same_structure(w));
+}
+TEST(BMat, CtAD) {
+
+  BMat C;
+  C(0, 0) = MatrixXcd::Random(2, 4);
+  
+  BMat A;
+  A(0, 1) = MatrixXcd::Random(2, 3);
+
+  bmat d;
+  D(1, 1) = MatrixXcd::Random(3, 6);
+
+  BMat B;
+  BMatCtAD(C, D, A, &B);
 }
 TEST(BMatSet, SetGet) {
 

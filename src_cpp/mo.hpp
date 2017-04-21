@@ -48,8 +48,10 @@ namespace cbasis {
 	     dcomplex coef_J, dcomplex coef_K, BMat& JK, bool use_real=false);
   void AddJK_Slow(B2EInt eri, BMat& C, int I0, int i0,
 		  dcomplex coef_J, dcomplex coef_K, BMat& H);
-  void AddJ(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& J, bool use_real=false);
-  void AddK(B2EInt eri, Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K, bool use_real=false);
+  void AddJ(B2EInt eri, const Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& J, bool use_real=false);
+  void AddK(B2EInt eri, const Eigen::VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K, bool use_real=false);
+  void CalcJ(B2EInt eri, const Eigen::VectorXcd& Ca, Irrep ir_a, BMat *J);
+  void CalcK(B2EInt eri, const Eigen::VectorXcd& Ca, Irrep ir_a, BMat *K);
   MO CalcRHF(SymGTOs gtos, int nele, ERIMethod method, const SCFOptions& opts, 
 	     bool *is_conv);
   MO CalcRHF(SymmetryGroup sym, BMatSet mat_set, B2EInt eri, int nele, 

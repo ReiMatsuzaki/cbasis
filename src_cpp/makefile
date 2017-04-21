@@ -74,6 +74,14 @@ ${BINDIR}/test_symgroup: $(foreach o, ${SYMGROUP_OBJS}, ${BINDIR}/$o)
 check_symgroup: ${BINDIR}/test_symgroup
 	${RUN} ./$<
 
+# -- test ivo --
+OBJS = test_ivo.o ivo.o symmolint.o symgroup.o molecule.o one_int.o two_int.o mo.o b2eint.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o int_exp.o fact.o erfc.o gtest.a
+${BINDIR}/test_ivo: $(foreach o, ${OBJS}, ${BINDIR}/$o)
+	${CXX} -o $@ $^ ${CXXFLAGS} ${GTEST} -lgsl -lgslcblas
+.PHONYS: check_ivo
+check_ivo: ${BINDIR}/test_ivo
+	${RUN} ./$<
+
 # -- test symmolint --
 SYMMOLINT_OBJS = \
 	test_symmolint.o symmolint.o molecule.o one_int.o two_int.o symgroup.o bmatset.o angmoment.o eigen_plus.o cfunc.o mol_func.o b2eint.o fact.o erfc.o int_exp.o gtest.a 

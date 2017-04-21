@@ -167,17 +167,10 @@ TEST(EigenPlus, lin_solve) {
 }
 TEST(EigenPlus, inv) {
   
-  //THROW_ERROR("contain error");
-  /*
-  
   int n(4);
   MatrixXcd A(n, n);
-  for(int i = 0; i < n; i++) {
-    for(int j = 0; j < n; j++) {
-      A(i, j) = i*j + 0.5;
-    }
-  }
-
+  A = MatrixXcd::Random(n, n);
+  
   MatrixXcd AInv(n, n);
   LinearSolver solver("householderQr");
   try {
@@ -194,7 +187,7 @@ TEST(EigenPlus, inv) {
     for(int j = 0; j < n; j++) {
       EXPECT_C_EQ(i==j ? 1.0 : 0.0, AAInv(i, j));
     }
-  */
+
 }
 TEST(EigenPlus, sqrt) {
   

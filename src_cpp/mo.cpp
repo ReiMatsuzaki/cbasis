@@ -205,7 +205,7 @@ namespace cbasis {
       }
     }
   }
-  void AddJ(B2EInt eri,VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& J, bool use_real) {
+  void AddJ(B2EInt eri, const VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& J, bool use_real) {
 
     /**
        Add 
@@ -234,7 +234,7 @@ namespace cbasis {
     }
 
   }
-  void AddK(B2EInt eri,VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K, bool use_real) {
+  void AddK(B2EInt eri, const VectorXcd& Ca, Irrep ir_a, dcomplex coef, BMat& K, bool use_real) {
     
     /**
        Add
@@ -257,6 +257,26 @@ namespace cbasis {
       }
     }    
 
+  }
+  /*
+  void CalcJ(B2EInt eri, const Eigen::VectorXcd& Ca, Irrep ir_a, BMat *J) {
+    int ib,jb,kb,lb,i,j,k,l,t;
+    dcomplex v;
+
+    eri->Reset();
+
+    while(eri->Get(&ib,&jb,&kb,&lb,&i,&j,&k,&l, &t, &v)) {
+      if(ib == jb && kb == ir_a && lb == ir_a) {	
+	if(not J->has_block(ib, jb)) {
+	  (*J) = 
+	}
+	pair<Irrep, Irrep> ij(ib, jb);
+	J[ij](i, j) += v * Ca(k) * Ca(l);
+      }
+    }
+  }
+  */
+  void CalcK(B2EInt eri, const Eigen::VectorXcd& Ca, Irrep ir_a, BMat *K) {
   }
   MO CalcRHF(SymGTOs gtos, int nele, ERIMethod method, const SCFOptions& opts,
 	     bool *is_conv) {

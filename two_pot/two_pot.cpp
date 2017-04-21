@@ -88,6 +88,7 @@ map<int, BMat> V0L1, HV0L1;
 map<int, BVec> s0L, sD0L, c0L, Hc0L;
 map<int, BVec> s0L_chi; // driven term for psi_p
 
+dcomplex muphi_psi1[10], muphi_psi1_v[10];
 MultArray<dcomplex, 2> impsi0_muphi(100),  impsi0_muphi_v(100);
 MultArray<dcomplex, 2> impsi0_v_psi1(100), impsi0_v_psi1_v(100);
 MultArray<dcomplex, 2> impsi0_chi(100);
@@ -99,6 +100,21 @@ int idx_cs(0), idx_cs_sigu(1), idx_cs_piu(2), idx_beta(3);
 int idx_cs_alpha(4), idx_cs_sigu_alpha(5), idx_cs_piu_alpha(6);
 int idx_cs_v(7), idx_cs_sigu_v(8), idx_cs_piu_v(9), idx_beta_v(10);
 int idx_cs_alpha_v(11), idx_cs_sigu_alpha_v(12), idx_cs_piu_alpha_v(13);
+
+void CalcSTEXHamiltonian(SymGTOs g1, SymGTOs g0, ERIMethod m, VectorXcd& c0,
+			 BMat *H) {
+
+  BMat S, V;
+  
+  B2EInt eri_J = CalcERI(g1, g1, g0, g0, m);
+  B2EInt eri_K = CalcERI(g1, g0, g0, g1, m);
+
+  CalcSTVMat(g1, g1, &S, H, &V);
+  H->Add(1.0, V);
+  AddJ(eri_J, c0, irrep0, 1.0, *H);
+  AddK(eri_K, c0, irrep0, 1.0, *H);
+  
+}
 
 void s2y(MultArray<dcomplex, 1>& sM,
 	 MultArray<dcomplex, 1> *yM, int L) {
@@ -466,9 +482,16 @@ void CalcMat() {
 void CalcMatSTEX() {
   PrintTimeStamp("MatSTEX_1", NULL);
 
-  B2EInt eri_J_11 = CalcERI(basis1, basis1, basis0, basis0, eri_method);
-  B2EInt eri_K_11 = CalcERI(basis1, basis0, basis0, basis1, eri_method);
-  AddJ(eri_J_11, c0, irrep0, 1.0, V1); AddK(eri_K_11, c0, irrep0, 1.0, V1);
+  //B2EInt eri_J_11 = CalcERI(basis1, basis1, basis0, basis0, eri_method);
+  //B2EInt eri_K_11 = CalcERI(basis1, basis0, basis0, basis1, eri_method);
+  //AddJ(eri_J_11, c0, irrep0, 1.0, V1); AddK(eri_K_11, c0, irrep0, 1.0, V1);
+
+  /*
+  BMat H_STEX;
+  CalcSTEXHamiltonian(basis1, basis0, eri_method, c0, &H_STEX);
+  Copy(H_STEX, V1);
+  V1.Add(-1.0, T1);
+  */
 
   PrintTimeStamp("MatSTEX_01", NULL);
   BOOST_FOREACH(int L, Ls) {
@@ -664,6 +687,10 @@ void CalcDriv_eigen_value(int iw) {
 }
 void CalcBraket() {
 
+  /**
+     compute some braket.
+   */
+  
   // <ImPsi|0> = <(y-Hy)/2j|0>
   //           = -1/2j*(<y|0>-<Hy|0>)
   //           = -1/2j*((Hy|0)-(y|0))
@@ -674,6 +701,11 @@ void CalcBraket() {
   Irrep y = sym->irrep_y();
   Irrep z = sym->irrep_z();
   dcomplex m2(0, 2);
+
+  BOOST_FOREACH(Irrep i, irreps) {
+    muphi_psi1[i] = TDot(c1(i), s1(i)) / 3.0 * (1.0*ne);
+    muphi_psi1_v[i] = TDot(cD1(i), sD1(i)) / 3.0 * (1.0*ne);
+  }
   
   BOOST_FOREACH(int L, Ls) {
     BVec& c0 = c0L[L];
@@ -727,25 +759,20 @@ void CalcMain_alpha(int iw) {
   Irrep x = sym->irrep_x();
   Irrep y = sym->irrep_y();
   Irrep z = sym->irrep_z();
-  
-  dcomplex alpha_x = TDot(c1(x), s1(x))/3.0*(1.0*ne);
-  dcomplex alpha_y = TDot(c1(y), s1(y))/3.0*(1.0*ne);
-  dcomplex alpha_z = TDot(c1(z), s1(z))/3.0*(1.0*ne);
-  dcomplex alpha = (alpha_x+alpha_y+alpha_z);
+
+  dcomplex alpha = muphi_psi1[x] + muphi_psi1[y] + muphi_psi1[z];
+
   double cs = 4.0*M_PI*w/ c_light * alpha.imag()* au2mb;
-  double cs_sigu = 4.0*M_PI*w/ c_light * alpha_z.imag()* au2mb;
-  double cs_piu  = 4.0*M_PI*w/ c_light * (alpha_x+alpha_y).imag()* au2mb;  
+  double cs_sigu = 4.0*M_PI*w/ c_light * muphi_psi1[z].imag()* au2mb;
+  double cs_piu  = 4.0*M_PI*w/ c_light * (muphi_psi1[x]+muphi_psi1[y]).imag()* au2mb;  
   result(iw, idx_cs_alpha) = cs;
   result(iw, idx_cs_sigu_alpha) = cs_sigu;
   result(iw, idx_cs_piu_alpha) = cs_piu;  
 
-  dcomplex alpha_dx = TDot(cD1(x), sD1(x))/3.0*(1.0*ne);
-  dcomplex alpha_dy = TDot(cD1(y), sD1(y))/3.0*(1.0*ne);
-  dcomplex alpha_dz = TDot(cD1(z), sD1(z))/3.0*(1.0*ne);  
-  dcomplex alpha_d = (alpha_dx+alpha_dy+alpha_dz);
+  dcomplex alpha_d = muphi_psi1_v[x] + muphi_psi1_v[y] + muphi_psi1_v[z];
   double cs_v      = 4.0*M_PI/(w*c_light) * alpha_d.imag() * au2mb;
-  double cs_sigu_v = 4.0*M_PI/(w*c_light) * alpha_dz.imag() * au2mb;
-  double cs_piu_v  = 4.0*M_PI/(w*c_light) * (alpha_dx+alpha_dy).imag() * au2mb;
+  double cs_sigu_v = 4.0*M_PI/(w*c_light) * muphi_psi1_v[z].imag() * au2mb;
+  double cs_piu_v  = 4.0*M_PI/(w*c_light) * (muphi_psi1_v[x]+muphi_psi1_v[y]).imag() * au2mb;
   result(iw, idx_cs_alpha_v)      = cs_v;
   result(iw, idx_cs_sigu_alpha_v) = cs_sigu_v;
   result(iw, idx_cs_piu_alpha_v)  = cs_piu_v;
@@ -1042,6 +1069,195 @@ void Calc_one_lin() {
   
 }
 
+void Calc_RPA_Eigen() {
+  
+
+  // ==== build RPA Hamiltonian ====
+  BVec eig1;
+  BMat U1;
+
+  // -- A = T + V_ne + J + K - epsilon0  
+  CalcSTVMat(basis1, basis1, &S1, &T1, &V1);  
+  BMat A("A"); Copy(T1, A);    
+  A.Add(1.0, V1);
+  B2EInt eri_J_11 = CalcERI(basis1, basis1, basis0, basis0, eri_method);
+  B2EInt eri_K_11 = CalcERI(basis1, basis0, basis0, basis1, eri_method);
+  AddJ(eri_J_11, c0, irrep0, 1.0, A);
+  AddK(eri_K_11, c0, irrep0, 1.0, A);
+  A.Add(-E0, S1);
+
+  // -- B = K --
+  BMat B("B"); Copy(T1, B); B.SetZero();  
+  AddK(eri_K_11, c0, irrep0, 1.0, B);
+
+  // -- H^2= sqrt(sqrt(A-B)(A+B)sqrt(A-B))
+  BMat ApB("ApB"); Copy(A, ApB); ApB.Add(+1.0, B);  
+  BMat AmB("AmB"); Copy(A, AmB); AmB.Add(-1.0, B);
+  BMat sqrt_AmB("sqrt_AmB"); BMatSqrt(AmB, sqrt_AmB);
+  BMat H2("H2");  Multi3(sqrt_AmB, ApB, sqrt_AmB, H2);
+
+  // -- solve eigen value problem --
+  BMat hpg, hmg;
+  BOOST_FOREACH(Irrep i, irreps) {
+    SymGenComplexEigenSolver solver(H2(i,i), S1(i,i));
+    eig1(i) = solver.eigenvalues();
+    int n = eig1(i).size();
+    for(int I = 0; I < n; I++) {
+      eig1(i)(I) = sqrt(eig1(i)(I));
+    }
+    U1(i, i) = solver.eigenvectors();
+    
+    hpg(i, i) = MatrixXcd::Zero(n, n);
+    hmg(i, i) = MatrixXcd::Zero(n, n);
+    
+    for(int I = 0; I < n; I++) {
+      for(int j = 0; j < n; j++) {
+	for(int k = 0; k < n; k++) {
+	  hpg(i,i)(j, I) += sqrt_AmB(i,i)(j, k) * U1(i,i)(k, I) / sqrt(eig1(i)(I));
+	}
+      }
+    }
+    
+    for(int I = 0; I < n; I++) {
+      VectorXcd UI = U1(i, i).col(I);
+      VectorXcd AmB_inv_sqrt_UI = sqrt_AmB(i,i).colPivHouseholderQr().solve(UI);
+      for(int j = 0; j < n; j++) {
+	hmg(i,i)(j, I) = sqrt(eig1(i)(I)) * AmB_inv_sqrt_UI(j);
+      }
+    }
+    
+    for(int I = 0; I < n; I++) {
+      cout << "norm: "
+	   << TDot(hmg(i,i).col(I), hpg(i,i).col(I))
+	   << endl;
+    }
+  }
+  
+  // -- compute driven term --
+  BMat X1i, DX1i, Y1i, DY1i, Z1i, DZ1i;
+  CalcDipMat(basis1, basis0, &X1i, &Y1i, &Z1i, &DX1i, &DY1i, &DZ1i);
+  Irrep x = sym->irrep_x(); Irrep y = sym->irrep_y(); Irrep z = sym->irrep_z(); 
+  s1(x) = X1i(x, 0) * c0; sD1(x) = DX1i(x, 0) * c0; 
+  s1(y) = Y1i(y, 0) * c0; sD1(y) = DY1i(y, 0) * c0; 
+  s1(z) = Z1i(z, 0) * c0; sD1(z) = DZ1i(z, 0) * c0;
+
+  // -- transform to excited states basis --
+  BVec s1_rpa, sD1_rpa;
+  BOOST_FOREACH(Irrep i, irreps) {
+    Ctx(hpg(i,i), s1(i),   &s1_rpa(i));
+    Ctx(hpg(i,i), sD1(i), &sD1_rpa(i));
+  }
+
+  // -- start loop --
+  for(int iw = 0; iw < (int)w_list.size(); iw++) {
+    double w = w_list[iw];
+    cout << "w_eV: " << w * au2ev << endl;
+    cout << "w_au: " << w << endl;
+    cout << "E_eV: " << (w + E0) * au2ev << endl;
+    cout << "E_au: " << w + E0 << endl;
+    cout << "k_au: " << sqrt(2.0*(w + E0)) << endl;
+
+    // -- calculate alpha --
+    // <mu phi0, psi1> = sum_I <phi_0, mu phi_I> <phi_I, mu phi_0>/(w-dEi)
+    // <phi_0, mu phi_I> = <phi_0, mu u_i> U_{iI}
+    BOOST_FOREACH(Irrep i, irreps) {
+      muphi_psi1[i] = 0.0;
+      muphi_psi1_v[i] = 0.0;
+      for(int I = 0; I < U1(i,i).rows(); I++) {
+	muphi_psi1[i]   += s1_rpa(i)(I)*s1_rpa(i)(I)   / (w-eig1(i)(I));
+	muphi_psi1_v[i] += sD1_rpa(i)(I)*sD1_rpa(i)(I) / (w-eig1(i)(I));
+      } 
+    }
+    
+    CalcMain_alpha(iw);    
+    //    CalcMain(iw);
+  } 
+  
+}
+void Calc_RPA_Eigen_IVO() {
+
+  PrintTimeStamp("start RPA/IVO", NULL);
+  
+  // -- STEX Hamiltonian  --
+  PrintTimeStamp("STEX", NULL);
+  CalcSTVMat(basis1, basis1, &S1, &T1, &V1);
+  B2EInt eri_J_11 = CalcERI(basis1, basis1, basis0, basis0, eri_method);
+  B2EInt eri_K_11 = CalcERI(basis1, basis0, basis0, basis1, eri_method);
+  BMat H_STEX;
+  Copy(T1, H_STEX);
+  H_STEX.Add(1.0, V1);
+  AddJ(eri_J_11, c0, irrep0, 1.0, H_STEX); AddK(eri_K_11, c0, irrep0, 1.0, H_STEX);
+
+  // -- calculate IVO --
+  // I : index for IVO
+  // i : index for AO
+  PrintTimeStamp("IVO", NULL);
+  BVec eig_ivo_I;
+  BMat U_ivo_iI;
+  BOOST_FOREACH(Irrep irr, irreps) {
+    SymGenComplexEigenSolver solver(H_STEX(irr,irr), S1(irr,irr));
+    eig_ivo_I(irr) = solver.eigenvalues();
+    U_ivo_iI(irr, irr) = solver.eigenvectors();
+  }
+
+  // -- Build A and B in IVO basis --
+  PrintTimeStamp("A and B", NULL);
+  BMat A; 
+  BMatDiag(eig_ivo_I, &A);
+  A.Shift(-E0); 
+  BMat B; Copy(A, B); B.SetZero();
+  AddK(eri_K_11, c0, irrep0, 1.0, B); 
+  BOOST_FOREACH(Irrep irr, irreps) {
+    CtAC(U_ivo_iI(irr, irr), B(irr, irr)); 
+  }
+
+  // -- build Hamiltonian --
+  PrintTimeStamp("H2", NULL);
+  BMat ApB("ApB"); Copy(A, ApB); ApB.Add(+1.0, B);  
+  BMat AmB("AmB"); Copy(A, AmB); AmB.Add(-1.0, B);
+  BMat sqrt_AmB("sqrt_AmB"); BMatSqrt(AmB, sqrt_AmB);
+  BMat inv_sqrt_AmB("inv_sqrt_AmB"); Copy(sqrt_AmB, inv_sqrt_AmB);  
+  BOOST_FOREACH(Irrep irr, irreps) {
+    LinearSolver lin;
+    lin.Inv(sqrt_AmB(irr, irr), &inv_sqrt_AmB(irr, irr));
+  }  
+  BMat H2("H2");  Multi3(sqrt_AmB, ApB, sqrt_AmB, H2);
+
+  // -- diagonalize Hamiltonian --
+  PrintTimeStamp("diag H2", NULL);
+  BVec w2s_rpa;
+  BMat YpZ, YmZ;
+  BOOST_FOREACH(Irrep irr, irreps) {
+    int n = H2(irr, irr).rows();
+    MatrixXcd S = MatrixXcd::Identity(n, n);
+    SymGenComplexEigenSolver solver(H2(irr,irr), S);
+    w2s_rpa(irr) = solver.eigenvalues();
+    const MatrixXcd& U = solver.eigenvectors();
+    YpZ(irr, irr) = MatrixXcd::Zero(n, n);
+    YmZ(irr, irr) = MatrixXcd::Zero(n, n);
+    for(int i = 0; i < n; i++) {
+      for(int I = 0; I < n; I++) {
+	dcomplex w = sqrt(w2s_rpa(irr)(I));
+	dcomplex acc1(0);
+	dcomplex acc2(0);
+	for(int k = 0; k < n; k++) {
+	  acc1 += 1.0/w * sqrt_AmB(irr,irr)(i, k) * U(k, I);
+	  acc2 += w     * inv_sqrt_AmB(irr,irr)(i, k) * U(k, I);
+	}
+	YpZ(irr, irr)(i, I) = acc1;
+	YmZ(irr, irr)(i, I) = acc1;
+      }
+    }
+  }
+
+  // -- check normalization --
+  BOOST_FOREACH(Irrep irr, irreps) {
+    VectorXcd Y = 0.5 * (YpZ(irr, irr) + YmZ(irr, irr));
+    VectorXcd Z = 0.5 * (YpZ(irr, irr) - YmZ(irr, irr));
+    cout << TDot(Y, Y) - TDot(Z, Z) << endl;
+  }
+  
+}
 int main(int argc, char *argv[]) {
   cout << ">>>> two_pot >>>>" << endl;
   if(argc == 1) {
@@ -1051,6 +1267,11 @@ int main(int argc, char *argv[]) {
   in_json = argv[1];
   Parse();
   PrintIn();
+
+  if(calc_type == "RPA" and solve_driv_type == "eigen_value") {
+    Calc_RPA_Eigen_IVO();
+    return 0;
+  }
 
   if(calc_type == "one") {
     CalcMat();
@@ -1074,11 +1295,13 @@ int main(int argc, char *argv[]) {
     } else if(solve_driv_type == "eigen_value") {
       CalcDriv_eigen_value(iw);
     }
-    CalcMain_alpha(iw);
     CalcBraket();    
+    CalcMain_alpha(iw);    
     CalcMain(iw);
   }
 
+ out:
+  
   PrintOut();
   cout << "<<<< two_pot <<<<" << endl;
   return 0;
