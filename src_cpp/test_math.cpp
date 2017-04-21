@@ -299,7 +299,7 @@ TEST(BMat, CtAD) {
   BMat A;
   A(0, 1) = MatrixXcd::Random(2, 3);
 
-  bmat d;
+  BMat D;
   D(1, 1) = MatrixXcd::Random(3, 6);
 
   BMat B;

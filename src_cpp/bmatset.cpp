@@ -529,15 +529,16 @@ namespace cbasis {
 	for(It itd = D.begin(); itd != D.end(); ++itd) {
 	  Key kc = itc->first;
 	  Key ka = ita->first;
-	  Key kd = itb->first;
-	  MatrixXcd& mc = itc->second;
-	  MatrixXcd& ma = ita->second;
-	  MatrixXcd& md = itd->second;
+	  Key kd = itd->first;
+	  const MatrixXcd& mc = itc->second;
+	  const MatrixXcd& ma = ita->second;
+	  const MatrixXcd& md = itd->second;
 	  if(kc.first == ka.first and ka.second == kd.first) {
 	    Key kres(kc.second, kd.second);
 	    CtAD(mc, ma, md, &(*res)[kres]);
 	  }
-	  
+	}
+      }
     }
   }
   void BMatRead(BMat::Map& bmat, string fn) {

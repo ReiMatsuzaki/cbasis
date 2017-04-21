@@ -132,7 +132,7 @@ TEST_F(TestIVO, Moment) {
   BMat z_HF, z_IVO, z_RPA_HF, z_RPA_IVO;
   BMatCtAD(U_HF,      mo_0->C, z,     &z_HF);
   BMatCtAD(U_IVO,     mo_0->C, z,     &z_IVO);
-  bmatctad(RPA_HF.U,  U_HF,    z_HF,  &z_RPA_HF);
+  BMatCtAD(RPA_HF.U,  U_HF,    z_HF,  &z_RPA_HF);
   BMatCtAD(RPA_IVO.U, U_IVO,   z_IVO, &z_RPA_IVO);
 
   Irrep irr1 = us_1->sym_group()->irrep_z();
